@@ -6,32 +6,25 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowDown, ArrowUp, Warehouse, IndianRupee } from "lucide-react";
 import { calculateFinalRent } from "@/lib/billing";
 import { formatCurrency } from "@/lib/utils";
-import { storageRecords as getStorageRecords } from "@/lib/data";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import type { StorageRecord } from "@/lib/definitions";
+import { useCollection } from "@/firebase/firestore/use-collection";
+import { collection, query, where } from "firebase/firestore";
+import { useFirestore } from "@/firebase";
 
 export default function StoragePage() {
-  const [allRecords, setAllRecords] = useState<StorageRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-  
-  useEffect(() => {
-    async function fetchRecords() {
-      const data = await getStorageRecords();
-      setAllRecords(data);
-      setLoading(false);
-    }
-    fetchRecords();
-  }, []);
+  const firestore = useFirestore();
+  const { data: allRecords, loading } = useCollection<StorageRecord>(
+    firestore ? collection(firestore, 'storageRecords') : null
+  );
 
   const stats = useMemo(() => {
     if (!allRecords) return { totalInflow: 0, totalOutflow: 0, balanceStock: 0, estimatedRent: 0 };
     
-    const totalInflow = allRecords.reduce((acc, record) => acc + record.bagsStored, 0);
-    
-    const completedRecords = allRecords.filter(r => r.storageEndDate);
-    const totalOutflow = completedRecords.reduce((acc, record) => acc + record.bagsStored, 0);
+    const totalInflow = allRecords.reduce((acc, record) => acc + (record.bagsIn || 0), 0);
+    const totalOutflow = allRecords.reduce((acc, record) => acc + (record.bagsOut || 0), 0);
+    const balanceStock = allRecords.reduce((acc, record) => acc + record.bagsStored, 0);
 
-    const balanceStock = totalInflow - totalOutflow;
 
     const activeRecords = allRecords.filter(r => !r.storageEndDate);
     const estimatedRent = activeRecords.reduce((total, record) => {

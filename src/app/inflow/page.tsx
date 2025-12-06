@@ -3,30 +3,25 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
 import { InflowForm } from "@/components/inflow/inflow-form";
 import { AddCustomerDialog } from "@/components/customers/add-customer-dialog";
-import { customers as getCustomers, storageRecords as getStorageRecords } from "@/lib/data";
-import { useEffect, useState, useMemo } from "react";
+import { useMemo } from "react";
 import type { Customer, StorageRecord } from "@/lib/definitions";
+import { useCollection } from "@/firebase/firestore/use-collection";
+import { collection } from "firebase/firestore";
+import { useFirestore } from "@/firebase";
 
 export default function InflowPage() {
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [records, setRecords] = useState<StorageRecord[]>([]);
-  const [loading, setLoading] = useState(true);
+  const firestore = useFirestore();
+  const { data: customers, loading: customersLoading } = useCollection<Customer>(
+    firestore ? collection(firestore, 'customers') : null
+  );
+  const { data: records, loading: recordsLoading } = useCollection<StorageRecord>(
+    firestore ? collection(firestore, 'storageRecords') : null
+  );
   
-  useEffect(() => {
-    async function fetchData() {
-      const [customerData, recordData] = await Promise.all([
-        getCustomers(),
-        getStorageRecords(),
-      ]);
-      setCustomers(customerData);
-      setRecords(recordData);
-      setLoading(false);
-    }
-    fetchData();
-  }, []);
+  const loading = customersLoading || recordsLoading;
 
   const nextSerialNumber = useMemo(() => {
-    if (records.length === 0) {
+    if (!records || records.length === 0) {
       return 'SLWH-1';
     }
     const maxId = records.reduce((max, record) => {

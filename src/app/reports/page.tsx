@@ -2,27 +2,21 @@
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
 import { ReportClient } from "@/components/reports/report-client";
-import { storageRecords as getStorageRecords, customers as getCustomers } from "@/lib/data";
-import { useEffect, useState } from "react";
 import type { Customer, StorageRecord } from "@/lib/definitions";
+import { useCollection } from "@/firebase/firestore/use-collection";
+import { collection } from "firebase/firestore";
+import { useFirestore } from "@/firebase";
 
 export default function ReportsPage() {
-    const [allRecords, setAllRecords] = useState<StorageRecord[]>([]);
-    const [allCustomers, setAllCustomers] = useState<Customer[]>([]);
-    const [loading, setLoading] = useState(true);
+    const firestore = useFirestore();
+    const { data: allRecords, loading: recordsLoading } = useCollection<StorageRecord>(
+      firestore ? collection(firestore, 'storageRecords') : null
+    );
+    const { data: allCustomers, loading: customersLoading } = useCollection<Customer>(
+      firestore ? collection(firestore, 'customers') : null
+    );
     
-    useEffect(() => {
-        async function fetchData() {
-            const [records, customers] = await Promise.all([
-                getStorageRecords(),
-                getCustomers()
-            ]);
-            setAllRecords(records);
-            setAllCustomers(customers);
-            setLoading(false);
-        }
-        fetchData();
-    }, []);
+    const loading = recordsLoading || customersLoading;
 
     if (loading) {
         return <AppLayout><div>Loading...</div></AppLayout>;

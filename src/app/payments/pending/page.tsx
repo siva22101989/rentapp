@@ -3,30 +3,25 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useState, useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import type { Customer, StorageRecord } from "@/lib/definitions";
 import { Badge } from "@/components/ui/badge";
 import { AddPaymentDialog } from "@/components/payments/add-payment-dialog";
 import { formatCurrency } from "@/lib/utils";
-import { storageRecords as getStorageRecords, customers as getCustomers } from "@/lib/data";
+import { useCollection } from "@/firebase/firestore/use-collection";
+import { collection, query, where } from "firebase/firestore";
+import { useFirestore } from "@/firebase";
 
 function PendingPaymentsTable() {
-    const [allRecords, setAllRecords] = useState<StorageRecord[]>([]);
-    const [allCustomers, setAllCustomers] = useState<Customer[]>([]);
-    const [loading, setLoading] = useState(true);
+    const firestore = useFirestore();
+    const { data: allRecords, loading: recordsLoading } = useCollection<StorageRecord>(
+      firestore ? collection(firestore, 'storageRecords') : null
+    );
+    const { data: allCustomers, loading: customersLoading } = useCollection<Customer>(
+      firestore ? collection(firestore, 'customers') : null
+    );
 
-    useEffect(() => {
-        async function fetchData() {
-            const [records, customers] = await Promise.all([
-                getStorageRecords(),
-                getCustomers()
-            ]);
-            setAllRecords(records);
-            setAllCustomers(customers);
-            setLoading(false);
-        }
-        fetchData();
-    }, []);
+    const loading = recordsLoading || customersLoading;
 
     const pendingRecords = useMemo(() => {
         if (!allRecords) return [];
@@ -39,7 +34,8 @@ function PendingPaymentsTable() {
     }, [allRecords]);
     
     const getCustomerName = (customerId: string) => {
-        return allCustomers?.find(c => c.id === customerId)?.name ?? 'Unknown';
+        if (!allCustomers) return 'Unknown';
+        return allCustomers.find(c => c.id === customerId)?.name ?? 'Unknown';
     }
 
     if (loading) {

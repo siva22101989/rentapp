@@ -2,28 +2,25 @@
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
 import { OutflowForm } from "@/components/outflow/outflow-form";
-import { customers as getCustomers, storageRecords as getStorageRecords } from "@/lib/data";
-import { useEffect, useState } from "react";
 import type { Customer, StorageRecord } from "@/lib/definitions";
+import { useCollection } from "@/firebase/firestore/use-collection";
+import { collection, query, where } from "firebase/firestore";
+import { useFirestore } from "@/firebase";
 
 export default function OutflowPage() {
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [activeRecords, setActiveRecords] = useState<StorageRecord[]>([]);
-  const [loading, setLoading] = useState(true);
+  const firestore = useFirestore();
+  
+  const { data: customers, loading: customersLoading } = useCollection<Customer>(
+    firestore ? collection(firestore, 'customers') : null
+  );
 
-  useEffect(() => {
-    async function fetchData() {
-      const [customersData, recordsData] = await Promise.all([
-        getCustomers(),
-        getStorageRecords()
-      ]);
-      setCustomers(customersData);
-      setActiveRecords(recordsData.filter(r => !r.storageEndDate));
-      setLoading(false);
-    }
-    fetchData();
-  }, []);
+  const activeRecordsQuery = firestore 
+    ? query(collection(firestore, 'storageRecords'), where('storageEndDate', '==', null)) 
+    : null;
+    
+  const { data: activeRecords, loading: recordsLoading } = useCollection<StorageRecord>(activeRecordsQuery);
 
+  const loading = customersLoading || recordsLoading;
 
   if (loading) {
     return <AppLayout><div>Loading...</div></AppLayout>;

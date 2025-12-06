@@ -11,30 +11,28 @@ import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns';
 import { ActionsMenu } from "./actions-menu";
 import { formatCurrency, toDate } from "@/lib/utils";
-import { customers as getCustomers, storageRecords as getStorageRecords } from "@/lib/data";
-import { useEffect, useMemo, useState } from "react";
+import { useCollection } from "@/firebase/firestore/use-collection";
+import { collection, query, where } from "firebase/firestore";
+import { useFirestore } from "@/firebase";
 import type { Customer, StorageRecord } from "@/lib/definitions";
 
 export function StorageTable() {
-  const [activeRecords, setActiveRecords] = useState<StorageRecord[]>([]);
-  const [allCustomers, setAllCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(true);
+  const firestore = useFirestore();
 
-  useEffect(() => {
-    async function fetchData() {
-        const [customersData, recordsData] = await Promise.all([
-            getCustomers(),
-            getStorageRecords()
-        ]);
-        setAllCustomers(customersData);
-        setActiveRecords(recordsData.filter(r => !r.storageEndDate));
-        setLoading(false);
-    }
-    fetchData();
-  }, []);
+  const activeRecordsQuery = firestore
+    ? query(collection(firestore, 'storageRecords'), where('storageEndDate', '==', null))
+    : null;
+    
+  const { data: activeRecords, loading: recordsLoading } = useCollection<StorageRecord>(activeRecordsQuery);
+  const { data: allCustomers, loading: customersLoading } = useCollection<Customer>(
+    firestore ? collection(firestore, 'customers') : null
+  );
+
+  const loading = recordsLoading || customersLoading;
 
   const getCustomerName = (customerId: string) => {
-    return allCustomers?.find(c => c.id === customerId)?.name ?? 'Unknown';
+    if (!allCustomers) return 'Unknown';
+    return allCustomers.find(c => c.id === customerId)?.name ?? 'Unknown';
   };
 
   if (loading) {

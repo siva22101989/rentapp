@@ -55,3 +55,11 @@ export type Expense = {
   category: ExpenseCategory;
   date: Date | Timestamp;
 };
+
+// This is a placeholder for Firebase user object
+export interface User {
+  uid: string;
+  email?: string | null;
+  displayName?: string | null;
+  photoURL?: string | null;
+}

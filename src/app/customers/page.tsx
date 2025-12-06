@@ -11,23 +11,16 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { AddCustomerDialog } from "@/components/customers/add-customer-dialog";
-import { customers as getCustomers } from "@/lib/data";
-import { useEffect, useState } from "react";
+import { useCollection } from "@/firebase/firestore/use-collection";
 import type { Customer } from "@/lib/definitions";
+import { collection } from "firebase/firestore";
+import { useFirestore } from "@/firebase";
 
 function CustomersTable() {
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchCustomers() {
-      const data = await getCustomers();
-      setCustomers(data);
-      setLoading(false);
-    }
-    fetchCustomers();
-  }, []);
-
+  const firestore = useFirestore();
+  const { data: customers, loading } = useCollection<Customer>(
+    firestore ? collection(firestore, 'customers') : null
+  );
 
   if (loading) {
     return <div>Loading...</div>;

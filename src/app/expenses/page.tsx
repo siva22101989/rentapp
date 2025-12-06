@@ -4,13 +4,15 @@ import { PageHeader } from "@/components/shared/page-header";
 import { AddExpenseDialog } from "@/components/expenses/add-expense-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Scale } from "lucide-react";
-import { storageRecords as getStorageRecords, expenses as getExpenses } from "@/lib/data";
 import { formatCurrency, toDate } from "@/lib/utils";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Expense, StorageRecord } from "@/lib/definitions";
 import { format } from "date-fns";
 import { ExpenseActionsMenu } from "@/components/expenses/expense-actions-menu";
+import { useCollection } from "@/firebase/firestore/use-collection";
+import { collection } from "firebase/firestore";
+import { useFirestore } from "@/firebase";
 
 function ExpensesTable({ expenses }: { expenses: Expense[] }) {
   if (expenses.length === 0) {
@@ -60,27 +62,20 @@ function ExpensesTable({ expenses }: { expenses: Expense[] }) {
 
 
 export default function ExpensesPage() {
-  const [allRecords, setAllRecords] = useState<StorageRecord[]>([]);
-  const [allExpenses, setAllExpenses] = useState<Expense[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchData() {
-      const [records, expenses] = await Promise.all([
-        getStorageRecords(),
-        getExpenses()
-      ]);
-      setAllRecords(records);
-      setAllExpenses(expenses);
-      setLoading(false);
-    }
-    fetchData();
-  }, []);
+  const firestore = useFirestore();
+  const { data: allRecords, loading: recordsLoading } = useCollection<StorageRecord>(
+    firestore ? collection(firestore, 'storageRecords') : null
+  );
+  const { data: allExpenses, loading: expensesLoading } = useCollection<Expense>(
+    firestore ? collection(firestore, 'expenses') : null
+  );
 
   const { totalIncome, totalExpenses, totalBalance } = useMemo(() => {
+    if (!allRecords || !allExpenses) return { totalIncome: 0, totalExpenses: 0, totalBalance: 0 };
+    
     const income = allRecords.reduce((total, record) => {
       const rentPayments = (record.payments || [])
-        .filter(p => p.type === 'rent')
+        .filter(p => p.type === 'rent' || p.type === 'other') // considering other as potential income
         .reduce((acc, p) => acc + p.amount, 0);
       return total + rentPayments;
     }, 0);
@@ -95,7 +90,7 @@ export default function ExpensesPage() {
   }, [allRecords, allExpenses]);
 
 
-  if (loading) {
+  if (recordsLoading || expensesLoading) {
     return (
       <AppLayout>
         <PageHeader title="Expenses & Income" description="Track your warehouse operational finances." />
@@ -152,7 +147,7 @@ export default function ExpensesPage() {
         </Card>
       </div>
       <div className="mt-8">
-        <ExpensesTable expenses={allExpenses} />
+        <ExpensesTable expenses={allExpenses || []} />
       </div>
     </AppLayout>
   );

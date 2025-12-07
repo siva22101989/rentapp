@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
   devIndicators: {
     allowedDevOrigins: [
       '*.cloudworkstations.dev',
+      'http://localhost:9002',
     ],
   },
   typescript: {

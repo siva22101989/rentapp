@@ -4,7 +4,6 @@ import React, { createContext, useContext } from 'react';
 import type { FirebaseApp } from 'firebase/app';
 import type { Auth } from 'firebase/auth';
 import type { Firestore } from 'firebase/firestore';
-import { FirebaseClientProvider } from './client-provider';
 
 interface FirebaseContextValue {
   app: FirebaseApp | null;
@@ -19,16 +18,20 @@ const FirebaseContext = createContext<FirebaseContextValue>({
 });
 
 export const FirebaseProvider = ({
+  app,
+  auth,
+  firestore,
   children,
 }: {
+  app: FirebaseApp;
+  auth: Auth;
+  firestore: Firestore;
   children: React.ReactNode;
 }) => {
   return (
-    <FirebaseClientProvider>
-      <FirebaseContext.Consumer>
-        {() => children}
-      </FirebaseContext.Consumer>
-    </FirebaseClientProvider>
+    <FirebaseContext.Provider value={{ app, auth, firestore }}>
+      {children}
+    </FirebaseContext.Provider>
   );
 };
 

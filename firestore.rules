@@ -3,22 +3,58 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Allow public read access to customers
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    function isCreating() {
+      return resource == null;
+    }
+
+    function isUpdating() {
+      return resource != null;
+    }
+
+    // Customer documents can be read by anyone, but only created or updated
+    // by authenticated users who provide valid data.
     match /customers/{customerId} {
       allow read: if true;
-      allow write: if request.auth != null; // Only authenticated users can write
+      allow write: if isSignedIn() &&
+                      (isCreating() || isUpdating()) &&
+                      request.resource.data.name is string &&
+                      request.resource.data.phone is string &&
+                      request.resource.data.address is string;
     }
 
-    // Allow public read access to storage records
+    // Storage records can be read by anyone. They can be created or updated
+    // by authenticated users with valid data.
     match /storageRecords/{recordId} {
       allow read: if true;
-      allow write: if request.auth != null; // Only authenticated users can write
+      allow write: if isSignedIn() &&
+                      (isCreating() || isUpdating()) &&
+                      request.resource.data.customerId is string &&
+                      request.resource.data.commodityDescription is string &&
+                      request.resource.data.location is string &&
+                      request.resource.data.bagsStored is number &&
+                      request.resource.data.storageStartDate is timestamp &&
+                      request.resource.data.billingCycle is string;
     }
 
-    // Allow public read and authenticated write access to expenses
+    // Expenses can be read by anyone. They can be created or updated by
+    // authenticated users with valid data.
     match /expenses/{expenseId} {
-      allow read: if true;
-      allow write: if request.auth != null; // Only authenticated users can write
+        allow read: if true;
+        allow write: if isSignedIn() &&
+                        (isCreating() || isUpdating()) &&
+                        request.resource.data.description is string &&
+                        request.resource.data.amount is number &&
+                        request.resource.data.category is string &&
+                        request.resource.data.date is timestamp;
     }
   }
 }

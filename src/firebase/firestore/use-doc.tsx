@@ -7,7 +7,7 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { toDate } from '@/lib/utils';
 
-export const useDoc = <T>(ref: DocumentReference | null) => {
+export const useDoc = <T extends { id: string }>(ref: DocumentReference | null) => {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -27,11 +27,15 @@ export const useDoc = <T>(ref: DocumentReference | null) => {
         if (doc.exists()) {
           const docData = doc.data();
            // Convert any Timestamps to Dates
-           Object.keys(docData).forEach(key => {
+           for (const key in docData) {
             if (docData[key]?.toDate) {
               docData[key] = toDate(docData[key]);
             }
-          });
+          }
+           // Ensure nested payment dates are converted
+          if (Array.isArray(docData.payments)) {
+            docData.payments = docData.payments.map((p: any) => ({...p, date: toDate(p.date)}));
+          }
           setData({ id: doc.id, ...docData } as T);
         } else {
           setData(null);
@@ -52,7 +56,8 @@ export const useDoc = <T>(ref: DocumentReference | null) => {
     );
 
     return () => unsubscribe();
-  }, [ref]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(ref?.path)]);
 
   return { data, loading, error };
 };

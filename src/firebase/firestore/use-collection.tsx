@@ -1,17 +1,9 @@
 
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import {
   onSnapshot,
-  collection,
-  query,
-  where,
-  orderBy,
-  limit,
-  startAt,
-  endAt,
-  type Firestore,
   type CollectionReference,
   type Query,
 } from 'firebase/firestore';
@@ -19,19 +11,7 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { toDate } from '@/lib/utils';
 
-export interface UseCollectionOptions {
-  where?: [string, '==', any];
-  orderBy?: [string, 'asc' | 'desc'];
-  limit?: number;
-  startAt?: any[];
-  endAt?: any[];
-}
-
-const useMemoFirebase = <T>(factory: () => T | null, deps: React.DependencyList): T | null => {
-    return useMemo(factory, deps);
-};
-
-export const useCollection = <T>(
+export const useCollection = <T extends { id: string }>(
   q: Query | CollectionReference | null,
 ) => {
   const [data, setData] = useState<T[] | null>(null);
@@ -54,11 +34,15 @@ export const useCollection = <T>(
         querySnapshot.forEach((doc) => {
           const docData = doc.data();
           // Convert any Timestamps to Dates
-          Object.keys(docData).forEach(key => {
+          for (const key in docData) {
             if (docData[key]?.toDate) {
               docData[key] = toDate(docData[key]);
             }
-          });
+          }
+          // Ensure nested payment dates are converted
+          if (Array.isArray(docData.payments)) {
+            docData.payments = docData.payments.map((p: any) => ({...p, date: toDate(p.date)}));
+          }
           docs.push({ id: doc.id, ...docData } as T);
         });
         setData(docs);
@@ -78,7 +62,8 @@ export const useCollection = <T>(
     );
 
     return () => unsubscribe();
-  }, [q]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(q)]);
 
   return { data, loading, error };
 };

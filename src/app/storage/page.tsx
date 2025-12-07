@@ -9,8 +9,9 @@ import { formatCurrency } from "@/lib/utils";
 import { useMemo } from "react";
 import type { StorageRecord } from "@/lib/definitions";
 import { useCollection } from "@/firebase/firestore/use-collection";
-import { collection, query, where } from "firebase/firestore";
+import { collection } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
+import { StorageTable } from "@/components/dashboard/storage-table";
 
 export default function StoragePage() {
   const firestore = useFirestore();
@@ -23,7 +24,7 @@ export default function StoragePage() {
     
     const totalInflow = allRecords.reduce((acc, record) => acc + (record.bagsIn || 0), 0);
     const totalOutflow = allRecords.reduce((acc, record) => acc + (record.bagsOut || 0), 0);
-    const balanceStock = allRecords.reduce((acc, record) => acc + record.bagsStored, 0);
+    const balanceStock = allRecords.filter(r => !r.storageEndDate).reduce((acc, record) => acc + record.bagsStored, 0);
 
 
     const activeRecords = allRecords.filter(r => !r.storageEndDate);
@@ -37,7 +38,15 @@ export default function StoragePage() {
   }, [allRecords]);
 
   if (loading) {
-    return <AppLayout><div>Loading...</div></AppLayout>;
+    return (
+      <AppLayout>
+        <PageHeader
+          title="Storage Overview"
+          description="A high-level summary of your warehouse inventory."
+        />
+        <div>Loading...</div>
+      </AppLayout>
+    );
   }
 
   return (
@@ -88,6 +97,15 @@ export default function StoragePage() {
             </CardContent>
         </Card>
       </div>
+
+       <Card>
+        <CardHeader>
+          <CardTitle>Active Storage</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <StorageTable />
+        </CardContent>
+      </Card>
     </AppLayout>
   );
 }

@@ -5,15 +5,22 @@ import { useState, useEffect } from 'react';
 import { onAuthStateChanged, type Auth } from 'firebase/auth';
 import type { User } from '@/lib/definitions';
 import { useAuth } from '@/firebase';
+import { usePathname, useRouter } from 'next/navigation';
 
 export const useUser = () => {
   const auth = useAuth();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (!auth) {
       setLoading(false);
+      // If we are not on the login page and there is no auth, redirect.
+      if (pathname !== '/login') {
+          router.push('/login');
+      }
       return;
     }
 
@@ -29,12 +36,15 @@ export const useUser = () => {
         setUser(appUser);
       } else {
         setUser(null);
+         if (pathname !== '/login') {
+            router.push('/login');
+        }
       }
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [auth]);
+  }, [auth, router, pathname]);
 
   return { user, loading };
 };

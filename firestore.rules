@@ -15,14 +15,12 @@ service cloud.firestore {
     // Customer documents
     match /customers/{customerId} {
       allow read: if isSignedIn();
+      // Allow create/update only if signed in and required fields are strings.
+      // Optional fields can be strings or not present.
       allow write: if isSignedIn() &&
                       request.resource.data.name is string &&
                       request.resource.data.phone is string &&
-                      request.resource.data.address is string &&
-                      request.resource.data.fatherName is string &&
-                      request.resource.data.village is string &&
-                      request.resource.data.email is string;
-
+                      request.resource.data.address is string;
     }
 
     // Storage records

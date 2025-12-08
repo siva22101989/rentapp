@@ -20,22 +20,24 @@ service cloud.firestore {
       return resource != null;
     }
 
-    // Customer documents can be read by anyone, but only created or updated
-    // by authenticated users who provide valid data.
+    // Customer documents can be read and written by any authenticated user,
+    // as long as the data is valid.
     match /customers/{customerId} {
-      allow read: if true;
-      allow write: if isSignedIn() &&
+      allow read, write: if isSignedIn() &&
                       (isCreating() || isUpdating()) &&
                       request.resource.data.name is string &&
                       request.resource.data.phone is string &&
-                      request.resource.data.address is string;
+                      request.resource.data.address is string &&
+                      request.resource.data.fatherName is string &&
+                      request.resource.data.village is string &&
+                      request.resource.data.email is string;
+
     }
 
-    // Storage records can be read by anyone. They can be created or updated
-    // by authenticated users with valid data.
+    // Storage records can be read and written by any authenticated user,
+    // as long as the data is valid.
     match /storageRecords/{recordId} {
-      allow read: if true;
-      allow write: if isSignedIn() &&
+      allow read, write: if isSignedIn() &&
                       (isCreating() || isUpdating()) &&
                       request.resource.data.customerId is string &&
                       request.resource.data.commodityDescription is string &&
@@ -45,11 +47,10 @@ service cloud.firestore {
                       request.resource.data.billingCycle is string;
     }
 
-    // Expenses can be read by anyone. They can be created or updated by
-    // authenticated users with valid data.
+    // Expenses can be read and written by any authenticated user,
+    // as long as the data is valid.
     match /expenses/{expenseId} {
-        allow read: if true;
-        allow write: if isSignedIn() &&
+        allow read, write: if isSignedIn() &&
                         (isCreating() || isUpdating()) &&
                         request.resource.data.description is string &&
                         request.resource.data.amount is number &&

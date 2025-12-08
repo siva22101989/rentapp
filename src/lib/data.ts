@@ -71,17 +71,14 @@ export const saveCustomer = async (
   customer: Omit<Customer, 'id'>
 ): Promise<string> => {
   const customersCollection = collection(db, 'customers');
-  const newDocRef = doc(customersCollection); // Create a reference to get the ID
-  
-  setDoc(newDocRef, customer).catch(async (serverError) => {
+  const newDocRef = await addDoc(customersCollection, customer).catch(async (serverError) => {
       const permissionError = new FirestorePermissionError({
-        path: newDocRef.path,
+        path: 'customers', // Use collection name for addDoc
         operation: 'create',
         requestResourceData: customer,
       });
       errorEmitter.emit('permission-error', permissionError);
-      // We don't re-throw here because the action will proceed,
-      // but the listener will show the error toast.
+      throw permissionError; // Re-throw to propagate the failure
     });
 
   return newDocRef.id;
@@ -140,13 +137,14 @@ export const saveStorageRecord = async (
   record: Omit<StorageRecord, 'id'> & { id: string }
 ): Promise<string> => {
   const recordRef = doc(db, 'storageRecords', record.id);
-  setDoc(recordRef, record).catch(async (serverError) => {
+  await setDoc(recordRef, record).catch(async (serverError) => {
     const permissionError = new FirestorePermissionError({
       path: recordRef.path,
       operation: 'create',
       requestResourceData: record,
     });
     errorEmitter.emit('permission-error', permissionError);
+    throw permissionError;
   });
   return record.id;
 };
@@ -157,25 +155,27 @@ export const updateStorageRecord = async (
 ): Promise<void> => {
   if (!id) return;
   const docRef = doc(db, 'storageRecords', id);
-  updateDoc(docRef, data).catch(async (serverError) => {
+  await updateDoc(docRef, data).catch(async (serverError) => {
     const permissionError = new FirestorePermissionError({
       path: docRef.path,
       operation: 'update',
       requestResourceData: data,
     });
     errorEmitter.emit('permission-error', permissionError);
+    throw permissionError;
   });
 };
 
 export const deleteStorageRecord = async (id: string): Promise<void> => {
   if (!id) return;
   const docRef = doc(db, 'storageRecords', id);
-  deleteDoc(docRef).catch(async (serverError) => {
+  await deleteDoc(docRef).catch(async (serverError) => {
     const permissionError = new FirestorePermissionError({
       path: docRef.path,
       operation: 'delete',
     });
     errorEmitter.emit('permission-error', permissionError);
+    throw permissionError;
   });
 };
 
@@ -208,16 +208,15 @@ export const saveExpense = async (
   expense: Omit<Expense, 'id'>
 ): Promise<string> => {
   const expensesCollection = collection(db, 'expenses');
-  const newDocRef = doc(expensesCollection);
-
-  setDoc(newDocRef, expense)
+  const newDocRef = await addDoc(expensesCollection, expense)
     .catch(async (serverError) => {
       const permissionError = new FirestorePermissionError({
-        path: newDocRef.path,
+        path: 'expenses',
         operation: 'create',
         requestResourceData: expense,
       });
       errorEmitter.emit('permission-error', permissionError);
+      throw permissionError;
     });
   return newDocRef.id;
 };
@@ -228,24 +227,26 @@ export const updateExpense = async (
 ): Promise<void> => {
   if (!id) return;
   const docRef = doc(db, 'expenses', id);
-  updateDoc(docRef, data).catch(async (serverError) => {
+  await updateDoc(docRef, data).catch(async (serverError) => {
     const permissionError = new FirestorePermissionError({
       path: docRef.path,
       operation: 'update',
       requestResourceData: data,
     });
     errorEmitter.emit('permission-error', permissionError);
+    throw permissionError;
   });
 };
 
 export const deleteExpense = async (id: string): Promise<void> => {
   if (!id) return;
   const docRef = doc(db, 'expenses', id);
-  deleteDoc(docRef).catch(async (serverError) => {
+  await deleteDoc(docRef).catch(async (serverError) => {
     const permissionError = new FirestorePermissionError({
       path: docRef.path,
       operation: 'delete',
     });
     errorEmitter.emit('permission-error', permissionError);
+    throw permissionError;
   });
 };

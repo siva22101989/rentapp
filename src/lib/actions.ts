@@ -18,6 +18,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import type { StorageRecord, Payment, Expense } from './definitions';
 import { expenseCategories } from './definitions';
+import { detectStorageAnomalies } from '@/ai/flows/anomaly-detection';
 
 const NewCustomerSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters.'),
@@ -64,7 +65,6 @@ export async function addCustomer(prevState: FormState, formData: FormData) {
     revalidatePath('/inflow'); // Revalidate inflow in case a new customer was added from there
     return { message: 'Customer added successfully.', success: true };
   } catch (e: any) {
-    // This catch block might not be hit if the promise chain in saveCustomer isn't awaited
     return { message: `Database Error: ${e.message}`, success: false };
   }
 }
@@ -546,5 +546,21 @@ export async function deleteExpenseAction(expenseId: string): Promise<FormState>
     return { message: 'Expense deleted successfully.', success: true };
   } catch (error: any) {
     return { message: `Failed to delete expense: ${error.message}`, success: false };
+  }
+}
+
+
+export async function getAnomalyDetection(
+  prevState: { anomalies: string | null; success: boolean },
+  formData: FormData
+) {
+  try {
+    const records = await getRecords();
+    const result = await detectStorageAnomalies({
+      storageRecords: JSON.stringify(records),
+    });
+    return { anomalies: result.anomalies, success: true };
+  } catch (e: any) {
+    return { anomalies: `Error: ${e.message}`, success: false };
   }
 }

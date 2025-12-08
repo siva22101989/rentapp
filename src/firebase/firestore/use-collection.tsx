@@ -50,7 +50,6 @@ export const useCollection = <T extends { id: string }>(
         setError(null);
       },
       (err) => {
-        console.error("onSnapshot error:", err);
         const permissionError = new FirestorePermissionError({
           path: q.path,
           operation: 'list',

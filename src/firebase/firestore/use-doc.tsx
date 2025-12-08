@@ -44,7 +44,6 @@ export const useDoc = <T extends { id: string }>(ref: DocumentReference | null) 
         setError(null);
       },
       (err) => {
-        console.error("onSnapshot error:", err);
         const permissionError = new FirestorePermissionError({
           path: ref.path,
           operation: 'get',

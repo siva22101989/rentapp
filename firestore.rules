@@ -25,7 +25,7 @@ service cloud.firestore {
 
 
     // ============== STORAGE RECORD VALIDATION ==============
-    function isValidStorageRecord(data) {
+   function isValidStorageRecord(data) {
         // --- Required on Create/Update ---
       return data.customerId is string
           && data.commodityDescription is string
@@ -50,6 +50,7 @@ service cloud.firestore {
 
     match /storageRecords/{recordId} {
       allow read: if isSignedIn();
+      // Allow create and update with validation
       allow write: if isSignedIn() && isValidStorageRecord(request.resource.data);
     }
 
@@ -58,7 +59,7 @@ service cloud.firestore {
       return data.description is string && data.description.size() > 0
           && data.amount is number && data.amount > 0
           && data.category is string && data.category in ['Worker Salary', 'Petrol', 'Maintenance', 'Utilities', 'Hamali', 'Other']
-          && data.date is timestamp; // Dates from client are converted
+          && data.date is timestamp;
     }
 
     match /expenses/{expenseId} {

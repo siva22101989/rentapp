@@ -11,20 +11,11 @@ service cloud.firestore {
     function isOwner(userId) {
       return request.auth.uid == userId;
     }
-    
-    function isCreating() {
-      return resource == null;
-    }
 
-    function isUpdating() {
-      return resource != null;
-    }
-
-    // Customer documents can be read and written by any authenticated user,
-    // as long as the data is valid.
+    // Customer documents
     match /customers/{customerId} {
-      allow read, write: if isSignedIn() &&
-                      (isCreating() || isUpdating()) &&
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() &&
                       request.resource.data.name is string &&
                       request.resource.data.phone is string &&
                       request.resource.data.address is string &&
@@ -34,11 +25,10 @@ service cloud.firestore {
 
     }
 
-    // Storage records can be read and written by any authenticated user,
-    // as long as the data is valid.
+    // Storage records
     match /storageRecords/{recordId} {
-      allow read, write: if isSignedIn() &&
-                      (isCreating() || isUpdating()) &&
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() &&
                       request.resource.data.customerId is string &&
                       request.resource.data.commodityDescription is string &&
                       request.resource.data.location is string &&
@@ -47,11 +37,10 @@ service cloud.firestore {
                       request.resource.data.billingCycle is string;
     }
 
-    // Expenses can be read and written by any authenticated user,
-    // as long as the data is valid.
+    // Expenses
     match /expenses/{expenseId} {
-        allow read, write: if isSignedIn() &&
-                        (isCreating() || isUpdating()) &&
+        allow read: if isSignedIn();
+        allow write: if isSignedIn() &&
                         request.resource.data.description is string &&
                         request.resource.data.amount is number &&
                         request.resource.data.category is string &&

@@ -8,41 +8,69 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isOwner(userId) {
-      return request.auth.uid == userId;
+    function isCreating() {
+      return request.method == 'create';
     }
 
-    // Customer documents
+    function isUpdating() {
+      return request.method == 'update';
+    }
+
+    // ============== CUSTOMER VALIDATION ==============
+    function isValidCustomer(data) {
+      return data.name is string && data.name.size() > 0
+          && data.phone is string && data.phone.size() > 0
+          && data.address is string && data.address.size() > 0
+          && (!('email' in data) || data.email is string)
+          && (!('fatherName' in data) || data.fatherName is string)
+          && (!('village' in data) || data.village is string);
+    }
+    
     match /customers/{customerId} {
       allow read: if isSignedIn();
-      // Allow create/update only if signed in and required fields are strings.
-      // Optional fields can be strings or not present.
-      allow write: if isSignedIn() &&
-                      request.resource.data.name is string &&
-                      request.resource.data.phone is string &&
-                      request.resource.data.address is string;
+      allow write: if isSignedIn() && isValidCustomer(request.resource.data);
     }
 
-    // Storage records
+
+    // ============== STORAGE RECORD VALIDATION ==============
+    function isValidStorageRecord(data) {
+        // --- Required on Create ---
+      return data.customerId is string
+          && data.commodityDescription is string
+          && data.location is string
+          && data.bagsIn is number
+          && data.storageStartDate is timestamp
+          && data.billingCycle is string
+          && data.hamaliPayable is number
+          && data.totalRentBilled is number
+          && data.bagsOut is number
+          && data.bagsStored is number
+        // --- Optional Fields ---
+          && (!('storageEndDate' in data) || data.storageEndDate == null || data.storageEndDate is timestamp)
+          && (!('payments' in data) || data.payments is list)
+          && (!('lorryTractorNo' in data) || data.lorryTractorNo is string)
+          && (!('weight' in data) || data.weight is number)
+          && (!('inflowType' in data) || data.inflowType in ['Direct', 'Plot'])
+          && (!('plotBags' in data) || data.plotBags is number)
+          && (!('loadBags' in data) || data.loadBags is number)
+          && (!('khataAmount' in data) || data.khataAmount is number);
+    }
+
     match /storageRecords/{recordId} {
       allow read: if isSignedIn();
-      allow write: if isSignedIn() &&
-                      request.resource.data.customerId is string &&
-                      request.resource.data.commodityDescription is string &&
-                      request.resource.data.location is string &&
-                      request.resource.data.bagsStored is number &&
-                      request.resource.data.storageStartDate is timestamp &&
-                      request.resource.data.billingCycle is string;
+      allow write: if isSignedIn() && isValidStorageRecord(request.resource.data);
     }
 
-    // Expenses
+    // ============== EXPENSE VALIDATION ==============
+    function isValidExpense(data) {
+      return data.description is string && data.description.size() > 0
+          && data.amount is number && data.amount > 0
+          && data.category is string && data.category in ['Worker Salary', 'Petrol', 'Maintenance', 'Utilities', 'Hamali', 'Other']
+          && data.date is timestamp;
+    }
+
     match /expenses/{expenseId} {
-        allow read: if isSignedIn();
-        allow write: if isSignedIn() &&
-                        request.resource.data.description is string &&
-                        request.resource.data.amount is number &&
-                        request.resource.data.category is string &&
-                        request.resource.data.date is timestamp;
+      allow read, write: if isSignedIn() && isValidExpense(request.resource.data);
     }
   }
 }

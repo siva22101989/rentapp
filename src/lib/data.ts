@@ -71,21 +71,20 @@ export const saveCustomer = async (
   customer: Omit<Customer, 'id'>
 ): Promise<string> => {
   const customersCollection = collection(db, 'customers');
-  let docRef;
-  await addDoc(customersCollection, customer)
-    .then((ref) => {
-      docRef = ref;
-    })
-    .catch(async (serverError) => {
+  const newDocRef = doc(customersCollection); // Create a reference to get the ID
+  
+  setDoc(newDocRef, customer).catch(async (serverError) => {
       const permissionError = new FirestorePermissionError({
-        path: customersCollection.path,
+        path: newDocRef.path,
         operation: 'create',
         requestResourceData: customer,
       });
       errorEmitter.emit('permission-error', permissionError);
-      throw permissionError; // re-throw to be caught by the action
+      // We don't re-throw here because the action will proceed,
+      // but the listener will show the error toast.
     });
-  return docRef!.id;
+
+  return newDocRef.id;
 };
 
 // ============== STORAGE RECORD FUNCTIONS ==============
@@ -141,14 +140,13 @@ export const saveStorageRecord = async (
   record: Omit<StorageRecord, 'id'> & { id: string }
 ): Promise<string> => {
   const recordRef = doc(db, 'storageRecords', record.id);
-  await setDoc(recordRef, record).catch(async (serverError) => {
+  setDoc(recordRef, record).catch(async (serverError) => {
     const permissionError = new FirestorePermissionError({
       path: recordRef.path,
       operation: 'create',
       requestResourceData: record,
     });
     errorEmitter.emit('permission-error', permissionError);
-    throw permissionError;
   });
   return record.id;
 };
@@ -159,27 +157,25 @@ export const updateStorageRecord = async (
 ): Promise<void> => {
   if (!id) return;
   const docRef = doc(db, 'storageRecords', id);
-  await updateDoc(docRef, data).catch(async (serverError) => {
+  updateDoc(docRef, data).catch(async (serverError) => {
     const permissionError = new FirestorePermissionError({
       path: docRef.path,
       operation: 'update',
       requestResourceData: data,
     });
     errorEmitter.emit('permission-error', permissionError);
-    throw permissionError;
   });
 };
 
 export const deleteStorageRecord = async (id: string): Promise<void> => {
   if (!id) return;
   const docRef = doc(db, 'storageRecords', id);
-  await deleteDoc(docRef).catch(async (serverError) => {
+  deleteDoc(docRef).catch(async (serverError) => {
     const permissionError = new FirestorePermissionError({
       path: docRef.path,
       operation: 'delete',
     });
     errorEmitter.emit('permission-error', permissionError);
-    throw permissionError;
   });
 };
 
@@ -212,21 +208,18 @@ export const saveExpense = async (
   expense: Omit<Expense, 'id'>
 ): Promise<string> => {
   const expensesCollection = collection(db, 'expenses');
-  let docRef;
-  await addDoc(expensesCollection, expense)
-    .then((ref) => {
-      docRef = ref;
-    })
+  const newDocRef = doc(expensesCollection);
+
+  setDoc(newDocRef, expense)
     .catch(async (serverError) => {
       const permissionError = new FirestorePermissionError({
-        path: expensesCollection.path,
+        path: newDocRef.path,
         operation: 'create',
         requestResourceData: expense,
       });
       errorEmitter.emit('permission-error', permissionError);
-      throw permissionError;
     });
-  return docRef!.id;
+  return newDocRef.id;
 };
 
 export const updateExpense = async (
@@ -235,26 +228,24 @@ export const updateExpense = async (
 ): Promise<void> => {
   if (!id) return;
   const docRef = doc(db, 'expenses', id);
-  await updateDoc(docRef, data).catch(async (serverError) => {
+  updateDoc(docRef, data).catch(async (serverError) => {
     const permissionError = new FirestorePermissionError({
       path: docRef.path,
       operation: 'update',
       requestResourceData: data,
     });
     errorEmitter.emit('permission-error', permissionError);
-    throw permissionError;
   });
 };
 
 export const deleteExpense = async (id: string): Promise<void> => {
   if (!id) return;
   const docRef = doc(db, 'expenses', id);
-  await deleteDoc(docRef).catch(async (serverError) => {
+  deleteDoc(docRef).catch(async (serverError) => {
     const permissionError = new FirestorePermissionError({
       path: docRef.path,
       operation: 'delete',
     });
     errorEmitter.emit('permission-error', permissionError);
-    throw permissionError;
   });
 };

@@ -64,6 +64,7 @@ export async function addCustomer(prevState: FormState, formData: FormData) {
     revalidatePath('/inflow'); // Revalidate inflow in case a new customer was added from there
     return { message: 'Customer added successfully.', success: true };
   } catch (e: any) {
+    // This catch block might not be hit if the promise chain in saveCustomer isn't awaited
     return { message: `Database Error: ${e.message}`, success: false };
   }
 }

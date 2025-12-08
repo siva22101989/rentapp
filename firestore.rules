@@ -8,14 +8,6 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isCreating() {
-      return request.method == 'create';
-    }
-
-    function isUpdating() {
-      return request.method == 'update';
-    }
-
     // ============== CUSTOMER VALIDATION ==============
     function isValidCustomer(data) {
       return data.name is string && data.name.size() > 0
@@ -34,12 +26,12 @@ service cloud.firestore {
 
     // ============== STORAGE RECORD VALIDATION ==============
     function isValidStorageRecord(data) {
-        // --- Required on Create ---
+        // --- Required on Create/Update ---
       return data.customerId is string
           && data.commodityDescription is string
           && data.location is string
           && data.bagsIn is number
-          && data.storageStartDate is timestamp
+          && data.storageStartDate is timestamp // Dates from client are converted
           && data.billingCycle is string
           && data.hamaliPayable is number
           && data.totalRentBilled is number
@@ -66,11 +58,12 @@ service cloud.firestore {
       return data.description is string && data.description.size() > 0
           && data.amount is number && data.amount > 0
           && data.category is string && data.category in ['Worker Salary', 'Petrol', 'Maintenance', 'Utilities', 'Hamali', 'Other']
-          && data.date is timestamp;
+          && data.date is timestamp; // Dates from client are converted
     }
 
     match /expenses/{expenseId} {
-      allow read, write: if isSignedIn() && isValidExpense(request.resource.data);
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && isValidExpense(request.resource.data);
     }
   }
 }

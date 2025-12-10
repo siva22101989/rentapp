@@ -56,6 +56,8 @@ export function InflowReceipt({ record, customer }: { record: StorageRecord, cus
         }
     };
 
+    const bagsToShow = record.inflowType === 'Plot' ? record.loadBags : record.bagsStored;
+
     return (
         <div className="w-full max-w-2xl mx-auto bg-background p-4 sm:p-6">
             <div ref={receiptRef} className="printable-area bg-white p-6 border-2 border-blue-800 font-sans text-sm" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
@@ -94,12 +96,6 @@ export function InflowReceipt({ record, customer }: { record: StorageRecord, cus
                         <span className="w-1/3 font-bold">VILLAGE</span>
                         <span>: {customer.village || 'N/A'}</span>
                     </div>
-                    {record.inflowType === 'Plot' && (
-                        <div className="flex">
-                            <span className="w-1/3 font-bold">PLOT BAGS</span>
-                            <span>: {record.plotBags}</span>
-                        </div>
-                    )}
                     <div className="flex">
                         <span className="w-1/3 font-bold">PRODUCT</span>
                         <span>: {record.commodityDescription}</span>
@@ -107,7 +103,7 @@ export function InflowReceipt({ record, customer }: { record: StorageRecord, cus
                     <div className="flex">
                         <span className="w-1/3 font-bold">No. OF BAGS</span>
                         <div className="flex-1 flex justify-between">
-                           <span>: {record.bagsStored}</span>
+                           <span>: {bagsToShow}</span>
                            <div><span className="font-bold">WEIGHT :</span> {record.weight ? `${record.weight} kgs` : '____'}</div>
                         </div>
                     </div>

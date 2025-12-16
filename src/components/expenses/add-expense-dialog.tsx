@@ -1,11 +1,8 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useActionState } from 'react';
-import { useFormStatus } from 'react-dom';
+import { useState, useTransition } from 'react';
 import { Loader2, PlusCircle } from 'lucide-react';
-import { addExpense, type FormState } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -23,44 +20,60 @@ import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { expenseCategories } from '@/lib/definitions';
 import { Textarea } from '../ui/textarea';
+import { useFirestore } from '@/firebase';
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
+import { addDoc, collection, Timestamp } from 'firebase/firestore';
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" disabled={pending}>
-      {pending ? (
-        <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Saving...
-        </>
-      ) : (
-        'Save Expense'
-      )}
-    </Button>
-  );
-}
+const ExpenseSchema = z.object({
+  description: z.string().min(2, 'Description is required.'),
+  amount: z.coerce.number().positive('Amount must be a positive number.'),
+  date: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
+  category: z.enum(expenseCategories, { required_error: 'Category is required.' }),
+});
+
+type ExpenseFormData = z.infer<typeof ExpenseSchema>;
 
 export function AddExpenseDialog() {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
-  
-  const initialState: FormState = { message: '', success: false };
-  const [state, formAction] = useActionState(addExpense, initialState);
+  const [isPending, startTransition] = useTransition();
+  const firestore = useFirestore();
 
-  useEffect(() => {
-    if (!state.message) return;
-    
-    if (state.success) {
-      toast({ title: 'Success', description: state.message });
-      setIsOpen(false); 
-    } else {
-      toast({
-        title: 'Error',
-        description: state.message,
-        variant: 'destructive',
-      });
+  const form = useForm<ExpenseFormData>({
+    resolver: zodResolver(ExpenseSchema),
+    defaultValues: {
+      description: '',
+      amount: undefined,
+      date: new Date().toISOString().split('T')[0],
+      category: undefined,
+    },
+  });
+
+  const onSubmit = (data: ExpenseFormData) => {
+    if (!firestore) {
+      toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
+      return;
     }
-  }, [state, toast]);
+
+    startTransition(async () => {
+      try {
+        const newExpense = {
+          ...data,
+          date: Timestamp.fromDate(new Date(data.date)),
+        };
+        await addDoc(collection(firestore, 'expenses'), newExpense);
+        toast({ title: 'Success', description: 'Expense added successfully.' });
+        setIsOpen(false);
+        form.reset();
+      } catch (error) {
+        console.error(error);
+        toast({ title: 'Error', description: 'Failed to add expense.', variant: 'destructive' });
+      }
+    });
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -71,49 +84,96 @@ export function AddExpenseDialog() {
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
-        <form action={formAction}>
-          <DialogHeader>
-            <DialogTitle>Add New Expense</DialogTitle>
-            <DialogDescription>
-              Enter the details for the new expense.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="date">Date</Label>
-              <Input id="date" name="date" type="date" defaultValue={new Date().toISOString().split('T')[0]} required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="category">Category</Label>
-              <Select name="category" required>
-                <SelectTrigger id="category">
-                    <SelectValue placeholder="Select a category" />
-                </SelectTrigger>
-                <SelectContent>
-                    {expenseCategories.map(cat => (
-                        <SelectItem key={cat} value={cat}>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <DialogHeader>
+              <DialogTitle>Add New Expense</DialogTitle>
+              <DialogDescription>
+                Enter the details for the new expense.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <FormField
+                control={form.control}
+                name="date"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Date</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="category"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Category</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a category" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {expenseCategories.map(cat => (
+                          <SelectItem key={cat} value={cat}>
                             {cat}
-                        </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="e.g., Petrol for generator" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="amount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Amount</FormLabel>
+                    <FormControl>
+                      <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
-             <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea id="description" name="description" placeholder="e.g., Petrol for generator" required />
-            </div>
-             <div className="space-y-2">
-              <Label htmlFor="amount">Amount</Label>
-              <Input id="amount" name="amount" type="number" step="0.01" placeholder="0.00" required />
-            </div>
-          </div>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline">Cancel</Button>
-            </DialogClose>
-            <SubmitButton />
-          </DialogFooter>
-        </form>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button variant="outline" type="button">Cancel</Button>
+              </DialogClose>
+              <Button type="submit" disabled={isPending}>
+                {isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save Expense'
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

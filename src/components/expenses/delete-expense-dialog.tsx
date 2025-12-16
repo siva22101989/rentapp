@@ -12,10 +12,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { deleteExpenseAction, type FormState } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '../ui/button';
 import { Loader2 } from 'lucide-react';
+import { useFirestore } from '@/firebase';
+import { deleteDoc, doc } from 'firebase/firestore';
 
 export function DeleteExpenseDialog({
   expenseId,
@@ -27,17 +28,22 @@ export function DeleteExpenseDialog({
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const firestore = useFirestore();
 
   const handleDelete = async () => {
+    if (!firestore) {
+      toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
+      return;
+    }
     startTransition(async () => {
-      const result = await deleteExpenseAction(expenseId);
-      if (result.success) {
-        toast({ title: 'Success', description: result.message });
+      try {
+        await deleteDoc(doc(firestore, 'expenses', expenseId));
+        toast({ title: 'Success', description: 'Expense deleted successfully.' });
         setIsOpen(false);
-      } else {
-        toast({
+      } catch (error) {
+         toast({
           title: 'Error',
-          description: result.message,
+          description: 'Failed to delete expense.',
           variant: 'destructive',
         });
       }

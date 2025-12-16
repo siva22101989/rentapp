@@ -1,4 +1,3 @@
-
 'use server';
 
 import { z } from 'zod';
@@ -50,44 +49,16 @@ export async function getAnomalyDetection() {
   }
 }
 
+// This server action is no longer used for adding customers. 
+// The logic has been moved to the client-side in AddCustomerDialog.
+// It is kept here as a reference or for potential future server-side needs.
 export async function addCustomer(prevState: FormState, formData: FormData) {
-    const validatedFields = CustomerSchema.safeParse({
-        name: formData.get('name'),
-        email: formData.get('email'),
-        phone: formData.get('phone'),
-        address: formData.get('address'),
-        fatherName: formData.get('fatherName'),
-        village: formData.get('village'),
-    });
-
-    if (!validatedFields.success) {
-        const error = validatedFields.error.flatten().fieldErrors;
-        const message = Object.values(error).flat().join(', ');
-        return { message: `Invalid data: ${message}`, success: false };
-    }
-
-    const { email, fatherName, village, ...rest } = validatedFields.data;
-
-    try {
-        const newCustomer: Omit<Customer, 'id'> = {
-            ...rest,
-            email: email ?? '',
-            fatherName: fatherName ?? '',
-            village: village ?? '',
-        };
-        
-        await saveCustomer(newCustomer);
-        
-        revalidatePath('/customers');
-        revalidatePath('/inflow'); // Revalidate inflow in case a new customer was added from there
-        return { 
-            message: 'Customer added successfully.', 
-            success: true,
-        };
-    } catch (error) {
-        return { message: 'Failed to save customer. You might not have permission.', success: false };
-    }
+    return {
+        message: 'This action is deprecated. Customer creation is handled on the client.',
+        success: false,
+    };
 }
+
 
 export async function updateCustomerAction(customerId: string, prevState: FormState, formData: FormData) {
     const validatedFields = CustomerSchema.safeParse({

@@ -1,11 +1,8 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useActionState } from 'react';
-import { useFormStatus } from 'react-dom';
+import { useEffect, useState, useTransition } from 'react';
 import { Loader2 } from 'lucide-react';
-import { updateCustomerAction, type FormState } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -21,101 +18,171 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import type { Customer } from '@/lib/definitions';
+import { useFirestore } from '@/firebase';
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
+import { updateCustomer } from '@/lib/data';
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" disabled={pending}>
-      {pending ? (
-        <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Saving...
-        </>
-      ) : (
-        'Save Changes'
-      )}
-    </Button>
-  );
-}
+
+const CustomerSchema = z.object({
+  name: z.string().min(3, 'Name must be at least 3 characters.'),
+  phone: z.string().min(10, 'Phone number must be at least 10 digits.'),
+  address: z.string().min(5, 'Address must be at least 5 characters.'),
+  email: z.string().email('Invalid email address.').optional().or(z.literal('')),
+  fatherName: z.string().optional(),
+  village: z.string().optional(),
+});
+
+type CustomerFormData = z.infer<typeof CustomerSchema>;
+
 
 export function EditCustomerDialog({ customer, children }: { customer: Customer, children: React.ReactNode }) {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
-  
-  const initialState: FormState = { message: '', success: false };
-  const updateAction = updateCustomerAction.bind(null, customer.id);
-  const [state, formAction] = useActionState(updateAction, initialState);
+  const [isPending, startTransition] = useTransition();
+  const firestore = useFirestore();
 
-  useEffect(() => {
-    if (!state.message) return;
-    if (state.success) {
-      toast({ title: 'Success', description: state.message });
-      setIsOpen(false);
-    } else {
-      toast({
-        title: 'Error',
-        description: state.message,
-        variant: 'destructive',
-      });
+  const form = useForm<CustomerFormData>({
+    resolver: zodResolver(CustomerSchema),
+    defaultValues: {
+      name: customer.name || '',
+      phone: customer.phone || '',
+      address: customer.address || '',
+      email: customer.email || '',
+      fatherName: customer.fatherName || '',
+      village: customer.village || '',
+    },
+  });
+
+  const onSubmit = (data: CustomerFormData) => {
+    if (!firestore) {
+      toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
+      return;
     }
-  }, [state, toast]);
+
+    startTransition(async () => {
+      try {
+        await updateCustomer(firestore, customer.id, data);
+        toast({ title: 'Success', description: 'Customer updated successfully.' });
+        setIsOpen(false);
+      } catch (error) {
+        console.error(error);
+        toast({ title: 'Error', description: 'Failed to update customer.', variant: 'destructive' });
+      }
+    });
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
-        <form action={formAction}>
-          <DialogHeader>
-            <DialogTitle>Edit Customer</DialogTitle>
-            <DialogDescription>
-              Update the details for {customer.name}.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">
-                Name
-              </Label>
-              <Input id="name" name="name" defaultValue={customer.name} className="col-span-3" required />
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <DialogHeader>
+              <DialogTitle>Edit Customer</DialogTitle>
+              <DialogDescription>
+                Update the details for {customer.name}.
+              </DialogDescription>
+            </DialogHeader>
+             <div className="grid gap-4 py-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem className="grid grid-cols-4 items-center gap-4">
+                    <FormLabel className="text-right">Name</FormLabel>
+                    <FormControl>
+                      <Input {...field} className="col-span-3" />
+                    </FormControl>
+                    <FormMessage className="col-span-4 pl-[calc(25%+1rem)]" />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="fatherName"
+                render={({ field }) => (
+                   <FormItem className="grid grid-cols-4 items-center gap-4">
+                    <FormLabel className="text-right">Father's Name</FormLabel>
+                    <FormControl>
+                      <Input {...field} className="col-span-3" />
+                    </FormControl>
+                    <FormMessage className="col-span-4 pl-[calc(25%+1rem)]" />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="village"
+                render={({ field }) => (
+                  <FormItem className="grid grid-cols-4 items-center gap-4">
+                    <FormLabel className="text-right">Village</FormLabel>
+                    <FormControl>
+                      <Input {...field} className="col-span-3" />
+                    </FormControl>
+                     <FormMessage className="col-span-4 pl-[calc(25%+1rem)]" />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="address"
+                render={({ field }) => (
+                   <FormItem className="grid grid-cols-4 items-center gap-4">
+                    <FormLabel className="text-right">Address</FormLabel>
+                    <FormControl>
+                      <Input {...field} className="col-span-3" />
+                    </FormControl>
+                     <FormMessage className="col-span-4 pl-[calc(25%+1rem)]" />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem className="grid grid-cols-4 items-center gap-4">
+                    <FormLabel className="text-right">Phone</FormLabel>
+                    <FormControl>
+                      <Input {...field} className="col-span-3" />
+                    </FormControl>
+                     <FormMessage className="col-span-4 pl-[calc(25%+1rem)]" />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                   <FormItem className="grid grid-cols-4 items-center gap-4">
+                    <FormLabel className="text-right">Email</FormLabel>
+                    <FormControl>
+                      <Input {...field} className="col-span-3" />
+                    </FormControl>
+                    <FormMessage className="col-span-4 pl-[calc(25%+1rem)]" />
+                  </FormItem>
+                )}
+              />
             </div>
-             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="fatherName" className="text-right">
-                Father's Name
-              </Label>
-              <Input id="fatherName" name="fatherName" defaultValue={customer.fatherName} className="col-span-3" />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="village" className="text-right">
-                Village
-              </Label>
-              <Input id="village" name="village" defaultValue={customer.village} className="col-span-3" />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="address" className="text-right">
-                Address
-              </Label>
-              <Input id="address" name="address" defaultValue={customer.address} className="col-span-3" required />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="phone" className="text-right">
-                Phone
-              </Label>
-              <Input id="phone" name="phone" defaultValue={customer.phone} className="col-span-3" required />
-            </div>
-             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="email" className="text-right">
-                Email
-              </Label>
-              <Input id="email" name="email" type="email" defaultValue={customer.email} className="col-span-3" />
-            </div>
-          </div>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline">Cancel</Button>
-            </DialogClose>
-            <SubmitButton />
-          </DialogFooter>
-        </form>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button variant="outline">Cancel</Button>
+              </DialogClose>
+              <Button type="submit" disabled={isPending}>
+                {isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save Changes'
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

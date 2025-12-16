@@ -1,10 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useActionState } from 'react';
-import { useFormStatus } from 'react-dom';
+import { useEffect, useState, useTransition } from 'react';
 import { Loader2, PlusCircle } from 'lucide-react';
-import { addCustomer, type FormState } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -19,44 +16,60 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { useFirestore } from '@/firebase';
+import { saveCustomer } from '@/lib/data';
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" disabled={pending}>
-      {pending ? (
-        <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Saving...
-        </>
-      ) : (
-        'Save Customer'
-      )}
-    </Button>
-  );
-}
+const CustomerSchema = z.object({
+  name: z.string().min(3, 'Name must be at least 3 characters.'),
+  phone: z.string().min(10, 'Phone number must be at least 10 digits.'),
+  address: z.string().min(5, 'Address must be at least 5 characters.'),
+  email: z.string().email('Invalid email address.').optional().or(z.literal('')),
+  fatherName: z.string().optional(),
+  village: z.string().optional(),
+});
+
+type CustomerFormData = z.infer<typeof CustomerSchema>;
 
 export function AddCustomerDialog() {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
-  
-  const initialState: FormState = { message: '', success: false };
-  const [state, formAction] = useActionState(addCustomer, initialState);
+  const [isPending, startTransition] = useTransition();
+  const firestore = useFirestore();
 
-  useEffect(() => {
-    if (!state.message) return;
-    
-    if (state.success) {
-      toast({ title: 'Success', description: state.message });
-      setIsOpen(false); 
-    } else {
-      toast({
-        title: 'Error',
-        description: state.message,
-        variant: 'destructive',
-      });
+  const form = useForm<CustomerFormData>({
+    resolver: zodResolver(CustomerSchema),
+    defaultValues: {
+      name: '',
+      phone: '',
+      address: '',
+      email: '',
+      fatherName: '',
+      village: '',
+    },
+  });
+
+  const onSubmit = (data: CustomerFormData) => {
+    if (!firestore) {
+      toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
+      return;
     }
-  }, [state, toast]);
+
+    startTransition(async () => {
+      try {
+        await saveCustomer(firestore, data);
+        toast({ title: 'Success', description: 'Customer added successfully.' });
+        setIsOpen(false);
+        form.reset();
+      } catch (error) {
+        console.error(error);
+        toast({ title: 'Error', description: 'Failed to save customer. You might not have permission.', variant: 'destructive' });
+      }
+    });
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -67,58 +80,111 @@ export function AddCustomerDialog() {
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
-        <form action={formAction}>
-          <DialogHeader>
-            <DialogTitle>Add New Customer</DialogTitle>
-            <DialogDescription>
-              Enter the details for the new customer. Click save when you&apos;re done.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">
-                Name
-              </Label>
-              <Input id="name" name="name" className="col-span-3" required />
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <DialogHeader>
+              <DialogTitle>Add New Customer</DialogTitle>
+              <DialogDescription>
+                Enter the details for the new customer. Click save when you&apos;re done.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem className="grid grid-cols-4 items-center gap-4">
+                    <FormLabel className="text-right">Name</FormLabel>
+                    <FormControl>
+                      <Input {...field} className="col-span-3" />
+                    </FormControl>
+                    <FormMessage className="col-span-4 pl-[calc(25%+1rem)]" />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="fatherName"
+                render={({ field }) => (
+                   <FormItem className="grid grid-cols-4 items-center gap-4">
+                    <FormLabel className="text-right">Father's Name</FormLabel>
+                    <FormControl>
+                      <Input {...field} className="col-span-3" />
+                    </FormControl>
+                    <FormMessage className="col-span-4 pl-[calc(25%+1rem)]" />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="village"
+                render={({ field }) => (
+                  <FormItem className="grid grid-cols-4 items-center gap-4">
+                    <FormLabel className="text-right">Village</FormLabel>
+                    <FormControl>
+                      <Input {...field} className="col-span-3" />
+                    </FormControl>
+                     <FormMessage className="col-span-4 pl-[calc(25%+1rem)]" />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="address"
+                render={({ field }) => (
+                   <FormItem className="grid grid-cols-4 items-center gap-4">
+                    <FormLabel className="text-right">Address</FormLabel>
+                    <FormControl>
+                      <Input {...field} className="col-span-3" />
+                    </FormControl>
+                     <FormMessage className="col-span-4 pl-[calc(25%+1rem)]" />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem className="grid grid-cols-4 items-center gap-4">
+                    <FormLabel className="text-right">Phone</FormLabel>
+                    <FormControl>
+                      <Input {...field} className="col-span-3" />
+                    </FormControl>
+                     <FormMessage className="col-span-4 pl-[calc(25%+1rem)]" />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                   <FormItem className="grid grid-cols-4 items-center gap-4">
+                    <FormLabel className="text-right">Email</FormLabel>
+                    <FormControl>
+                      <Input {...field} className="col-span-3" />
+                    </FormControl>
+                    <FormMessage className="col-span-4 pl-[calc(25%+1rem)]" />
+                  </FormItem>
+                )}
+              />
             </div>
-             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="fatherName" className="text-right">
-                Father's Name
-              </Label>
-              <Input id="fatherName" name="fatherName" className="col-span-3" />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="village" className="text-right">
-                Village
-              </Label>
-              <Input id="village" name="village" className="col-span-3" />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="address" className="text-right">
-                Address
-              </Label>
-              <Input id="address" name="address" className="col-span-3" required />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="phone" className="text-right">
-                Phone
-              </Label>
-              <Input id="phone" name="phone" className="col-span-3" required />
-            </div>
-             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="email" className="text-right">
-                Email
-              </Label>
-              <Input id="email" name="email" type="text" className="col-span-3" />
-            </div>
-          </div>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline" type="button">Cancel</Button>
-            </DialogClose>
-            <SubmitButton />
-          </DialogFooter>
-        </form>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button variant="outline" type="button">Cancel</Button>
+              </DialogClose>
+              <Button type="submit" disabled={isPending}>
+                {isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save Customer'
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

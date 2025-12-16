@@ -2,21 +2,9 @@
 
 import { z } from 'zod';
 import { 
-    saveCustomer, 
-    saveStorageRecord, 
-    updateStorageRecord, 
-    addPaymentToRecord, 
     getStorageRecord, 
-    deleteStorageRecord,
-    getCustomer,
-    saveExpense,
-    updateExpense,
-    deleteExpense,
     getStorageRecords,
-    updateCustomer as updateCustomerData,
-    deleteCustomer,
-    seedCustomers,
-    seedStorageRecords
+    getCustomer,
 } from '@/lib/data';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
@@ -24,15 +12,6 @@ import { detectStorageAnomalies as detectStorageAnomaliesFlow } from '@/ai/flows
 import type { StorageRecord, Payment, Customer } from './definitions';
 import { expenseCategories } from './definitions';
 import { Timestamp } from 'firebase/firestore';
-
-const CustomerSchema = z.object({
-  name: z.string().min(3, 'Name must be at least 3 characters.'),
-  phone: z.string().min(10, 'Phone number must be at least 10 digits.'),
-  address: z.string().min(5, 'Address must be at least 5 characters.'),
-  email: z.string().optional(),
-  fatherName: z.string().optional(),
-  village: z.string().optional(),
-});
 
 export type FormState = {
   message: string;
@@ -46,68 +25,6 @@ export async function getAnomalyDetection() {
     return { success: true, anomalies: result.anomalies };
   } catch (error) {
     return { success: false, anomalies: 'An error occurred while analyzing records.' };
-  }
-}
-
-export async function addCustomer(prevState: FormState, formData: FormData) {
-    const validatedFields = CustomerSchema.safeParse({
-        name: formData.get('name'),
-        email: formData.get('email'),
-        phone: formData.get('phone'),
-        address: formData.get('address'),
-        fatherName: formData.get('fatherName'),
-        village: formData.get('village'),
-    });
-
-    if (!validatedFields.success) {
-        const error = validatedFields.error.flatten().fieldErrors;
-        const message = Object.values(error).flat().join(', ');
-        return { message: `Invalid data: ${message}`, success: false };
-    }
-
-    try {
-        await saveCustomer(validatedFields.data);
-        revalidatePath('/customers');
-        return { message: 'Customer added successfully.', success: true };
-    } catch (error) {
-        console.error("Failed to save customer: ", error);
-        return { message: 'Failed to save customer. You might not have permission.', success: false };
-    }
-}
-
-
-export async function updateCustomerAction(customerId: string, prevState: FormState, formData: FormData) {
-    const validatedFields = CustomerSchema.safeParse({
-        name: formData.get('name'),
-        email: formData.get('email'),
-        phone: formData.get('phone'),
-        address: formData.get('address'),
-        fatherName: formData.get('fatherName'),
-        village: formData.get('village'),
-    });
-
-    if (!validatedFields.success) {
-        const error = validatedFields.error.flatten().fieldErrors;
-        const message = Object.values(error).flat().join(', ');
-        return { message: `Invalid data: ${message}`, success: false };
-    }
-
-    try {
-        await updateCustomerData(customerId, validatedFields.data);
-        revalidatePath('/customers');
-        return { message: 'Customer updated successfully.', success: true };
-    } catch (error) {
-        return { message: 'Failed to update customer.', success: false };
-    }
-}
-
-export async function deleteCustomerAction(customerId: string): Promise<FormState> {
-  try {
-    await deleteCustomer(customerId);
-    revalidatePath('/customers');
-    return { message: 'Customer deleted successfully.', success: true };
-  } catch (error) {
-    return { message: 'Failed to delete customer.', success: false };
   }
 }
 
@@ -136,7 +53,11 @@ export type InflowFormState = {
     success: boolean;
 };
 
+// This action remains a server action as it performs multiple operations and redirects
 export async function addInflow(prevState: InflowFormState, formData: FormData) {
+    // Lazy load server-only data functions to avoid client-bundle issues
+    const { updateCustomer, saveStorageRecord, getStorageRecords: serverGetStorageRecords } = await import('@/lib/data.server');
+
     const validatedFields = InflowSchema.safeParse({
         customerId: formData.get('customerId'),
         commodityDescription: formData.get('commodityDescription'),
@@ -170,7 +91,7 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
             if (fatherName && customer.fatherName !== fatherName) customerUpdate.fatherName = fatherName;
             if (village && customer.village !== village) customerUpdate.village = village;
             if (Object.keys(customerUpdate).length > 0) {
-                await updateCustomerData(rest.customerId, customerUpdate);
+                await updateCustomer(rest.customerId, customerUpdate);
             }
         }
     }
@@ -194,7 +115,7 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
         payments.push({ amount: hamaliPaid, date: Timestamp.fromDate(new Date(storageStartDate)), type: 'hamali' });
     }
     
-    const allRecords = await getStorageRecords();
+    const allRecords = await serverGetStorageRecords();
     const maxId = allRecords.reduce((max, record) => {
         const idNum = parseInt(record.id.replace('SLWH-', ''), 10);
         return isNaN(idNum) ? max : Math.max(max, idNum);
@@ -244,6 +165,8 @@ export type OutflowFormState = {
 };
 
 export async function addOutflow(prevState: OutflowFormState, formData: FormData) {
+    const { updateStorageRecord } = await import('@/lib/data.server');
+    
     const validatedFields = OutflowSchema.safeParse({
         recordId: formData.get('recordId'),
         bagsToWithdraw: formData.get('bagsToWithdraw'),
@@ -297,55 +220,6 @@ export async function addOutflow(prevState: OutflowFormState, formData: FormData
     redirect(`/outflow/receipt/${recordId}?withdrawn=${bagsToWithdraw}&rent=${finalRent}&paidNow=${paymentMade}`);
 }
 
-const StorageRecordUpdateSchema = z.object({
-  customerId: z.string().min(1, 'Customer is required.'),
-  commodityDescription: z.string().min(2, 'Commodity description is required.'),
-  location: z.string().min(1, 'Location is required.'),
-  bagsStored: z.coerce.number().int().positive('Bags must be a positive number.'),
-  hamaliPayable: z.coerce.number().nonnegative('Hamali charges must be a non-negative number.'),
-  storageStartDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
-});
-
-
-export async function updateStorageRecordAction(recordId: string, prevState: InflowFormState, formData: FormData) {
-    const validatedFields = StorageRecordUpdateSchema.safeParse({
-        customerId: formData.get('customerId'),
-        commodityDescription: formData.get('commodityDescription'),
-        location: formData.get('location'),
-        bagsStored: formData.get('bagsStored'), // This now refers to bagsIn
-        hamaliPayable: formData.get('hamaliPayable'),
-        storageStartDate: formData.get('storageStartDate'),
-    });
-
-    if (!validatedFields.success) {
-        const error = validatedFields.error.flatten().fieldErrors;
-        const message = Object.values(error).flat().join(', ');
-        return { message: `Invalid data: ${message}`, success: false };
-    }
-    
-    const originalRecord = await getStorageRecord(recordId);
-    if (!originalRecord) {
-        return { message: 'Record not found.', success: false };
-    }
-
-    const { bagsStored, ...rest } = validatedFields.data;
-
-    const dataToUpdate: Partial<StorageRecord> = {
-        ...rest,
-        bagsIn: bagsStored,
-        bagsStored: bagsStored - (originalRecord.bagsOut || 0), // Recalculate balance
-        storageStartDate: Timestamp.fromDate(new Date(validatedFields.data.storageStartDate))
-    };
-
-    await updateStorageRecord(recordId, dataToUpdate);
-
-    revalidatePath('/storage');
-    revalidatePath('/payments/pending');
-    revalidatePath('/reports');
-    return { message: 'Record updated successfully.', success: true };
-}
-
-
 const PaymentSchema = z.object({
   recordId: z.string(),
   paymentAmount: z.coerce.number().positive('Payment amount must be a positive number.'),
@@ -359,6 +233,7 @@ export type PaymentFormState = {
 };
 
 export async function addPayment(prevState: PaymentFormState, formData: FormData) {
+    const { updateStorageRecord, addPaymentToRecord } = await import('@/lib/data.server');
     const validatedFields = PaymentSchema.safeParse({
         recordId: formData.get('recordId'),
         paymentAmount: formData.get('paymentAmount'),
@@ -399,17 +274,6 @@ export async function addPayment(prevState: PaymentFormState, formData: FormData
     return { message: 'Transaction recorded successfully.', success: true };
 }
 
-export async function deleteStorageRecordAction(recordId: string): Promise<FormState> {
-  try {
-    await deleteStorageRecord(recordId);
-    revalidatePath('/reports');
-    revalidatePath('/storage');
-    revalidatePath('/payments/pending');
-    return { message: 'Record deleted successfully.', success: true };
-  } catch (error) {
-    return { message: 'Failed to delete record.', success: false };
-  }
-}
 
 const ExpenseSchema = z.object({
   description: z.string().min(2, 'Description is required.'),
@@ -419,6 +283,7 @@ const ExpenseSchema = z.object({
 });
 
 export async function addExpense(prevState: FormState, formData: FormData) {
+    const { saveExpense } = await import('@/lib/data.server');
     const validatedFields = ExpenseSchema.safeParse({
         description: formData.get('description'),
         amount: formData.get('amount'),
@@ -443,45 +308,8 @@ export async function addExpense(prevState: FormState, formData: FormData) {
     return { message: 'Expense added successfully.', success: true };
 }
 
-export async function updateExpenseAction(expenseId: string, prevState: FormState, formData: FormData): Promise<FormState> {
-  const validatedFields = ExpenseSchema.safeParse({
-    description: formData.get('description'),
-    amount: formData.get('amount'),
-    date: formData.get('date'),
-    category: formData.get('category'),
-  });
-
-  if (!validatedFields.success) {
-    const error = validatedFields.error.flatten().fieldErrors;
-    const message = Object.values(error).flat().join(', ');
-    return { message: `Invalid data: ${message}`, success: false };
-  }
-  
-  const dataToUpdate = {
-    ...validatedFields.data,
-    date: Timestamp.fromDate(new Date(validatedFields.data.date)),
-  };
-
-  try {
-    await updateExpense(expenseId, dataToUpdate);
-    revalidatePath('/expenses');
-    return { message: 'Expense updated successfully.', success: true };
-  } catch (error) {
-    return { message: 'Failed to update expense.', success: false };
-  }
-}
-
-export async function deleteExpenseAction(expenseId: string): Promise<FormState> {
-  try {
-    await deleteExpense(expenseId);
-    revalidatePath('/expenses');
-    return { message: 'Expense deleted successfully.', success: true };
-  } catch (error) {
-    return { message: 'Failed to delete expense.', success: false };
-  }
-}
-
 export async function seedDatabase() {
+    const { seedCustomers, seedStorageRecords } = await import('@/lib/data.server');
     try {
         const customersCount = await seedCustomers();
         const recordsCount = await seedStorageRecords();

@@ -1,88 +1,123 @@
+
 [
   {
-    "customerId": "CUST-1764398275149",
-    "commodityDescription": "PADDY",
-    "location": "B4",
-    "lorryTractorNo": "TRACTOR",
-    "weight": 0,
     "id": "SLWH-1",
-    "bagsStored": 95,
-    "storageStartDate": "2025-11-28T00:00:00.000Z",
-    "storageEndDate": null,
-    "billingCycle": "6-Month Initial",
-    "payments": [
-      {
-        "amount": 2000,
-        "date": "2025-11-28T00:00:00.000Z"
-      }
-    ],
-    "hamaliPayable": 2000,
-    "totalRentBilled": 3780
-  },
-  {
-    "customerId": "CUST-1764399621194",
-    "commodityDescription": "PADDY",
-    "location": "B6",
-    "lorryTractorNo": "TRACTOR",
-    "weight": 0,
-    "id": "SLWH-2",
-    "bagsStored": 68,
-    "storageStartDate": "2025-11-28T00:00:00.000Z",
-    "storageEndDate": null,
-    "billingCycle": "6-Month Initial",
-    "payments": [
-      {
-        "amount": 2380,
-        "date": "2025-11-28T00:00:00.000Z"
-      }
-    ],
-    "hamaliPayable": 2380,
-    "totalRentBilled": 0
-  },
-  {
-    "customerId": "CUST-1764413218174",
-    "commodityDescription": "PADDY",
-    "location": "A6",
-    "lorryTractorNo": "",
-    "weight": 0,
-    "khataAmount": 0,
-    "id": "SLWH-3",
-    "bagsStored": 251,
-    "storageStartDate": "2025-11-29T00:00:00.000Z",
-    "storageEndDate": null,
-    "billingCycle": "6-Month Initial",
-    "payments": [],
-    "hamaliPayable": 11295,
-    "totalRentBilled": 0,
-    "inflowType": "Plot",
-    "plotBags": 251,
-    "loadBags": 251
-  },
-  {
-    "customerId": "CUST-1764399621194",
-    "commodityDescription": "68",
-    "location": "B6",
-    "lorryTractorNo": "",
-    "weight": 0,
-    "khataAmount": 0,
-    "id": "SLWH-4",
-    "bagsIn": 68,
+    "customerId": "CUST-001",
+    "commodityDescription": "Paddy (Sona Masoori)",
+    "location": "A1/Left",
+    "bagsIn": 150,
     "bagsOut": 0,
-    "bagsStored": 68,
-    "storageStartDate": "2025-11-28T00:00:00.000Z",
+    "bagsStored": 150,
+    "storageStartDate": "2023-10-15T00:00:00.000Z",
     "storageEndDate": null,
     "billingCycle": "6-Month Initial",
     "payments": [
       {
-        "amount": 680,
-        "date": "2025-11-28T00:00:00.000Z",
+        "amount": 1500,
+        "date": "2023-10-15T00:00:00.000Z",
         "type": "hamali"
       }
     ],
-    "hamaliPayable": 680,
+    "hamaliPayable": 1500,
     "totalRentBilled": 0,
-    "inflowType": "Direct",
-    "plotBags": 0,
-    "loadBags": 0
+    "lorryTractorNo": "AP07AB1234",
+    "weight": 7500,
+    "inflowType": "Direct"
+  },
+  {
+    "id": "SLWH-2",
+    "customerId": "CUST-002",
+    "commodityDescription": "Red Chilli",
+    "location": "B3/Center",
+    "bagsIn": 200,
+    "bagsOut": 200,
+    "bagsStored": 0,
+    "storageStartDate": "2023-05-20T00:00:00.000Z",
+    "storageEndDate": "2024-01-10T00:00:00.000Z",
+    "billingCycle": "Completed",
+    "payments": [
+      {
+        "amount": 2400,
+        "date": "2023-05-20T00:00:00.000Z",
+        "type": "hamali"
+      },
+      {
+        "amount": 7200,
+        "date": "2024-01-10T00:00:00.000Z",
+        "type": "rent"
+      }
+    ],
+    "hamaliPayable": 2400,
+    "totalRentBilled": 7200,
+    "lorryTractorNo": "AP16CD5678",
+    "weight": 10000,
+    "inflowType": "Direct"
+  },
+  {
+    "id": "SLWH-3",
+    "customerId": "CUST-003",
+    "commodityDescription": "Groundnut",
+    "location": "C2/Right",
+    "bagsIn": 300,
+    "bagsOut": 0,
+    "bagsStored": 300,
+    "storageStartDate": "2024-01-25T00:00:00.000Z",
+    "storageEndDate": null,
+    "billingCycle": "6-Month Initial",
+    "payments": [],
+    "hamaliPayable": 3600,
+    "totalRentBilled": 0,
+    "lorryTractorNo": "Tractor",
+    "weight": 12000,
+    "inflowType": "Plot",
+    "plotBags": 300
+  },
+  {
+    "id": "SLWH-4",
+    "customerId": "CUST-004",
+    "commodityDescription": "Paddy",
+    "location": "A2/Center",
+    "bagsIn": 180,
+    "bagsOut": 0,
+    "bagsStored": 180,
+    "storageStartDate": "2024-02-12T00:00:00.000Z",
+    "storageEndDate": null,
+    "billingCycle": "6-Month Initial",
+    "payments": [
+      {
+        "amount": 2160,
+        "date": "2024-02-12T00:00:00.000Z",
+        "type": "hamali"
+      }
+    ],
+    "hamaliPayable": 2160,
+    "totalRentBilled": 0,
+    "lorryTractorNo": "AP21EF9012",
+    "weight": 9000,
+    "inflowType": "Direct"
+  },
+  {
+    "id": "SLWH-5",
+    "customerId": "CUST-005",
+    "commodityDescription": "Maize",
+    "location": "D1/Left",
+    "bagsIn": 250,
+    "bagsOut": 100,
+    "bagsStored": 150,
+    "storageStartDate": "2023-11-01T00:00:00.000Z",
+    "storageEndDate": null,
+    "billingCycle": "6-Month Initial",
+    "payments": [
+      {
+        "amount": 3000,
+        "date": "2023-11-01T00:00:00.000Z",
+        "type": "hamali"
+      }
+    ],
+    "hamaliPayable": 3000,
+    "totalRentBilled": 3600,
+    "lorryTractorNo": "Tractor",
+    "weight": 12500,
+    "inflowType": "Direct"
   }
 ]

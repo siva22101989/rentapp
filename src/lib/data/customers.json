@@ -1,34 +1,48 @@
+
 [
   {
-    "name": "D DASTHAGIRI",
+    "id": "CUST-001",
+    "name": "Suresh Kumar",
+    "phone": "9876543210",
+    "address": "123, Main Road, Guntur",
+    "email": "suresh.k@example.com",
+    "fatherName": "Ramesh Kumar",
+    "village": "Guntur"
+  },
+  {
+    "id": "CUST-002",
+    "name": "Lakshmi Prasanna",
+    "phone": "9123456789",
+    "address": "45, Market Street, Vijayawada",
+    "email": "lakshmi.p@example.com",
+    "fatherName": "Venkateswara Rao",
+    "village": "Vijayawada"
+  },
+  {
+    "id": "CUST-003",
+    "name": "Anil Reddy",
+    "phone": "8765432109",
+    "address": "21, Reddy Colony, Kurnool",
+    "email": "anil.r@example.com",
+    "fatherName": "Subba Reddy",
+    "village": "Kurnool"
+  },
+  {
+    "id": "CUST-004",
+    "name": "Priya Sharma",
+    "phone": "7890123456",
+    "address": "Hillside Apartments, Visakhapatnam",
+    "email": "priya.s@example.com",
+    "fatherName": "Murali Sharma",
+    "village": "Visakhapatnam"
+  },
+  {
+    "id": "CUST-005",
+    "name": "D. Dastagiri",
     "phone": "9908724813",
-    "address": "RAMAPURAM",
+    "address": "Ramapuram, Owk",
     "email": "",
-    "id": "CUST-1764398275149"
-  },
-  {
-    "name": "M YELLAYA",
-    "phone": "9963368248",
-    "address": "OWK TO NDL RAOAD,OWK",
-    "email": "",
-    "id": "CUST-1764399621194"
-  },
-  {
-    "name": "RAMESH",
-    "phone": "8328590581",
-    "address": "OWK ROAD",
-    "id": "CUST-1764413218174",
-    "email": "",
-    "fatherName": "",
-    "village": "TADIPATRI"
-  },
-  {
-    "name": "P.Chinna venkateswarlu",
-    "phone": "9177659026",
-    "address": "obulapuram",
-    "id": "CUST-1765345877833",
-    "email": "",
-    "fatherName": "",
-    "village": "obulapuram"
+    "fatherName": "D. Hussain",
+    "village": "Ramapuram"
   }
 ]

@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useUser } from '@/firebase/auth/use-user';
 import { useFirebase } from '@/firebase';
+import { Badge } from '@/components/ui/badge';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -33,6 +34,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [user, loading, router]);
 
+  const isAdmin = user?.email === 'nikhilpnkr@gmail.com';
 
   const handleLogout = async () => {
     if (auth) {
@@ -75,7 +77,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               <DropdownMenuContent className="w-56" align="end" forceMount>
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">{user.displayName || 'Warehouse Manager'}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium leading-none">{user.displayName || 'Warehouse Manager'}</p>
+                      {isAdmin && <Badge variant="destructive">Admin</Badge>}
+                    </div>
                     <p className="text-xs leading-none text-muted-foreground">
                       {user.email}
                     </p>

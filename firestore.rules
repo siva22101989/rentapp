@@ -3,12 +3,9 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // WARNING: These rules are completely open and are for testing purposes only.
-    // They allow anyone to read, write, and delete data in your database.
-    // Revert to secure rules before deploying to production.
+    // Allow read/write access to the entire database for any authenticated user.
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if request.auth != null;
     }
   }
 }

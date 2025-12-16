@@ -4,16 +4,11 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper function to check if a user is signed in
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    // Allow any signed-in user to perform all read and write operations.
-    // This is a simple security model suitable for internal applications
-    // where all users are trusted.
+    // WARNING: These rules are completely open and are for testing purposes only.
+    // They allow anyone to read, write, and delete data in your database.
+    // Revert to secure rules before deploying to production.
     match /{document=**} {
-      allow read, write: if isSignedIn();
+      allow read, write: if true;
     }
   }
 }

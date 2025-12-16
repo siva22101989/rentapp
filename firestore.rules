@@ -21,9 +21,9 @@ service cloud.firestore {
       allow read: if isSignedIn();
     }
 
-    // Customers: Any signed-in user can write.
+    // Customers: Any signed-in user can perform all write operations.
     match /customers/{customerId} {
-      allow write: if isSignedIn();
+      allow create, update, delete: if isSignedIn();
     }
 
     // Storage Records: Admins can write.

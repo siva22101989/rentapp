@@ -41,7 +41,6 @@ function SubmitButton() {
 export function AddCustomerDialog() {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
-  const { user } = useUser();
   
   const initialState: FormState = { message: '', success: false };
   const [state, formAction] = useActionState(addCustomer, initialState);
@@ -52,7 +51,7 @@ export function AddCustomerDialog() {
     if (state.success) {
       toast({ 
         title: 'Success', 
-        description: `${state.message} The security rule 'isSignedIn()' returned: ${state.isSignedIn}.` 
+        description: state.message 
       });
       setIsOpen(false); 
     } else {
@@ -74,7 +73,6 @@ export function AddCustomerDialog() {
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <form action={formAction}>
-          <input type="hidden" name="isSignedIn" value={String(!!user)} />
           <DialogHeader>
             <DialogTitle>Add New Customer</DialogTitle>
             <DialogDescription>
@@ -130,5 +128,3 @@ export function AddCustomerDialog() {
     </Dialog>
   );
 }
-
-    

@@ -1,7 +1,8 @@
 
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
+import { useFormStatus } from 'react-dom';
 import { Loader2, Database } from 'lucide-react';
 import { seedDatabase } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
@@ -35,7 +36,7 @@ function SubmitButton() {
 
 export function SeedClient() {
   const initialState: SeedState = { message: null, success: false };
-  const [state, formAction] = useFormState(seedDatabase, initialState);
+  const [state, formAction] = useActionState(seedDatabase, initialState);
 
   return (
     <div className="flex flex-col items-center justify-center text-center">

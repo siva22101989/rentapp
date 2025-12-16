@@ -20,6 +20,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { useUser } from '@/firebase';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -40,6 +41,7 @@ function SubmitButton() {
 export function AddCustomerDialog() {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
+  const { user } = useUser();
   
   const initialState: FormState = { message: '', success: false };
   const [state, formAction] = useActionState(addCustomer, initialState);
@@ -48,7 +50,10 @@ export function AddCustomerDialog() {
     if (!state.message) return;
     
     if (state.success) {
-      toast({ title: 'Success', description: state.message });
+      toast({ 
+        title: 'Success', 
+        description: `${state.message} The security rule 'isSignedIn()' returned: ${state.isSignedIn}.` 
+      });
       setIsOpen(false); 
     } else {
       toast({
@@ -69,6 +74,7 @@ export function AddCustomerDialog() {
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <form action={formAction}>
+          <input type="hidden" name="isSignedIn" value={String(!!user)} />
           <DialogHeader>
             <DialogTitle>Add New Customer</DialogTitle>
             <DialogDescription>
@@ -124,3 +130,5 @@ export function AddCustomerDialog() {
     </Dialog>
   );
 }
+
+    

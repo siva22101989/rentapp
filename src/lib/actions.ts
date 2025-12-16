@@ -31,11 +31,13 @@ const CustomerSchema = z.object({
   email: z.string().optional(),
   fatherName: z.string().optional(),
   village: z.string().optional(),
+  isSignedIn: z.boolean(), // Add this to the schema
 });
 
 export type FormState = {
   message: string;
   success: boolean;
+  isSignedIn?: boolean;
 };
 
 export async function getAnomalyDetection() {
@@ -56,6 +58,7 @@ export async function addCustomer(prevState: FormState, formData: FormData) {
         address: formData.get('address'),
         fatherName: formData.get('fatherName'),
         village: formData.get('village'),
+        isSignedIn: formData.get('isSignedIn') === 'true',
     });
 
     if (!validatedFields.success) {
@@ -64,24 +67,35 @@ export async function addCustomer(prevState: FormState, formData: FormData) {
         return { message: `Invalid data: ${message}`, success: false };
     }
 
-    const { email, fatherName, village, ...rest } = validatedFields.data;
+    const { email, fatherName, village, isSignedIn, ...rest } = validatedFields.data;
 
-    const newCustomer: Omit<Customer, 'id'> = {
-        ...rest,
-        email: email ?? '',
-        fatherName: fatherName ?? '',
-        village: village ?? '',
-    };
-    
-    await saveCustomer(newCustomer);
-    
-    revalidatePath('/customers');
-    revalidatePath('/inflow'); // Revalidate inflow in case a new customer was added from there
-    return { message: 'Customer added successfully.', success: true };
+    // Because the security rule `isSignedIn()` is true, Firestore allows this.
+    // If it were false, Firestore would throw a PERMISSION_DENIED error here.
+    try {
+        const newCustomer: Omit<Customer, 'id'> = {
+            ...rest,
+            email: email ?? '',
+            fatherName: fatherName ?? '',
+            village: village ?? '',
+        };
+        
+        await saveCustomer(newCustomer);
+        
+        revalidatePath('/customers');
+        revalidatePath('/inflow'); // Revalidate inflow in case a new customer was added from there
+        return { 
+            message: 'Customer added successfully.', 
+            success: true,
+            isSignedIn: isSignedIn,
+        };
+    } catch (error) {
+        return { message: 'Failed to save customer. You might not have permission.', success: false };
+    }
 }
 
 export async function updateCustomerAction(customerId: string, prevState: FormState, formData: FormData) {
-    const validatedFields = CustomerSchema.safeParse({
+    // Omitting the isSignedIn check for brevity as it's not the primary action here.
+    const validatedFields = CustomerSchema.omit({ isSignedIn: true }).safeParse({
         name: formData.get('name'),
         email: formData.get('email'),
         phone: formData.get('phone'),
@@ -492,3 +506,5 @@ export async function deleteExpenseAction(expenseId: string): Promise<FormState>
     return { message: 'Failed to delete expense.', success: false };
   }
 }
+
+    

@@ -55,7 +55,12 @@ export const updateCustomer = async (id: string, data: Partial<Customer>): Promi
     const db = getDb();
     const customerRef = doc(db, 'customers', id);
     await updateDoc(customerRef, data);
-}
+};
+
+export const deleteCustomer = async (id: string): Promise<void> => {
+    const db = getDb();
+    await deleteDoc(doc(db, 'customers', id));
+};
 
 
 // Storage Record Functions
@@ -93,8 +98,10 @@ export const getStorageRecord = async (id: string): Promise<StorageRecord | null
 
 export const saveStorageRecord = async (record: Omit<StorageRecord, 'id'>): Promise<string> => {
   const db = getDb();
-  const docRef = await addDoc(collection(db, 'storageRecords'), record);
-  return docRef.id;
+  // Using setDoc with a specific ID.
+  const docRef = doc(db, 'storageRecords', record.id);
+  await setDoc(docRef, record);
+  return record.id;
 };
 
 export const updateStorageRecord = async (id: string, data: Partial<StorageRecord>): Promise<void> => {

@@ -16,8 +16,8 @@ import type { Customer } from "@/lib/definitions";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { collection } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
-import { useMemo } from "react";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
+import { CustomerActionsMenu } from "@/components/customers/customer-actions-menu";
 
 function CustomersTable() {
   const firestore = useFirestore();
@@ -41,6 +41,7 @@ function CustomersTable() {
               <TableHead>Email</TableHead>
               <TableHead>Phone</TableHead>
               <TableHead>Address</TableHead>
+              <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -50,6 +51,9 @@ function CustomersTable() {
                 <TableCell>{customer.email}</TableCell>
                 <TableCell>{customer.phone}</TableCell>
                 <TableCell>{customer.address}</TableCell>
+                <TableCell>
+                  <CustomerActionsMenu customer={customer} />
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>

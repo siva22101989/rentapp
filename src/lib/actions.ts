@@ -14,16 +14,17 @@ import {
     updateExpense,
     deleteExpense,
     getStorageRecords,
-    updateCustomer
+    updateCustomer,
+    deleteCustomer
 } from '@/lib/data';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { detectStorageAnomalies as detectStorageAnomaliesFlow } from '@/ai/flows/anomaly-detection';
-import type { StorageRecord, Payment } from './definitions';
+import type { StorageRecord, Payment, Customer } from './definitions';
 import { expenseCategories } from './definitions';
 import { Timestamp } from 'firebase/firestore';
 
-const NewCustomerSchema = z.object({
+const CustomerSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters.'),
   phone: z.string().min(10, 'Phone number must be at least 10 digits.'),
   address: z.string().min(5, 'Address must be at least 5 characters.'),
@@ -48,7 +49,7 @@ export async function getAnomalyDetection() {
 }
 
 export async function addCustomer(prevState: FormState, formData: FormData) {
-    const validatedFields = NewCustomerSchema.safeParse({
+    const validatedFields = CustomerSchema.safeParse({
         name: formData.get('name'),
         email: formData.get('email'),
         phone: formData.get('phone'),
@@ -65,7 +66,7 @@ export async function addCustomer(prevState: FormState, formData: FormData) {
 
     const { email, fatherName, village, ...rest } = validatedFields.data;
 
-    const newCustomer = {
+    const newCustomer: Omit<Customer, 'id'> = {
         ...rest,
         email: email ?? '',
         fatherName: fatherName ?? '',
@@ -78,6 +79,43 @@ export async function addCustomer(prevState: FormState, formData: FormData) {
     revalidatePath('/inflow'); // Revalidate inflow in case a new customer was added from there
     return { message: 'Customer added successfully.', success: true };
 }
+
+export async function updateCustomerAction(customerId: string, prevState: FormState, formData: FormData) {
+    const validatedFields = CustomerSchema.safeParse({
+        name: formData.get('name'),
+        email: formData.get('email'),
+        phone: formData.get('phone'),
+        address: formData.get('address'),
+        fatherName: formData.get('fatherName'),
+        village: formData.get('village'),
+    });
+
+    if (!validatedFields.success) {
+        const error = validatedFields.error.flatten().fieldErrors;
+        const message = Object.values(error).flat().join(', ');
+        return { message: `Invalid data: ${message}`, success: false };
+    }
+
+    try {
+        await updateCustomer(customerId, validatedFields.data);
+        revalidatePath('/customers');
+        return { message: 'Customer updated successfully.', success: true };
+    } catch (error) {
+        return { message: 'Failed to update customer.', success: false };
+    }
+}
+
+export async function deleteCustomerAction(customerId: string): Promise<FormState> {
+  try {
+    // Optional: Add check here to ensure customer has no active records before deleting
+    await deleteCustomer(customerId);
+    revalidatePath('/customers');
+    return { message: 'Customer deleted successfully.', success: true };
+  } catch (error) {
+    return { message: 'Failed to delete customer.', success: false };
+  }
+}
+
 
 const InflowSchema = z.object({
     customerId: z.string().min(1, 'Customer is required.'),

@@ -11,8 +11,8 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { useAuth, useFirebase } from '@/firebase';
+import { useToast } from '@/hooks/use-toast';
+import { useFirebase } from '@/firebase';
 import {
   GoogleAuthProvider,
   signInWithEmailAndPassword,
@@ -37,9 +37,17 @@ function GoogleIcon() {
 export default function LoginPage() {
   const { auth } = useFirebase();
   const router = useRouter();
+  const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  const showAuthToast = () => {
+    toast({
+      title: 'Login Successful',
+      description: "Authentication Status: Logged In (isSignedIn() returns true)",
+    });
+  };
 
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
@@ -50,6 +58,7 @@ export default function LoginPage() {
     }
     try {
       await signInWithEmailAndPassword(auth, email, password);
+      showAuthToast();
       router.push('/');
     } catch (err: any) {
       setError(err.message);
@@ -65,6 +74,7 @@ export default function LoginPage() {
     const provider = new GoogleAuthProvider();
     try {
       await signInWithPopup(auth, provider);
+      showAuthToast();
       router.push('/');
     } catch (err: any) {
       setError(err.message);

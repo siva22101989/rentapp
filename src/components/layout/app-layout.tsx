@@ -18,7 +18,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useUser } from '@/firebase/auth/use-user';
 import { useFirebase } from '@/firebase';
-import { useToast } from '@/hooks/use-toast';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -27,7 +26,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useUser();
   const { auth } = useFirebase();
   const router = useRouter();
-  const { toast } = useToast();
 
   React.useEffect(() => {
     if (!loading && !user) {
@@ -40,13 +38,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         await auth.signOut();
         router.push('/login');
     }
-  };
-
-  const showAuthStatus = () => {
-    toast({
-      title: 'Authentication Status',
-      description: `The security rule 'isSignedIn()' returns: ${String(!!user)}`,
-    });
   };
 
   if (loading || !user) {
@@ -72,7 +63,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               <Logo />
             </div>
             <DropdownMenu>
-              <DropdownMenuTrigger asChild onClick={showAuthStatus}>
+              <DropdownMenuTrigger asChild>
                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                   <Avatar className="h-8 w-8">
                      {user.photoURL && <AvatarImage src={user.photoURL} alt={user.displayName || user.email || 'User'} />}

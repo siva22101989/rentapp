@@ -72,8 +72,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               <Logo />
             </div>
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                 <Button variant="ghost" className="relative h-8 w-8 rounded-full" onClick={showAuthStatus}>
+              <DropdownMenuTrigger asChild onClick={showAuthStatus}>
+                 <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                   <Avatar className="h-8 w-8">
                      {user.photoURL && <AvatarImage src={user.photoURL} alt={user.displayName || user.email || 'User'} />}
                     <AvatarFallback>{user.email?.[0].toUpperCase() || 'U'}</AvatarFallback>

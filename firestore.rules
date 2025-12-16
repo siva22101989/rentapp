@@ -10,7 +10,10 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return request.auth.token.admin == true;
+      // For development: Hardcode a specific user email as admin.
+      // For production, this should be replaced with custom claims:
+      // return request.auth.token.admin == true;
+      return request.auth.token.email == 'nikhilpnkr@gmail.com';
     }
 
     // Default read access for any signed-in user

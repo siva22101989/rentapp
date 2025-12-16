@@ -13,9 +13,9 @@ import {
   Timestamp,
   type Firestore,
   writeBatch,
+  arrayUnion,
 } from 'firebase/firestore';
 import { initializeFirebase } from '@/firebase';
-import { getAdminApp, getAdminDb } from '@/firebase/admin';
 import type { Customer, Expense, Payment, StorageRecord } from './definitions';
 import { revalidatePath } from 'next/cache';
 
@@ -34,12 +34,12 @@ function getDb(): Firestore {
 
 // Seeding Functions
 export const seedCustomers = async (): Promise<number> => {
-    const db = getAdminDb();
-    const batch = db.batch();
-    const customersCol = db.collection('customers');
+    const db = getDb();
+    const batch = writeBatch(db);
+    const customersCol = collection(db, 'customers');
     
     customersData.forEach((customer) => {
-        const docRef = customersCol.doc(customer.id);
+        const docRef = doc(customersCol, customer.id);
         batch.set(docRef, {
             name: customer.name,
             phone: customer.phone,
@@ -55,14 +55,13 @@ export const seedCustomers = async (): Promise<number> => {
 }
 
 export const seedStorageRecords = async (): Promise<number> => {
-    const db = getAdminDb();
-    const batch = db.batch();
-    const recordsCol = db.collection('storageRecords');
+    const db = getDb();
+    const batch = writeBatch(db);
+    const recordsCol = collection(db, 'storageRecords');
 
     storageRecordsData.forEach((record) => {
-        const docRef = recordsCol.doc(record.id);
+        const docRef = doc(recordsCol, record.id);
         
-        // Convert date strings to Timestamps
         const startDate = record.storageStartDate ? Timestamp.fromDate(new Date(record.storageStartDate)) : Timestamp.now();
         const endDate = record.storageEndDate ? Timestamp.fromDate(new Date(record.storageEndDate)) : null;
         const payments = (record.payments || []).map(p => ({
@@ -85,45 +84,45 @@ export const seedStorageRecords = async (): Promise<number> => {
 
 // Customer Functions
 export async function getCustomers(): Promise<Customer[]> {
-  const db = getAdminDb();
-  const customersCol = db.collection('customers');
-  const customerSnapshot = await customersCol.get();
+  const db = getDb();
+  const customersCol = collection(db, 'customers');
+  const customerSnapshot = await getDocs(customersCol);
   const customerList = customerSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Customer));
   return customerList;
 }
 
 export const getCustomer = async (id: string): Promise<Customer | null> => {
-  const db = getAdminDb();
-  const customerDoc = await db.collection('customers').doc(id).get();
-  if (customerDoc.exists) {
+  const db = getDb();
+  const customerDoc = await getDoc(doc(db, 'customers', id));
+  if (customerDoc.exists()) {
     return { id: customerDoc.id, ...customerDoc.data() } as Customer;
   }
   return null;
 };
 
 export const saveCustomer = async (customer: Omit<Customer, 'id'>): Promise<string> => {
-  const db = getAdminDb();
-  const docRef = await db.collection('customers').add(customer);
+  const db = getDb();
+  const docRef = await addDoc(collection(db, 'customers'), customer);
   return docRef.id;
 };
 
 export const updateCustomer = async (id: string, data: Partial<Customer>): Promise<void> => {
-    const db = getAdminDb();
-    const customerRef = db.collection('customers').doc(id);
-    await customerRef.update(data);
+    const db = getDb();
+    const customerRef = doc(db, 'customers', id);
+    await updateDoc(customerRef, data);
 };
 
 export const deleteCustomer = async (id: string): Promise<void> => {
-    const db = getAdminDb();
-    await db.collection('customers').doc(id).delete();
+    const db = getDb();
+    await deleteDoc(doc(db, 'customers', id));
 };
 
 
 // Storage Record Functions
 export async function getStorageRecords(): Promise<StorageRecord[]> {
-  const db = getAdminDb();
-  const recordsCol = db.collection('storageRecords');
-  const recordSnapshot = await recordsCol.get();
+  const db = getDb();
+  const recordsCol = collection(db, 'storageRecords');
+  const recordSnapshot = await getDocs(recordsCol);
   return recordSnapshot.docs.map(doc => {
     const data = doc.data();
     return {
@@ -137,9 +136,9 @@ export async function getStorageRecords(): Promise<StorageRecord[]> {
 }
 
 export const getStorageRecord = async (id: string): Promise<StorageRecord | null> => {
-  const db = getAdminDb();
-  const recordDoc = await db.collection('storageRecords').doc(id).get();
-  if (recordDoc.exists) {
+  const db = getDb();
+  const recordDoc = await getDoc(doc(db, 'storageRecords', id));
+  if (recordDoc.exists()) {
     const data = recordDoc.data();
     return {
       id: recordDoc.id,
@@ -153,38 +152,37 @@ export const getStorageRecord = async (id: string): Promise<StorageRecord | null
 };
 
 export const saveStorageRecord = async (record: Omit<StorageRecord, 'id'> & {id: string}): Promise<string> => {
-  const db = getAdminDb();
-  const docRef = db.collection('storageRecords').doc(record.id);
-  await docRef.set(record);
+  const db = getDb();
+  const docRef = doc(db, 'storageRecords', record.id);
+  await setDoc(docRef, record);
   return record.id;
 };
 
 export const updateStorageRecord = async (id: string, data: Partial<StorageRecord>): Promise<void> => {
-    const db = getAdminDb();
-    const recordRef = db.collection('storageRecords').doc(id);
-    await recordRef.update(data);
+    const db = getDb();
+    const recordRef = doc(db, 'storageRecords', id);
+    await updateDoc(recordRef, data);
 }
 
 export const deleteStorageRecord = async (id: string): Promise<void> => {
-    const db = getAdminDb();
-    await db.collection('storageRecords').doc(id).delete();
+    const db = getDb();
+    await deleteDoc(doc(db, 'storageRecords', id));
 };
 
 export const addPaymentToRecord = async (recordId: string, payment: Payment) => {
-    const record = await getStorageRecord(recordId);
-    if (!record) {
-        throw new Error("Record not found");
-    }
-    const updatedPayments = record.payments ? [...record.payments, payment] : [payment];
-    await updateStorageRecord(recordId, { payments: updatedPayments });
+    const db = getDb();
+    const recordRef = doc(db, 'storageRecords', recordId);
+    await updateDoc(recordRef, {
+        payments: arrayUnion(payment)
+    });
 }
 
 
 // Expense Functions
 export async function getExpenses(): Promise<Expense[]> {
-  const db = getAdminDb();
-  const expensesCol = db.collection('expenses');
-  const expenseSnapshot = await expensesCol.get();
+  const db = getDb();
+  const expensesCol = collection(db, 'expenses');
+  const expenseSnapshot = await getDocs(expensesCol);
   return expenseSnapshot.docs.map(doc => {
     const data = doc.data();
     return {
@@ -196,17 +194,17 @@ export async function getExpenses(): Promise<Expense[]> {
 }
 
 export async function saveExpense(expense: Omit<Expense, 'id'>): Promise<string> {
-  const db = getAdminDb();
-  const docRef = await db.collection('expenses').add(expense);
+  const db = getDb();
+  const docRef = await addDoc(collection(db, 'expenses'), expense);
   return docRef.id;
 }
 
 export const updateExpense = async (id: string, data: Partial<Expense>): Promise<void> => {
-    const db = getAdminDb();
-    await db.collection('expenses').doc(id).update(data);
+    const db = getDb();
+    await updateDoc(doc(db, 'expenses', id), data);
 };
 
 export const deleteExpense = async (id: string): Promise<void> => {
-    const db = getAdminDb();
-    await db.collection('expenses').doc(id).delete();
+    const db = getDb();
+    await deleteDoc(doc(db, 'expenses', id));
 };

@@ -24,7 +24,7 @@ import { revalidatePath } from 'next/cache';
 import { detectStorageAnomalies as detectStorageAnomaliesFlow } from '@/ai/flows/anomaly-detection';
 import type { StorageRecord, Payment, Customer } from './definitions';
 import { expenseCategories } from './definitions';
-import { Timestamp } from 'firebase-admin/firestore';
+import { Timestamp } from 'firebase/firestore';
 
 const CustomerSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters.'),
@@ -494,7 +494,7 @@ export async function deleteExpenseAction(expenseId: string): Promise<FormState>
   }
 }
 
-export async function seedDatabase(prevState: FormState, formData: FormData) {
+export async function seedDatabase() {
     try {
         const customersCount = await seedCustomers();
         const recordsCount = await seedStorageRecords();

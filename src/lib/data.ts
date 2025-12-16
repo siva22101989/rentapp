@@ -1,145 +1,150 @@
 
 'use server';
 
-import fs from 'fs/promises';
-import path from 'path';
-import type { Customer, StorageRecord, Payment, Expense } from '@/lib/definitions';
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  addDoc,
+  Timestamp,
+  type Firestore,
+} from 'firebase/firestore';
+import { initializeFirebase } from '@/firebase';
+import type { Customer, Expense, Payment, StorageRecord } from './definitions';
 import { revalidatePath } from 'next/cache';
 
-const customersPath = path.join(process.cwd(), 'src/lib/data/customers.json');
-const storageRecordsPath = path.join(process.cwd(), 'src/lib/data/storageRecords.json');
-const expensesPath = path.join(process.cwd(), 'src/lib/data/expenses.json');
-
-// Helper to read and parse JSON file
-async function readJsonFile<T>(filePath: string): Promise<T> {
-  try {
-    const fileContent = await fs.readFile(filePath, 'utf8');
-    return JSON.parse(fileContent) as T;
-  } catch (error: any) {
-    if (error.code === 'ENOENT') {
-      // File doesn't exist, return empty array for lists
-      return [] as T;
-    }
-    throw error;
+// This function is a placeholder for getting the Firestore instance.
+// In a real app, you would get this from your Firebase initialization.
+function getDb(): Firestore {
+  const { firestore } = initializeFirebase();
+  if (!firestore) {
+    throw new Error('Firestore is not initialized');
   }
+  return firestore;
 }
-
-// Helper to write to JSON file
-async function writeJsonFile<T>(filePath: string, data: T): Promise<void> {
-  await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf8');
-}
-
 
 // Customer Functions
-export async function customers(): Promise<Customer[]> {
-  return await readJsonFile<Customer[]>(customersPath);
+export async function getCustomers(): Promise<Customer[]> {
+  const db = getDb();
+  const customersCol = collection(db, 'customers');
+  const customerSnapshot = await getDocs(customersCol);
+  const customerList = customerSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Customer));
+  return customerList;
 }
 
 export const getCustomer = async (id: string): Promise<Customer | null> => {
-  const allCustomers = await customers();
-  return allCustomers.find(c => c.id === id) || null;
+  const db = getDb();
+  const customerDoc = await getDoc(doc(db, 'customers', id));
+  if (customerDoc.exists()) {
+    return { id: customerDoc.id, ...customerDoc.data() } as Customer;
+  }
+  return null;
 };
 
-export const saveCustomer = async (customer: Customer): Promise<void> => {
-  const allCustomers = await customers();
-  allCustomers.push(customer);
-  await writeJsonFile(customersPath, allCustomers);
+export const saveCustomer = async (customer: Omit<Customer, 'id'>): Promise<string> => {
+  const db = getDb();
+  const docRef = await addDoc(collection(db, 'customers'), customer);
+  return docRef.id;
 };
+
+export const updateCustomer = async (id: string, data: Partial<Customer>): Promise<void> => {
+    const db = getDb();
+    const customerRef = doc(db, 'customers', id);
+    await updateDoc(customerRef, data);
+}
+
 
 // Storage Record Functions
-export async function storageRecords(): Promise<StorageRecord[]> {
-  const records = await readJsonFile<StorageRecord[]>(storageRecordsPath);
-  // Dates are stored as ISO strings, so we need to convert them to Date objects
-  return records.map(record => ({
-    ...record,
-    storageStartDate: new Date(record.storageStartDate),
-    storageEndDate: record.storageEndDate ? new Date(record.storageEndDate) : null,
-    payments: (record.payments || []).map(p => ({...p, date: new Date(p.date)}))
-  }));
+export async function getStorageRecords(): Promise<StorageRecord[]> {
+  const db = getDb();
+  const recordsCol = collection(db, 'storageRecords');
+  const recordSnapshot = await getDocs(recordsCol);
+  return recordSnapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      id: doc.id,
+      ...data,
+      storageStartDate: (data.storageStartDate as Timestamp)?.toDate(),
+      storageEndDate: (data.storageEndDate as Timestamp)?.toDate() || null,
+      payments: (data.payments || []).map((p: any) => ({...p, date: (p.date as Timestamp)?.toDate()})),
+    } as StorageRecord;
+  });
 }
 
 export const getStorageRecord = async (id: string): Promise<StorageRecord | null> => {
-  const allRecords = await storageRecords();
-  return allRecords.find(r => r.id === id) || null;
+  const db = getDb();
+  const recordDoc = await getDoc(doc(db, 'storageRecords', id));
+  if (recordDoc.exists()) {
+    const data = recordDoc.data();
+    return {
+      id: recordDoc.id,
+      ...data,
+      storageStartDate: (data.storageStartDate as Timestamp)?.toDate(),
+      storageEndDate: data.storageEndDate ? (data.storageEndDate as Timestamp)?.toDate() : null,
+      payments: (data.payments || []).map((p: any) => ({...p, date: (p.date as Timestamp)?.toDate()})),
+    } as StorageRecord;
+  }
+  return null;
 };
 
-export const saveStorageRecord = async (record: StorageRecord): Promise<void> => {
-  const allRecords = await storageRecords();
-  allRecords.push(record);
-  await writeJsonFile(storageRecordsPath, allRecords);
+export const saveStorageRecord = async (record: Omit<StorageRecord, 'id'>): Promise<string> => {
+  const db = getDb();
+  const docRef = await addDoc(collection(db, 'storageRecords'), record);
+  return docRef.id;
 };
 
 export const updateStorageRecord = async (id: string, data: Partial<StorageRecord>): Promise<void> => {
-    const allRecords = await storageRecords();
-    const recordIndex = allRecords.findIndex(r => r.id === id);
-    if (recordIndex === -1) {
-        throw new Error("Record not found");
-    }
-    allRecords[recordIndex] = { ...allRecords[recordIndex], ...data };
-    await writeJsonFile(storageRecordsPath, allRecords);
+    const db = getDb();
+    const recordRef = doc(db, 'storageRecords', id);
+    await updateDoc(recordRef, data);
 }
 
 export const deleteStorageRecord = async (id: string): Promise<void> => {
-    const allRecords = await storageRecords();
-    const updatedRecords = allRecords.filter(r => r.id !== id);
-    if (allRecords.length === updatedRecords.length) {
-        throw new Error("Record not found to delete");
-    }
-    await writeJsonFile(storageRecordsPath, updatedRecords);
+    const db = getDb();
+    await deleteDoc(doc(db, 'storageRecords', id));
 };
 
 export const addPaymentToRecord = async (recordId: string, payment: Payment) => {
-    const allRecords = await storageRecords();
-    const recordIndex = allRecords.findIndex(r => r.id === recordId);
-    if (recordIndex === -1) {
+    const record = await getStorageRecord(recordId);
+    if (!record) {
         throw new Error("Record not found");
     }
-    const record = allRecords[recordIndex];
     const updatedPayments = record.payments ? [...record.payments, payment] : [payment];
-    allRecords[recordIndex] = { ...record, payments: updatedPayments };
-    await writeJsonFile(storageRecordsPath, allRecords);
+    await updateStorageRecord(recordId, { payments: updatedPayments });
 }
+
 
 // Expense Functions
-export async function expenses(): Promise<Expense[]> {
-  const allExpenses = await readJsonFile<Expense[]>(expensesPath);
-  return allExpenses.map(expense => ({
-    ...expense,
-    date: new Date(expense.date),
-  }));
+export async function getExpenses(): Promise<Expense[]> {
+  const db = getDb();
+  const expensesCol = collection(db, 'expenses');
+  const expenseSnapshot = await getDocs(expensesCol);
+  return expenseSnapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      id: doc.id,
+      ...data,
+      date: (data.date as Timestamp)?.toDate(),
+    } as Expense;
+  });
 }
 
-export async function saveExpense(expense: Expense): Promise<void> {
-  const allExpenses = await expenses();
-  allExpenses.push(expense);
-  await writeJsonFile(expensesPath, allExpenses);
+export async function saveExpense(expense: Omit<Expense, 'id'>): Promise<string> {
+  const db = getDb();
+  const docRef = await addDoc(collection(db, 'expenses'), expense);
+  return docRef.id;
 }
 
 export const updateExpense = async (id: string, data: Partial<Expense>): Promise<void> => {
-    const allExpenses = await expenses();
-    const expenseIndex = allExpenses.findIndex(e => e.id === id);
-    if (expenseIndex === -1) {
-        throw new Error("Expense not found");
-    }
-    allExpenses[expenseIndex] = { ...allExpenses[expenseIndex], ...data };
-    await writeJsonFile(expensesPath, allExpenses);
+    const db = getDb();
+    await updateDoc(doc(db, 'expenses', id), data);
 };
 
 export const deleteExpense = async (id: string): Promise<void> => {
-    const allExpenses = await expenses();
-    const updatedExpenses = allExpenses.filter(e => e.id !== id);
-    if (allExpenses.length === updatedExpenses.length) {
-        throw new Error("Expense not found to delete");
-    }
-    await writeJsonFile(expensesPath, updatedExpenses);
-};
-
-
-// These functions were for Firebase and are now replaced by local JSON file logic
-export const saveCustomers = async (data: Customer[]): Promise<void> => {
-  await writeJsonFile(customersPath, data);
-};
-
-export const saveStorageRecords = async (data: StorageRecord[]): Promise<void> => {
-  await writeJsonFile(storageRecordsPath, data);
+    const db = getDb();
+    await deleteDoc(doc(db, 'expenses', id));
 };

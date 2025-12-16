@@ -12,23 +12,20 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { AddCustomerDialog } from "@/components/customers/add-customer-dialog";
-import { customers as getCustomers } from "@/lib/data";
-import { useEffect, useState } from "react";
 import type { Customer } from "@/lib/definitions";
+import { useCollection } from "@/firebase/firestore/use-collection";
+import { collection } from "firebase/firestore";
+import { useFirestore } from "@/firebase";
+import { useMemo } from "react";
+import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 
 function CustomersTable() {
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchCustomers() {
-      const data = await getCustomers();
-      setCustomers(data);
-      setLoading(false);
-    }
-    fetchCustomers();
-  }, []);
-
+  const firestore = useFirestore();
+  const customersQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'customers') : null),
+    [firestore]
+  );
+  const { data: customers, loading } = useCollection<Customer>(customersQuery);
 
   if (loading) {
     return <div>Loading...</div>;

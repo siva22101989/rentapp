@@ -7,22 +7,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowDown, ArrowUp, Warehouse, IndianRupee } from "lucide-react";
 import { calculateFinalRent } from "@/lib/billing";
 import { formatCurrency } from "@/lib/utils";
-import { storageRecords as getStorageRecords } from "@/lib/data";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import type { StorageRecord } from "@/lib/definitions";
+import { useCollection } from "@/firebase/firestore/use-collection";
+import { useFirestore } from "@/firebase";
+import { collection, query, where } from "firebase/firestore";
+import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 
 export default function StoragePage() {
-  const [allRecords, setAllRecords] = useState<StorageRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-  
-  useEffect(() => {
-    async function fetchRecords() {
-      const data = await getStorageRecords();
-      setAllRecords(data);
-      setLoading(false);
-    }
-    fetchRecords();
-  }, []);
+  const firestore = useFirestore();
+
+  const recordsQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'storageRecords') : null),
+    [firestore]
+  );
+  const { data: allRecords, loading } = useCollection<StorageRecord>(recordsQuery);
 
   const stats = useMemo(() => {
     if (!allRecords) return { totalInflow: 0, totalOutflow: 0, balanceStock: 0, estimatedRent: 0 };

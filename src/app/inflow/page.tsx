@@ -4,30 +4,30 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
 import { InflowForm } from "@/components/inflow/inflow-form";
 import { AddCustomerDialog } from "@/components/customers/add-customer-dialog";
-import { customers as getCustomers, storageRecords as getStorageRecords } from "@/lib/data";
-import { useEffect, useState, useMemo } from "react";
+import { useMemo } from "react";
 import type { Customer, StorageRecord } from "@/lib/definitions";
+import { useCollection } from "@/firebase/firestore/use-collection";
+import { collection } from "firebase/firestore";
+import { useFirestore } from "@/firebase";
+import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 
 export default function InflowPage() {
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [records, setRecords] = useState<StorageRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-  
-  useEffect(() => {
-    async function fetchData() {
-      const [customerData, recordData] = await Promise.all([
-        getCustomers(),
-        getStorageRecords(),
-      ]);
-      setCustomers(customerData);
-      setRecords(recordData);
-      setLoading(false);
-    }
-    fetchData();
-  }, []);
+  const firestore = useFirestore();
+
+  const customersQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'customers') : null),
+    [firestore]
+  );
+  const { data: customers, loading: loadingCustomers } = useCollection<Customer>(customersQuery);
+
+  const recordsQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'storageRecords') : null),
+    [firestore]
+  );
+  const { data: records, loading: loadingRecords } = useCollection<StorageRecord>(recordsQuery);
 
   const nextSerialNumber = useMemo(() => {
-    if (records.length === 0) {
+    if (!records || records.length === 0) {
       return 'SLWH-1';
     }
     const maxId = records.reduce((max, record) => {
@@ -38,7 +38,7 @@ export default function InflowPage() {
   }, [records]);
 
 
-  if (loading) {
+  if (loadingCustomers || loadingRecords) {
     return <AppLayout><div>Loading...</div></AppLayout>;
   }
 

@@ -12,33 +12,32 @@ import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns';
 import { ActionsMenu } from "./actions-menu";
 import { formatCurrency, toDate } from "@/lib/utils";
-import { customers as getCustomers, storageRecords as getStorageRecords } from "@/lib/data";
-import { useEffect, useMemo, useState } from "react";
 import type { Customer, StorageRecord } from "@/lib/definitions";
+import { useCollection } from "@/firebase/firestore/use-collection";
+import { collection, query, where } from "firebase/firestore";
+import { useFirestore } from "@/firebase";
+import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 
 export function StorageTable() {
-  const [activeRecords, setActiveRecords] = useState<StorageRecord[]>([]);
-  const [allCustomers, setAllCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(true);
+  const firestore = useFirestore();
 
-  useEffect(() => {
-    async function fetchData() {
-        const [customersData, recordsData] = await Promise.all([
-            getCustomers(),
-            getStorageRecords()
-        ]);
-        setAllCustomers(customersData);
-        setActiveRecords(recordsData.filter(r => !r.storageEndDate));
-        setLoading(false);
-    }
-    fetchData();
-  }, []);
+  const activeRecordsQuery = useMemoFirebase(
+    () => (firestore ? query(collection(firestore, 'storageRecords'), where('storageEndDate', '==', null)) : null),
+    [firestore]
+  );
+  const { data: activeRecords, loading: loadingRecords } = useCollection<StorageRecord>(activeRecordsQuery);
+
+  const customersQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'customers') : null),
+    [firestore]
+  );
+  const { data: allCustomers, loading: loadingCustomers } = useCollection<Customer>(customersQuery);
 
   const getCustomerName = (customerId: string) => {
     return allCustomers?.find(c => c.id === customerId)?.name ?? 'Unknown';
   };
 
-  if (loading) {
+  if (loadingRecords || loadingCustomers) {
     return <div>Loading table...</div>;
   }
 

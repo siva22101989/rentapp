@@ -13,6 +13,7 @@ import { DeleteRecordDialog } from "./delete-record-dialog";
 export function ActionsMenu({ record, customers }: { record: StorageRecord, customers: Customer[] }) {
     const customer = customers.find(c => c.id === record.customerId);
 
+    // Ensure record dates are Date objects before passing to children
     const safeRecord = {
         ...record,
         storageStartDate: toDate(record.storageStartDate),

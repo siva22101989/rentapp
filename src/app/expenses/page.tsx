@@ -5,13 +5,16 @@ import { PageHeader } from "@/components/shared/page-header";
 import { AddExpenseDialog } from "@/components/expenses/add-expense-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Scale } from "lucide-react";
-import { storageRecords as getStorageRecords, expenses as getExpenses } from "@/lib/data";
 import { formatCurrency, toDate } from "@/lib/utils";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Expense, StorageRecord } from "@/lib/definitions";
 import { format } from "date-fns";
 import { ExpenseActionsMenu } from "@/components/expenses/expense-actions-menu";
+import { useCollection } from "@/firebase/firestore/use-collection";
+import { useFirestore } from "@/firebase";
+import { collection } from "firebase/firestore";
+import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 
 function ExpensesTable({ expenses }: { expenses: Expense[] }) {
   if (expenses.length === 0) {
@@ -61,24 +64,24 @@ function ExpensesTable({ expenses }: { expenses: Expense[] }) {
 
 
 export default function ExpensesPage() {
-  const [allRecords, setAllRecords] = useState<StorageRecord[]>([]);
-  const [allExpenses, setAllExpenses] = useState<Expense[]>([]);
-  const [loading, setLoading] = useState(true);
+  const firestore = useFirestore();
 
-  useEffect(() => {
-    async function fetchData() {
-      const [records, expenses] = await Promise.all([
-        getStorageRecords(),
-        getExpenses()
-      ]);
-      setAllRecords(records);
-      setAllExpenses(expenses);
-      setLoading(false);
-    }
-    fetchData();
-  }, []);
+  const recordsQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'storageRecords') : null),
+    [firestore]
+  );
+  const { data: allRecords, loading: loadingRecords } = useCollection<StorageRecord>(recordsQuery);
+
+  const expensesQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'expenses') : null),
+    [firestore]
+  );
+  const { data: allExpenses, loading: loadingExpenses } = useCollection<Expense>(expensesQuery);
 
   const { totalIncome, totalExpenses, totalBalance } = useMemo(() => {
+    if (!allRecords || !allExpenses) {
+        return { totalIncome: 0, totalExpenses: 0, totalBalance: 0 };
+    }
     const income = allRecords.reduce((total, record) => {
       const rentPayments = (record.payments || [])
         .filter(p => p.type === 'rent')
@@ -96,7 +99,7 @@ export default function ExpensesPage() {
   }, [allRecords, allExpenses]);
 
 
-  if (loading) {
+  if (loadingRecords || loadingExpenses) {
     return (
       <AppLayout>
         <PageHeader title="Expenses & Income" description="Track your warehouse operational finances." />
@@ -153,7 +156,7 @@ export default function ExpensesPage() {
         </Card>
       </div>
       <div className="mt-8">
-        <ExpensesTable expenses={allExpenses} />
+        <ExpensesTable expenses={allExpenses || []} />
       </div>
     </AppLayout>
   );

@@ -4,30 +4,30 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useState, useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import type { Customer, StorageRecord } from "@/lib/definitions";
 import { Badge } from "@/components/ui/badge";
 import { AddPaymentDialog } from "@/components/payments/add-payment-dialog";
 import { formatCurrency } from "@/lib/utils";
-import { storageRecords as getStorageRecords, customers as getCustomers } from "@/lib/data";
+import { useCollection } from "@/firebase/firestore/use-collection";
+import { collection } from "firebase/firestore";
+import { useFirestore } from "@/firebase";
+import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 
 function PendingPaymentsTable() {
-    const [allRecords, setAllRecords] = useState<StorageRecord[]>([]);
-    const [allCustomers, setAllCustomers] = useState<Customer[]>([]);
-    const [loading, setLoading] = useState(true);
+    const firestore = useFirestore();
 
-    useEffect(() => {
-        async function fetchData() {
-            const [records, customers] = await Promise.all([
-                getStorageRecords(),
-                getCustomers()
-            ]);
-            setAllRecords(records);
-            setAllCustomers(customers);
-            setLoading(false);
-        }
-        fetchData();
-    }, []);
+    const recordsQuery = useMemoFirebase(
+      () => (firestore ? collection(firestore, 'storageRecords') : null),
+      [firestore]
+    );
+    const { data: allRecords, loading: loadingRecords } = useCollection<StorageRecord>(recordsQuery);
+
+    const customersQuery = useMemoFirebase(
+        () => (firestore ? collection(firestore, 'customers') : null),
+        [firestore]
+    );
+    const { data: allCustomers, loading: loadingCustomers } = useCollection<Customer>(customersQuery);
 
     const pendingRecords = useMemo(() => {
         if (!allRecords) return [];
@@ -43,7 +43,7 @@ function PendingPaymentsTable() {
         return allCustomers?.find(c => c.id === customerId)?.name ?? 'Unknown';
     }
 
-    if (loading) {
+    if (loadingRecords || loadingCustomers) {
         return <div>Loading...</div>;
     }
 

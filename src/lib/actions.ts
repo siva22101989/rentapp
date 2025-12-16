@@ -2,12 +2,26 @@
 'use server';
 
 import { z } from 'zod';
-import { storageRecords, customers, saveCustomer, saveStorageRecord, updateStorageRecord, addPaymentToRecord, getStorageRecord, deleteStorageRecord, getCustomer, saveExpense, updateExpense, deleteExpense } from '@/lib/data';
+import { 
+    saveCustomer, 
+    saveStorageRecord, 
+    updateStorageRecord, 
+    addPaymentToRecord, 
+    getStorageRecord, 
+    deleteStorageRecord,
+    getCustomer,
+    saveExpense,
+    updateExpense,
+    deleteExpense,
+    getStorageRecords,
+    updateCustomer
+} from '@/lib/data';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { detectStorageAnomalies as detectStorageAnomaliesFlow } from '@/ai/flows/anomaly-detection';
 import type { StorageRecord, Payment } from './definitions';
 import { expenseCategories } from './definitions';
+import { Timestamp } from 'firebase/firestore';
 
 const NewCustomerSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters.'),
@@ -25,7 +39,7 @@ export type FormState = {
 
 export async function getAnomalyDetection() {
   try {
-    const records = await storageRecords();
+    const records = await getStorageRecords();
     const result = await detectStorageAnomaliesFlow({ storageRecords: JSON.stringify(records) });
     return { success: true, anomalies: result.anomalies };
   } catch (error) {
@@ -53,7 +67,6 @@ export async function addCustomer(prevState: FormState, formData: FormData) {
 
     const newCustomer = {
         ...rest,
-        id: `CUST-${Date.now()}`,
         email: email ?? '',
         fatherName: fatherName ?? '',
         village: village ?? '',
@@ -125,8 +138,7 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
             if (fatherName && customer.fatherName !== fatherName) customerUpdate.fatherName = fatherName;
             if (village && customer.village !== village) customerUpdate.village = village;
             if (Object.keys(customerUpdate).length > 0) {
-                // This assumes an `updateCustomer` function exists in data.ts
-                // await updateCustomer(rest.customerId, customerUpdate);
+                await updateCustomer(rest.customerId, customerUpdate);
             }
         }
     }
@@ -144,27 +156,28 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
         inflowBags = bagsStored;
     }
 
-
     const hamaliPayable = inflowBags * (hamaliRate || 0);
     const payments: Payment[] = [];
     if (hamaliPaid && hamaliPaid > 0) {
-        payments.push({ amount: hamaliPaid, date: new Date(storageStartDate), type: 'hamali' });
+        payments.push({ amount: hamaliPaid, date: Timestamp.fromDate(new Date(storageStartDate)), type: 'hamali' });
     }
     
-    const allRecords = await storageRecords();
+    // Generate new record ID
+    const allRecords = await getStorageRecords();
     const maxId = allRecords.reduce((max, record) => {
         const idNum = parseInt(record.id.replace('SLWH-', ''), 10);
         return isNaN(idNum) ? max : Math.max(max, idNum);
     }, 0);
     const newRecordId = `SLWH-${maxId + 1}`;
 
-    const newRecord: StorageRecord = {
+
+    const newRecord: Omit<StorageRecord, 'id'> = {
         ...rest,
         id: newRecordId,
         bagsIn: inflowBags,
         bagsOut: 0,
         bagsStored: inflowBags,
-        storageStartDate: new Date(storageStartDate),
+        storageStartDate: Timestamp.fromDate(new Date(storageStartDate)),
         storageEndDate: null,
         billingCycle: '6-Month Initial',
         payments: payments,
@@ -178,11 +191,15 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
         location: rest.location ?? '',
         khataAmount: rest.khataAmount ?? 0,
     };
+    
+    // The saveStorageRecord in data.ts now expects Omit<StorageRecord, 'id'> but we are creating the id here
+    // So we need a way to save with a specific id, or change the function. Let's assume we can save with ID.
+    // Let's modify the flow to use an addDoc and get the ID, then update our record with that ID. Or better, just use setDoc.
+    const createdRecordId = await saveStorageRecord(newRecord);
 
-    await saveStorageRecord(newRecord);
 
     revalidatePath('/storage');
-    redirect(`/inflow/receipt/${newRecordId}`);
+    redirect(`/inflow/receipt/${createdRecordId}`);
 }
 
 const OutflowSchema = z.object({
@@ -235,11 +252,11 @@ export async function addOutflow(prevState: OutflowFormState, formData: FormData
     };
 
     if (paymentMade > 0) {
-        recordUpdate.payments!.push({ amount: paymentMade, date: new Date(withdrawalDate), type: 'rent' });
+        recordUpdate.payments!.push({ amount: paymentMade, date: Timestamp.fromDate(new Date(withdrawalDate)), type: 'rent' });
     }
 
     if (isFullWithdrawal) {
-        recordUpdate.storageEndDate = new Date(withdrawalDate);
+        recordUpdate.storageEndDate = Timestamp.fromDate(new Date(withdrawalDate));
         recordUpdate.billingCycle = 'Completed';
     }
 
@@ -289,7 +306,7 @@ export async function updateStorageRecordAction(recordId: string, prevState: Inf
         ...rest,
         bagsIn: bagsStored,
         bagsStored: bagsStored - (originalRecord.bagsOut || 0), // Recalculate balance
-        storageStartDate: new Date(validatedFields.data.storageStartDate)
+        storageStartDate: Timestamp.fromDate(new Date(validatedFields.data.storageStartDate))
     };
 
     await updateStorageRecord(recordId, dataToUpdate);
@@ -345,7 +362,7 @@ export async function addPayment(prevState: PaymentFormState, formData: FormData
         // This is a payment against the outstanding balance.
         const payment: Payment = {
             amount: paymentAmount,
-            date: new Date(paymentDate),
+            date: Timestamp.fromDate(new Date(paymentDate)),
             type: 'other' // This could be for rent or for hamali, we don't know from this dialog
         };
         await addPaymentToRecord(recordId, payment);
@@ -391,8 +408,7 @@ export async function addExpense(prevState: FormState, formData: FormData) {
 
     const newExpense = {
         ...validatedFields.data,
-        id: `EXP-${Date.now()}`,
-        date: new Date(validatedFields.data.date),
+        date: Timestamp.fromDate(new Date(validatedFields.data.date)),
     };
 
     await saveExpense(newExpense);
@@ -417,7 +433,7 @@ export async function updateExpenseAction(expenseId: string, prevState: FormStat
   
   const dataToUpdate = {
     ...validatedFields.data,
-    date: new Date(validatedFields.data.date),
+    date: Timestamp.fromDate(new Date(validatedFields.data.date)),
   };
 
   try {
@@ -438,4 +454,3 @@ export async function deleteExpenseAction(expenseId: string): Promise<FormState>
     return { message: 'Failed to delete expense.', success: false };
   }
 }
-    

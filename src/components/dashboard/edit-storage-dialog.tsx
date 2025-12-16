@@ -23,6 +23,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { Customer, StorageRecord } from '@/lib/definitions';
 import { format } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { toDate } from '@/lib/utils';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -61,6 +62,8 @@ export function EditStorageDialog({ record, customers, children }: { record: Sto
       });
     }
   }, [state, toast]);
+  
+  const startDate = record.storageStartDate ? toDate(record.storageStartDate) : null;
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -135,7 +138,7 @@ export function EditStorageDialog({ record, customers, children }: { record: Sto
                 Hamali Payable
               </Label>
               <Input 
-                id="hamaliPayable" _
+                id="hamaliPayable"
                 name="hamaliPayable" 
                 type="number"
                 step="0.01"
@@ -152,7 +155,7 @@ export function EditStorageDialog({ record, customers, children }: { record: Sto
                 id="storageStartDate" 
                 name="storageStartDate" 
                 type="date"
-                defaultValue={record.storageStartDate ? format(record.storageStartDate, 'yyyy-MM-dd') : ''}
+                defaultValue={startDate ? format(startDate, 'yyyy-MM-dd') : ''}
                 className="col-span-3" 
                 required 
               />

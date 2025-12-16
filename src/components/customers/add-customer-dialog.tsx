@@ -1,7 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useActionState } from 'react';
+import { useFormStatus } from 'react-dom';
 import { Loader2, PlusCircle } from 'lucide-react';
+import { addCustomer, type FormState } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -16,61 +19,44 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore } from '@/firebase';
-import { collection, addDoc } from 'firebase/firestore';
-import type { Customer } from '@/lib/definitions';
-import { revalidatePath } from 'next/cache';
+
+function SubmitButton() {
+  const { pending } = useFormStatus();
+  return (
+    <Button type="submit" disabled={pending}>
+      {pending ? (
+        <>
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          Saving...
+        </>
+      ) : (
+        'Save Customer'
+      )}
+    </Button>
+  );
+}
 
 export function AddCustomerDialog() {
   const { toast } = useToast();
-  const firestore = useFirestore();
   const [isOpen, setIsOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const initialState: FormState = { message: '', success: false };
+  const [state, formAction] = useActionState(addCustomer, initialState);
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setIsSubmitting(true);
-
-    if (!firestore) {
-        toast({
-            title: 'Error',
-            description: 'Firestore is not available. Please try again later.',
-            variant: 'destructive',
-        });
-        setIsSubmitting(false);
-        return;
-    }
-
-    const formData = new FormData(event.currentTarget);
-    const newCustomer: Omit<Customer, 'id'> = {
-      name: formData.get('name') as string,
-      fatherName: formData.get('fatherName') as string || '',
-      village: formData.get('village') as string || '',
-      address: formData.get('address') as string,
-      phone: formData.get('phone') as string,
-      email: formData.get('email') as string || '',
-    };
-
-    try {
-      const customersCollection = collection(firestore, 'customers');
-      await addDoc(customersCollection, newCustomer);
-      
-      toast({ 
-        title: 'Success', 
-        description: 'Customer added successfully.' 
-      });
-      setIsOpen(false);
-    } catch (error) {
-      console.error("Failed to save customer: ", error);
+  useEffect(() => {
+    if (!state.message) return;
+    
+    if (state.success) {
+      toast({ title: 'Success', description: state.message });
+      setIsOpen(false); 
+    } else {
       toast({
         title: 'Error',
-        description: 'Failed to save customer. You might not have permission.',
+        description: state.message,
         variant: 'destructive',
       });
-    } finally {
-      setIsSubmitting(false);
     }
-  };
+  }, [state, toast]);
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -81,7 +67,7 @@ export function AddCustomerDialog() {
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
-        <form onSubmit={handleSubmit}>
+        <form action={formAction}>
           <DialogHeader>
             <DialogTitle>Add New Customer</DialogTitle>
             <DialogDescription>
@@ -130,16 +116,7 @@ export function AddCustomerDialog() {
             <DialogClose asChild>
               <Button variant="outline" type="button">Cancel</Button>
             </DialogClose>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                'Save Customer'
-              )}
-            </Button>
+            <SubmitButton />
           </DialogFooter>
         </form>
       </DialogContent>

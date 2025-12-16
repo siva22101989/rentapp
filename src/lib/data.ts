@@ -15,21 +15,15 @@ import {
   writeBatch,
   arrayUnion,
 } from 'firebase/firestore';
-import { initializeFirebase } from '@/firebase';
+import { getAdminApp, getAdminDb } from '@/firebase/admin';
 import type { Customer, Expense, Payment, StorageRecord } from './definitions';
-import { revalidatePath } from 'next/cache';
 
 // Import dummy data
 import customersData from './data/customers.json';
 import storageRecordsData from './data/storageRecords.json';
 
-
 function getDb(): Firestore {
-  const { firestore } = initializeFirebase();
-  if (!firestore) {
-    throw new Error('Firestore is not initialized');
-  }
-  return firestore;
+  return getAdminDb();
 }
 
 // Seeding Functions

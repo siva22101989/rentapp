@@ -13,7 +13,7 @@ import {
     updateExpense,
     deleteExpense,
     getStorageRecords,
-    updateCustomer,
+    updateCustomer as updateCustomerData,
     deleteCustomer,
     seedCustomers,
     seedStorageRecords
@@ -49,14 +49,30 @@ export async function getAnomalyDetection() {
   }
 }
 
-// This server action is no longer used for adding customers. 
-// The logic has been moved to the client-side in AddCustomerDialog.
-// It is kept here as a reference or for potential future server-side needs.
 export async function addCustomer(prevState: FormState, formData: FormData) {
-    return {
-        message: 'This action is deprecated. Customer creation is handled on the client.',
-        success: false,
-    };
+    const validatedFields = CustomerSchema.safeParse({
+        name: formData.get('name'),
+        email: formData.get('email'),
+        phone: formData.get('phone'),
+        address: formData.get('address'),
+        fatherName: formData.get('fatherName'),
+        village: formData.get('village'),
+    });
+
+    if (!validatedFields.success) {
+        const error = validatedFields.error.flatten().fieldErrors;
+        const message = Object.values(error).flat().join(', ');
+        return { message: `Invalid data: ${message}`, success: false };
+    }
+
+    try {
+        await saveCustomer(validatedFields.data);
+        revalidatePath('/customers');
+        return { message: 'Customer added successfully.', success: true };
+    } catch (error) {
+        console.error("Failed to save customer: ", error);
+        return { message: 'Failed to save customer. You might not have permission.', success: false };
+    }
 }
 
 
@@ -77,7 +93,7 @@ export async function updateCustomerAction(customerId: string, prevState: FormSt
     }
 
     try {
-        await updateCustomer(customerId, validatedFields.data);
+        await updateCustomerData(customerId, validatedFields.data);
         revalidatePath('/customers');
         return { message: 'Customer updated successfully.', success: true };
     } catch (error) {
@@ -154,7 +170,7 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
             if (fatherName && customer.fatherName !== fatherName) customerUpdate.fatherName = fatherName;
             if (village && customer.village !== village) customerUpdate.village = village;
             if (Object.keys(customerUpdate).length > 0) {
-                await updateCustomer(rest.customerId, customerUpdate);
+                await updateCustomerData(rest.customerId, customerUpdate);
             }
         }
     }

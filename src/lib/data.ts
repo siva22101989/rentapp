@@ -12,13 +12,17 @@ import {
   addDoc,
   Timestamp,
   type Firestore,
+  writeBatch,
 } from 'firebase/firestore';
 import { initializeFirebase } from '@/firebase';
 import type { Customer, Expense, Payment, StorageRecord } from './definitions';
 import { revalidatePath } from 'next/cache';
 
-// This function is a placeholder for getting the Firestore instance.
-// In a real app, you would get this from your Firebase initialization.
+// Import dummy data
+import customersData from './data/customers.json';
+import storageRecordsData from './data/storageRecords.json';
+
+
 function getDb(): Firestore {
   const { firestore } = initializeFirebase();
   if (!firestore) {
@@ -26,6 +30,57 @@ function getDb(): Firestore {
   }
   return firestore;
 }
+
+// Seeding Functions
+export const seedCustomers = async (): Promise<number> => {
+    const db = getDb();
+    const batch = writeBatch(db);
+    const customersCol = collection(db, 'customers');
+    
+    customersData.forEach((customer) => {
+        const docRef = doc(customersCol, customer.id);
+        batch.set(docRef, {
+            name: customer.name,
+            phone: customer.phone,
+            address: customer.address,
+            email: customer.email,
+            fatherName: customer.fatherName,
+            village: customer.village,
+        });
+    });
+
+    await batch.commit();
+    return customersData.length;
+}
+
+export const seedStorageRecords = async (): Promise<number> => {
+    const db = getDb();
+    const batch = writeBatch(db);
+    const recordsCol = collection(db, 'storageRecords');
+
+    storageRecordsData.forEach((record) => {
+        const docRef = doc(recordsCol, record.id);
+        
+        // Convert date strings to Timestamps
+        const startDate = record.storageStartDate ? Timestamp.fromDate(new Date(record.storageStartDate)) : Timestamp.now();
+        const endDate = record.storageEndDate ? Timestamp.fromDate(new Date(record.storageEndDate)) : null;
+        const payments = (record.payments || []).map(p => ({
+            ...p,
+            date: Timestamp.fromDate(new Date(p.date))
+        }));
+
+        batch.set(docRef, {
+            ...record,
+            storageStartDate: startDate,
+            storageEndDate: endDate,
+            payments: payments,
+        });
+    });
+
+    await batch.commit();
+    return storageRecordsData.length;
+}
+
 
 // Customer Functions
 export async function getCustomers(): Promise<Customer[]> {
@@ -96,9 +151,8 @@ export const getStorageRecord = async (id: string): Promise<StorageRecord | null
   return null;
 };
 
-export const saveStorageRecord = async (record: Omit<StorageRecord, 'id'>): Promise<string> => {
+export const saveStorageRecord = async (record: Omit<StorageRecord, 'id'> & {id: string}): Promise<string> => {
   const db = getDb();
-  // Using setDoc with a specific ID.
   const docRef = doc(db, 'storageRecords', record.id);
   await setDoc(docRef, record);
   return record.id;

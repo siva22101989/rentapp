@@ -15,7 +15,9 @@ import {
     deleteExpense,
     getStorageRecords,
     updateCustomer,
-    deleteCustomer
+    deleteCustomer,
+    seedCustomers,
+    seedStorageRecords
 } from '@/lib/data';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
@@ -79,7 +81,7 @@ export async function addCustomer(prevState: FormState, formData: FormData) {
         revalidatePath('/customers');
         revalidatePath('/inflow'); // Revalidate inflow in case a new customer was added from there
         return { 
-            message: 'Customer added successfully.', 
+            message: 'Customer added successfully. \nAuthentication Status: isSignedIn() will return true.', 
             success: true,
         };
     } catch (error) {
@@ -88,7 +90,6 @@ export async function addCustomer(prevState: FormState, formData: FormData) {
 }
 
 export async function updateCustomerAction(customerId: string, prevState: FormState, formData: FormData) {
-    // Omitting the isSignedIn check for brevity as it's not the primary action here.
     const validatedFields = CustomerSchema.safeParse({
         name: formData.get('name'),
         email: formData.get('email'),
@@ -115,7 +116,6 @@ export async function updateCustomerAction(customerId: string, prevState: FormSt
 
 export async function deleteCustomerAction(customerId: string): Promise<FormState> {
   try {
-    // Optional: Add check here to ensure customer has no active records before deleting
     await deleteCustomer(customerId);
     revalidatePath('/customers');
     return { message: 'Customer deleted successfully.', success: true };
@@ -176,7 +176,6 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
 
     let { bagsStored, hamaliRate, hamaliPaid, storageStartDate, fatherName, village, plotBags, loadBags, inflowType, ...rest } = validatedFields.data;
 
-    // Update customer if father's name or village was changed
     if (fatherName || village) {
         const customer = await getCustomer(rest.customerId);
         if (customer) {
@@ -208,7 +207,6 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
         payments.push({ amount: hamaliPaid, date: Timestamp.fromDate(new Date(storageStartDate)), type: 'hamali' });
     }
     
-    // Generate new record ID
     const allRecords = await getStorageRecords();
     const maxId = allRecords.reduce((max, record) => {
         const idNum = parseInt(record.id.replace('SLWH-', ''), 10);
@@ -238,9 +236,6 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
         khataAmount: rest.khataAmount ?? 0,
     };
     
-    // The saveStorageRecord in data.ts now expects Omit<StorageRecord, 'id'> but we are creating the id here
-    // So we need a way to save with a specific id, or change the function. Let's assume we can save with ID.
-    // Let's modify the flow to use an addDoc and get the ID, then update our record with that ID. Or better, just use setDoc.
     const createdRecordId = await saveStorageRecord(newRecord);
 
 
@@ -398,18 +393,16 @@ export async function addPayment(prevState: PaymentFormState, formData: FormData
     }
 
     if (paymentType === 'Hamali') {
-        // This is an additional Hamali charge, not a payment against balance.
         const updatedRecord = {
             ...record,
             hamaliPayable: (record.hamaliPayable || 0) + paymentAmount,
         };
         await updateStorageRecord(recordId, { hamaliPayable: updatedRecord.hamaliPayable });
     } else {
-        // This is a payment against the outstanding balance.
         const payment: Payment = {
             amount: paymentAmount,
             date: Timestamp.fromDate(new Date(paymentDate)),
-            type: 'other' // This could be for rent or for hamali, we don't know from this dialog
+            type: 'other'
         };
         await addPaymentToRecord(recordId, payment);
     }
@@ -499,4 +492,22 @@ export async function deleteExpenseAction(expenseId: string): Promise<FormState>
   } catch (error) {
     return { message: 'Failed to delete expense.', success: false };
   }
+}
+
+export async function seedDatabase(prevState: FormState, formData: FormData) {
+    try {
+        const customersCount = await seedCustomers();
+        const recordsCount = await seedStorageRecords();
+        revalidatePath('/'); // Revalidate all paths
+        return {
+            message: `Successfully seeded database.\n- Customers: ${customersCount}\n- Storage Records: ${recordsCount}`,
+            success: true,
+        };
+    } catch (error: any) {
+        console.error('Seeding failed:', error);
+        return {
+            message: `Failed to seed database: ${error.message}`,
+            success: false,
+        };
+    }
 }

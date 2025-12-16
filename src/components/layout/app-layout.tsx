@@ -34,8 +34,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [user, loading, router]);
 
-  const isAdmin = user?.email === 'nikhilpnkr@gmail.com';
-
   const handleLogout = async () => {
     if (auth) {
         await auth.signOut();
@@ -79,7 +77,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   <div className="flex flex-col space-y-1">
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-medium leading-none">{user.displayName || 'Warehouse Manager'}</p>
-                      {isAdmin && <Badge variant="destructive">Admin</Badge>}
                     </div>
                     <p className="text-xs leading-none text-muted-foreground">
                       {user.email}

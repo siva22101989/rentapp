@@ -36,7 +36,6 @@ const CustomerSchema = z.object({
 export type FormState = {
   message: string;
   success: boolean;
-  isSignedIn?: boolean;
 };
 
 export async function getAnomalyDetection() {
@@ -501,5 +500,3 @@ export async function deleteExpenseAction(expenseId: string): Promise<FormState>
     return { message: 'Failed to delete expense.', success: false };
   }
 }
-
-    

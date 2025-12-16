@@ -3,8 +3,23 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow read/write access to the entire database for any authenticated user.
+    // Default deny all
     match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Allow any authenticated user to read/write customers
+    match /customers/{customerId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Allow any authenticated user to read/write storage records
+    match /storageRecords/{recordId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Allow any authenticated user to read/write expenses
+    match /expenses/{expenseId} {
       allow read, write: if request.auth != null;
     }
   }

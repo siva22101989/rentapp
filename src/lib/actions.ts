@@ -24,7 +24,7 @@ import { revalidatePath } from 'next/cache';
 import { detectStorageAnomalies as detectStorageAnomaliesFlow } from '@/ai/flows/anomaly-detection';
 import type { StorageRecord, Payment, Customer } from './definitions';
 import { expenseCategories } from './definitions';
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp } from 'firebase-admin/firestore';
 
 const CustomerSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters.'),
@@ -81,7 +81,7 @@ export async function addCustomer(prevState: FormState, formData: FormData) {
         revalidatePath('/customers');
         revalidatePath('/inflow'); // Revalidate inflow in case a new customer was added from there
         return { 
-            message: 'Customer added successfully. \nAuthentication Status: isSignedIn() will return true.', 
+            message: 'Customer added successfully.', 
             success: true,
         };
     } catch (error) {

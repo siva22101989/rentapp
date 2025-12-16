@@ -9,21 +9,28 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Customers: Logged-in users can create/update/delete their own data.
-    match /customers/{customerId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn(); 
+    function isAdmin() {
+      return request.auth.token.admin == true;
     }
 
-    // Storage Records: Logged-in users can create/update/delete their own records.
-    match /storageRecords/{recordId} {
+    // Default read access for any signed-in user
+    match /{document=**} {
       allow read: if isSignedIn();
-      allow write: if isSignedIn();
+    }
+
+    // Customers: Admins can write.
+    match /customers/{customerId} {
+      allow write: if isAdmin();
+    }
+
+    // Storage Records: Admins can write.
+    match /storageRecords/{recordId} {
+      allow write: if isAdmin();
     }
     
-    // Expenses: Logged-in users can manage expenses.
+    // Expenses: Admins can write.
     match /expenses/{expenseId} {
-        allow read, write: if isSignedIn();
+      allow write: if isAdmin();
     }
   }
 }

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useTransition } from 'react';
@@ -19,7 +18,7 @@ import { addDoc, collection, Timestamp } from 'firebase/firestore';
 const UnloadingRecordSchema = z.object({
   customerId: z.string().min(1, 'Customer is required.'),
   commodityDescription: z.string().min(2, 'Commodity is required.'),
-  lorryTractorNo: z.string().min(2, 'Vehicle number is required.'),
+  lorryTractorNo: z.string().optional(),
   unloadingDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
   bagsUnloaded: z.coerce.number().int().positive('Number of bags must be positive.'),
   hamaliPerBag: z.coerce.number().nonnegative('Hamali rate must be non-negative.'),
@@ -137,7 +136,7 @@ export function AddUnloadingRecordForm({ customers, nextBillNo }: { customers: C
                         name="lorryTractorNo"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Lorry / Tractor No.</FormLabel>
+                                <FormLabel>Lorry / Tractor No. <span className="text-muted-foreground">(Optional)</span></FormLabel>
                                 <FormControl><Input placeholder="e.g., AP 21 1234" {...field} value={field.value || ''} /></FormControl>
                                 <FormMessage />
                             </FormItem>

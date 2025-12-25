@@ -41,10 +41,10 @@ export function AddDryingRecordForm({ customers }: { customers: Customer[] }) {
             customerId: '',
             paddyType: '',
             unloadingDate: new Date().toISOString().split('T')[0],
-            unloadedBags: undefined,
+            unloadedBags: '' as any,
             unloadingVehicleNo: '',
-            weightBeforeDrying: undefined,
-            hamaliPerBag: undefined,
+            weightBeforeDrying: '' as any,
+            hamaliPerBag: '' as any,
         },
     });
 

@@ -83,7 +83,9 @@ export function InitiateDryingForm({ customers, unloadingRecords }: { customers:
 
         startTransition(async () => {
             try {
-                const totalDryingHamali = data.bagsForDrying * data.hamaliPerBag;
+                const dryingDay1Hamali = data.bagsForDrying * data.hamaliPerBag;
+                const unloadingHamali = selectedUnloadingRecord.totalHamali || 0;
+                const totalDryingHamali = dryingDay1Hamali + unloadingHamali;
                 
                 // 1. Create new drying record
                 const newRecord = {
@@ -200,7 +202,7 @@ export function InitiateDryingForm({ customers, unloadingRecords }: { customers:
                         name="hamaliPerBag"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Drying Hamali per Bag</FormLabel>
+                                <FormLabel>Drying Hamali per Bag (Day 1)</FormLabel>
                                 <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} /></FormControl>
                                 <FormMessage />
                             </FormItem>

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useTransition, useMemo } from 'react';
+import { useState, useTransition, useMemo, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -58,10 +58,21 @@ export function AddHamaliDialog({ record, children }: AddHamaliDialogProps) {
   const form = useForm<HamaliFormData>({
     resolver: zodResolver(HamaliSchema),
     defaultValues: {
-      hamaliPerBag: '' as any,
+      hamaliPerBag: undefined,
       chargeDate: new Date().toISOString().split('T')[0],
     },
   });
+
+  useEffect(() => {
+    if (isOpen) {
+        form.reset({
+          hamaliPerBag: '' as any,
+          chargeDate: nextChargeDate.toISOString().split('T')[0],
+        });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, form]);
+
 
   const chargeDate = form.watch('chargeDate');
 
@@ -113,15 +124,7 @@ export function AddHamaliDialog({ record, children }: AddHamaliDialogProps) {
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => {
-      setIsOpen(open);
-      if (open) {
-        form.reset({
-          hamaliPerBag: '' as any,
-          chargeDate: nextChargeDate.toISOString().split('T')[0],
-        });
-      }
-    }}>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <Form {...form}>
@@ -153,7 +156,7 @@ export function AddHamaliDialog({ record, children }: AddHamaliDialogProps) {
                   <FormItem>
                     <FormLabel>Hamali Rate per Bag (for {dayDescription})</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                      <Input type="number" step="0.01" placeholder="Enter rate..." {...field} value={field.value ?? ''} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

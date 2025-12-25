@@ -51,6 +51,8 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
     
     const [selectedDryingRecordId, setSelectedDryingRecordId] = useState('');
     const [commodityDescription, setCommodityDescription] = useState('');
+    const [weight, setWeight] = useState<number | ''>('');
+    const [khataAmount, setKhataAmount] = useState<number | ''>('');
 
 
     const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
@@ -71,10 +73,12 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
       if (inflowType === 'Plot' && selectedDryingRecord) {
         setCommodityDescription(selectedDryingRecord.commodityDescription);
         setBags(selectedDryingRecord.bagsPacked || 0);
+        setWeight('');
       } else {
          if (inflowType === 'Direct') {
             setCommodityDescription('');
             setBags('');
+            setWeight('');
         }
       }
     }, [inflowType, selectedDryingRecord]);
@@ -88,6 +92,8 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
         setRate('');
         setHamali(0);
         setHamaliPaid('');
+        setKhataAmount('');
+        setWeight('');
         setSelectedCustomerId('');
         setSelectedDryingRecordId('');
         setCommodityDescription('');
@@ -144,9 +150,9 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
                     hamaliPayable,
                     totalRentBilled: 0,
                     lorryTractorNo: data.lorryTractorNo,
-                    weight: Number(data.weight),
+                    weight: Number(data.weight) || 0,
                     inflowType: inflowType,
-                    dryingRecordId: data.dryingRecordId,
+                    dryingRecordId: inflowType === 'Plot' ? data.dryingRecordId : '',
                     khataAmount: Number(data.khataAmount) || 0
                 };
 
@@ -310,6 +316,8 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
                                 step="0.01" 
                                 placeholder="0.00" 
                                 required={inflowType === 'Direct'}
+                                value={weight}
+                                onChange={(e) => setWeight(e.target.value === '' ? '' : Number(e.target.value))}
                             />
                         </div>
                     </div>
@@ -325,7 +333,7 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
                     </div>
                      <div className="space-y-2">
                         <Label htmlFor="khataAmount">Khata Amount (Weighbridge)</Label>
-                        <Input id="khataAmount" name="khataAmount" type="number" placeholder="0.00" step="0.01" />
+                        <Input id="khataAmount" name="khataAmount" type="number" placeholder="0.00" step="0.01" value={khataAmount} onChange={e => setKhataAmount(e.target.value === '' ? '' : Number(e.target.value))} />
                     </div>
                      <Separator />
                      <div className="space-y-4">

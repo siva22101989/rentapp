@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useMemo, useEffect } from 'react';
@@ -58,7 +57,7 @@ export function AddHamaliDialog({ record, children }: AddHamaliDialogProps) {
   const form = useForm<HamaliFormData>({
     resolver: zodResolver(HamaliSchema),
     defaultValues: {
-      hamaliPerBag: undefined,
+      hamaliPerBag: '' as any, // Use empty string for controlled component
       chargeDate: new Date().toISOString().split('T')[0],
     },
   });
@@ -66,12 +65,12 @@ export function AddHamaliDialog({ record, children }: AddHamaliDialogProps) {
   useEffect(() => {
     if (isOpen) {
         form.reset({
-          hamaliPerBag: undefined,
+          hamaliPerBag: '' as any, // Reset to empty string
           chargeDate: nextChargeDate.toISOString().split('T')[0],
         });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
+  }, [isOpen, form, nextChargeDate]);
 
 
   const chargeDate = form.watch('chargeDate');

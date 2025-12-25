@@ -40,7 +40,7 @@ export function AddSecondDayHamaliDialog({ record, children }: { record: DryingR
   const form = useForm<HamaliFormData>({
     resolver: zodResolver(HamaliSchema),
     defaultValues: {
-      additionalAmount: undefined,
+      additionalAmount: '' as any,
     },
   });
 
@@ -88,7 +88,7 @@ export function AddSecondDayHamaliDialog({ record, children }: { record: DryingR
                   <FormItem>
                     <FormLabel>Additional Hamali Amount</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                      <Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value || ''} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

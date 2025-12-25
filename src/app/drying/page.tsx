@@ -3,7 +3,7 @@
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
 import { useCollection } from "@/firebase/firestore/use-collection";
-import { collection, query, where } from "firebase/firestore";
+import { collection, query, where, or } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 import type { Customer, DryingRecord, UnloadingRecord } from "@/lib/definitions";
@@ -21,23 +21,17 @@ export default function DryingPage() {
   );
   const { data: customers, loading: loadingCustomers } = useCollection<Customer>(customersQuery);
 
-  const dryingRecordsQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'dryingRecords') : null),
+  const activeDryingRecordsQuery = useMemoFirebase(
+    () => (firestore ? query(collection(firestore, 'dryingRecords'), or(where('status', '==', 'Drying'), where('status', '==', 'Packing'))) : null),
     [firestore]
   );
-  const { data: dryingRecords, loading: loadingDryingRecords } = useCollection<DryingRecord>(dryingRecordsQuery);
+  const { data: activeDryingRecords, loading: loadingDryingRecords } = useCollection<DryingRecord>(activeDryingRecordsQuery);
   
   const unloadingRecordsQuery = useMemoFirebase(
     () => (firestore ? query(collection(firestore, 'unloadingRecords'), where('status', '==', 'Unloading')) : null),
     [firestore]
   );
   const { data: unloadingRecords, loading: loadingUnloadingRecords } = useCollection<UnloadingRecord>(unloadingRecordsQuery);
-
-  const availableUnloadingRecords = useMemo(() => {
-    if (!unloadingRecords || !dryingRecords) return [];
-    const processedUnloadingIds = new Set(dryingRecords.map(dr => dr.unloadingRecordId));
-    return unloadingRecords.filter(ur => !processedUnloadingIds.has(ur.id));
-  }, [unloadingRecords, dryingRecords]);
 
 
   if (loadingCustomers || loadingDryingRecords || loadingUnloadingRecords) {
@@ -57,11 +51,11 @@ export default function DryingPage() {
         <div className="md:col-span-1">
           <InitiateDryingForm 
             customers={customers || []} 
-            unloadingRecords={availableUnloadingRecords || []}
+            unloadingRecords={unloadingRecords || []}
           />
         </div>
         <div className="md:col-span-2">
-            <DryingRecordsTable dryingRecords={dryingRecords || []} customers={customers || []} />
+            <DryingRecordsTable dryingRecords={activeDryingRecords || []} customers={customers || []} />
         </div>
       </div>
     </AppLayout>

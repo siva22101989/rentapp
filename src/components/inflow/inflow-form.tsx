@@ -100,7 +100,9 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
         return differenceInDays(end, start) + 1; // Add 1 to be inclusive
     }
     
-    const handleSubmit = (formData: FormData) => {
+    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        const formData = new FormData(e.currentTarget);
         if (!firestore) {
             toast({ title: 'Error', description: 'Firestore not available', variant: 'destructive' });
             return;
@@ -294,7 +296,7 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
                                 type="number" 
                                 placeholder="0" 
                                 required
-                                value={bags ?? ''}
+                                value={bags}
                                 onChange={(e) => setBags(e.target.value === '' ? '' : Number(e.target.value))}
                                 readOnly={inflowType === 'Plot'}
                             />
@@ -314,11 +316,11 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="hamaliRate">Hamali Rate (per bag)</Label>
-                            <Input id="hamaliRate" name="hamaliRate" type="number" placeholder="0.00" step="0.01" value={rate ?? ''} onChange={e => setRate(e.target.value === '' ? '' : Number(e.target.value))}/>
+                            <Input id="hamaliRate" name="hamaliRate" type="number" placeholder="0.00" step="0.01" value={rate} onChange={e => setRate(e.target.value === '' ? '' : Number(e.target.value))}/>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="hamaliPaid">Hamali Paid Now</Label>
-                            <Input id="hamaliPaid" name="hamaliPaid" type="number" placeholder="0.00" step="0.01" value={hamaliPaid ?? ''} onChange={e => setHamaliPaid(e.target.value === '' ? '' : Number(e.target.value))}/>
+                            <Input id="hamaliPaid" name="hamaliPaid" type="number" placeholder="0.00" step="0.01" value={hamaliPaid} onChange={e => setHamaliPaid(e.target.value === '' ? '' : Number(e.target.value))}/>
                         </div>
                     </div>
                      <div className="space-y-2">

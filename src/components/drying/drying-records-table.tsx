@@ -68,7 +68,7 @@ export function DryingRecordsTable({ dryingRecords, customers }: { dryingRecords
                         <TableCell>{dryingDate ? format(dryingDate, 'dd MMM yyyy') : 'N/A'}</TableCell>
                         <TableCell className="font-medium">{getCustomerName(record.customerId)}</TableCell>
                         <TableCell>{record.commodityDescription}</TableCell>
-                        <TableCell className="text-right">{record.bagsUnloaded}</TableCell>
+                        <TableCell className="text-right">{record.bagsForDrying}</TableCell>
                         <TableCell className="text-right font-mono">{formatCurrency(record.totalDryingHamali || 0)}</TableCell>
                         <TableCell>
                             <Badge variant="secondary" className={getStatusBadgeVariant(record.status)}>

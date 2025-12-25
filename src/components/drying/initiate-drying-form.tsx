@@ -21,6 +21,7 @@ const InitiateDryingSchema = z.object({
   unloadingRecordId: z.string().min(1, 'Unloading bill is required.'),
   dryingStartDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
   hamaliPerBag: z.coerce.number().nonnegative('Hamali rate must be non-negative.'),
+  bagsForDrying: z.coerce.number().int().positive('Number of bags must be positive.'),
 });
 
 type DryingFormData = z.infer<typeof InitiateDryingSchema>;
@@ -38,6 +39,7 @@ export function InitiateDryingForm({ customers, unloadingRecords }: { customers:
           unloadingRecordId: '',
           dryingStartDate: new Date().toISOString().split('T')[0],
           hamaliPerBag: undefined,
+          bagsForDrying: undefined,
         },
       });
 
@@ -49,6 +51,17 @@ export function InitiateDryingForm({ customers, unloadingRecords }: { customers:
             unloadingRecordId: '',
         });
     }, [selectedCustomerId, form]);
+
+    const selectedUnloadingRecordId = form.watch('unloadingRecordId');
+    const selectedUnloadingRecord = unloadingRecords.find(ur => ur.id === selectedUnloadingRecordId);
+
+    useEffect(() => {
+      if (selectedUnloadingRecord) {
+        form.setValue('bagsForDrying', selectedUnloadingRecord.bagsUnloaded);
+      } else {
+        form.setValue('bagsForDrying', undefined);
+      }
+    }, [selectedUnloadingRecord, form]);
 
 
     const onSubmit = (data: DryingFormData) => {
@@ -63,16 +76,21 @@ export function InitiateDryingForm({ customers, unloadingRecords }: { customers:
             return;
         }
 
+        if (data.bagsForDrying > selectedUnloadingRecord.bagsUnloaded) {
+          form.setError('bagsForDrying', { message: `Cannot exceed unloaded bags (${selectedUnloadingRecord.bagsUnloaded}).`});
+          return;
+        }
+
         startTransition(async () => {
             try {
-                const totalDryingHamali = selectedUnloadingRecord.bagsUnloaded * data.hamaliPerBag;
+                const totalDryingHamali = data.bagsForDrying * data.hamaliPerBag;
                 
                 // 1. Create new drying record
                 const newRecord = {
                     unloadingRecordId: data.unloadingRecordId,
                     customerId: selectedUnloadingRecord.customerId,
                     commodityDescription: selectedUnloadingRecord.commodityDescription,
-                    bagsUnloaded: selectedUnloadingRecord.bagsUnloaded,
+                    bagsForDrying: data.bagsForDrying,
                     dryingStartDate: Timestamp.fromDate(new Date(data.dryingStartDate)),
                     status: 'Drying' as const,
                     hamaliPerBag: data.hamaliPerBag,
@@ -154,6 +172,18 @@ export function InitiateDryingForm({ customers, unloadingRecords }: { customers:
                             )}
                         />
                     )}
+                     <FormField
+                        control={form.control}
+                        name="bagsForDrying"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Bags for Drying</FormLabel>
+                                <FormControl><Input type="number" placeholder="0" {...field} value={field.value ?? ''} /></FormControl>
+                                {selectedUnloadingRecord && <FormDescription>Unloaded: {selectedUnloadingRecord.bagsUnloaded} bags</FormDescription>}
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
                      <FormField
                         control={form.control}
                         name="dryingStartDate"

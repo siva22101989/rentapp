@@ -233,9 +233,9 @@
           "type": "string",
           "description": "A description of the commodity being processed."
         },
-        "bagsUnloaded": {
+        "bagsForDrying": {
           "type": "number",
-          "description": "The number of bags unloaded for drying."
+          "description": "The number of bags sent for drying."
         },
         "status": {
           "type": "string",
@@ -270,7 +270,7 @@
         "unloadingRecordId",
         "customerId",
         "commodityDescription",
-        "bagsUnloaded",
+        "bagsForDrying",
         "status",
         "dryingStartDate",
         "hamaliPerBag",

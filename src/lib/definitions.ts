@@ -80,7 +80,7 @@ export type DryingRecord = {
     unloadingRecordId: string;
     customerId: string;
     commodityDescription: string;
-    bagsUnloaded: number;
+    bagsForDrying: number;
     status: DryingStatus;
     dryingStartDate: Date | Timestamp;
     packingDate: Date | Timestamp | null;

@@ -15,7 +15,10 @@ export function formatCurrency(amount: number) {
   }).format(amount);
 }
 
-export function toDate(date: Date | Timestamp | string): Date {
+export function toDate(date: Date | Timestamp | string | null | undefined): Date {
+    if (!date) {
+        return new Date();
+    }
     if (date instanceof Date) {
         return date;
     }
@@ -23,5 +26,8 @@ export function toDate(date: Date | Timestamp | string): Date {
         return new Date(date);
     }
     // Assumes it's a Firestore Timestamp
-    return (date as Timestamp).toDate();
+    if (typeof (date as Timestamp).toDate === 'function') {
+      return (date as Timestamp).toDate();
+    }
+    return new Date();
 }

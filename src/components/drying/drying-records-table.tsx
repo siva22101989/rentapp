@@ -36,8 +36,8 @@ export function DryingRecordsTable({ dryingRecords, customers }: { dryingRecords
     };
 
     const sortedRecords = [...dryingRecords].sort((a, b) => {
-        const dateA = toDate(a.dryingStartDate);
-        const dateB = toDate(b.dryingStartDate);
+        const dateA = a.dryingStartDate ? toDate(a.dryingStartDate) : new Date(0);
+        const dateB = b.dryingStartDate ? toDate(b.dryingStartDate) : new Date(0);
         return dateB.getTime() - dateA.getTime();
     });
 
@@ -62,7 +62,7 @@ export function DryingRecordsTable({ dryingRecords, customers }: { dryingRecords
             </TableHeader>
             <TableBody>
                 {sortedRecords.map((record) => {
-                    const dryingDate = toDate(record.dryingStartDate);
+                    const dryingDate = record.dryingStartDate ? toDate(record.dryingStartDate) : null;
                     return (
                     <TableRow key={record.id}>
                         <TableCell>{dryingDate ? format(dryingDate, 'dd MMM yyyy') : 'N/A'}</TableCell>

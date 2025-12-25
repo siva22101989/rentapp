@@ -39,6 +39,7 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
     const [state, formAction] = useActionState(addInflow, initialState);
 
     const [bags, setBags] = useState(0);
+    const [commodityDescription, setCommodityDescription] = useState('');
     const [rate, setRate] = useState(0);
     const [hamali, setHamali] = useState(0);
     const [hamaliPaid, setHamaliPaid] = useState(0);
@@ -69,12 +70,22 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
     }, [state, toast]);
 
     useEffect(() => {
-        const bagsValue = inflowType === 'Plot' ? (selectedDryingRecord?.bagsForDrying || 0) : bags;
+        const bagsValue = inflowType === 'Plot' ? (selectedDryingRecord?.bagsPacked || 0) : bags;
         const rateValue = rate || 0;
         
         const calculatedHamali = (bagsValue || 0) * rateValue;
         setHamali(calculatedHamali);
     }, [bags, selectedDryingRecord, rate, inflowType]);
+    
+    useEffect(() => {
+      if (inflowType === 'Plot' && selectedDryingRecord) {
+        setCommodityDescription(selectedDryingRecord.commodityDescription);
+        setBags(selectedDryingRecord.bagsPacked || 0);
+      } else {
+        setCommodityDescription('');
+        setBags(0);
+      }
+    }, [inflowType, selectedDryingRecord]);
 
     useEffect(() => {
         setSelectedDryingRecordId('');
@@ -87,6 +98,7 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
         setHamaliPaid(0);
         setSelectedCustomerId('');
         setSelectedDryingRecordId('');
+        setCommodityDescription('');
     }, [inflowType]);
 
 
@@ -160,7 +172,7 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
                                     {customerDryingRecords.length > 0 ? (
                                         customerDryingRecords.map(dr => (
                                             <SelectItem key={dr.id} value={dr.id}>
-                                                {dr.commodityDescription} ({dr.bagsForDrying} bags, Billed: {format(toDate(dr.billingDate!), 'dd MMM yyyy')})
+                                                {dr.commodityDescription} ({dr.bagsPacked} bags, Billed: {format(toDate(dr.billingDate!), 'dd MMM yyyy')})
                                             </SelectItem>
                                         ))
                                     ) : (
@@ -180,7 +192,8 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
                                 name="commodityDescription" 
                                 placeholder="e.g., Paddy (NDL)" 
                                 required
-                                value={selectedDryingRecord?.commodityDescription || ''}
+                                value={commodityDescription}
+                                onChange={(e) => setCommodityDescription(e.target.value)}
                                 readOnly={inflowType === 'Plot'}
                              />
                         </div>
@@ -215,7 +228,7 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
                                 placeholder="0" 
                                 required 
                                 onChange={e => setBags(Number(e.target.value))}
-                                value={selectedDryingRecord?.bagsForDrying || bags || ''}
+                                value={bags || ''}
                                 readOnly={inflowType === 'Plot'}
                             />
                         </div>

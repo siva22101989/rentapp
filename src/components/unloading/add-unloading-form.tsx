@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
 import type { Customer } from '@/lib/definitions';
 import { addDoc, collection, Timestamp } from 'firebase/firestore';
+import { useRouter } from 'next/navigation';
 
 const UnloadingRecordSchema = z.object({
   customerId: z.string().min(1, 'Customer is required.'),
@@ -31,6 +32,7 @@ export function AddUnloadingRecordForm({ customers, nextBillNo }: { customers: C
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
     const firestore = useFirestore();
+    const router = useRouter();
 
     const form = useForm<UnloadingFormData>({
         resolver: zodResolver(UnloadingRecordSchema),
@@ -70,9 +72,10 @@ export function AddUnloadingRecordForm({ customers, nextBillNo }: { customers: C
                     status: 'Unloading' as const,
                     totalHamali,
                 };
-                await addDoc(collection(firestore, 'unloadingRecords'), newRecord);
+                const docRef = await addDoc(collection(firestore, 'unloadingRecords'), newRecord);
                 toast({ title: 'Success', description: 'Unloading record added.' });
                 form.reset();
+                router.push(`/unloading/receipt/${docRef.id}`);
             } catch (error) {
                 console.error(error);
                 toast({ title: 'Error', description: 'Failed to add unloading record.', variant: 'destructive' });

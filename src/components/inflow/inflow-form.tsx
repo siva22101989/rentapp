@@ -180,7 +180,7 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
                                 name="commodityDescription" 
                                 placeholder="e.g., Paddy (NDL)" 
                                 required
-                                value={selectedDryingRecord?.commodityDescription || undefined}
+                                value={selectedDryingRecord?.commodityDescription || ''}
                                 readOnly={inflowType === 'Plot'}
                              />
                         </div>

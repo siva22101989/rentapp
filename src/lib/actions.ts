@@ -55,26 +55,11 @@ const InflowSchema = z.object({
 export type InflowFormState = {
     message: string;
     success: boolean;
+    recordId?: string;
 };
 
-// This action remains a server action as it performs multiple operations and redirects
 export async function addInflow(prevState: InflowFormState, formData: FormData) {
-    // This action now cannot interact with the database directly without admin SDK.
-    // It is kept for redirection logic, but the actual save will be client-side.
-    const validatedFields = InflowSchema.safeParse({
-        customerId: formData.get('customerId'),
-        commodityDescription: formData.get('commodityDescription'),
-        location: formData.get('location'),
-        storageStartDate: formData.get('storageStartDate'),
-        bagsStored: formData.get('bagsStored'),
-        hamaliRate: formData.get('hamaliRate'),
-        hamaliPaid: formData.get('hamaliPaid'),
-        lorryTractorNo: formData.get('lorryTractorNo'),
-        weight: formData.get('weight'),
-        inflowType: formData.get('inflowType'),
-        dryingRecordId: formData.get('dryingRecordId'),
-        khataAmount: formData.get('khataAmount'),
-    });
+    const validatedFields = InflowSchema.safeParse(Object.fromEntries(formData.entries()));
 
      if (!validatedFields.success) {
         return { message: 'Invalid form data. Please check all fields.', success: false };
@@ -83,14 +68,12 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
     revalidatePath('/storage');
     // The client side will handle the redirect to the receipt page with the correct ID.
     // This server action is now mostly a placeholder.
-    return { message: 'Data will be saved client-side.', success: true };
-}
-
-
-export async function updateStorageRecordAction(recordId: string, prevState: InflowFormState, formData: FormData) {
-    revalidatePath('/storage');
-    revalidatePath('/reports');
-    return { message: 'Record will be updated client-side.', success: true };
+    // A successful response from here will trigger the client to navigate.
+    return { 
+        message: 'Record created successfully. Redirecting to receipt...', 
+        success: true,
+        recordId: formData.get('recordId') as string
+    };
 }
 
 
@@ -108,13 +91,7 @@ export type OutflowFormState = {
 };
 
 export async function addOutflow(prevState: OutflowFormState, formData: FormData) {
-    const validatedFields = OutflowSchema.safeParse({
-        recordId: formData.get('recordId'),
-        bagsToWithdraw: formData.get('bagsToWithdraw'),
-        finalRent: formData.get('finalRent'),
-        amountPaidNow: formData.get('amountPaidNow'),
-        withdrawalDate: formData.get('withdrawalDate'),
-    });
+    const validatedFields = OutflowSchema.safeParse(Object.fromEntries(formData.entries()));
 
     if (!validatedFields.success) {
         return { message: 'Invalid form data.', success: false };

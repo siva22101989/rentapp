@@ -1,15 +1,15 @@
 
 'use client';
 
-import { useActionState, useEffect, useState } from 'react';
-import { useFormStatus } from 'react-dom';
+import { useTransition, useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { addInflow, type InflowFormState } from '@/lib/actions';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { Customer, DryingRecord } from '@/lib/definitions';
+import type { Customer, DryingRecord, Payment } from '@/lib/definitions';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Info } from 'lucide-react';
 import { Separator } from '../ui/separator';
@@ -17,9 +17,12 @@ import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { format, differenceInDays } from 'date-fns';
 import { toDate, formatCurrency } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { useFirestore } from '@/firebase';
+import { addDoc, collection, doc, Timestamp, updateDoc } from 'firebase/firestore';
 
 function SubmitButton() {
-    const { pending } = useFormStatus();
+    const [pending, setPending] = useState(false);
+    // useFormStatus is not used because we are doing a client-side write first.
     return (
       <Button type="submit" disabled={pending} className="w-full">
         {pending ? (
@@ -36,8 +39,9 @@ function SubmitButton() {
 
 export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { customers: Customer[], dryingRecords: DryingRecord[], nextSerialNumber: string }) {
     const { toast } = useToast();
-    const initialState: InflowFormState = { message: '', success: false };
-    const [state, formAction] = useActionState(addInflow, initialState);
+    const router = useRouter();
+    const firestore = useFirestore();
+    const [isPending, startTransition] = useTransition();
 
     const [bags, setBags] = useState(0);
     const [rate, setRate] = useState(0);
@@ -53,23 +57,6 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
     const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
     const customerDryingRecords = dryingRecords.filter(dr => dr.customerId === selectedCustomerId);
     const selectedDryingRecord = dryingRecords.find(dr => dr.id === selectedDryingRecordId);
-
-    useEffect(() => {
-        if (state.message) {
-            if (state.success) {
-                toast({
-                    title: 'Success!',
-                    description: state.message,
-                });
-            } else {
-                toast({
-                    title: 'Error',
-                    description: state.message,
-                    variant: 'destructive',
-                });
-            }
-        }
-    }, [state, toast]);
 
     useEffect(() => {
         const bagsValue = inflowType === 'Plot' ? (selectedDryingRecord?.bagsPacked || 0) : bags;
@@ -113,11 +100,75 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
         const end = toDate(selectedDryingRecord.packingDate);
         return differenceInDays(end, start) + 1; // Add 1 to be inclusive
     }
+    
+    const handleSubmit = (formData: FormData) => {
+        if (!firestore) {
+            toast({ title: 'Error', description: 'Firestore not available', variant: 'destructive' });
+            return;
+        }
 
+        startTransition(async () => {
+            try {
+                // Client-side validation could be added here for a better UX
+                const data = Object.fromEntries(formData.entries());
+
+                const bagsStored = Number(data.bagsStored);
+                const hamaliRate = Number(data.hamaliRate) || 0;
+                const hamaliPaid = Number(data.hamaliPaid) || 0;
+
+                const dryingHamali = inflowType === 'Plot' ? (selectedDryingRecord?.totalDryingHamali || 0) : 0;
+                const hamaliPayable = (bagsStored * hamaliRate) + dryingHamali;
+
+                const payments: Payment[] = [];
+                if (hamaliPaid > 0) {
+                    payments.push({
+                        amount: hamaliPaid,
+                        date: Timestamp.fromDate(new Date(data.storageStartDate as string)),
+                        type: 'hamali'
+                    });
+                }
+                
+                const newRecord = {
+                    id: nextSerialNumber,
+                    customerId: data.customerId,
+                    commodityDescription: data.commodityDescription,
+                    location: data.location,
+                    bagsIn: bagsStored,
+                    bagsOut: 0,
+                    bagsStored,
+                    storageStartDate: Timestamp.fromDate(new Date(data.storageStartDate as string)),
+                    storageEndDate: null,
+                    billingCycle: '6-Month Initial' as const,
+                    payments,
+                    hamaliPayable,
+                    totalRentBilled: 0,
+                    lorryTractorNo: data.lorryTractorNo,
+                    weight: Number(data.weight),
+                    inflowType: inflowType,
+                    dryingRecordId: data.dryingRecordId,
+                    khataAmount: Number(data.khataAmount) || 0
+                };
+
+                await setDoc(doc(firestore, "storageRecords", nextSerialNumber), newRecord);
+
+                if (inflowType === 'Plot' && selectedDryingRecord) {
+                    const dryingRecordRef = doc(firestore, 'dryingRecords', selectedDryingRecord.id);
+                    await updateDoc(dryingRecordRef, { status: 'Billed' });
+                }
+
+                toast({ title: 'Success', description: 'Inflow record created successfully.' });
+                router.push(`/inflow/receipt/${nextSerialNumber}`);
+                
+            } catch (error) {
+                console.error(error);
+                toast({ title: 'Error', description: 'Failed to create inflow record.', variant: 'destructive' });
+            }
+        });
+    }
 
   return (
     <div className="flex justify-center">
-        <form action={formAction} className="w-full max-w-lg">
+        <form action={handleSubmit} className="w-full max-w-lg">
             <Card>
                 <CardHeader>
                     <CardTitle>New Storage Record Details</CardTitle>
@@ -133,6 +184,7 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
                             defaultValue="Direct"
                             className="flex gap-4"
                             onValueChange={(value: 'Direct' | 'Plot') => setInflowType(value)}
+                            value={inflowType}
                         >
                             <div className="flex items-center space-x-2">
                                 <RadioGroupItem value="Direct" id="direct" />
@@ -207,20 +259,20 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
                                 id="commodityDescription" 
                                 name="commodityDescription" 
                                 placeholder="e.g., Paddy (NDL)" 
-                                required={inflowType === 'Direct'}
+                                required
                                 value={commodityDescription}
                                 onChange={(e) => setCommodityDescription(e.target.value)}
                                 readOnly={inflowType === 'Plot'}
                              />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="location">Lot No. <span className="text-muted-foreground">{inflowType === 'Plot' && '(Optional)'}</span></Label>
+                            <Label htmlFor="location">Lot No. <span className="text-muted-foreground text-xs">(Optional)</span></Label>
                             <Input id="location" name="location" placeholder="e.g., E2/middle" />
                         </div>
                     </div>
                      <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label htmlFor="lorryTractorNo">Lorry / Tractor No. <span className="text-muted-foreground">{inflowType === 'Plot' && '(Optional)'}</span></Label>
+                            <Label htmlFor="lorryTractorNo">Lorry / Tractor No. <span className="text-muted-foreground text-xs">(Optional)</span></Label>
                             <Input id="lorryTractorNo" name="lorryTractorNo" placeholder="e.g., AP 21 1234" />
                         </div>
                         <div className="space-y-2">
@@ -242,7 +294,7 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
                                 name="bagsStored" 
                                 type="number" 
                                 placeholder="0" 
-                                required={inflowType === 'Direct'}
+                                required
                                 value={bags || ''}
                                 onChange={(e) => setBags(Number(e.target.value))}
                                 readOnly={inflowType === 'Plot'}

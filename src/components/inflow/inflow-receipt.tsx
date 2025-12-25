@@ -17,9 +17,11 @@ export function InflowReceipt({ record, customer }: { record: StorageRecord, cus
     const [isGenerating, setIsGenerating] = useState(false);
 
     useEffect(() => {
-        const startDate = toDate(record.storageStartDate);
-        setFormattedDate(format(startDate, 'dd/MM/yy'));
-    }, [record.storageStartDate]);
+        if (record && record.storageStartDate) {
+            const startDate = toDate(record.storageStartDate);
+            setFormattedDate(format(startDate, 'dd/MM/yy'));
+        }
+    }, [record]);
 
     const handleDownloadPdf = async () => {
         const element = receiptRef.current;
@@ -56,7 +58,15 @@ export function InflowReceipt({ record, customer }: { record: StorageRecord, cus
         }
     };
 
-    const bagsToShow = record.inflowType === 'Plot' ? record.loadBags : record.bagsStored;
+    if (!record || !customer) {
+        return (
+            <div className="w-full max-w-2xl mx-auto bg-background p-4 sm:p-6">
+                <p>Loading receipt...</p>
+            </div>
+        );
+    }
+    
+    const bagsToShow = record.bagsStored;
 
     return (
         <div className="w-full max-w-2xl mx-auto bg-background p-4 sm:p-6">

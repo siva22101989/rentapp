@@ -32,6 +32,7 @@ export function UnloadingRecordsTable({ unloadingRecords, customers }: { unloadi
             <TableHeader>
                 <TableRow>
                     <TableHead>Date</TableHead>
+                    <TableHead>Bill No.</TableHead>
                     <TableHead>Customer</TableHead>
                     <TableHead>Commodity</TableHead>
                     <TableHead>Vehicle No.</TableHead>
@@ -46,6 +47,7 @@ export function UnloadingRecordsTable({ unloadingRecords, customers }: { unloadi
                     return (
                     <TableRow key={record.id}>
                         <TableCell>{unloadingDate ? format(unloadingDate, 'dd MMM yyyy') : 'N/A'}</TableCell>
+                        <TableCell>{record.billNo}</TableCell>
                         <TableCell className="font-medium">{getCustomerName(record.customerId)}</TableCell>
                         <TableCell>{record.commodityDescription}</TableCell>
                         <TableCell>{record.lorryTractorNo}</TableCell>
@@ -61,7 +63,7 @@ export function UnloadingRecordsTable({ unloadingRecords, customers }: { unloadi
                 })}
                  {unloadingRecords.length === 0 && (
                     <TableRow>
-                        <TableCell colSpan={7} className="text-center text-muted-foreground">
+                        <TableCell colSpan={8} className="text-center text-muted-foreground">
                             No unloading records found.
                         </TableCell>
                     </TableRow>

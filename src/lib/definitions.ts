@@ -69,4 +69,5 @@ export type UnloadingRecord = {
   status: UnloadingStatus;
   hamaliPerBag: number;
   totalHamali: number;
+  billNo?: string;
 };

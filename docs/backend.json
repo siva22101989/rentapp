@@ -200,6 +200,10 @@
         "totalHamali": {
           "type": "number",
           "description": "The total hamali charge for this unloading event."
+        },
+        "billNo": {
+            "type": "string",
+            "description": "The bill number associated with this unloading record."
         }
       },
       "required": [

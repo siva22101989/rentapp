@@ -23,6 +23,7 @@ const UnloadingRecordSchema = z.object({
   unloadingDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
   bagsUnloaded: z.coerce.number().int().positive('Number of bags must be positive.'),
   hamaliPerBag: z.coerce.number().nonnegative('Hamali rate must be non-negative.'),
+  billNo: z.string().optional(),
 });
 
 type UnloadingFormData = z.infer<typeof UnloadingRecordSchema>;
@@ -41,6 +42,7 @@ export function AddUnloadingRecordForm({ customers }: { customers: Customer[] })
           unloadingDate: new Date().toISOString().split('T')[0],
           bagsUnloaded: '' as any,
           hamaliPerBag: '' as any,
+          billNo: '',
         },
       });
 
@@ -149,6 +151,17 @@ export function AddUnloadingRecordForm({ customers }: { customers: Customer[] })
                             <FormItem>
                                 <FormLabel>Hamali per Bag</FormLabel>
                                 <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="billNo"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Bill No.</FormLabel>
+                                <FormControl><Input placeholder="e.g., 12345" {...field} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}

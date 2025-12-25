@@ -57,6 +57,8 @@ export type DryingRecord = {
   packingDate?: Date | Timestamp | null;
   packedBags?: number | null;
   weightAfterDrying?: number | null;
+  hamaliPerBag: number;
+  totalDryingHamali: number;
   billing?: {
     totalAmount: number;
     paidAmount: number;

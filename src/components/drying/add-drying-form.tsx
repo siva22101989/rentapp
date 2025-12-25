@@ -25,6 +25,7 @@ const DryingRecordSchema = z.object({
   unloadedBags: z.coerce.number().int().positive('Must be a positive number.'),
   unloadingVehicleNo: z.string().optional(),
   weightBeforeDrying: z.coerce.number().positive('Must be a positive number.').optional(),
+  hamaliPerBag: z.coerce.number().nonnegative('Hamali rate must be a non-negative number.'),
 });
 
 type DryingFormData = z.infer<typeof DryingRecordSchema>;
@@ -43,6 +44,7 @@ export function AddDryingRecordForm({ customers }: { customers: Customer[] }) {
             unloadedBags: undefined,
             unloadingVehicleNo: '',
             weightBeforeDrying: undefined,
+            hamaliPerBag: undefined,
         },
     });
 
@@ -54,8 +56,11 @@ export function AddDryingRecordForm({ customers }: { customers: Customer[] }) {
 
         startTransition(async () => {
             try {
+                const totalDryingHamali = data.unloadedBags * data.hamaliPerBag;
+
                 const newRecord = {
                     ...data,
+                    totalDryingHamali,
                     unloadingDate: Timestamp.fromDate(new Date(data.unloadingDate)),
                     status: 'Unloaded' as const,
                 };
@@ -146,17 +151,30 @@ export function AddDryingRecordForm({ customers }: { customers: Customer[] }) {
                                 )}
                             />
                         </div>
-                         <FormField
-                            control={form.control}
-                            name="unloadingVehicleNo"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Vehicle No. (optional)</FormLabel>
-                                    <FormControl><Input placeholder="e.g. AP 01 AB 1234" {...field} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                             <FormField
+                                control={form.control}
+                                name="unloadingVehicleNo"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Vehicle No. (optional)</FormLabel>
+                                        <FormControl><Input placeholder="e.g. AP 01 AB 1234" {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="hamaliPerBag"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Hamali per Bag</FormLabel>
+                                        <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
                     </CardContent>
                     <CardFooter>
                          <Button type="submit" disabled={isPending}>

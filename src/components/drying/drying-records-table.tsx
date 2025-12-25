@@ -4,7 +4,7 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Customer, DryingRecord } from "@/lib/definitions";
 import { format } from 'date-fns';
-import { toDate } from "@/lib/utils";
+import { formatCurrency, toDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
 const statusColors = {
@@ -32,7 +32,7 @@ export function DryingRecordsTable({ records, customers }: { records: DryingReco
                     <TableHead>Paddy Type</TableHead>
                     <TableHead>Unload Date</TableHead>
                     <TableHead className="text-right">Bags In</TableHead>
-                    <TableHead className="text-right">Bags Out</TableHead>
+                    <TableHead className="text-right">Drying Hamali</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
@@ -44,7 +44,7 @@ export function DryingRecordsTable({ records, customers }: { records: DryingReco
                         <TableCell>{record.paddyType}</TableCell>
                         <TableCell>{format(toDate(record.unloadingDate), 'dd MMM yyyy')}</TableCell>
                         <TableCell className="text-right">{record.unloadedBags}</TableCell>
-                        <TableCell className="text-right">{record.packedBags || '-'}</TableCell>
+                        <TableCell className="text-right font-mono">{formatCurrency(record.totalDryingHamali || 0)}</TableCell>
                         <TableCell>
                             <Badge className={statusColors[record.status]}>{record.status}</Badge>
                         </TableCell>

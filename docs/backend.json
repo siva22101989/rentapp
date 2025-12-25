@@ -135,6 +135,8 @@
         "packingDate": { "type": ["string", "null"], "format": "date-time" },
         "packedBags": { "type": ["number", "null"] },
         "weightAfterDrying": { "type": ["number", "null"] },
+        "hamaliPerBag": { "type": "number", "description": "Hamali charges per bag for drying." },
+        "totalDryingHamali": { "type": "number", "description": "Total hamali charges for the drying process." },
         "billing": {
           "type": "object",
           "properties": {
@@ -144,7 +146,7 @@
           }
         }
       },
-      "required": ["customerId", "paddyType", "unloadingDate", "unloadedBags", "status"]
+      "required": ["customerId", "paddyType", "unloadingDate", "unloadedBags", "status", "hamaliPerBag", "totalDryingHamali"]
     },
     "payment": {
       "title": "Payment",

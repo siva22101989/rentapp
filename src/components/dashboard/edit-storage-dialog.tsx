@@ -1,11 +1,8 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useActionState } from 'react';
-import { useFormStatus } from 'react-dom';
+import { useEffect, useState, useTransition } from 'react';
 import { Loader2 } from 'lucide-react';
-import { updateStorageRecordAction, type InflowFormState } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -24,52 +21,70 @@ import type { Customer, StorageRecord } from '@/lib/definitions';
 import { format } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { toDate } from '@/lib/utils';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
+import { useFirestore } from '@/firebase';
+import { updateStorageRecord } from '@/lib/data';
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" disabled={pending}>
-      {pending ? (
-        <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Saving...
-        </>
-      ) : (
-        'Save Changes'
-      )}
-    </Button>
-  );
-}
+const StorageRecordSchema = z.object({
+  customerId: z.string().min(1, 'Customer is required.'),
+  commodityDescription: z.string().min(2, 'Commodity is required.'),
+  location: z.string().optional(),
+  bagsStored: z.coerce.number().int().nonnegative(),
+  hamaliPayable: z.coerce.number().nonnegative(),
+  storageStartDate: z.string().refine(val => !isNaN(Date.parse(val))),
+});
+
+type StorageRecordFormData = z.infer<typeof StorageRecordSchema>;
+
 
 export function EditStorageDialog({ record, customers, children }: { record: StorageRecord, customers: Customer[], children: React.ReactNode }) {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
-  
-  const initialState: InflowFormState = { message: '', success: false };
-  const updateAction = updateStorageRecordAction.bind(null, record.id);
-  const [state, formAction] = useActionState(updateAction, initialState);
+  const [isPending, startTransition] = useTransition();
+  const firestore = useFirestore();
 
-  useEffect(() => {
-    if (!state.message) return;
-    if (state.success) {
-      toast({ title: 'Success', description: state.message });
-      setIsOpen(false);
-    } else {
-      toast({
-        title: 'Error',
-        description: state.message,
-        variant: 'destructive',
-      });
+  const form = useForm<StorageRecordFormData>({
+    resolver: zodResolver(StorageRecordSchema),
+    defaultValues: {
+      customerId: record.customerId,
+      commodityDescription: record.commodityDescription,
+      location: record.location,
+      bagsStored: record.bagsStored,
+      hamaliPayable: record.hamaliPayable,
+      storageStartDate: format(toDate(record.storageStartDate), 'yyyy-MM-dd'),
     }
-  }, [state, toast]);
+  });
   
-  const startDate = record.storageStartDate ? toDate(record.storageStartDate) : null;
+  const onSubmit = (data: StorageRecordFormData) => {
+    if (!firestore) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Firestore not available' });
+      return;
+    }
+    startTransition(async () => {
+      try {
+        const updateData = {
+          ...data,
+          storageStartDate: toDate(data.storageStartDate),
+        };
+        await updateStorageRecord(firestore, record.id, updateData);
+        toast({ title: 'Success', description: 'Storage record updated.' });
+        setIsOpen(false);
+      } catch (error) {
+        console.error(error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to update record.' });
+      }
+    });
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
-        <form action={formAction}>
+      <DialogContent className="sm:max-w-lg">
+        <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)}>
           <DialogHeader>
             <DialogTitle>Edit Storage Record</DialogTitle>
             <DialogDescription>
@@ -77,97 +92,105 @@ export function EditStorageDialog({ record, customers, children }: { record: Sto
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="customerId" className="text-right">
-                Customer
-              </Label>
-              <div className="col-span-3">
-                <Select name="customerId" defaultValue={record.customerId} required>
-                    <SelectTrigger id="customerId">
-                        <SelectValue placeholder="Select a customer" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {customers.map(customer => (
-                            <SelectItem key={customer.id} value={customer.id}>
-                                {customer.name}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="commodityDescription" className="text-right">
-                Commodity
-              </Label>
-              <Input 
-                id="commodityDescription" 
+             <FormField
+                control={form.control}
+                name="customerId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Customer</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                            {customers.map(customer => (
+                                <SelectItem key={customer.id} value={customer.id}>
+                                    {customer.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+               <FormField
+                control={form.control}
                 name="commodityDescription"
-                defaultValue={record.commodityDescription}
-                className="col-span-3"
-                required
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Commodity</FormLabel>
+                    <FormControl><Input {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="location" className="text-right">
-                Location
-              </Label>
-              <Input 
-                id="location" 
-                name="location"
-                defaultValue={record.location}
-                className="col-span-3"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="bagsStored" className="text-right">
-                Bags In
-              </Label>
-              <Input 
-                id="bagsStored" 
-                name="bagsStored" 
-                type="number"
-                defaultValue={record.bagsIn} 
-                className="col-span-3" 
-                required 
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="hamaliPayable" className="text-right">
-                Hamali Payable
-              </Label>
-              <Input 
-                id="hamaliPayable"
-                name="hamaliPayable" 
-                type="number"
-                step="0.01"
-                defaultValue={record.hamaliPayable} 
-                className="col-span-3" 
-                required 
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="storageStartDate" className="text-right">
-                Start Date
-              </Label>
-              <Input 
-                id="storageStartDate" 
-                name="storageStartDate" 
-                type="date"
-                defaultValue={startDate ? format(startDate, 'yyyy-MM-dd') : ''}
-                className="col-span-3" 
-                required 
-              />
-            </div>
+               <div className="grid grid-cols-2 gap-4">
+                <FormField
+                    control={form.control}
+                    name="location"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Location</FormLabel>
+                        <FormControl><Input {...field} /></FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                 <FormField
+                    control={form.control}
+                    name="storageStartDate"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Start Date</FormLabel>
+                        <FormControl><Input type="date" {...field} /></FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+              </div>
+               <div className="grid grid-cols-2 gap-4">
+                 <FormField
+                    control={form.control}
+                    name="bagsStored"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Bags Stored</FormLabel>
+                        <FormControl><Input type="number" {...field} /></FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                 <FormField
+                    control={form.control}
+                    name="hamaliPayable"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Hamali Payable</FormLabel>
+                        <FormControl><Input type="number" step="0.01" {...field} /></FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+              </div>
           </div>
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="outline">Cancel</Button>
+              <Button variant="outline" type="button">Cancel</Button>
             </DialogClose>
-            <SubmitButton />
+            <Button type="submit" disabled={isPending}>
+              {isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Save Changes'
+              )}
+            </Button>
           </DialogFooter>
         </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

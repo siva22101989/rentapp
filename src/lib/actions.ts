@@ -86,6 +86,14 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
     return { message: 'Data will be saved client-side.', success: true };
 }
 
+
+export async function updateStorageRecordAction(recordId: string, prevState: InflowFormState, formData: FormData) {
+    revalidatePath('/storage');
+    revalidatePath('/reports');
+    return { message: 'Record will be updated client-side.', success: true };
+}
+
+
 const OutflowSchema = z.object({
     recordId: z.string().min(1, 'A storage record must be selected.'),
     bagsToWithdraw: z.coerce.number().int().positive('Bags to withdraw must be a positive number.'),
@@ -149,6 +157,14 @@ export async function addExpense(prevState: FormState, formData: FormData) {
     revalidatePath('/expenses');
     return { message: 'Expense will be added client-side.', success: true };
 }
+
+export async function deleteStorageRecordAction(recordId: string): Promise<FormState> {
+  // This is now a placeholder. The client will handle the delete.
+  revalidatePath('/storage');
+  revalidatePath('/reports');
+  return { message: 'Record will be deleted on the client.', success: true };
+}
+
 
 export async function seedDatabase() {
     // This action needs to be fully implemented on the client to use the client SDK.

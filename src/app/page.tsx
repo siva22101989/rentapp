@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ArrowRight, Users, FileText, IndianRupee, ArrowDownToDot, ArrowUpFromDot, Warehouse, CreditCard, Database, ArrowDownFromLine, Wind } from "lucide-react";
+import { ArrowRight, Users, FileText, IndianRupee, ArrowDownToDot, ArrowUpFromDot, Warehouse, CreditCard, Database, ArrowDownFromLine, Wind, Settings } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 type NavItem = {
@@ -27,6 +27,7 @@ const navItems: NavItem[] = [
   { href: '/reports', label: 'Reports', description: 'See all transactions.', icon: FileText },
   { href: '/expenses', label: 'Expenses', description: 'Track and manage expenses.', icon: CreditCard },
   { href: '/seed', label: 'Seed Data', description: 'Populate the database with data.', icon: Database },
+  { href: '/settings', label: 'Settings', description: 'Manage app settings.', icon: Settings },
 ];
 
 function NavCard({ item }: { item: NavItem }) {

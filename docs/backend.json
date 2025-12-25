@@ -97,13 +97,9 @@
             "enum": ["Direct", "Plot"],
             "description": "The type of inflow, either Direct from the vehicle or from a Plot."
         },
-        "plotBags": {
-            "type": "number",
-            "description": "Number of bags in the plot, if inflow type is 'Plot'."
-        },
-        "loadBags": {
-            "type": "number",
-            "description": "Number of bags loaded from the plot, if inflow type is 'Plot'."
+        "dryingRecordId": {
+            "type": "string",
+            "description": "The ID of the associated drying record, if inflow type is 'Plot'."
         },
         "khataAmount": {
             "type": "number",

@@ -9,11 +9,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { Customer } from '@/lib/definitions';
+import type { Customer, DryingRecord } from '@/lib/definitions';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
+import { format } from 'date-fns';
+import { toDate } from '@/lib/utils';
 
 function SubmitButton() {
     const { pending } = useFormStatus();
@@ -31,7 +33,7 @@ function SubmitButton() {
     );
 }
 
-export function InflowForm({ customers, nextSerialNumber }: { customers: Customer[], nextSerialNumber: string }) {
+export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { customers: Customer[], dryingRecords: DryingRecord[], nextSerialNumber: string }) {
     const { toast } = useToast();
     const initialState: InflowFormState = { message: '', success: false };
     const [state, formAction] = useActionState(addInflow, initialState);
@@ -42,9 +44,12 @@ export function InflowForm({ customers, nextSerialNumber }: { customers: Custome
     const [hamaliPaid, setHamaliPaid] = useState(0);
     const [selectedCustomerId, setSelectedCustomerId] = useState('');
     const [inflowType, setInflowType] = useState<'Direct' | 'Plot'>('Direct');
-    const [plotBags, setPlotBags] = useState(0);
+    
+    const [selectedDryingRecordId, setSelectedDryingRecordId] = useState('');
 
     const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
+    const customerDryingRecords = dryingRecords.filter(dr => dr.customerId === selectedCustomerId);
+    const selectedDryingRecord = dryingRecords.find(dr => dr.id === selectedDryingRecordId);
 
     useEffect(() => {
         if (state.message) {
@@ -64,12 +69,25 @@ export function InflowForm({ customers, nextSerialNumber }: { customers: Custome
     }, [state, toast]);
 
     useEffect(() => {
-        const bagsValue = inflowType === 'Plot' ? plotBags : bags;
+        const bagsValue = inflowType === 'Plot' ? (selectedDryingRecord?.bagsForDrying || 0) : bags;
         const rateValue = rate || 0;
         
         const calculatedHamali = (bagsValue || 0) * rateValue;
         setHamali(calculatedHamali);
-    }, [bags, plotBags, rate, inflowType]);
+    }, [bags, selectedDryingRecord, rate, inflowType]);
+
+    useEffect(() => {
+        setSelectedDryingRecordId('');
+    }, [selectedCustomerId]);
+
+    useEffect(() => {
+        setBags(0);
+        setRate(0);
+        setHamali(0);
+        setHamaliPaid(0);
+        setSelectedCustomerId('');
+        setSelectedDryingRecordId('');
+    }, [inflowType]);
 
 
   return (
@@ -84,35 +102,6 @@ export function InflowForm({ customers, nextSerialNumber }: { customers: Custome
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="space-y-2">
-                        <Label htmlFor="customerId">Customer</Label>
-                        <Select name="customerId" required onValueChange={setSelectedCustomerId}>
-                            <SelectTrigger id="customerId">
-                                <SelectValue placeholder="Select a customer" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {customers.map(customer => (
-                                    <SelectItem key={customer.id} value={customer.id}>
-                                        {customer.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    {selectedCustomer && (
-                         <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="fatherName">Father's Name</Label>
-                                <Input id="fatherName" name="fatherName" defaultValue={selectedCustomer.fatherName} />
-                            </div>
-                             <div className="space-y-2">
-                                <Label htmlFor="village">Village</Label>
-                                <Input id="village" name="village" defaultValue={selectedCustomer.village} />
-                            </div>
-                        </div>
-                    )}
-                    
-                    <div className="space-y-2">
                         <Label>Inflow Type</Label>
                         <RadioGroup 
                             name="inflowType"
@@ -126,21 +115,59 @@ export function InflowForm({ customers, nextSerialNumber }: { customers: Custome
                             </div>
                             <div className="flex items-center space-x-2">
                                 <RadioGroupItem value="Plot" id="plot" />
-                                <Label htmlFor="plot">Plot</Label>
+                                <Label htmlFor="plot">From Plot</Label>
                             </div>
                         </RadioGroup>
                     </div>
 
-                    {inflowType === 'Plot' && (
-                        <div className="grid grid-cols-2 gap-4">
-                             <div className="space-y-2">
-                                <Label htmlFor="plotBags">Plot Bags</Label>
-                                <Input id="plotBags" name="plotBags" type="number" placeholder="0" onChange={e => setPlotBags(Number(e.target.value))} />
+                     <div className="space-y-2">
+                        <Label htmlFor="customerId">Customer</Label>
+                        <Select name="customerId" required onValueChange={setSelectedCustomerId} value={selectedCustomerId}>
+                            <SelectTrigger id="customerId">
+                                <SelectValue placeholder="Select a customer" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {customers.map(customer => (
+                                    <SelectItem key={customer.id} value={customer.id}>
+                                        {customer.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {selectedCustomer && inflowType === 'Direct' && (
+                         <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="fatherName">Father's Name</Label>
+                                <Input id="fatherName" name="fatherName" defaultValue={selectedCustomer.fatherName} />
                             </div>
                              <div className="space-y-2">
-                                <Label htmlFor="loadBags">Load Bags</Label>
-                                <Input id="loadBags" name="loadBags" type="number" placeholder="0" />
+                                <Label htmlFor="village">Village</Label>
+                                <Input id="village" name="village" defaultValue={selectedCustomer.village} />
                             </div>
+                        </div>
+                    )}
+                    
+                    {inflowType === 'Plot' && selectedCustomerId && (
+                        <div className="space-y-2">
+                            <Label htmlFor="dryingRecordId">Drying Bill</Label>
+                            <Select name="dryingRecordId" required onValueChange={setSelectedDryingRecordId} value={selectedDryingRecordId}>
+                                <SelectTrigger id="dryingRecordId">
+                                    <SelectValue placeholder="Select a completed drying bill" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {customerDryingRecords.length > 0 ? (
+                                        customerDryingRecords.map(dr => (
+                                            <SelectItem key={dr.id} value={dr.id}>
+                                                {dr.commodityDescription} ({dr.bagsForDrying} bags, Billed: {format(toDate(dr.billingDate!), 'dd MMM yyyy')})
+                                            </SelectItem>
+                                        ))
+                                    ) : (
+                                        <SelectItem value="none" disabled>No completed drying records for this customer</SelectItem>
+                                    )}
+                                </SelectContent>
+                            </Select>
                         </div>
                     )}
 
@@ -148,7 +175,14 @@ export function InflowForm({ customers, nextSerialNumber }: { customers: Custome
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="commodityDescription">Product</Label>
-                            <Input id="commodityDescription" name="commodityDescription" placeholder="e.g., Paddy (NDL)" required />
+                            <Input 
+                                id="commodityDescription" 
+                                name="commodityDescription" 
+                                placeholder="e.g., Paddy (NDL)" 
+                                required
+                                value={selectedDryingRecord?.commodityDescription || undefined}
+                                readOnly={inflowType === 'Plot'}
+                             />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="location">Lot No.</Label>
@@ -172,20 +206,19 @@ export function InflowForm({ customers, nextSerialNumber }: { customers: Custome
                         </div>
                     </div>
                      <div className="grid grid-cols-2 gap-4">
-                        {inflowType === 'Direct' && (
-                            <div className="space-y-2">
-                                <Label htmlFor="bagsStored">No. of Bags</Label>
-                                <Input 
-                                    id="bagsStored" 
-                                    name="bagsStored" 
-                                    type="number" 
-                                    placeholder="0" 
-                                    required 
-                                    onChange={e => setBags(Number(e.target.value))}
-                                    value={bags || ''}
-                                />
-                            </div>
-                        )}
+                        <div className="space-y-2">
+                            <Label htmlFor="bagsStored">No. of Bags</Label>
+                            <Input 
+                                id="bagsStored" 
+                                name="bagsStored" 
+                                type="number" 
+                                placeholder="0" 
+                                required 
+                                onChange={e => setBags(Number(e.target.value))}
+                                value={selectedDryingRecord?.bagsForDrying || bags || ''}
+                                readOnly={inflowType === 'Plot'}
+                            />
+                        </div>
                          <div className="space-y-2">
                             <Label htmlFor="weight">Weight</Label>
                             <Input id="weight" name="weight" type="number" step="0.01" placeholder="0.00" />

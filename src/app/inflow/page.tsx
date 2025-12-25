@@ -5,9 +5,9 @@ import { PageHeader } from "@/components/shared/page-header";
 import { InflowForm } from "@/components/inflow/inflow-form";
 import { AddCustomerDialog } from "@/components/customers/add-customer-dialog";
 import { useMemo } from "react";
-import type { Customer, StorageRecord } from "@/lib/definitions";
+import type { Customer, StorageRecord, DryingRecord } from "@/lib/definitions";
 import { useCollection } from "@/firebase/firestore/use-collection";
-import { collection } from "firebase/firestore";
+import { collection, query, where } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 
@@ -26,6 +26,13 @@ export default function InflowPage() {
   );
   const { data: records, loading: loadingRecords } = useCollection<StorageRecord>(recordsQuery);
 
+  const dryingRecordsQuery = useMemoFirebase(
+    () => (firestore ? query(collection(firestore, 'dryingRecords'), where('status', '==', 'Billed')) : null),
+    [firestore]
+  );
+  const { data: dryingRecords, loading: loadingDryingRecords } = useCollection<DryingRecord>(dryingRecordsQuery);
+
+
   const nextSerialNumber = useMemo(() => {
     if (!records || records.length === 0) {
       return 'SLWH-1';
@@ -38,7 +45,7 @@ export default function InflowPage() {
   }, [records]);
 
 
-  if (loadingCustomers || loadingRecords) {
+  if (loadingCustomers || loadingRecords || loadingDryingRecords) {
     return <AppLayout><div>Loading...</div></AppLayout>;
   }
 
@@ -50,7 +57,11 @@ export default function InflowPage() {
       >
         <AddCustomerDialog />
       </PageHeader>
-      <InflowForm customers={customers || []} nextSerialNumber={nextSerialNumber} />
+      <InflowForm 
+        customers={customers || []} 
+        dryingRecords={dryingRecords || []}
+        nextSerialNumber={nextSerialNumber} 
+      />
     </AppLayout>
   );
 }

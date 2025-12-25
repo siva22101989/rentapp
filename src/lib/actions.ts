@@ -1,3 +1,4 @@
+
 'use server';
 
 import { z } from 'zod';
@@ -31,7 +32,7 @@ const InflowSchema = z.object({
     commodityDescription: z.string().min(2, 'Commodity description is required.'),
     location: z.string(),
     storageStartDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
-    bagsStored: z.coerce.number().int().nonnegative('Number of bags must be a non-negative number.').optional(),
+    bagsStored: z.coerce.number().int().nonnegative('Number of bags must be a non-negative number.'),
     hamaliRate: z.coerce.number().nonnegative('Hamali rate must be a non-negative number.').optional(),
     hamaliPaid: z.coerce.number().nonnegative('Hamali paid must be a non-negative number.').optional(),
     lorryTractorNo: z.string().optional(),
@@ -40,8 +41,7 @@ const InflowSchema = z.object({
     fatherName: z.string().optional(),
     village: z.string().optional(),
     inflowType: z.enum(['Direct', 'Plot']).optional(),
-    plotBags: z.coerce.number().nonnegative('Plot bags must be a non-negative number.').optional(),
-    loadBags: z.coerce.number().optional(),
+    dryingRecordId: z.string().optional(),
     khataAmount: z.coerce.number().nonnegative('Khata amount must be a non-negative number.').optional(),
 });
 
@@ -58,6 +58,7 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
         customerId: formData.get('customerId'),
         commodityDescription: formData.get('commodityDescription'),
         storageStartDate: formData.get('storageStartDate'),
+        bagsStored: formData.get('bagsStored'),
     });
 
      if (!validatedFields.success) {
@@ -92,6 +93,7 @@ export async function addOutflow(prevState: OutflowFormState, formData: FormData
         bagsToWithdraw: formData.get('bagsToWithdraw'),
         finalRent: formData.get('finalRent'),
         amountPaidNow: formData.get('amountPaidNow'),
+        withdrawalDate: formData.get('withdrawalDate'),
     });
 
     if (!validatedFields.success) {

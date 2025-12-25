@@ -39,8 +39,7 @@ export type StorageRecord = {
   lorryTractorNo: string;
   weight: number;
   inflowType?: 'Direct' | 'Plot';
-  plotBags?: number;
-  loadBags?: number;
+  dryingRecordId?: string;
   khataAmount?: number;
 };
 

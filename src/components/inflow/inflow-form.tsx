@@ -18,7 +18,7 @@ import { format, differenceInDays } from 'date-fns';
 import { toDate, formatCurrency } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { useFirestore } from '@/firebase';
-import { addDoc, collection, doc, Timestamp, updateDoc } from 'firebase/firestore';
+import { collection, doc, Timestamp, updateDoc, setDoc } from 'firebase/firestore';
 
 function SubmitButton() {
     const [pending, setPending] = useState(false);
@@ -352,3 +352,5 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
     </div>
   );
 }
+
+    

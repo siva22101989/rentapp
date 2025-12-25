@@ -44,28 +44,6 @@ export type StorageRecord = {
   khataAmount?: number;
 };
 
-export type DryingRecord = {
-  id: string;
-  customerId: string;
-  paddyType: string;
-  unloadingDate: Date | Timestamp;
-  unloadedBags: number;
-  unloadingVehicleNo: string;
-  weightBeforeDrying?: number;
-  status: 'Unloaded' | 'Drying' | 'Packed' | 'Billed';
-  dryingStartDate?: Date | Timestamp | null;
-  packingDate?: Date | Timestamp | null;
-  packedBags?: number | null;
-  weightAfterDrying?: number | null;
-  hamaliPerBag: number;
-  totalDryingHamali: number;
-  billing?: {
-    totalAmount: number;
-    paidAmount: number;
-    billingDate: Date | Timestamp;
-  };
-};
-
 export const expenseCategories = ["Worker Salary", "Petrol", "Maintenance", "Utilities", "Hamali", "Other"] as const;
 
 export type ExpenseCategory = typeof expenseCategories[number];

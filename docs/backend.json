@@ -119,35 +119,6 @@
         "billingCycle"
       ]
     },
-    "dryingRecord": {
-      "title": "Drying Record",
-      "description": "Represents a paddy drying process for a customer.",
-      "type": "object",
-      "properties": {
-        "customerId": { "type": "string" },
-        "paddyType": { "type": "string" },
-        "unloadingDate": { "type": "string", "format": "date-time" },
-        "unloadedBags": { "type": "number" },
-        "unloadingVehicleNo": { "type": "string" },
-        "weightBeforeDrying": { "type": "number" },
-        "status": { "type": "string", "enum": ["Unloaded", "Drying", "Packed", "Billed"] },
-        "dryingStartDate": { "type": ["string", "null"], "format": "date-time" },
-        "packingDate": { "type": ["string", "null"], "format": "date-time" },
-        "packedBags": { "type": ["number", "null"] },
-        "weightAfterDrying": { "type": ["number", "null"] },
-        "hamaliPerBag": { "type": "number", "description": "Hamali charges per bag for drying." },
-        "totalDryingHamali": { "type": "number", "description": "Total hamali charges for the drying process." },
-        "billing": {
-          "type": "object",
-          "properties": {
-            "totalAmount": { "type": "number" },
-            "paidAmount": { "type": "number" },
-            "billingDate": { "type": "string", "format": "date-time" }
-          }
-        }
-      },
-      "required": ["customerId", "paddyType", "unloadingDate", "unloadedBags", "status", "hamaliPerBag", "totalDryingHamali"]
-    },
     "payment": {
       "title": "Payment",
       "description": "Represents a payment made towards a storage record.",
@@ -203,10 +174,6 @@
     "/storageRecords/{recordId}": {
       "schema": "storageRecord",
       "description": "Stores individual storage records."
-    },
-    "/dryingRecords/{recordId}": {
-      "schema": "dryingRecord",
-      "description": "Stores individual drying process records."
     },
     "/expenses/{expenseId}": {
         "schema": "expense",

@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ArrowRight, Users, FileText, IndianRupee, ArrowDownToDot, ArrowUpFromDot, Warehouse, CreditCard, Database, Wind } from "lucide-react";
+import { ArrowRight, Users, FileText, IndianRupee, ArrowDownToDot, ArrowUpFromDot, Warehouse, CreditCard, Database } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 type NavItem = {
@@ -19,7 +19,6 @@ type NavItem = {
 const navItems: NavItem[] = [
   { href: '/inflow', label: 'Inflow', description: 'Add new items to storage.', icon: ArrowDownToDot },
   { href: '/outflow', label: 'Outflow', description: 'Process item withdrawals.', icon: ArrowUpFromDot },
-  { href: '/drying', label: 'Drying Process', description: 'Manage paddy drying.', icon: Wind },
   { href: '/storage', label: 'Storage', description: 'View all active storage.', icon: Warehouse },
   { href: '/payments/pending', label: 'Payments', description: 'Manage pending payments.', icon: IndianRupee },
   { href: '/customers', label: 'Customers', description: 'View and manage customers.', icon: Users },

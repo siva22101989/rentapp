@@ -1,7 +1,7 @@
 
 'use client';
 
-import { MoreHorizontal, Wind, Package, CircleCheck } from "lucide-react";
+import { MoreHorizontal, Wind, Package, CircleCheck, IndianRupee } from "lucide-react";
 import { Button } from "../ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from "../ui/dropdown-menu";
 import type { DryingRecord, DryingStatus } from "@/lib/definitions";
@@ -10,6 +10,7 @@ import { useTransition } from "react";
 import { useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { doc, updateDoc, Timestamp } from "firebase/firestore";
+import { AddSecondDayHamaliDialog } from "./add-second-day-hamali-dialog";
 
 export function DryingActionsMenu({ record }: { record: DryingRecord }) {
     const [isPending, startTransition] = useTransition();
@@ -59,6 +60,15 @@ export function DryingActionsMenu({ record }: { record: DryingRecord }) {
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                 <AddSecondDayHamaliDialog record={record}>
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                        <IndianRupee className="mr-2 h-4 w-4" />
+                        Add 2nd Day Hamali
+                    </DropdownMenuItem>
+                </AddSecondDayHamaliDialog>
+                <DropdownMenuSeparator />
                 <DropdownMenuLabel>Change Status</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {dryingStatus.map(status => (

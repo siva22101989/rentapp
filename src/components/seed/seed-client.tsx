@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useActionState, useTransition } from 'react';
+import { useTransition, useState } from 'react';
 import { Loader2, Database } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,10 +9,9 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Terminal } from "lucide-react"
 import { useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { collection, writeBatch } from 'firebase/firestore';
+import { collection, writeBatch, doc, Timestamp } from 'firebase/firestore';
 import customersData from '@/lib/data/customers.json';
 import storageRecordsData from '@/lib/data/storageRecords.json';
-import { Timestamp } from 'firebase/firestore';
 
 
 export function SeedClient() {
@@ -37,13 +36,13 @@ export function SeedClient() {
 
         // Seed Customers
         customersData.forEach((customer) => {
-          const docRef = collection(firestore, 'customers');
-          batch.set(doc(docRef, customer.id), customer);
+          const docRef = doc(firestore, 'customers', customer.id);
+          batch.set(docRef, customer);
         });
 
         // Seed Storage Records
         storageRecordsData.forEach((record: any) => {
-          const docRef = collection(firestore, 'storageRecords');
+          const docRef = doc(firestore, 'storageRecords', record.id);
           const adaptedRecord = {
             ...record,
             storageStartDate: Timestamp.fromDate(new Date(record.storageStartDate)),
@@ -53,7 +52,7 @@ export function SeedClient() {
               date: Timestamp.fromDate(new Date(p.date)),
             })),
           };
-          batch.set(doc(docRef, record.id), adaptedRecord);
+          batch.set(docRef, adaptedRecord);
         });
 
         await batch.commit();

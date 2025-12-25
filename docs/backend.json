@@ -216,6 +216,62 @@
         "hamaliPerBag",
         "totalHamali"
       ]
+    },
+    "dryingRecord": {
+      "title": "Drying Record",
+      "description": "Represents the entire drying process for a commodity, from unloading to billing.",
+      "type": "object",
+      "properties": {
+        "customerId": {
+          "type": "string",
+          "description": "The ID of the customer who owns these items."
+        },
+        "commodityDescription": {
+          "type": "string",
+          "description": "A description of the commodity being processed."
+        },
+        "bagsUnloaded": {
+          "type": "number",
+          "description": "The number of bags unloaded for drying."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Drying", "Packing", "Billed"],
+          "description": "The current stage of the drying process."
+        },
+        "dryingStartDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The date the drying process began."
+        },
+        "packingDate": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "The date packing was completed. Null if not yet packed."
+        },
+        "billingDate": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "The date the process was billed. Null if not yet billed."
+        },
+        "hamaliPerBag": {
+          "type": "number",
+          "description": "The hamali charge per bag for the drying process."
+        },
+        "totalDryingHamali": {
+          "type": "number",
+          "description": "The total hamali charge for this drying process."
+        }
+      },
+      "required": [
+        "customerId",
+        "commodityDescription",
+        "bagsUnloaded",
+        "status",
+        "dryingStartDate",
+        "hamaliPerBag",
+        "totalDryingHamali"
+      ]
     }
   },
   "auth": {
@@ -237,6 +293,12 @@
     "/unloadingRecords/{unloadingId}": {
       "schema": "unloadingRecord",
       "description": "Stores records of the unloading process."
+    },
+    "/dryingRecords/{dryingId}": {
+      "schema": "dryingRecord",
+      "description": "Stores records of the drying process."
     }
   }
 }
+
+    

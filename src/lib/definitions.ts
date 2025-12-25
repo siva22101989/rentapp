@@ -67,4 +67,6 @@ export type UnloadingRecord = {
   unloadingDate: Date | Timestamp;
   bagsUnloaded: number;
   status: UnloadingStatus;
+  hamaliPerBag: number;
+  totalHamali: number;
 };

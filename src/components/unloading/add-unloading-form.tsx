@@ -22,6 +22,7 @@ const UnloadingRecordSchema = z.object({
   lorryTractorNo: z.string().min(2, 'Vehicle number is required.'),
   unloadingDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
   bagsUnloaded: z.coerce.number().int().positive('Number of bags must be positive.'),
+  hamaliPerBag: z.coerce.number().nonnegative('Hamali rate must be non-negative.'),
 });
 
 type UnloadingFormData = z.infer<typeof UnloadingRecordSchema>;
@@ -39,6 +40,7 @@ export function AddUnloadingRecordForm({ customers }: { customers: Customer[] })
           lorryTractorNo: '',
           unloadingDate: new Date().toISOString().split('T')[0],
           bagsUnloaded: '' as any,
+          hamaliPerBag: '' as any,
         },
       });
 
@@ -50,10 +52,12 @@ export function AddUnloadingRecordForm({ customers }: { customers: Customer[] })
 
         startTransition(async () => {
             try {
+                const totalHamali = data.bagsUnloaded * data.hamaliPerBag;
                 const newRecord = {
                     ...data,
                     unloadingDate: Timestamp.fromDate(new Date(data.unloadingDate)),
                     status: 'Unloading' as const,
+                    totalHamali,
                 };
                 await addDoc(collection(firestore, 'unloadingRecords'), newRecord);
                 toast({ title: 'Success', description: 'Unloading record added.' });
@@ -134,6 +138,17 @@ export function AddUnloadingRecordForm({ customers }: { customers: Customer[] })
                             <FormItem>
                                 <FormLabel>Bags Unloaded</FormLabel>
                                 <FormControl><Input type="number" placeholder="0" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                     <FormField
+                        control={form.control}
+                        name="hamaliPerBag"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Hamali per Bag</FormLabel>
+                                <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}

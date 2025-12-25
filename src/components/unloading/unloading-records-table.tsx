@@ -11,7 +11,7 @@ import {
   } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns';
-import { toDate } from "@/lib/utils";
+import { formatCurrency, toDate } from "@/lib/utils";
 import type { Customer, UnloadingRecord } from "@/lib/definitions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
   
@@ -36,6 +36,7 @@ export function UnloadingRecordsTable({ unloadingRecords, customers }: { unloadi
                     <TableHead>Commodity</TableHead>
                     <TableHead>Vehicle No.</TableHead>
                     <TableHead className="text-right">Bags</TableHead>
+                    <TableHead className="text-right">Total Hamali</TableHead>
                     <TableHead>Status</TableHead>
                 </TableRow>
             </TableHeader>
@@ -49,6 +50,7 @@ export function UnloadingRecordsTable({ unloadingRecords, customers }: { unloadi
                         <TableCell>{record.commodityDescription}</TableCell>
                         <TableCell>{record.lorryTractorNo}</TableCell>
                         <TableCell className="text-right">{record.bagsUnloaded}</TableCell>
+                        <TableCell className="text-right font-mono">{formatCurrency(record.totalHamali || 0)}</TableCell>
                         <TableCell>
                             <Badge variant="secondary" className="bg-blue-100 text-blue-800">
                                 {record.status}
@@ -59,7 +61,7 @@ export function UnloadingRecordsTable({ unloadingRecords, customers }: { unloadi
                 })}
                  {unloadingRecords.length === 0 && (
                     <TableRow>
-                        <TableCell colSpan={6} className="text-center text-muted-foreground">
+                        <TableCell colSpan={7} className="text-center text-muted-foreground">
                             No unloading records found.
                         </TableCell>
                     </TableRow>

@@ -192,6 +192,14 @@
           "type": "string",
           "enum": ["Unloading", "Drying", "Packing", "Billed"],
           "description": "The current status of the process."
+        },
+        "hamaliPerBag": {
+          "type": "number",
+          "description": "The hamali charge per bag for this unloading event."
+        },
+        "totalHamali": {
+          "type": "number",
+          "description": "The total hamali charge for this unloading event."
         }
       },
       "required": [
@@ -200,7 +208,9 @@
         "lorryTractorNo",
         "unloadingDate",
         "bagsUnloaded",
-        "status"
+        "status",
+        "hamaliPerBag",
+        "totalHamali"
       ]
     }
   },

@@ -59,7 +59,7 @@ export function AddHamaliDialog({ record, children }: AddHamaliDialogProps) {
     resolver: zodResolver(HamaliSchema),
     defaultValues: {
       hamaliPerBag: '' as any,
-      chargeDate: nextChargeDate.toISOString().split('T')[0],
+      chargeDate: new Date().toISOString().split('T')[0],
     },
   });
 
@@ -105,7 +105,6 @@ export function AddHamaliDialog({ record, children }: AddHamaliDialogProps) {
           description: `Added ${formatCurrency(additionalAmount)} for ${dayDescription} hamali.` 
         });
         setIsOpen(false);
-        form.reset({ hamaliPerBag: '' as any, chargeDate: nextChargeDate.toISOString().split('T')[0] });
       } catch (error) {
         console.error(error);
         toast({ title: 'Error', description: 'Failed to add hamali charge.', variant: 'destructive' });

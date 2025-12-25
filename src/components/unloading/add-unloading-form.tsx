@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -38,7 +38,7 @@ export function AddUnloadingRecordForm({ customers }: { customers: Customer[] })
           commodityDescription: '',
           lorryTractorNo: '',
           unloadingDate: new Date().toISOString().split('T')[0],
-          bagsUnloaded: undefined,
+          bagsUnloaded: '' as any,
         },
       });
 

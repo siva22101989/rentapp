@@ -81,7 +81,7 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
     
     useEffect(() => {
       if (inflowType === 'Plot' && selectedDryingRecord) {
-        setCommodityDescription(selectedDryingRecord.commodityDescription);
+        setCommodityDescription(selectedDryingRecord.commodityDescription || '');
         setBags(selectedDryingRecord.bagsPacked || 0);
         setWeight('');
       } else {

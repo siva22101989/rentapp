@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useTransition, useState, useEffect } from 'react';
@@ -59,14 +58,25 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
     const customerDryingRecords = dryingRecords.filter(dr => dr.customerId === selectedCustomerId);
     const selectedDryingRecord = dryingRecords.find(dr => dr.id === selectedDryingRecordId);
 
+    const [dryingSummary, setDryingSummary] = useState({ unloadingHamali: 0, dryingHamali: 0 });
+
     useEffect(() => {
         const bagsValue = inflowType === 'Plot' ? (selectedDryingRecord?.bagsPacked || 0) : (bags || 0);
         const rateValue = rate || 0;
         
         const currentHamali = (bagsValue || 0) * rateValue;
-        const dryingHamali = inflowType === 'Plot' ? (selectedDryingRecord?.totalDryingHamali || 0) : 0;
+        const dryingHamaliTotal = inflowType === 'Plot' ? (selectedDryingRecord?.totalDryingHamali || 0) : 0;
         
-        setHamali(currentHamali + dryingHamali);
+        setHamali(currentHamali + dryingHamaliTotal);
+
+        if (inflowType === 'Plot' && selectedDryingRecord && selectedDryingRecord.hamaliCharges) {
+            const unloading = selectedDryingRecord.hamaliCharges.find(c => c.description.toLowerCase().includes('unloading'))?.amount || 0;
+            const drying = selectedDryingRecord.totalDryingHamali - unloading;
+            setDryingSummary({ unloadingHamali: unloading, dryingHamali: drying });
+        } else {
+            setDryingSummary({ unloadingHamali: 0, dryingHamali: 0 });
+        }
+
     }, [bags, selectedDryingRecord, rate, inflowType]);
     
     useEffect(() => {
@@ -323,7 +333,7 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label htmlFor="hamaliRate">Hamali Rate (per bag)</Label>
+                            <Label htmlFor="hamaliRate">Storage Inflow Hamali Rate (per bag)</Label>
                             <Input id="hamaliRate" name="hamaliRate" type="number" placeholder="0.00" step="0.01" value={rate} onChange={e => setRate(e.target.value === '' ? '' : Number(e.target.value))}/>
                         </div>
                         <div className="space-y-2">
@@ -341,12 +351,14 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
                         <div className="space-y-2 text-sm">
                             {inflowType === 'Plot' && selectedDryingRecord && (
                                 <>
-                                    {(selectedDryingRecord.hamaliCharges || []).map((charge, index) => (
-                                        <div key={index} className="flex justify-between items-center">
-                                            <span className="text-muted-foreground">{charge.description}</span>
-                                            <span className="font-mono">{formatCurrency(charge.amount)}</span>
-                                        </div>
-                                    ))}
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-muted-foreground">Unloading Hamali</span>
+                                        <span className="font-mono">{formatCurrency(dryingSummary.unloadingHamali)}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-muted-foreground">Drying Hamali</span>
+                                        <span className="font-mono">{formatCurrency(dryingSummary.dryingHamali)}</span>
+                                    </div>
                                 </>
                             )}
                             <div className="flex justify-between items-center">

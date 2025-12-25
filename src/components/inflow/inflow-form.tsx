@@ -74,8 +74,10 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
         const bagsValue = inflowType === 'Plot' ? (selectedDryingRecord?.bagsPacked || 0) : bags;
         const rateValue = rate || 0;
         
-        const calculatedHamali = (bagsValue || 0) * rateValue;
-        setHamali(calculatedHamali);
+        const currentHamali = (bagsValue || 0) * rateValue;
+        const dryingHamali = inflowType === 'Plot' ? (selectedDryingRecord?.totalDryingHamali || 0) : 0;
+        
+        setHamali(currentHamali + dryingHamali);
     }, [bags, selectedDryingRecord, rate, inflowType]);
     
     useEffect(() => {
@@ -282,11 +284,11 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
                         <div className="space-y-2">
                              <div className="flex justify-between items-center text-sm">
                                 <span className="text-muted-foreground">Total Hamali Payable</span>
-                                <span className="font-mono">₹{hamali.toFixed(2)}</span>
+                                <span className="font-mono">{formatCurrency(hamali)}</span>
                             </div>
                             <div className="flex justify-between items-center font-semibold text-base">
                                 <span className="text-destructive">Hamali Pending</span>
-                                <span className="font-mono text-destructive">₹{(hamali - hamaliPaid).toFixed(2)}</span>
+                                <span className="font-mono text-destructive">{formatCurrency(hamali - hamaliPaid)}</span>
                             </div>
                             <p className="text-xs text-muted-foreground">
                                 Rent will be calculated at the time of withdrawal.
@@ -303,4 +305,5 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
   );
 }
 
+    
     

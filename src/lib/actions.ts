@@ -30,7 +30,7 @@ export async function getAnomalyDetection() {
 const InflowSchema = z.object({
     customerId: z.string().min(1, 'Customer is required.'),
     commodityDescription: z.string().min(2, 'Commodity description is required.'),
-    location: z.string(),
+    location: z.string().optional(),
     storageStartDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
     bagsStored: z.coerce.number().int().nonnegative('Number of bags must be a non-negative number.'),
     hamaliRate: z.coerce.number().nonnegative('Hamali rate must be a non-negative number.').optional(),
@@ -57,17 +57,24 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
     const validatedFields = InflowSchema.safeParse({
         customerId: formData.get('customerId'),
         commodityDescription: formData.get('commodityDescription'),
+        location: formData.get('location'),
         storageStartDate: formData.get('storageStartDate'),
         bagsStored: formData.get('bagsStored'),
+        hamaliRate: formData.get('hamaliRate'),
+        hamaliPaid: formData.get('hamaliPaid'),
+        lorryTractorNo: formData.get('lorryTractorNo'),
+        weight: formData.get('weight'),
+        fatherName: formData.get('fatherName'),
+        village: formData.get('village'),
+        inflowType: formData.get('inflowType'),
+        dryingRecordId: formData.get('dryingRecordId'),
+        khataAmount: formData.get('khataAmount'),
     });
 
      if (!validatedFields.success) {
-        return { message: 'Invalid form data', success: false };
+        return { message: 'Invalid form data. Please check all fields.', success: false };
      }
 
-    // Since we cannot save from server, we just redirect. The client will handle the save.
-    // A better implementation would involve passing the new ID, but that requires a save first.
-    // For now, redirecting to a generic page.
     revalidatePath('/storage');
     // The client side will handle the redirect to the receipt page with the correct ID.
     // This server action is now mostly a placeholder.
@@ -146,3 +153,5 @@ export async function seedDatabase() {
         success: true,
     };
 }
+
+    

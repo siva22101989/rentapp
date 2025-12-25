@@ -74,6 +74,11 @@ export type UnloadingRecord = {
 export const dryingStatus = ["Drying", "Packing", "Billed"] as const;
 export type DryingStatus = typeof dryingStatus[number];
 
+export type HamaliCharge = {
+  description: string;
+  amount: number;
+};
+
 export type DryingRecord = {
     id: string;
     unloadingRecordId: string;
@@ -85,6 +90,6 @@ export type DryingRecord = {
     dryingStartDate: Date | Timestamp;
     packingDate: Date | Timestamp | null;
     billingDate: Date | Timestamp | null;
-    hamaliPerBag: number;
+    hamaliCharges: HamaliCharge[];
     totalDryingHamali: number;
 };

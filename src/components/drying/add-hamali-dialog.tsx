@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -20,8 +21,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
-import type { DryingRecord } from '@/lib/definitions';
-import { doc, updateDoc, increment } from 'firebase/firestore';
+import type { DryingRecord, HamaliCharge } from '@/lib/definitions';
+import { doc, updateDoc, increment, arrayUnion } from 'firebase/firestore';
 import { formatCurrency } from '@/lib/utils';
 
 const HamaliSchema = z.object({
@@ -59,9 +60,15 @@ export function AddHamaliDialog({ record, children }: AddHamaliDialogProps) {
     startTransition(async () => {
       try {
         const additionalAmount = data.hamaliPerBag * record.bagsForDrying;
+        const newCharge: HamaliCharge = {
+            description: `Drying ${data.day}`,
+            amount: additionalAmount
+        };
+        
         const recordRef = doc(firestore, 'dryingRecords', record.id);
         
         await updateDoc(recordRef, {
+          hamaliCharges: arrayUnion(newCharge),
           totalDryingHamali: increment(additionalAmount),
         });
 
@@ -99,7 +106,7 @@ export function AddHamaliDialog({ record, children }: AddHamaliDialogProps) {
                   <FormItem>
                     <FormLabel>Day Description</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., 2nd Day, 3rd Day" {...field} />
+                      <Input placeholder="e.g., Day 2, Day 3" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

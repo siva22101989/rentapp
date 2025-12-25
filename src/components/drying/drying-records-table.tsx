@@ -37,11 +37,6 @@ export function DryingRecordsTable({ dryingRecords, customers, unloadingRecords 
         return customers.find(c => c.id === customerId)?.name ?? 'Unknown';
     };
 
-    const getUnloadingHamali = (unloadingRecordId: string) => {
-        const record = unloadingRecords.find(ur => ur.id === unloadingRecordId);
-        return record?.totalHamali || 0;
-    }
-
     const sortedRecords = [...dryingRecords].sort((a, b) => {
         const dateA = a.dryingStartDate ? toDate(a.dryingStartDate) : new Date(0);
         const dateB = b.dryingStartDate ? toDate(b.dryingStartDate) : new Date(0);
@@ -71,9 +66,7 @@ export function DryingRecordsTable({ dryingRecords, customers, unloadingRecords 
                 <TableBody>
                     {sortedRecords.map((record) => {
                         const dryingDate = record.dryingStartDate ? toDate(record.dryingStartDate) : null;
-                        const unloadingHamali = getUnloadingHamali(record.unloadingRecordId);
-                        const dryingHamali = record.totalDryingHamali - unloadingHamali;
-
+                        
                         return (
                         <TableRow key={record.id}>
                             <TableCell>{dryingDate ? format(dryingDate, 'dd MMM yyyy') : 'N/A'}</TableCell>
@@ -99,14 +92,12 @@ export function DryingRecordsTable({ dryingRecords, customers, unloadingRecords 
                                     </TooltipTrigger>
                                     <TooltipContent>
                                         <div className="space-y-1 p-2 text-sm">
-                                            <div className="flex justify-between gap-4">
-                                                <span>Unloading:</span>
-                                                <span className="font-mono">{formatCurrency(unloadingHamali)}</span>
-                                            </div>
-                                            <div className="flex justify-between gap-4">
-                                                <span>Drying:</span>
-                                                <span className="font-mono">{formatCurrency(dryingHamali)}</span>
-                                            </div>
+                                            {(record.hamaliCharges || []).map((charge, index) => (
+                                                <div key={index} className="flex justify-between gap-4">
+                                                    <span>{charge.description}:</span>
+                                                    <span className="font-mono">{formatCurrency(charge.amount)}</span>
+                                                </div>
+                                            ))}
                                         </div>
                                     </TooltipContent>
                                 </Tooltip>

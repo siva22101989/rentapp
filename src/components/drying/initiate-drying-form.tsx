@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
-import type { Customer, UnloadingRecord } from '@/lib/definitions';
+import type { Customer, UnloadingRecord, HamaliCharge } from '@/lib/definitions';
 import { addDoc, collection, Timestamp, doc, updateDoc } from 'firebase/firestore';
 
 const InitiateDryingSchema = z.object({
@@ -93,7 +93,13 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
             try {
                 const dryingDay1Hamali = data.bagsForDrying * data.hamaliPerBag;
                 const unloadingHamali = selectedUnloadingRecord.totalHamali || 0;
-                const totalDryingHamali = dryingDay1Hamali + unloadingHamali;
+                
+                const hamaliCharges: HamaliCharge[] = [
+                  { description: "Unloading Hamali", amount: unloadingHamali },
+                  { description: "Drying Day 1", amount: dryingDay1Hamali },
+                ];
+                
+                const totalDryingHamali = hamaliCharges.reduce((acc, charge) => acc + charge.amount, 0);
                 
                 // 1. Create new drying record
                 const newRecord = {
@@ -103,7 +109,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                     bagsForDrying: data.bagsForDrying,
                     dryingStartDate: Timestamp.fromDate(new Date(data.dryingStartDate)),
                     status: 'Drying' as const,
-                    hamaliPerBag: data.hamaliPerBag,
+                    hamaliCharges,
                     totalDryingHamali,
                     packingDate: null,
                     billingDate: null,

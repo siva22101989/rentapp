@@ -3,7 +3,6 @@
 
 import { useTransition, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { addInflow, type InflowFormState } from '@/lib/actions';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,7 +17,7 @@ import { format, differenceInDays } from 'date-fns';
 import { toDate, formatCurrency } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { useFirestore } from '@/firebase';
-import { collection, doc, Timestamp, updateDoc, setDoc } from 'firebase/firestore';
+import { setDoc, doc, Timestamp, updateDoc } from 'firebase/firestore';
 
 function SubmitButton() {
     const [pending, setPending] = useState(false);
@@ -243,7 +242,7 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
                                         <div className="space-y-1 mt-2 text-sm">
                                             <div className="flex justify-between"><span className="text-muted-foreground">Bags Plotted:</span> <strong>{selectedDryingRecord.bagsForDrying}</strong></div>
                                             <div className="flex justify-between"><span className="text-muted-foreground">Bags Packed:</span> <strong>{selectedDryingRecord.bagsPacked}</strong></div>
-                                            <div className="flex justify-between"><span className="text-muted-foreground">Drying Hamali:</span> <strong>{formatCurrency(selectedDryingRecord.totalDryingHamali)}</strong></div>
+                                            <div className="flex justify-between"><span className="text-muted-foreground">Total Drying Hamali:</span> <strong>{formatCurrency(selectedDryingRecord.totalDryingHamali)}</strong></div>
                                             <div className="flex justify-between"><span className="text-muted-foreground">Duration in Plot:</span> <strong>{getPlotDuration()} days</strong></div>
                                         </div>
                                     </AlertDescription>
@@ -295,7 +294,7 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
                                 type="number" 
                                 placeholder="0" 
                                 required
-                                value={bags}
+                                value={bags ?? ''}
                                 onChange={(e) => setBags(e.target.value === '' ? '' : Number(e.target.value))}
                                 readOnly={inflowType === 'Plot'}
                             />
@@ -315,11 +314,11 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="hamaliRate">Hamali Rate (per bag)</Label>
-                            <Input id="hamaliRate" name="hamaliRate" type="number" placeholder="0.00" step="0.01" value={rate} onChange={e => setRate(e.target.value === '' ? '' : Number(e.target.value))}/>
+                            <Input id="hamaliRate" name="hamaliRate" type="number" placeholder="0.00" step="0.01" value={rate ?? ''} onChange={e => setRate(e.target.value === '' ? '' : Number(e.target.value))}/>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="hamaliPaid">Hamali Paid Now</Label>
-                            <Input id="hamaliPaid" name="hamaliPaid" type="number" placeholder="0.00" step="0.01" value={hamaliPaid} onChange={e => setHamaliPaid(e.target.value === '' ? '' : Number(e.target.value))}/>
+                            <Input id="hamaliPaid" name="hamaliPaid" type="number" placeholder="0.00" step="0.01" value={hamaliPaid ?? ''} onChange={e => setHamaliPaid(e.target.value === '' ? '' : Number(e.target.value))}/>
                         </div>
                     </div>
                      <div className="space-y-2">
@@ -327,18 +326,33 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
                         <Input id="khataAmount" name="khataAmount" type="number" placeholder="0.00" step="0.01" />
                     </div>
                      <Separator />
-                    <div className="space-y-4">
+                     <div className="space-y-4">
                         <h4 className="font-medium">Billing Summary</h4>
-                        <div className="space-y-2">
-                             <div className="flex justify-between items-center text-sm">
-                                <span className="text-muted-foreground">Total Hamali Payable</span>
+                        <div className="space-y-2 text-sm">
+                            {inflowType === 'Plot' && selectedDryingRecord && (
+                                <>
+                                    {selectedDryingRecord.hamaliCharges.map((charge, index) => (
+                                        <div key={index} className="flex justify-between items-center">
+                                            <span className="text-muted-foreground">{charge.description}</span>
+                                            <span className="font-mono">{formatCurrency(charge.amount)}</span>
+                                        </div>
+                                    ))}
+                                </>
+                            )}
+                            <div className="flex justify-between items-center">
+                                <span className="text-muted-foreground">Storage Inflow Hamali</span>
+                                <span className="font-mono">{formatCurrency((Number(bags) || 0) * (Number(rate) || 0))}</span>
+                            </div>
+                            <Separator />
+                            <div className="flex justify-between items-center font-semibold">
+                                <span className="text-foreground">Total Hamali Payable</span>
                                 <span className="font-mono">{formatCurrency(hamali)}</span>
                             </div>
-                            <div className="flex justify-between items-center font-semibold text-base">
+                            <div className="flex justify-between items-center font-semibold">
                                 <span className="text-destructive">Hamali Pending</span>
                                 <span className="font-mono text-destructive">{formatCurrency(hamali - (Number(hamaliPaid) || 0))}</span>
                             </div>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-muted-foreground pt-2">
                                 Rent will be calculated at the time of withdrawal.
                             </p>
                         </div>
@@ -352,5 +366,3 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
     </div>
   );
 }
-
-    

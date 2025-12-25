@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -22,12 +22,15 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
 import type { DryingRecord, HamaliCharge } from '@/lib/definitions';
-import { doc, updateDoc, increment, arrayUnion } from 'firebase/firestore';
-import { formatCurrency } from '@/lib/utils';
+import { doc, updateDoc, increment, arrayUnion, Timestamp } from 'firebase/firestore';
+import { formatCurrency, toDate } from '@/lib/utils';
+import { differenceInDays, addDays } from 'date-fns';
 
 const HamaliSchema = z.object({
   hamaliPerBag: z.coerce.number().positive('Rate must be a positive number.'),
-  day: z.string().min(1, 'Day is required'),
+  chargeDate: z.string().refine((val) => !isNaN(Date.parse(val)), {
+    message: "A valid date is required.",
+  }),
 });
 
 type HamaliFormData = z.infer<typeof HamaliSchema>;
@@ -43,26 +46,56 @@ export function AddHamaliDialog({ record, children }: AddHamaliDialogProps) {
   const [isPending, startTransition] = useTransition();
   const firestore = useFirestore();
 
+  const nextChargeDate = useMemo(() => {
+    if (!record.hamaliCharges || record.hamaliCharges.length === 0) {
+      return addDays(toDate(record.dryingStartDate), 1);
+    }
+    const lastCharge = record.hamaliCharges[record.hamaliCharges.length - 1];
+    return addDays(toDate(lastCharge.date), 1);
+  }, [record.hamaliCharges, record.dryingStartDate]);
+
   const form = useForm<HamaliFormData>({
     resolver: zodResolver(HamaliSchema),
     defaultValues: {
-      hamaliPerBag: '' as any,
-      day: '',
+      hamaliPerBag: undefined,
+      chargeDate: nextChargeDate.toISOString().split('T')[0],
     },
+    // This is to reset the form when the dialog opens
+    values: {
+        hamaliPerBag: undefined,
+        chargeDate: nextChargeDate.toISOString().split('T')[0],
+    }
   });
+
+  const chargeDate = form.watch('chargeDate');
+
+  const dayNumber = useMemo(() => {
+    if (!chargeDate) return 0;
+    const dryingStart = toDate(record.dryingStartDate);
+    const currentChargeDate = new Date(chargeDate);
+    // Add 1 because differenceInDays is 0 for the same day. Day 1 is already logged.
+    return differenceInDays(currentChargeDate, dryingStart) + 1;
+  }, [chargeDate, record.dryingStartDate]);
+
+  const dayDescription = `Drying Day ${dayNumber}`;
 
   const onSubmit = (data: HamaliFormData) => {
     if (!firestore) {
       toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
       return;
     }
+    if (dayNumber <= 1) {
+        form.setError('chargeDate', { message: 'Date must be after the first drying day.' });
+        return;
+    }
 
     startTransition(async () => {
       try {
         const additionalAmount = data.hamaliPerBag * record.bagsForDrying;
         const newCharge: HamaliCharge = {
-            description: `Drying ${data.day}`,
-            amount: additionalAmount
+            description: dayDescription,
+            amount: additionalAmount,
+            date: Timestamp.fromDate(new Date(data.chargeDate))
         };
         
         const recordRef = doc(firestore, 'dryingRecords', record.id);
@@ -74,7 +107,7 @@ export function AddHamaliDialog({ record, children }: AddHamaliDialogProps) {
 
         toast({ 
           title: 'Success', 
-          description: `Added ${formatCurrency(additionalAmount)} for ${data.day} hamali.` 
+          description: `Added ${formatCurrency(additionalAmount)} for ${dayDescription} hamali.` 
         });
         setIsOpen(false);
         form.reset();
@@ -94,30 +127,29 @@ export function AddHamaliDialog({ record, children }: AddHamaliDialogProps) {
             <DialogHeader>
               <DialogTitle>Add Additional Hamali</DialogTitle>
               <DialogDescription>
-                Calculate and add hamali for {record.bagsForDrying} bags in record {record.id}.
-                Current total hamali is {formatCurrency(record.totalDryingHamali)}.
+                Add a charge for {record.bagsForDrying} bags. Current total hamali is {formatCurrency(record.totalDryingHamali)}.
               </DialogDescription>
             </DialogHeader>
             <div className="py-4 grid gap-4">
-               <FormField
+              <FormField
                 control={form.control}
-                name="day"
+                name="chargeDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Day Description</FormLabel>
+                    <FormLabel>Date for Charge</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Day 2, Day 3" {...field} />
+                      <Input type="date" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <FormField
+               <FormField
                 control={form.control}
                 name="hamaliPerBag"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Hamali Rate per Bag</FormLabel>
+                    <FormLabel>Hamali Rate per Bag (for {dayDescription})</FormLabel>
                     <FormControl>
                       <Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} />
                     </FormControl>

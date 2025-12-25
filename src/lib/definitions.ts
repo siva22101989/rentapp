@@ -77,6 +77,7 @@ export type DryingStatus = typeof dryingStatus[number];
 export type HamaliCharge = {
   description: string;
   amount: number;
+  date: Date | Timestamp;
 };
 
 export type DryingRecord = {

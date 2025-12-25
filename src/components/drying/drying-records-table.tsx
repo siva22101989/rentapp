@@ -94,7 +94,7 @@ export function DryingRecordsTable({ dryingRecords, customers, unloadingRecords 
                                         <div className="space-y-1 p-2 text-sm">
                                             {(record.hamaliCharges || []).map((charge, index) => (
                                                 <div key={index} className="flex justify-between gap-4">
-                                                    <span>{charge.description}:</span>
+                                                    <span>{charge.description} ({format(toDate(charge.date), 'dd/MM')})</span>
                                                     <span className="font-mono">{formatCurrency(charge.amount)}</span>
                                                 </div>
                                             ))}

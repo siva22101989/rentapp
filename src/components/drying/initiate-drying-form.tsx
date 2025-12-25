@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useTransition, useState, useEffect } from 'react';
@@ -99,12 +100,13 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
 
         startTransition(async () => {
             try {
+                const dryingStartDate = new Date(data.dryingStartDate);
                 const dryingDay1Hamali = data.bagsForDrying * data.hamaliPerBag;
                 const unloadingHamali = selectedUnloadingRecord.totalHamali || 0;
                 
                 const hamaliCharges: HamaliCharge[] = [
-                  { description: "Unloading Hamali", amount: unloadingHamali },
-                  { description: "Drying Day 1", amount: dryingDay1Hamali },
+                  { description: "Unloading Hamali", amount: unloadingHamali, date: selectedUnloadingRecord.unloadingDate },
+                  { description: "Drying Day 1", amount: dryingDay1Hamali, date: Timestamp.fromDate(dryingStartDate) },
                 ];
                 
                 const totalDryingHamali = hamaliCharges.reduce((acc, charge) => acc + charge.amount, 0);
@@ -115,7 +117,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                     customerId: selectedUnloadingRecord.customerId,
                     commodityDescription: selectedUnloadingRecord.commodityDescription,
                     bagsForDrying: data.bagsForDrying,
-                    dryingStartDate: Timestamp.fromDate(new Date(data.dryingStartDate)),
+                    dryingStartDate: Timestamp.fromDate(dryingStartDate),
                     status: 'Drying' as const,
                     hamaliCharges,
                     totalDryingHamali,

@@ -11,13 +11,14 @@ import { useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { doc, updateDoc, Timestamp } from "firebase/firestore";
 import { AddSecondDayHamaliDialog } from "./add-second-day-hamali-dialog";
+import { UpdatePackingDialog } from "./update-packing-dialog";
 
 export function DryingActionsMenu({ record }: { record: DryingRecord }) {
     const [isPending, startTransition] = useTransition();
     const firestore = useFirestore();
     const { toast } = useToast();
 
-    const handleStatusChange = (newStatus: DryingStatus) => {
+    const handleStatusChange = (newStatus: DryingStatus, bagsPacked?: number) => {
         if (!firestore) {
             toast({ title: "Error", description: "Firestore not available.", variant: "destructive" });
             return;
@@ -30,6 +31,9 @@ export function DryingActionsMenu({ record }: { record: DryingRecord }) {
                 const updates: Partial<DryingRecord> = { status: newStatus };
                 if (newStatus === "Packing") {
                     updates.packingDate = Timestamp.now();
+                    if (bagsPacked !== undefined) {
+                      updates.bagsPacked = bagsPacked;
+                    }
                 } else if (newStatus === "Billed") {
                     updates.billingDate = Timestamp.now();
                 }
@@ -44,12 +48,9 @@ export function DryingActionsMenu({ record }: { record: DryingRecord }) {
     };
 
     const currentIndex = dryingStatus.indexOf(record.status);
-    const nextStatus = currentIndex < dryingStatus.length - 1 ? dryingStatus[currentIndex + 1] : null;
-
-    const statusIcons = {
-        "Packing": <Package className="mr-2 h-4 w-4" />,
-        "Billed": <CircleCheck className="mr-2 h-4 w-4" />,
-    }
+    
+    const canMoveToPacking = record.status === 'Drying';
+    const canMoveToBilled = record.status === 'Packing';
 
     return (
         <DropdownMenu>
@@ -70,33 +71,32 @@ export function DryingActionsMenu({ record }: { record: DryingRecord }) {
                 </AddSecondDayHamaliDialog>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>Change Status</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {dryingStatus.map(status => (
-                    <DropdownMenuItem
-                        key={status}
-                        disabled={isPending || record.status === status}
-                        onClick={() => handleStatusChange(status)}
-                    >
-                        {record.status === status && <CircleCheck className="mr-2 h-4 w-4 text-green-600" />}
-                        {status}
-                    </DropdownMenuItem>
-                ))}
-                {nextStatus && (
-                    <>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                            className="bg-primary/10 text-primary focus:bg-primary/20"
-                            disabled={isPending}
-                            onClick={() => handleStatusChange(nextStatus)}
-                        >
-                            {statusIcons[nextStatus as keyof typeof statusIcons]}
-                            Move to {nextStatus}
+                
+                {canMoveToPacking && (
+                    <UpdatePackingDialog record={record} onUpdate={handleStatusChange}>
+                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                            <Package className="mr-2 h-4 w-4" />
+                            Move to Packing
                         </DropdownMenuItem>
-                    </>
+                    </UpdatePackingDialog>
                 )}
+
+                {canMoveToBilled && (
+                     <DropdownMenuItem onClick={() => handleStatusChange('Billed')} disabled={isPending}>
+                        <CircleCheck className="mr-2 h-4 w-4" />
+                        Move to Billed
+                    </DropdownMenuItem>
+                )}
+
+                <DropdownMenuSeparator />
+                 <DropdownMenuItem
+                    disabled={isPending || record.status === 'Drying'}
+                    onClick={() => handleStatusChange('Drying')}
+                >
+                    Set as Drying
+                </DropdownMenuItem>
+
             </DropdownMenuContent>
         </DropdownMenu>
     );
 }
-
-    

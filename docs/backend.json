@@ -233,6 +233,10 @@
           "type": "number",
           "description": "The number of bags sent for drying."
         },
+        "bagsPacked": {
+          "type": "number",
+          "description": "The number of bags after packing is complete."
+        },
         "status": {
           "type": "string",
           "enum": ["Drying", "Packing", "Billed"],

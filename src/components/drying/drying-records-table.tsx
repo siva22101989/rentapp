@@ -15,6 +15,7 @@ import { formatCurrency, toDate } from "@/lib/utils";
 import type { Customer, DryingRecord, DryingStatus } from "@/lib/definitions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { DryingActionsMenu } from "./drying-actions-menu";
+import { ArrowRight } from "lucide-react";
 
 const getStatusBadgeVariant = (status: DryingStatus) => {
     switch (status) {
@@ -68,7 +69,17 @@ export function DryingRecordsTable({ dryingRecords, customers }: { dryingRecords
                         <TableCell>{dryingDate ? format(dryingDate, 'dd MMM yyyy') : 'N/A'}</TableCell>
                         <TableCell className="font-medium">{getCustomerName(record.customerId)}</TableCell>
                         <TableCell>{record.commodityDescription}</TableCell>
-                        <TableCell className="text-right">{record.bagsForDrying}</TableCell>
+                        <TableCell className="text-right">
+                           <div className="flex items-center justify-end gap-2">
+                               <span>{record.bagsForDrying}</span>
+                                {record.bagsPacked && (
+                                    <>
+                                        <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                                        <span className="font-bold">{record.bagsPacked}</span>
+                                    </>
+                                )}
+                           </div>
+                        </TableCell>
                         <TableCell className="text-right font-mono">{formatCurrency(record.totalDryingHamali || 0)}</TableCell>
                         <TableCell>
                             <Badge variant="secondary" className={getStatusBadgeVariant(record.status)}>
@@ -94,5 +105,3 @@ export function DryingRecordsTable({ dryingRecords, customers }: { dryingRecords
       </Card>
     );
 }
-
-    

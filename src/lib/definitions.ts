@@ -62,7 +62,7 @@ export type UnloadingRecord = {
   id: string;
   customerId: string;
   commodityDescription: string;
-  lorryTractorNo: string;
+  lorryTractorNo?: string;
   unloadingDate: Date | Timestamp;
   bagsUnloaded: number;
   status: UnloadingStatus;
@@ -80,6 +80,7 @@ export type DryingRecord = {
     customerId: string;
     commodityDescription: string;
     bagsForDrying: number;
+    bagsPacked?: number;
     status: DryingStatus;
     dryingStartDate: Date | Timestamp;
     packingDate: Date | Timestamp | null;

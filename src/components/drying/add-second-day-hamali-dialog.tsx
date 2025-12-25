@@ -26,7 +26,7 @@ import { doc, updateDoc, increment } from 'firebase/firestore';
 import { formatCurrency } from '@/lib/utils';
 
 const HamaliSchema = z.object({
-  additionalAmount: z.coerce.number().positive('Amount must be a positive number.'),
+  hamaliPerBag: z.coerce.number().positive('Rate must be a positive number.'),
 });
 
 type HamaliFormData = z.infer<typeof HamaliSchema>;
@@ -40,7 +40,7 @@ export function AddSecondDayHamaliDialog({ record, children }: { record: DryingR
   const form = useForm<HamaliFormData>({
     resolver: zodResolver(HamaliSchema),
     defaultValues: {
-      additionalAmount: '' as any,
+      hamaliPerBag: '' as any,
     },
   });
 
@@ -52,12 +52,17 @@ export function AddSecondDayHamaliDialog({ record, children }: { record: DryingR
 
     startTransition(async () => {
       try {
+        const additionalAmount = data.hamaliPerBag * record.bagsForDrying;
         const recordRef = doc(firestore, 'dryingRecords', record.id);
+        
         await updateDoc(recordRef, {
-          totalDryingHamali: increment(data.additionalAmount),
+          totalDryingHamali: increment(additionalAmount),
         });
 
-        toast({ title: 'Success', description: 'Additional hamali charge added.' });
+        toast({ 
+          title: 'Success', 
+          description: `Added ${formatCurrency(additionalAmount)} to hamali charges.` 
+        });
         setIsOpen(false);
         form.reset();
       } catch (error) {
@@ -76,19 +81,19 @@ export function AddSecondDayHamaliDialog({ record, children }: { record: DryingR
             <DialogHeader>
               <DialogTitle>Add 2nd Day Hamali</DialogTitle>
               <DialogDescription>
-                Add an additional hamali charge for drying record ID: {record.id}.
-                The current total hamali is {formatCurrency(record.totalDryingHamali)}.
+                Calculate additional hamali for {record.bagsForDrying} bags in record {record.id}.
+                Current total hamali is {formatCurrency(record.totalDryingHamali)}.
               </DialogDescription>
             </DialogHeader>
             <div className="py-4">
               <FormField
                 control={form.control}
-                name="additionalAmount"
+                name="hamaliPerBag"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Additional Hamali Amount</FormLabel>
+                    <FormLabel>Hamali Rate per Bag</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value || ''} />
+                      <Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

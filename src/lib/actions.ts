@@ -36,13 +36,20 @@ const InflowSchema = z.object({
     hamaliRate: z.coerce.number().nonnegative('Hamali rate must be a non-negative number.').optional(),
     hamaliPaid: z.coerce.number().nonnegative('Hamali paid must be a non-negative number.').optional(),
     lorryTractorNo: z.string().optional(),
-    weight: z.coerce.number().nonnegative('Weight must be a non-negative number.').optional(),
-    // For updating customer details from inflow form
-    fatherName: z.string().optional(),
-    village: z.string().optional(),
+    weight: z.coerce.number().optional(),
     inflowType: z.enum(['Direct', 'Plot']).optional(),
     dryingRecordId: z.string().optional(),
     khataAmount: z.coerce.number().nonnegative('Khata amount must be a non-negative number.').optional(),
+}).superRefine((data, ctx) => {
+    if (data.inflowType === 'Direct') {
+        if (data.weight === undefined || data.weight === null) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Weight is required for Direct inflow.',
+                path: ['weight'],
+            });
+        }
+    }
 });
 
 export type InflowFormState = {
@@ -64,8 +71,6 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
         hamaliPaid: formData.get('hamaliPaid'),
         lorryTractorNo: formData.get('lorryTractorNo'),
         weight: formData.get('weight'),
-        fatherName: formData.get('fatherName'),
-        village: formData.get('village'),
         inflowType: formData.get('inflowType'),
         dryingRecordId: formData.get('dryingRecordId'),
         khataAmount: formData.get('khataAmount'),
@@ -153,5 +158,3 @@ export async function seedDatabase() {
         success: true,
     };
 }
-
-    

@@ -40,7 +40,6 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
     const [state, formAction] = useActionState(addInflow, initialState);
 
     const [bags, setBags] = useState(0);
-    const [commodityDescription, setCommodityDescription] = useState('');
     const [rate, setRate] = useState(0);
     const [hamali, setHamali] = useState(0);
     const [hamaliPaid, setHamaliPaid] = useState(0);
@@ -48,6 +47,8 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
     const [inflowType, setInflowType] = useState<'Direct' | 'Plot'>('Direct');
     
     const [selectedDryingRecordId, setSelectedDryingRecordId] = useState('');
+    const [commodityDescription, setCommodityDescription] = useState('');
+
 
     const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
     const customerDryingRecords = dryingRecords.filter(dr => dr.customerId === selectedCustomerId);
@@ -159,57 +160,45 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
                             </SelectContent>
                         </Select>
                     </div>
-
-                    {selectedCustomer && inflowType === 'Direct' && (
-                         <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="fatherName">Father's Name</Label>
-                                <Input id="fatherName" name="fatherName" defaultValue={selectedCustomer.fatherName} />
-                            </div>
-                             <div className="space-y-2">
-                                <Label htmlFor="village">Village</Label>
-                                <Input id="village" name="village" defaultValue={selectedCustomer.village} />
-                            </div>
-                        </div>
-                    )}
                     
                     {inflowType === 'Plot' && selectedCustomerId && (
-                        <div className="space-y-2">
-                            <Label htmlFor="dryingRecordId">Drying Bill</Label>
-                            <Select name="dryingRecordId" required onValueChange={setSelectedDryingRecordId} value={selectedDryingRecordId}>
-                                <SelectTrigger id="dryingRecordId">
-                                    <SelectValue placeholder="Select a completed drying bill" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {customerDryingRecords.length > 0 ? (
-                                        customerDryingRecords.map(dr => (
-                                            <SelectItem key={dr.id} value={dr.id}>
-                                                {dr.commodityDescription} ({dr.bagsPacked} bags, Billed: {format(toDate(dr.billingDate!), 'dd MMM yyyy')})
-                                            </SelectItem>
-                                        ))
-                                    ) : (
-                                        <SelectItem value="none" disabled>No completed drying records for this customer</SelectItem>
-                                    )}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    )}
+                        <>
+                            <div className="space-y-2">
+                                <Label htmlFor="dryingRecordId">Drying Bill</Label>
+                                <Select name="dryingRecordId" required onValueChange={setSelectedDryingRecordId} value={selectedDryingRecordId}>
+                                    <SelectTrigger id="dryingRecordId">
+                                        <SelectValue placeholder="Select a completed drying bill" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {customerDryingRecords.length > 0 ? (
+                                            customerDryingRecords.map(dr => (
+                                                <SelectItem key={dr.id} value={dr.id}>
+                                                    {dr.commodityDescription} ({dr.bagsPacked} bags, Billed: {format(toDate(dr.billingDate!), 'dd MMM yyyy')})
+                                                </SelectItem>
+                                            ))
+                                        ) : (
+                                            <SelectItem value="none" disabled>No completed drying records for this customer</SelectItem>
+                                        )}
+                                    </SelectContent>
+                                </Select>
+                            </div>
 
-                    {inflowType === 'Plot' && selectedDryingRecord && (
-                        <Alert>
-                            <Info className="h-4 w-4" />
-                            <AlertTitle>Drying Process Summary</AlertTitle>
-                            <AlertDescription>
-                                <div className="space-y-1 mt-2 text-sm">
-                                    <div className="flex justify-between"><span className="text-muted-foreground">Bags Plotted:</span> <strong>{selectedDryingRecord.bagsForDrying}</strong></div>
-                                    <div className="flex justify-between"><span className="text-muted-foreground">Bags Packed:</span> <strong>{selectedDryingRecord.bagsPacked}</strong></div>
-                                    <div className="flex justify-between"><span className="text-muted-foreground">Drying Hamali:</span> <strong>{formatCurrency(selectedDryingRecord.totalDryingHamali)}</strong></div>
-                                    <div className="flex justify-between"><span className="text-muted-foreground">Duration in Plot:</span> <strong>{getPlotDuration()} days</strong></div>
-                                </div>
-                            </AlertDescription>
-                        </Alert>
+                            {selectedDryingRecord && (
+                                <Alert>
+                                    <Info className="h-4 w-4" />
+                                    <AlertTitle>Drying Process Summary</AlertTitle>
+                                    <AlertDescription>
+                                        <div className="space-y-1 mt-2 text-sm">
+                                            <div className="flex justify-between"><span className="text-muted-foreground">Bags Plotted:</span> <strong>{selectedDryingRecord.bagsForDrying}</strong></div>
+                                            <div className="flex justify-between"><span className="text-muted-foreground">Bags Packed:</span> <strong>{selectedDryingRecord.bagsPacked}</strong></div>
+                                            <div className="flex justify-between"><span className="text-muted-foreground">Drying Hamali:</span> <strong>{formatCurrency(selectedDryingRecord.totalDryingHamali)}</strong></div>
+                                            <div className="flex justify-between"><span className="text-muted-foreground">Duration in Plot:</span> <strong>{getPlotDuration()} days</strong></div>
+                                        </div>
+                                    </AlertDescription>
+                                </Alert>
+                            )}
+                        </>
                     )}
-
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
@@ -218,20 +207,20 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
                                 id="commodityDescription" 
                                 name="commodityDescription" 
                                 placeholder="e.g., Paddy (NDL)" 
-                                required
+                                required={inflowType === 'Direct'}
                                 value={commodityDescription}
                                 onChange={(e) => setCommodityDescription(e.target.value)}
                                 readOnly={inflowType === 'Plot'}
                              />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="location">Lot No.</Label>
+                            <Label htmlFor="location">Lot No. <span className="text-muted-foreground">{inflowType === 'Plot' && '(Optional)'}</span></Label>
                             <Input id="location" name="location" placeholder="e.g., E2/middle" />
                         </div>
                     </div>
                      <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label htmlFor="lorryTractorNo">Lorry / Tractor No.</Label>
+                            <Label htmlFor="lorryTractorNo">Lorry / Tractor No. <span className="text-muted-foreground">{inflowType === 'Plot' && '(Optional)'}</span></Label>
                             <Input id="lorryTractorNo" name="lorryTractorNo" placeholder="e.g., AP 21 1234" />
                         </div>
                         <div className="space-y-2">
@@ -253,15 +242,22 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
                                 name="bagsStored" 
                                 type="number" 
                                 placeholder="0" 
-                                required 
-                                onChange={e => setBags(Number(e.target.value))}
+                                required={inflowType === 'Direct'}
                                 value={bags || ''}
+                                onChange={(e) => setBags(Number(e.target.value))}
                                 readOnly={inflowType === 'Plot'}
                             />
                         </div>
                          <div className="space-y-2">
-                            <Label htmlFor="weight">Weight</Label>
-                            <Input id="weight" name="weight" type="number" step="0.01" placeholder="0.00" />
+                            <Label htmlFor="weight">Weight {inflowType === 'Direct' && '*'}</Label>
+                            <Input 
+                                id="weight" 
+                                name="weight" 
+                                type="number" 
+                                step="0.01" 
+                                placeholder="0.00" 
+                                required={inflowType === 'Direct'}
+                            />
                         </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
@@ -304,6 +300,3 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
     </div>
   );
 }
-
-    
-    

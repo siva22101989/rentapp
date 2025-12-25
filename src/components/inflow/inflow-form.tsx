@@ -331,7 +331,7 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
                         <div className="space-y-2 text-sm">
                             {inflowType === 'Plot' && selectedDryingRecord && (
                                 <>
-                                    {selectedDryingRecord.hamaliCharges.map((charge, index) => (
+                                    {(selectedDryingRecord.hamaliCharges || []).map((charge, index) => (
                                         <div key={index} className="flex justify-between items-center">
                                             <span className="text-muted-foreground">{charge.description}</span>
                                             <span className="font-mono">{formatCurrency(charge.amount)}</span>

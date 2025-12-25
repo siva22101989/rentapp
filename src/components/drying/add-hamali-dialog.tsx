@@ -48,7 +48,9 @@ export function AddHamaliDialog({ record, children }: AddHamaliDialogProps) {
 
   const nextChargeDate = useMemo(() => {
     if (!record.hamaliCharges || record.hamaliCharges.length === 0) {
-      return addDays(toDate(record.dryingStartDate), 1);
+      // Find the first charge (unloading) and add a day.
+      const firstChargeDate = record.hamaliCharges.length > 0 ? toDate(record.hamaliCharges[0].date) : toDate(record.dryingStartDate);
+      return addDays(firstChargeDate, 1);
     }
     const lastCharge = record.hamaliCharges[record.hamaliCharges.length - 1];
     return addDays(toDate(lastCharge.date), 1);
@@ -105,7 +107,7 @@ export function AddHamaliDialog({ record, children }: AddHamaliDialogProps) {
           description: `Added ${formatCurrency(additionalAmount)} for ${dayDescription} hamali.` 
         });
         setIsOpen(false);
-        form.reset();
+        form.reset({ hamaliPerBag: undefined, chargeDate: nextChargeDate.toISOString().split('T')[0] });
       } catch (error) {
         console.error(error);
         toast({ title: 'Error', description: 'Failed to add hamali charge.', variant: 'destructive' });
@@ -154,7 +156,7 @@ export function AddHamaliDialog({ record, children }: AddHamaliDialogProps) {
                   <FormItem>
                     <FormLabel>Hamali Rate per Bag (for {dayDescription})</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} />
+                      <Input type="number" step="0.01" placeholder="0.00" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

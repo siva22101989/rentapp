@@ -15,17 +15,11 @@ export function InflowReceipt({ record, customer }: { record: StorageRecord, cus
     const receiptRef = useRef<HTMLDivElement>(null);
     const [formattedDate, setFormattedDate] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
-
-    useEffect(() => {
-        if (record && record.storageStartDate) {
-            const startDate = toDate(record.storageStartDate);
-            setFormattedDate(format(startDate, 'dd/MM/yy'));
-        }
-    }, [record]);
+    const hasDownloaded = useRef(false);
 
     const handleDownloadPdf = async () => {
         const element = receiptRef.current;
-        if (!element) return;
+        if (!element || isGenerating) return;
 
         setIsGenerating(true);
 
@@ -57,6 +51,20 @@ export function InflowReceipt({ record, customer }: { record: StorageRecord, cus
             setIsGenerating(false);
         }
     };
+    
+    useEffect(() => {
+        if (record && record.storageStartDate) {
+            const startDate = toDate(record.storageStartDate);
+            setFormattedDate(format(startDate, 'dd/MM/yy'));
+            // Automatically download on first load
+            if (!hasDownloaded.current) {
+                handleDownloadPdf();
+                hasDownloaded.current = true;
+            }
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [record]);
+
 
     if (!record || !customer) {
         return (

@@ -43,10 +43,10 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
     const firestore = useFirestore();
     const [isPending, startTransition] = useTransition();
 
-    const [bags, setBags] = useState(0);
-    const [rate, setRate] = useState(0);
+    const [bags, setBags] = useState<number | ''>('');
+    const [rate, setRate] = useState<number | ''>('');
     const [hamali, setHamali] = useState(0);
-    const [hamaliPaid, setHamaliPaid] = useState(0);
+    const [hamaliPaid, setHamaliPaid] = useState<number | ''>('');
     const [selectedCustomerId, setSelectedCustomerId] = useState('');
     const [inflowType, setInflowType] = useState<'Direct' | 'Plot'>('Direct');
     
@@ -59,7 +59,7 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
     const selectedDryingRecord = dryingRecords.find(dr => dr.id === selectedDryingRecordId);
 
     useEffect(() => {
-        const bagsValue = inflowType === 'Plot' ? (selectedDryingRecord?.bagsPacked || 0) : bags;
+        const bagsValue = inflowType === 'Plot' ? (selectedDryingRecord?.bagsPacked || 0) : (bags || 0);
         const rateValue = rate || 0;
         
         const currentHamali = (bagsValue || 0) * rateValue;
@@ -75,7 +75,7 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
       } else {
          if (inflowType === 'Direct') {
             setCommodityDescription('');
-            setBags(0);
+            setBags('');
         }
       }
     }, [inflowType, selectedDryingRecord]);
@@ -85,10 +85,10 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
     }, [selectedCustomerId]);
 
     useEffect(() => {
-        setBags(0);
-        setRate(0);
+        setBags('');
+        setRate('');
         setHamali(0);
-        setHamaliPaid(0);
+        setHamaliPaid('');
         setSelectedCustomerId('');
         setSelectedDryingRecordId('');
         setCommodityDescription('');
@@ -114,15 +114,15 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
 
                 const bagsStored = Number(data.bagsStored);
                 const hamaliRate = Number(data.hamaliRate) || 0;
-                const hamaliPaid = Number(data.hamaliPaid) || 0;
+                const hamaliPaidAmount = Number(data.hamaliPaid) || 0;
 
                 const dryingHamali = inflowType === 'Plot' ? (selectedDryingRecord?.totalDryingHamali || 0) : 0;
                 const hamaliPayable = (bagsStored * hamaliRate) + dryingHamali;
 
                 const payments: Payment[] = [];
-                if (hamaliPaid > 0) {
+                if (hamaliPaidAmount > 0) {
                     payments.push({
-                        amount: hamaliPaid,
+                        amount: hamaliPaidAmount,
                         date: Timestamp.fromDate(new Date(data.storageStartDate as string)),
                         type: 'hamali'
                     });
@@ -168,7 +168,7 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
 
   return (
     <div className="flex justify-center">
-        <form action={handleSubmit} className="w-full max-w-lg">
+        <form onSubmit={handleSubmit} className="w-full max-w-lg">
             <Card>
                 <CardHeader>
                     <CardTitle>New Storage Record Details</CardTitle>
@@ -295,8 +295,8 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
                                 type="number" 
                                 placeholder="0" 
                                 required
-                                value={bags || ''}
-                                onChange={(e) => setBags(Number(e.target.value))}
+                                value={bags}
+                                onChange={(e) => setBags(e.target.value === '' ? '' : Number(e.target.value))}
                                 readOnly={inflowType === 'Plot'}
                             />
                         </div>
@@ -315,11 +315,11 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="hamaliRate">Hamali Rate (per bag)</Label>
-                            <Input id="hamaliRate" name="hamaliRate" type="number" placeholder="0.00" step="0.01" onChange={e => setRate(Number(e.target.value))}/>
+                            <Input id="hamaliRate" name="hamaliRate" type="number" placeholder="0.00" step="0.01" value={rate} onChange={e => setRate(e.target.value === '' ? '' : Number(e.target.value))}/>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="hamaliPaid">Hamali Paid Now</Label>
-                            <Input id="hamaliPaid" name="hamaliPaid" type="number" placeholder="0.00" step="0.01" onChange={e => setHamaliPaid(Number(e.target.value))}/>
+                            <Input id="hamaliPaid" name="hamaliPaid" type="number" placeholder="0.00" step="0.01" value={hamaliPaid} onChange={e => setHamaliPaid(e.target.value === '' ? '' : Number(e.target.value))}/>
                         </div>
                     </div>
                      <div className="space-y-2">
@@ -336,7 +336,7 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
                             </div>
                             <div className="flex justify-between items-center font-semibold text-base">
                                 <span className="text-destructive">Hamali Pending</span>
-                                <span className="font-mono text-destructive">{formatCurrency(hamali - hamaliPaid)}</span>
+                                <span className="font-mono text-destructive">{formatCurrency(hamali - (Number(hamaliPaid) || 0))}</span>
                             </div>
                             <p className="text-xs text-muted-foreground">
                                 Rent will be calculated at the time of withdrawal.

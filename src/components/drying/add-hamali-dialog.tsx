@@ -20,11 +20,11 @@ import {
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore } from '@/firebase';
 import type { DryingRecord, HamaliCharge } from '@/lib/definitions';
 import { doc, updateDoc, increment, arrayUnion, Timestamp } from 'firebase/firestore';
 import { formatCurrency, toDate } from '@/lib/utils';
 import { differenceInDays, addDays } from 'date-fns';
+import { useFirestore } from '@/firebase';
 
 const HamaliSchema = z.object({
   hamaliPerBag: z.coerce.number().positive('Rate must be a positive number.'),
@@ -48,8 +48,7 @@ export function AddHamaliDialog({ record, children }: AddHamaliDialogProps) {
 
   const nextChargeDate = useMemo(() => {
     if (!record.hamaliCharges || record.hamaliCharges.length === 0) {
-      // Find the first charge (unloading) and add a day.
-      const firstChargeDate = record.hamaliCharges.length > 0 ? toDate(record.hamaliCharges[0].date) : toDate(record.dryingStartDate);
+      const firstChargeDate = record.hamaliCharges && record.hamaliCharges.length > 0 ? toDate(record.hamaliCharges[0].date) : toDate(record.dryingStartDate);
       return addDays(firstChargeDate, 1);
     }
     const lastCharge = record.hamaliCharges[record.hamaliCharges.length - 1];
@@ -59,7 +58,7 @@ export function AddHamaliDialog({ record, children }: AddHamaliDialogProps) {
   const form = useForm<HamaliFormData>({
     resolver: zodResolver(HamaliSchema),
     defaultValues: {
-      hamaliPerBag: undefined,
+      hamaliPerBag: '' as any,
       chargeDate: nextChargeDate.toISOString().split('T')[0],
     },
   });
@@ -70,7 +69,6 @@ export function AddHamaliDialog({ record, children }: AddHamaliDialogProps) {
     if (!chargeDate) return 0;
     const dryingStart = toDate(record.dryingStartDate);
     const currentChargeDate = new Date(chargeDate);
-    // Add 1 because differenceInDays is 0 for the same day. Day 1 is already logged.
     return differenceInDays(currentChargeDate, dryingStart) + 1;
   }, [chargeDate, record.dryingStartDate]);
 
@@ -107,7 +105,7 @@ export function AddHamaliDialog({ record, children }: AddHamaliDialogProps) {
           description: `Added ${formatCurrency(additionalAmount)} for ${dayDescription} hamali.` 
         });
         setIsOpen(false);
-        form.reset({ hamaliPerBag: undefined, chargeDate: nextChargeDate.toISOString().split('T')[0] });
+        form.reset({ hamaliPerBag: '' as any, chargeDate: nextChargeDate.toISOString().split('T')[0] });
       } catch (error) {
         console.error(error);
         toast({ title: 'Error', description: 'Failed to add hamali charge.', variant: 'destructive' });
@@ -120,7 +118,7 @@ export function AddHamaliDialog({ record, children }: AddHamaliDialogProps) {
       setIsOpen(open);
       if (open) {
         form.reset({
-          hamaliPerBag: undefined,
+          hamaliPerBag: '' as any,
           chargeDate: nextChargeDate.toISOString().split('T')[0],
         });
       }

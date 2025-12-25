@@ -11,11 +11,12 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Customer, DryingRecord } from '@/lib/definitions';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Info } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
-import { format } from 'date-fns';
-import { toDate } from '@/lib/utils';
+import { format, differenceInDays } from 'date-fns';
+import { toDate, formatCurrency } from '@/lib/utils';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 function SubmitButton() {
     const { pending } = useFormStatus();
@@ -82,8 +83,10 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
         setCommodityDescription(selectedDryingRecord.commodityDescription);
         setBags(selectedDryingRecord.bagsPacked || 0);
       } else {
-        setCommodityDescription('');
-        setBags(0);
+         if (inflowType === 'Direct') {
+            setCommodityDescription('');
+            setBags(0);
+        }
       }
     }, [inflowType, selectedDryingRecord]);
 
@@ -100,6 +103,13 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
         setSelectedDryingRecordId('');
         setCommodityDescription('');
     }, [inflowType]);
+
+    const getPlotDuration = () => {
+        if (!selectedDryingRecord || !selectedDryingRecord.dryingStartDate || !selectedDryingRecord.packingDate) return 0;
+        const start = toDate(selectedDryingRecord.dryingStartDate);
+        const end = toDate(selectedDryingRecord.packingDate);
+        return differenceInDays(end, start) + 1; // Add 1 to be inclusive
+    }
 
 
   return (
@@ -181,6 +191,21 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
                                 </SelectContent>
                             </Select>
                         </div>
+                    )}
+
+                    {inflowType === 'Plot' && selectedDryingRecord && (
+                        <Alert>
+                            <Info className="h-4 w-4" />
+                            <AlertTitle>Drying Process Summary</AlertTitle>
+                            <AlertDescription>
+                                <div className="space-y-1 mt-2 text-sm">
+                                    <div className="flex justify-between"><span className="text-muted-foreground">Bags Plotted:</span> <strong>{selectedDryingRecord.bagsForDrying}</strong></div>
+                                    <div className="flex justify-between"><span className="text-muted-foreground">Bags Packed:</span> <strong>{selectedDryingRecord.bagsPacked}</strong></div>
+                                    <div className="flex justify-between"><span className="text-muted-foreground">Drying Hamali:</span> <strong>{formatCurrency(selectedDryingRecord.totalDryingHamali)}</strong></div>
+                                    <div className="flex justify-between"><span className="text-muted-foreground">Duration in Plot:</span> <strong>{getPlotDuration()} days</strong></div>
+                                </div>
+                            </AlertDescription>
+                        </Alert>
                     )}
 
 
@@ -277,3 +302,5 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
     </div>
   );
 }
+
+    

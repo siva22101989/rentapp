@@ -12,10 +12,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns';
 import { formatCurrency, toDate } from "@/lib/utils";
-import type { Customer, DryingRecord, DryingStatus } from "@/lib/definitions";
+import type { Customer, DryingRecord, DryingStatus, UnloadingRecord } from "@/lib/definitions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { DryingActionsMenu } from "./drying-actions-menu";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Plus } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 
 const getStatusBadgeVariant = (status: DryingStatus) => {
     switch (status) {
@@ -30,11 +31,16 @@ const getStatusBadgeVariant = (status: DryingStatus) => {
     }
 }
   
-export function DryingRecordsTable({ dryingRecords, customers }: { dryingRecords: DryingRecord[], customers: Customer[] }) {
+export function DryingRecordsTable({ dryingRecords, customers, unloadingRecords }: { dryingRecords: DryingRecord[], customers: Customer[], unloadingRecords: UnloadingRecord[] }) {
 
     const getCustomerName = (customerId: string) => {
         return customers.find(c => c.id === customerId)?.name ?? 'Unknown';
     };
+
+    const getUnloadingHamali = (unloadingRecordId: string) => {
+        const record = unloadingRecords.find(ur => ur.id === unloadingRecordId);
+        return record?.totalHamali || 0;
+    }
 
     const sortedRecords = [...dryingRecords].sort((a, b) => {
         const dateA = a.dryingStartDate ? toDate(a.dryingStartDate) : new Date(0);
@@ -46,61 +52,86 @@ export function DryingRecordsTable({ dryingRecords, customers }: { dryingRecords
       <Card>
         <CardHeader>
             <CardTitle>Drying Process History</CardTitle>
-            <CardDescription>A log of all drying activities and their current status.</CardDescription>
+            <CardDescription>A log of all active drying activities.</CardDescription>
         </CardHeader>
         <CardContent>
-            <Table>
-            <TableHeader>
-                <TableRow>
-                    <TableHead>Start Date</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Commodity</TableHead>
-                    <TableHead className="text-right">Bags</TableHead>
-                    <TableHead className="text-right">Drying Hamali</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="w-[50px] text-right"></TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
-                {sortedRecords.map((record) => {
-                    const dryingDate = record.dryingStartDate ? toDate(record.dryingStartDate) : null;
-                    return (
-                    <TableRow key={record.id}>
-                        <TableCell>{dryingDate ? format(dryingDate, 'dd MMM yyyy') : 'N/A'}</TableCell>
-                        <TableCell className="font-medium">{getCustomerName(record.customerId)}</TableCell>
-                        <TableCell>{record.commodityDescription}</TableCell>
-                        <TableCell className="text-right">
-                           <div className="flex items-center justify-end gap-2">
-                               <span>{record.bagsForDrying}</span>
-                                {record.bagsPacked && (
+            <TooltipProvider>
+                <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Start Date</TableHead>
+                        <TableHead>Customer</TableHead>
+                        <TableHead>Commodity</TableHead>
+                        <TableHead className="text-right">Bags</TableHead>
+                        <TableHead className="text-right">Total Hamali</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="w-[50px] text-right"></TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {sortedRecords.map((record) => {
+                        const dryingDate = record.dryingStartDate ? toDate(record.dryingStartDate) : null;
+                        const unloadingHamali = getUnloadingHamali(record.unloadingRecordId);
+                        const dryingHamali = record.totalDryingHamali - unloadingHamali;
+
+                        return (
+                        <TableRow key={record.id}>
+                            <TableCell>{dryingDate ? format(dryingDate, 'dd MMM yyyy') : 'N/A'}</TableCell>
+                            <TableCell className="font-medium">{getCustomerName(record.customerId)}</TableCell>
+                            <TableCell>{record.commodityDescription}</TableCell>
+                            <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-2">
+                                <span>{record.bagsForDrying}</span>
+                                {record.bagsPacked !== undefined && record.bagsPacked !== null && (
                                     <>
                                         <ArrowRight className="h-3 w-3 text-muted-foreground" />
                                         <span className="font-bold">{record.bagsPacked}</span>
                                     </>
                                 )}
-                           </div>
-                        </TableCell>
-                        <TableCell className="text-right font-mono">{formatCurrency(record.totalDryingHamali || 0)}</TableCell>
-                        <TableCell>
-                            <Badge variant="secondary" className={getStatusBadgeVariant(record.status)}>
-                                {record.status}
-                            </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                            <DryingActionsMenu record={record} />
-                        </TableCell>
-                    </TableRow>
-                    )
-                })}
-                 {dryingRecords.length === 0 && (
-                    <TableRow>
-                        <TableCell colSpan={7} className="text-center text-muted-foreground">
-                            No drying records found.
-                        </TableCell>
-                    </TableRow>
-                )}
-            </TableBody>
-            </Table>
+                            </div>
+                            </TableCell>
+                            <TableCell className="text-right font-mono">
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <span className="underline decoration-dotted cursor-help">
+                                            {formatCurrency(record.totalDryingHamali || 0)}
+                                        </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <div className="space-y-1 p-2 text-sm">
+                                            <div className="flex justify-between gap-4">
+                                                <span>Unloading:</span>
+                                                <span className="font-mono">{formatCurrency(unloadingHamali)}</span>
+                                            </div>
+                                            <div className="flex justify-between gap-4">
+                                                <span>Drying:</span>
+                                                <span className="font-mono">{formatCurrency(dryingHamali)}</span>
+                                            </div>
+                                        </div>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TableCell>
+                            <TableCell>
+                                <Badge variant="secondary" className={getStatusBadgeVariant(record.status)}>
+                                    {record.status}
+                                </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                                <DryingActionsMenu record={record} />
+                            </TableCell>
+                        </TableRow>
+                        )
+                    })}
+                    {dryingRecords.length === 0 && (
+                        <TableRow>
+                            <TableCell colSpan={7} className="text-center text-muted-foreground">
+                                No active drying records for the selected customer.
+                            </TableCell>
+                        </TableRow>
+                    )}
+                </TableBody>
+                </Table>
+            </TooltipProvider>
         </CardContent>
       </Card>
     );

@@ -26,7 +26,13 @@ const InitiateDryingSchema = z.object({
 
 type DryingFormData = z.infer<typeof InitiateDryingSchema>;
 
-export function InitiateDryingForm({ customers, unloadingRecords }: { customers: Customer[], unloadingRecords: UnloadingRecord[] }) {
+interface InitiateDryingFormProps {
+    customers: Customer[];
+    unloadingRecords: UnloadingRecord[];
+    onCustomerChange: (customerId: string | null) => void;
+}
+
+export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChange }: InitiateDryingFormProps) {
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
     const firestore = useFirestore();
@@ -50,6 +56,8 @@ export function InitiateDryingForm({ customers, unloadingRecords }: { customers:
             ...form.getValues(),
             unloadingRecordId: '',
         });
+        onCustomerChange(selectedCustomerId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedCustomerId, form]);
 
     const selectedUnloadingRecordId = form.watch('unloadingRecordId');
@@ -99,6 +107,7 @@ export function InitiateDryingForm({ customers, unloadingRecords }: { customers:
                     totalDryingHamali,
                     packingDate: null,
                     billingDate: null,
+                    bagsPacked: null,
                 };
                 await addDoc(collection(firestore, 'dryingRecords'), newRecord);
 
@@ -109,6 +118,7 @@ export function InitiateDryingForm({ customers, unloadingRecords }: { customers:
                 toast({ title: 'Success', description: 'Drying process initiated.' });
                 form.reset();
                 setSelectedCustomerId('');
+                onCustomerChange(null);
             } catch (error) {
                 console.error(error);
                 toast({ title: 'Error', description: 'Failed to initiate drying process.', variant: 'destructive' });

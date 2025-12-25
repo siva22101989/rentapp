@@ -10,10 +10,11 @@ import type { Customer, DryingRecord, UnloadingRecord } from "@/lib/definitions"
 import { AddCustomerDialog } from "@/components/customers/add-customer-dialog";
 import { DryingRecordsTable } from "@/components/drying/drying-records-table";
 import { InitiateDryingForm } from "@/components/drying/initiate-drying-form";
-import { useMemo } from "react";
+import { useState } from "react";
 
 export default function DryingPage() {
   const firestore = useFirestore();
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
 
   const customersQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'customers') : null),
@@ -25,14 +26,17 @@ export default function DryingPage() {
     () => (firestore ? query(collection(firestore, 'dryingRecords'), or(where('status', '==', 'Drying'), where('status', '==', 'Packing'))) : null),
     [firestore]
   );
-  const { data: activeDryingRecords, loading: loadingDryingRecords } = useCollection<DryingRecord>(activeDryingRecordsQuery);
+  const { data: allActiveDryingRecords, loading: loadingDryingRecords } = useCollection<DryingRecord>(activeDryingRecordsQuery);
   
   const unloadingRecordsQuery = useMemoFirebase(
-    () => (firestore ? query(collection(firestore, 'unloadingRecords'), where('status', '==', 'Unloading')) : null),
+    () => (firestore ? collection(firestore, 'unloadingRecords') : null),
     [firestore]
   );
   const { data: unloadingRecords, loading: loadingUnloadingRecords } = useCollection<UnloadingRecord>(unloadingRecordsQuery);
 
+  const filteredDryingRecords = selectedCustomerId
+    ? allActiveDryingRecords?.filter(record => record.customerId === selectedCustomerId)
+    : allActiveDryingRecords;
 
   if (loadingCustomers || loadingDryingRecords || loadingUnloadingRecords) {
     return <AppLayout><div>Loading...</div></AppLayout>;
@@ -51,11 +55,16 @@ export default function DryingPage() {
         <div className="md:col-span-1">
           <InitiateDryingForm 
             customers={customers || []} 
-            unloadingRecords={unloadingRecords || []}
+            unloadingRecords={unloadingRecords?.filter(ur => ur.status === 'Unloading') || []}
+            onCustomerChange={setSelectedCustomerId}
           />
         </div>
         <div className="md:col-span-2">
-            <DryingRecordsTable dryingRecords={activeDryingRecords || []} customers={customers || []} />
+            <DryingRecordsTable 
+              dryingRecords={filteredDryingRecords || []} 
+              customers={customers || []}
+              unloadingRecords={unloadingRecords || []}
+            />
         </div>
       </div>
     </AppLayout>

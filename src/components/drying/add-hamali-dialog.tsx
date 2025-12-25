@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -27,11 +26,17 @@ import { formatCurrency } from '@/lib/utils';
 
 const HamaliSchema = z.object({
   hamaliPerBag: z.coerce.number().positive('Rate must be a positive number.'),
+  day: z.string().min(1, 'Day is required'),
 });
 
 type HamaliFormData = z.infer<typeof HamaliSchema>;
 
-export function AddSecondDayHamaliDialog({ record, children }: { record: DryingRecord; children: React.ReactNode }) {
+interface AddHamaliDialogProps {
+    record: DryingRecord;
+    children: React.ReactNode;
+}
+
+export function AddHamaliDialog({ record, children }: AddHamaliDialogProps) {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -41,6 +46,7 @@ export function AddSecondDayHamaliDialog({ record, children }: { record: DryingR
     resolver: zodResolver(HamaliSchema),
     defaultValues: {
       hamaliPerBag: '' as any,
+      day: '',
     },
   });
 
@@ -61,7 +67,7 @@ export function AddSecondDayHamaliDialog({ record, children }: { record: DryingR
 
         toast({ 
           title: 'Success', 
-          description: `Added ${formatCurrency(additionalAmount)} to hamali charges.` 
+          description: `Added ${formatCurrency(additionalAmount)} for ${data.day} hamali.` 
         });
         setIsOpen(false);
         form.reset();
@@ -79,13 +85,26 @@ export function AddSecondDayHamaliDialog({ record, children }: { record: DryingR
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <DialogHeader>
-              <DialogTitle>Add 2nd Day Hamali</DialogTitle>
+              <DialogTitle>Add Additional Hamali</DialogTitle>
               <DialogDescription>
-                Calculate additional hamali for {record.bagsForDrying} bags in record {record.id}.
+                Calculate and add hamali for {record.bagsForDrying} bags in record {record.id}.
                 Current total hamali is {formatCurrency(record.totalDryingHamali)}.
               </DialogDescription>
             </DialogHeader>
-            <div className="py-4">
+            <div className="py-4 grid gap-4">
+               <FormField
+                control={form.control}
+                name="day"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Day Description</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., 2nd Day, 3rd Day" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <FormField
                 control={form.control}
                 name="hamaliPerBag"

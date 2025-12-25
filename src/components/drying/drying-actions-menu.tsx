@@ -10,7 +10,7 @@ import { useTransition } from "react";
 import { useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { doc, updateDoc, Timestamp } from "firebase/firestore";
-import { AddSecondDayHamaliDialog } from "./add-second-day-hamali-dialog";
+import { AddHamaliDialog } from "./add-hamali-dialog";
 import { UpdatePackingDialog } from "./update-packing-dialog";
 
 export function DryingActionsMenu({ record }: { record: DryingRecord }) {
@@ -47,7 +47,7 @@ export function DryingActionsMenu({ record }: { record: DryingRecord }) {
         });
     };
 
-    const currentIndex = dryingStatus.indexOf(record.status);
+    const isBilled = record.status === 'Billed';
     
     const canMoveToPacking = record.status === 'Drying';
     const canMoveToBilled = record.status === 'Packing';
@@ -63,38 +63,43 @@ export function DryingActionsMenu({ record }: { record: DryingRecord }) {
             <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                 <AddSecondDayHamaliDialog record={record}>
-                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                 <AddHamaliDialog record={record}>
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} disabled={isBilled}>
                         <IndianRupee className="mr-2 h-4 w-4" />
-                        Add 2nd Day Hamali
+                        Add Additional Hamali
                     </DropdownMenuItem>
-                </AddSecondDayHamaliDialog>
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel>Change Status</DropdownMenuLabel>
+                </AddHamaliDialog>
                 
-                {canMoveToPacking && (
-                    <UpdatePackingDialog record={record} onUpdate={handleStatusChange}>
-                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                            <Package className="mr-2 h-4 w-4" />
-                            Move to Packing
+                {!isBilled && (
+                    <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuLabel>Change Status</DropdownMenuLabel>
+                        
+                        {canMoveToPacking && (
+                            <UpdatePackingDialog record={record} onUpdate={handleStatusChange}>
+                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                    <Package className="mr-2 h-4 w-4" />
+                                    Move to Packing
+                                </DropdownMenuItem>
+                            </UpdatePackingDialog>
+                        )}
+
+                        {canMoveToBilled && (
+                            <DropdownMenuItem onClick={() => handleStatusChange('Billed')} disabled={isPending}>
+                                <CircleCheck className="mr-2 h-4 w-4" />
+                                Move to Billed
+                            </DropdownMenuItem>
+                        )}
+
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                            disabled={isPending || record.status === 'Drying'}
+                            onClick={() => handleStatusChange('Drying')}
+                        >
+                            Set as Drying
                         </DropdownMenuItem>
-                    </UpdatePackingDialog>
+                    </>
                 )}
-
-                {canMoveToBilled && (
-                     <DropdownMenuItem onClick={() => handleStatusChange('Billed')} disabled={isPending}>
-                        <CircleCheck className="mr-2 h-4 w-4" />
-                        Move to Billed
-                    </DropdownMenuItem>
-                )}
-
-                <DropdownMenuSeparator />
-                 <DropdownMenuItem
-                    disabled={isPending || record.status === 'Drying'}
-                    onClick={() => handleStatusChange('Drying')}
-                >
-                    Set as Drying
-                </DropdownMenuItem>
 
             </DropdownMenuContent>
         </DropdownMenu>

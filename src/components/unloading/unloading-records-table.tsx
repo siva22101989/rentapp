@@ -55,8 +55,8 @@ export function UnloadingRecordsTable({ unloadingRecords, customers }: { unloadi
                     <TableHead>Date</TableHead>
                     <TableHead>Bill No.</TableHead>
                     <TableHead>Customer</TableHead>
-                    <TableHead>Commodity</TableHead>
                     <TableHead className="text-right">Bags</TableHead>
+                    <TableHead className="text-right">Hamali/Bag</TableHead>
                     <TableHead className="text-right">Total Hamali</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="w-[50px] text-right"></TableHead>
@@ -70,8 +70,8 @@ export function UnloadingRecordsTable({ unloadingRecords, customers }: { unloadi
                         <TableCell>{unloadingDate ? format(unloadingDate, 'dd MMM yyyy') : 'N/A'}</TableCell>
                         <TableCell>{record.billNo}</TableCell>
                         <TableCell className="font-medium">{getCustomerName(record.customerId)}</TableCell>
-                        <TableCell>{record.commodityDescription}</TableCell>
                         <TableCell className="text-right">{record.bagsUnloaded}</TableCell>
+                        <TableCell className="text-right font-mono">{formatCurrency(record.hamaliPerBag || 0)}</TableCell>
                         <TableCell className="text-right font-mono">{formatCurrency(record.totalHamali || 0)}</TableCell>
                         <TableCell>
                             <Badge variant="secondary" className={getStatusBadgeVariant(record.status)}>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useTransition } from 'react';
+import { useTransition, useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -15,6 +15,8 @@ import { useFirestore } from '@/firebase';
 import type { Customer } from '@/lib/definitions';
 import { addDoc, collection, Timestamp } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
+import { formatCurrency } from '@/lib/utils';
+import { Separator } from '../ui/separator';
 
 const UnloadingRecordSchema = z.object({
   customerId: z.string().min(1, 'Customer is required.'),
@@ -55,6 +57,10 @@ export function AddUnloadingRecordForm({ customers, nextBillNo }: { customers: C
             billNo: nextBillNo,
         }
       });
+      
+    const bagsUnloaded = form.watch('bagsUnloaded');
+    const hamaliPerBag = form.watch('hamaliPerBag');
+    const totalHamali = (bagsUnloaded || 0) * (hamaliPerBag || 0);
 
     const onSubmit = (data: UnloadingFormData) => {
         if (!firestore) {
@@ -156,35 +162,46 @@ export function AddUnloadingRecordForm({ customers, nextBillNo }: { customers: C
                             </FormItem>
                         )}
                     />
-                    <FormField
-                        control={form.control}
-                        name="bagsUnloaded"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Bags Unloaded</FormLabel>
-                                <FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                     <FormField
-                        control={form.control}
-                        name="hamaliPerBag"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Hamali per Bag</FormLabel>
-                                <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value || ''} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                            control={form.control}
+                            name="bagsUnloaded"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Bags Unloaded</FormLabel>
+                                    <FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="hamaliPerBag"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Hamali per Bag</FormLabel>
+                                    <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value || ''} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
+                     <Separator />
+                     <div className="space-y-2">
+                        <h4 className="font-medium">Summary</h4>
+                        <div className="flex justify-between items-center text-sm font-semibold">
+                            <span>Total Unloading Hamali</span>
+                            <span className="font-mono">{formatCurrency(totalHamali)}</span>
+                        </div>
+                    </div>
+
                 </CardContent>
                 <CardFooter>
                     <Button type="submit" disabled={isPending} className="w-full">
                         {isPending ? (
                             <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
                         ) : (
-                            'Add Record'
+                            'Add Record & Generate Bill'
                         )}
                     </Button>
                 </CardFooter>

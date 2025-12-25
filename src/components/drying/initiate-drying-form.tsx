@@ -1,11 +1,10 @@
-
 'use client';
 
 import { useTransition, useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Info } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -15,6 +14,9 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
 import type { Customer, UnloadingRecord, HamaliCharge } from '@/lib/definitions';
 import { addDoc, collection, Timestamp, doc, updateDoc } from 'firebase/firestore';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { formatCurrency } from '@/lib/utils';
+import { Separator } from '../ui/separator';
 
 const InitiateDryingSchema = z.object({
   customerId: z.string().min(1, 'Customer is required.'),
@@ -62,6 +64,12 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
 
     const selectedUnloadingRecordId = form.watch('unloadingRecordId');
     const selectedUnloadingRecord = unloadingRecords.find(ur => ur.id === selectedUnloadingRecordId);
+    
+    const day1HamaliRate = form.watch('hamaliPerBag');
+    const bagsForDrying = form.watch('bagsForDrying');
+    const day1DryingHamali = (bagsForDrying || 0) * (day1HamaliRate || 0);
+    const unloadingHamali = selectedUnloadingRecord?.totalHamali || 0;
+    const totalHamali = unloadingHamali + day1DryingHamali;
 
     useEffect(() => {
       if (selectedUnloadingRecord) {
@@ -165,30 +173,41 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                         )}
                     />
                     {selectedCustomerId && (
-                        <FormField
-                            control={form.control}
-                            name="unloadingRecordId"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Unloading Bill No.</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                        <FormControl>
-                                            <SelectTrigger><SelectValue placeholder="Select a bill" /></SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            {customerUnloadingRecords.length > 0 ? customerUnloadingRecords.map(ur => (
-                                                <SelectItem key={ur.id} value={ur.id}>
-                                                    Bill #{ur.billNo} - {ur.commodityDescription} ({ur.bagsUnloaded} bags)
-                                                </SelectItem>
-                                            )) : (
-                                                <SelectItem value="none" disabled>No available records for drying</SelectItem>
-                                            )}
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
+                        <>
+                            <FormField
+                                control={form.control}
+                                name="unloadingRecordId"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Unloading Bill No.</FormLabel>
+                                        <Select onValueChange={field.onChange} value={field.value}>
+                                            <FormControl>
+                                                <SelectTrigger><SelectValue placeholder="Select a bill" /></SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                {customerUnloadingRecords.length > 0 ? customerUnloadingRecords.map(ur => (
+                                                    <SelectItem key={ur.id} value={ur.id}>
+                                                        Bill #{ur.billNo} - {ur.commodityDescription} ({ur.bagsUnloaded} bags)
+                                                    </SelectItem>
+                                                )) : (
+                                                    <SelectItem value="none" disabled>No available records for drying</SelectItem>
+                                                )}
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            {selectedUnloadingRecord && (
+                                <Alert variant="destructive" className="bg-secondary/30 border-secondary">
+                                    <Info className="h-4 w-4" />
+                                    <AlertTitle>Unloading Summary</AlertTitle>
+                                    <AlertDescription>
+                                        Total Hamali from Bill #{selectedUnloadingRecord.billNo} is <strong>{formatCurrency(selectedUnloadingRecord.totalHamali)}</strong>. This will be added to the drying costs.
+                                    </AlertDescription>
+                                </Alert>
                             )}
-                        />
+                        </>
                     )}
                      <FormField
                         control={form.control}
@@ -224,9 +243,28 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                             </FormItem>
                         )}
                     />
+
+                    <Separator />
+
+                    <div className="space-y-2">
+                        <h4 className="font-medium">Cost Summary</h4>
+                        <div className="flex justify-between items-center text-sm">
+                            <span className="text-muted-foreground">Unloading Hamali</span>
+                            <span className="font-mono">{formatCurrency(unloadingHamali)}</span>
+                        </div>
+                         <div className="flex justify-between items-center text-sm">
+                            <span className="text-muted-foreground">Drying Hamali (Day 1)</span>
+                            <span className="font-mono">{formatCurrency(day1DryingHamali)}</span>
+                        </div>
+                        <Separator />
+                        <div className="flex justify-between items-center font-semibold">
+                            <span>Total Hamali (So Far)</span>
+                            <span className="font-mono">{formatCurrency(totalHamali)}</span>
+                        </div>
+                    </div>
                 </CardContent>
                 <CardFooter>
-                    <Button type="submit" disabled={isPending || !selectedCustomerId} className="w-full">
+                    <Button type="submit" disabled={isPending || !selectedCustomerId || !selectedUnloadingRecordId} className="w-full">
                         {isPending ? (
                             <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Starting Process...</>
                         ) : (

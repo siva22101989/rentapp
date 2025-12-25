@@ -10,6 +10,7 @@ import type { Customer, UnloadingRecord } from "@/lib/definitions";
 import { AddCustomerDialog } from "@/components/customers/add-customer-dialog";
 import { AddUnloadingRecordForm } from "@/components/unloading/add-unloading-form";
 import { useMemo } from "react";
+import { UnloadingRecordsTable } from "@/components/unloading/unloading-records-table";
 
 export default function UnloadingPage() {
   const firestore = useFirestore();
@@ -48,8 +49,13 @@ export default function UnloadingPage() {
         <AddCustomerDialog />
       </PageHeader>
 
-      <div className="flex justify-center">
-          <AddUnloadingRecordForm customers={customers || []} nextBillNo={nextBillNo} />
+      <div className="grid gap-8 lg:grid-cols-3">
+          <div className="lg:col-span-1">
+            <AddUnloadingRecordForm customers={customers || []} nextBillNo={nextBillNo} />
+          </div>
+          <div className="lg:col-span-2">
+            <UnloadingRecordsTable unloadingRecords={unloadingRecords || []} customers={customers || []} />
+          </div>
       </div>
     </AppLayout>
   );

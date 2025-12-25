@@ -55,3 +55,16 @@ export type Expense = {
   category: ExpenseCategory;
   date: Date | Timestamp;
 };
+
+export const unloadingStatus = ["Unloading", "Drying", "Packing", "Billed"] as const;
+export type UnloadingStatus = typeof unloadingStatus[number];
+
+export type UnloadingRecord = {
+  id: string;
+  customerId: string;
+  commodityDescription: string;
+  lorryTractorNo: string;
+  unloadingDate: Date | Timestamp;
+  bagsUnloaded: number;
+  status: UnloadingStatus;
+};

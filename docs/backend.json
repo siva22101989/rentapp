@@ -161,6 +161,47 @@
           }
         },
         "required": ["description", "amount", "category", "date"]
+    },
+    "unloadingRecord": {
+      "title": "Unloading Record",
+      "description": "Represents a record of items being unloaded from a vehicle.",
+      "type": "object",
+      "properties": {
+        "customerId": {
+          "type": "string",
+          "description": "The ID of the customer who owns these items."
+        },
+        "commodityDescription": {
+          "type": "string",
+          "description": "A description of the commodity being unloaded."
+        },
+        "lorryTractorNo": {
+          "type": "string",
+          "description": "The Lorry or Tractor number for the delivery."
+        },
+        "unloadingDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The date when the unloading took place."
+        },
+        "bagsUnloaded": {
+          "type": "number",
+          "description": "The number of bags being unloaded."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Unloading", "Drying", "Packing", "Billed"],
+          "description": "The current status of the process."
+        }
+      },
+      "required": [
+        "customerId",
+        "commodityDescription",
+        "lorryTractorNo",
+        "unloadingDate",
+        "bagsUnloaded",
+        "status"
+      ]
     }
   },
   "auth": {
@@ -178,6 +219,10 @@
     "/expenses/{expenseId}": {
         "schema": "expense",
         "description": "Stores individual expense documents."
+    },
+    "/unloadingRecords/{unloadingId}": {
+      "schema": "unloadingRecord",
+      "description": "Stores records of the unloading process."
     }
   }
 }

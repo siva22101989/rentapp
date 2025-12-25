@@ -222,6 +222,10 @@
       "description": "Represents the entire drying process for a commodity, from unloading to billing.",
       "type": "object",
       "properties": {
+        "unloadingRecordId": {
+          "type": "string",
+          "description": "The ID of the source unloading record."
+        },
         "customerId": {
           "type": "string",
           "description": "The ID of the customer who owns these items."
@@ -264,6 +268,7 @@
         }
       },
       "required": [
+        "unloadingRecordId",
         "customerId",
         "commodityDescription",
         "bagsUnloaded",
@@ -300,5 +305,3 @@
     }
   }
 }
-
-    

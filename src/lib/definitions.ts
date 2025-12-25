@@ -77,6 +77,7 @@ export type DryingStatus = typeof dryingStatus[number];
 
 export type DryingRecord = {
     id: string;
+    unloadingRecordId: string;
     customerId: string;
     commodityDescription: string;
     bagsUnloaded: number;
@@ -87,5 +88,3 @@ export type DryingRecord = {
     hamaliPerBag: number;
     totalDryingHamali: number;
 };
-
-    

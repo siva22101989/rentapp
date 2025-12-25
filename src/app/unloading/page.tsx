@@ -10,6 +10,7 @@ import type { Customer, UnloadingRecord } from "@/lib/definitions";
 import { AddCustomerDialog } from "@/components/customers/add-customer-dialog";
 import { AddUnloadingRecordForm } from "@/components/unloading/add-unloading-form";
 import { UnloadingRecordsTable } from "@/components/unloading/unloading-records-table";
+import { useMemo } from "react";
 
 export default function UnloadingPage() {
   const firestore = useFirestore();
@@ -26,6 +27,15 @@ export default function UnloadingPage() {
   );
   const { data: unloadingRecords, loading: loadingRecords } = useCollection<UnloadingRecord>(unloadingRecordsQuery);
 
+  const nextBillNo = useMemo(() => {
+    if (!unloadingRecords) return '1';
+    const maxBillNo = unloadingRecords.reduce((max, record) => {
+      const billNo = parseInt(record.billNo || '0', 10);
+      return billNo > max ? billNo : max;
+    }, 0);
+    return (maxBillNo + 1).toString();
+  }, [unloadingRecords]);
+
   if (loadingCustomers || loadingRecords) {
     return <AppLayout><div>Loading...</div></AppLayout>;
   }
@@ -41,7 +51,7 @@ export default function UnloadingPage() {
 
       <div className="grid gap-8 md:grid-cols-3">
         <div className="md:col-span-1">
-          <AddUnloadingRecordForm customers={customers || []} />
+          <AddUnloadingRecordForm customers={customers || []} nextBillNo={nextBillNo} />
         </div>
         <div className="md:col-span-2">
             <UnloadingRecordsTable unloadingRecords={unloadingRecords || []} customers={customers || []} />

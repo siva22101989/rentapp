@@ -23,12 +23,12 @@ const UnloadingRecordSchema = z.object({
   unloadingDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
   bagsUnloaded: z.coerce.number().int().positive('Number of bags must be positive.'),
   hamaliPerBag: z.coerce.number().nonnegative('Hamali rate must be non-negative.'),
-  billNo: z.string().optional(),
+  billNo: z.string(),
 });
 
 type UnloadingFormData = z.infer<typeof UnloadingRecordSchema>;
 
-export function AddUnloadingRecordForm({ customers }: { customers: Customer[] }) {
+export function AddUnloadingRecordForm({ customers, nextBillNo }: { customers: Customer[], nextBillNo: string }) {
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
     const firestore = useFirestore();
@@ -42,8 +42,17 @@ export function AddUnloadingRecordForm({ customers }: { customers: Customer[] })
           unloadingDate: new Date().toISOString().split('T')[0],
           bagsUnloaded: '' as any,
           hamaliPerBag: '' as any,
-          billNo: '',
+          billNo: nextBillNo,
         },
+        values: { // Use `values` to ensure billNo is always up-to-date
+            customerId: '',
+            commodityDescription: '',
+            lorryTractorNo: '',
+            unloadingDate: new Date().toISOString().split('T')[0],
+            bagsUnloaded: '' as any,
+            hamaliPerBag: '' as any,
+            billNo: nextBillNo,
+        }
       });
 
     const onSubmit = (data: UnloadingFormData) => {
@@ -57,6 +66,7 @@ export function AddUnloadingRecordForm({ customers }: { customers: Customer[] })
                 const totalHamali = data.bagsUnloaded * data.hamaliPerBag;
                 const newRecord = {
                     ...data,
+                    billNo: nextBillNo, // Ensure the latest bill number is used
                     unloadingDate: Timestamp.fromDate(new Date(data.unloadingDate)),
                     status: 'Unloading' as const,
                     totalHamali,
@@ -80,6 +90,17 @@ export function AddUnloadingRecordForm({ customers }: { customers: Customer[] })
                     <CardDescription>Enter details for a new vehicle unloading.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                    <FormField
+                        control={form.control}
+                        name="billNo"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Bill No.</FormLabel>
+                                <FormControl><Input readOnly disabled {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
                     <FormField
                         control={form.control}
                         name="customerId"
@@ -106,7 +127,7 @@ export function AddUnloadingRecordForm({ customers }: { customers: Customer[] })
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Commodity</FormLabel>
-                                <FormControl><Input placeholder="e.g., Paddy" {...field} /></FormControl>
+                                <FormControl><Input placeholder="e.g., Paddy" {...field} value={field.value || ''} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -117,7 +138,7 @@ export function AddUnloadingRecordForm({ customers }: { customers: Customer[] })
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Lorry / Tractor No.</FormLabel>
-                                <FormControl><Input placeholder="e.g., AP 21 1234" {...field} /></FormControl>
+                                <FormControl><Input placeholder="e.g., AP 21 1234" {...field} value={field.value || ''} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -139,7 +160,7 @@ export function AddUnloadingRecordForm({ customers }: { customers: Customer[] })
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Bags Unloaded</FormLabel>
-                                <FormControl><Input type="number" placeholder="0" {...field} /></FormControl>
+                                <FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -150,18 +171,7 @@ export function AddUnloadingRecordForm({ customers }: { customers: Customer[] })
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Hamali per Bag</FormLabel>
-                                <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="billNo"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Bill No.</FormLabel>
-                                <FormControl><Input placeholder="e.g., 12345" {...field} /></FormControl>
+                                <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value || ''} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}

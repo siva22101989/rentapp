@@ -66,12 +66,12 @@ export function AddHamaliDialog({ record, children }: AddHamaliDialogProps) {
   useEffect(() => {
     if (isOpen) {
         form.reset({
-          hamaliPerBag: '' as any,
+          hamaliPerBag: undefined,
           chargeDate: nextChargeDate.toISOString().split('T')[0],
         });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, form]);
+  }, [isOpen]);
 
 
   const chargeDate = form.watch('chargeDate');
@@ -156,7 +156,7 @@ export function AddHamaliDialog({ record, children }: AddHamaliDialogProps) {
                   <FormItem>
                     <FormLabel>Hamali Rate per Bag (for {dayDescription})</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" placeholder="Enter rate..." {...field} value={field.value ?? ''} />
+                      <Input type="number" step="0.01" placeholder="Enter rate..." {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

@@ -9,7 +9,6 @@ import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 import type { Customer, UnloadingRecord } from "@/lib/definitions";
 import { AddCustomerDialog } from "@/components/customers/add-customer-dialog";
 import { AddUnloadingRecordForm } from "@/components/unloading/add-unloading-form";
-import { UnloadingRecordsTable } from "@/components/unloading/unloading-records-table";
 import { useMemo } from "react";
 
 export default function UnloadingPage() {
@@ -49,13 +48,8 @@ export default function UnloadingPage() {
         <AddCustomerDialog />
       </PageHeader>
 
-      <div className="grid gap-8 md:grid-cols-3">
-        <div className="md:col-span-1">
+      <div className="flex justify-center">
           <AddUnloadingRecordForm customers={customers || []} nextBillNo={nextBillNo} />
-        </div>
-        <div className="md:col-span-2">
-            <UnloadingRecordsTable unloadingRecords={unloadingRecords || []} customers={customers || []} />
-        </div>
       </div>
     </AppLayout>
   );

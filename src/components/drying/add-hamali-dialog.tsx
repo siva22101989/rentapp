@@ -60,11 +60,6 @@ export function AddHamaliDialog({ record, children }: AddHamaliDialogProps) {
       hamaliPerBag: undefined,
       chargeDate: nextChargeDate.toISOString().split('T')[0],
     },
-    // This is to reset the form when the dialog opens
-    values: {
-        hamaliPerBag: undefined,
-        chargeDate: nextChargeDate.toISOString().split('T')[0],
-    }
   });
 
   const chargeDate = form.watch('chargeDate');
@@ -119,7 +114,15 @@ export function AddHamaliDialog({ record, children }: AddHamaliDialogProps) {
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      setIsOpen(open);
+      if (open) {
+        form.reset({
+          hamaliPerBag: undefined,
+          chargeDate: nextChargeDate.toISOString().split('T')[0],
+        });
+      }
+    }}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <Form {...form}>

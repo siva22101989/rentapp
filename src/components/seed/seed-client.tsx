@@ -2,7 +2,7 @@
 'use client';
 
 import { useTransition, useState } from 'react';
-import { Loader2, Database } from 'lucide-react';
+import { Loader2, Database, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -15,7 +15,8 @@ import storageRecordsData from '@/lib/data/storageRecords.json';
 
 
 export function SeedClient() {
-  const [isPending, startTransition] = useTransition();
+  const [isSeeding, startSeedingTransition] = useTransition();
+  const [isClearing, startClearingTransition] = useTransition();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [result, setResult] = useState<{ message: string; success: boolean } | null>(null);
@@ -30,7 +31,7 @@ export function SeedClient() {
       return;
     }
 
-    startTransition(async () => {
+    startSeedingTransition(async () => {
       try {
         const batch = writeBatch(firestore);
 
@@ -71,8 +72,44 @@ export function SeedClient() {
     });
   };
 
+  const handleClearCache = () => {
+    startClearingTransition(() => {
+        try {
+            // Clear local and session storage
+            localStorage.clear();
+            sessionStorage.clear();
+
+            // Clear Cache API
+            if ('caches' in window) {
+                caches.keys().then((names) => {
+                    for (const name of names) {
+                        caches.delete(name);
+                    }
+                });
+            }
+
+            toast({
+                title: 'Cache Cleared',
+                description: 'Local storage, session storage, and browser cache have been cleared. The page will now reload.',
+            });
+
+            // Hard reload the page
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+
+        } catch (error: any) {
+            toast({
+                title: 'Error',
+                description: `Failed to clear cache: ${error.message}`,
+                variant: 'destructive',
+            });
+        }
+    });
+  };
+
   return (
-    <div className="flex flex-col items-center justify-center text-center">
+    <div className="flex flex-col items-center justify-center text-center gap-8">
         <Card className="w-full max-w-md">
             <CardHeader>
                 <CardTitle>Confirm Seeding</CardTitle>
@@ -81,8 +118,8 @@ export function SeedClient() {
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                 <Button onClick={handleSeed} disabled={isPending} size="lg">
-                    {isPending ? (
+                 <Button onClick={handleSeed} disabled={isSeeding} size="lg">
+                    {isSeeding ? (
                         <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Seeding...
@@ -91,6 +128,30 @@ export function SeedClient() {
                         <>
                         <Database className="mr-2 h-4 w-4" />
                         Seed Database
+                        </>
+                    )}
+                </Button>
+            </CardContent>
+        </Card>
+
+        <Card className="w-full max-w-md border-destructive/50">
+            <CardHeader>
+                <CardTitle className="text-destructive">Clear Local Data</CardTitle>
+                <CardDescription>
+                    This will clear all local storage, session storage, and cached data for this application in your browser. This is useful for resetting the UI and application state.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                 <Button onClick={handleClearCache} disabled={isClearing} size="lg" variant="destructive">
+                    {isClearing ? (
+                        <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Clearing...
+                        </>
+                    ) : (
+                        <>
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Clear Cache and Reload
                         </>
                     )}
                 </Button>

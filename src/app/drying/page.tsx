@@ -10,6 +10,9 @@ import type { Customer, UnloadingRecord } from "@/lib/definitions";
 import { AddCustomerDialog } from "@/components/customers/add-customer-dialog";
 import { InitiateDryingForm } from "@/components/drying/initiate-drying-form";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { History } from "lucide-react";
 
 export default function DryingPage() {
   const firestore = useFirestore();
@@ -37,6 +40,12 @@ export default function DryingPage() {
         title="Drying Process"
         description="Initiate and manage the process of drying goods."
       >
+        <Button variant="outline" asChild>
+          <Link href="/drying/history">
+            <History className="mr-2" />
+            View Drying History
+          </Link>
+        </Button>
         <AddCustomerDialog />
       </PageHeader>
 

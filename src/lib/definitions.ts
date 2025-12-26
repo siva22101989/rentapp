@@ -13,7 +13,9 @@ export type Customer = {
 
 export type Commodity = {
   id: string;
-  description: string;
+  name: string;
+  rate6Months: number;
+  rate1Year: number;
 };
 
 export type Payment = {

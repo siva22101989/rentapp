@@ -13,7 +13,7 @@ import {
   writeBatch,
   arrayUnion,
 } from 'firebase/firestore';
-import type { Customer, Expense, Payment, StorageRecord } from './definitions';
+import type { Customer, Expense, Payment, StorageRecord, Commodity } from './definitions';
 
 // These functions are intended for client-side use.
 
@@ -41,4 +41,18 @@ export const updateStorageRecord = async (db: Firestore, id: string, data: Parti
     }
     
     await updateDoc(recordRef, updateData);
+};
+
+export const saveCommodity = async (db: Firestore, commodity: Omit<Commodity, 'id'>): Promise<string> => {
+  const docRef = await addDoc(collection(db, 'commodities'), commodity);
+  return docRef.id;
+};
+
+export const updateCommodity = async (db: Firestore, id: string, data: Partial<Commodity>): Promise<void> => {
+    const commodityRef = doc(db, 'commodities', id);
+    await updateDoc(commodityRef, data);
+};
+
+export const deleteCommodity = async (db: Firestore, id: string): Promise<void> => {
+    await deleteDoc(doc(db, 'commodities', id));
 };

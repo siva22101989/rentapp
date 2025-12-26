@@ -34,6 +34,26 @@
       },
       "required": ["name", "phone", "address"]
     },
+    "commodity": {
+      "title": "Commodity",
+      "description": "Represents a type of commodity with specific rent rates.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the commodity (e.g., Paddy, Maize)."
+        },
+        "rate6Months": {
+          "type": "number",
+          "description": "The rent rate per bag for a 6-month period."
+        },
+        "rate1Year": {
+          "type": "number",
+          "description": "The rent rate per bag for a 1-year period."
+        }
+      },
+      "required": ["name", "rate6Months", "rate1Year"]
+    },
     "storageRecord": {
       "title": "Storage Record",
       "description": "Represents a record of items being stored by a customer.",
@@ -285,6 +305,10 @@
     "/customers/{customerId}": {
       "schema": "customer",
       "description": "Stores individual customer documents."
+    },
+    "/commodities/{commodityId}": {
+      "schema": "commodity",
+      "description": "Stores documents for different types of commodities and their rent rates."
     },
     "/storageRecords/{recordId}": {
       "schema": "storageRecord",

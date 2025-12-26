@@ -22,7 +22,7 @@ import { Input } from '@/components/ui/input';
 import type { DryingRecord, DryingStatus } from '@/lib/definitions';
 
 const PackingSchema = z.object({
-  bagsPacked: z.coerce.number().int().nonnegative('Must be a non-negative number.'),
+  bagsPacked: z.coerce.number().int().positive('Must be a positive number.'),
 });
 
 type PackingFormData = z.infer<typeof PackingSchema>;
@@ -40,7 +40,7 @@ export function UpdatePackingDialog({ record, children, onUpdate }: UpdatePackin
   const form = useForm<PackingFormData>({
     resolver: zodResolver(PackingSchema),
     defaultValues: {
-      bagsPacked: record.bagsForDrying, // Default to original bag count
+      bagsPacked: 1, // Default to 1
     },
   });
 
@@ -60,8 +60,8 @@ export function UpdatePackingDialog({ record, children, onUpdate }: UpdatePackin
             <DialogHeader>
               <DialogTitle>Update Packing Information</DialogTitle>
               <DialogDescription>
-                Enter the final number of bags packed for record {record.id}.
-                Initial bags for drying: {record.bagsForDrying}.
+                Enter the final number of bags packed for record {record.id}. 
+                Bags sent for drying: {record.bagsForDrying}.
               </DialogDescription>
             </DialogHeader>
             <div className="py-4">
@@ -72,7 +72,7 @@ export function UpdatePackingDialog({ record, children, onUpdate }: UpdatePackin
                   <FormItem>
                     <FormLabel>Number of Bags Packed</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="0" {...field} />
+                      <Input type="number" placeholder="1" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useTransition, useState, useEffect } from 'react';
@@ -12,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
-import type { Customer } from '@/lib/definitions';
+import type { Customer, Commodity } from '@/lib/definitions';
 import { addDoc, collection, Timestamp } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { formatCurrency } from '@/lib/utils';
@@ -20,7 +21,7 @@ import { Separator } from '../ui/separator';
 
 const UnloadingRecordSchema = z.object({
   customerId: z.string().min(1, 'Customer is required.'),
-  commodityDescription: z.string().min(2, 'Commodity is required.'),
+  commodityDescription: z.string().min(1, 'Commodity is required.'),
   lorryTractorNo: z.string().optional(),
   unloadingDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
   bagsUnloaded: z.coerce.number().int().positive('Number of bags must be positive.'),
@@ -30,7 +31,7 @@ const UnloadingRecordSchema = z.object({
 
 type UnloadingFormData = z.infer<typeof UnloadingRecordSchema>;
 
-export function AddUnloadingRecordForm({ customers, nextBillNo }: { customers: Customer[], nextBillNo: string }) {
+export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: { customers: Customer[], commodities: Commodity[], nextBillNo: string }) {
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
     const firestore = useFirestore();
@@ -133,9 +134,22 @@ export function AddUnloadingRecordForm({ customers, nextBillNo }: { customers: C
                         control={form.control}
                         name="commodityDescription"
                         render={({ field }) => (
-                            <FormItem>
+                             <FormItem>
                                 <FormLabel>Commodity</FormLabel>
-                                <FormControl><Input placeholder="e.g., Paddy" {...field} value={field.value || ''} /></FormControl>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select a commodity" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        {commodities.map(commodity => (
+                                            <SelectItem key={commodity.id} value={commodity.name}>
+                                                {commodity.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                                 <FormMessage />
                             </FormItem>
                         )}

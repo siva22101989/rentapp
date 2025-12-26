@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useTransition, useState, useEffect } from 'react';
@@ -7,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { Customer, DryingRecord, Payment } from '@/lib/definitions';
+import type { Customer, DryingRecord, Payment, Commodity } from '@/lib/definitions';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Info } from 'lucide-react';
 import { Separator } from '../ui/separator';
@@ -35,7 +36,7 @@ function SubmitButton() {
     );
 }
 
-export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { customers: Customer[], dryingRecords: DryingRecord[], nextSerialNumber: string }) {
+export function InflowForm({ customers, dryingRecords, commodities, nextSerialNumber }: { customers: Customer[], dryingRecords: DryingRecord[], commodities: Commodity[], nextSerialNumber: string }) {
     const { toast } = useToast();
     const router = useRouter();
     const firestore = useFirestore();
@@ -272,15 +273,32 @@ export function InflowForm({ customers, dryingRecords, nextSerialNumber }: { cus
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="commodityDescription">Product</Label>
-                            <Input 
-                                id="commodityDescription" 
-                                name="commodityDescription" 
-                                placeholder="e.g., Paddy (NDL)" 
-                                required
-                                value={commodityDescription}
-                                onChange={(e) => setCommodityDescription(e.target.value)}
-                                readOnly={inflowType === 'Plot'}
-                             />
+                            {inflowType === 'Plot' ? (
+                                <Input 
+                                    id="commodityDescription" 
+                                    name="commodityDescription"
+                                    value={commodityDescription}
+                                    readOnly
+                                />
+                            ) : (
+                                <Select 
+                                    name="commodityDescription" 
+                                    required 
+                                    onValueChange={setCommodityDescription} 
+                                    value={commodityDescription}
+                                >
+                                    <SelectTrigger id="commodityDescription">
+                                        <SelectValue placeholder="Select a product" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {commodities.map(commodity => (
+                                            <SelectItem key={commodity.id} value={commodity.name}>
+                                                {commodity.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            )}
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="location">Lot No. <span className="text-muted-foreground text-xs">(Optional)</span></Label>

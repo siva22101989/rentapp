@@ -17,7 +17,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import type { Customer, StorageRecord } from '@/lib/definitions';
+import type { Customer, StorageRecord, Commodity } from '@/lib/definitions';
 import { format } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { toDate } from '@/lib/utils';
@@ -27,10 +27,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { useFirestore } from '@/firebase';
 import { updateStorageRecord } from '@/lib/data';
+import { useCollection } from '@/firebase/firestore/use-collection';
+import { useMemoFirebase } from '@/hooks/use-memo-firebase';
+import { collection } from 'firebase/firestore';
+
 
 const StorageRecordSchema = z.object({
   customerId: z.string().min(1, 'Customer is required.'),
-  commodityDescription: z.string().min(2, 'Commodity is required.'),
+  commodityDescription: z.string().min(1, 'Commodity is required.'),
   location: z.string().optional(),
   bagsStored: z.coerce.number().int().nonnegative(),
   hamaliPayable: z.coerce.number().nonnegative(),
@@ -45,6 +49,12 @@ export function EditStorageDialog({ record, customers, children }: { record: Sto
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const firestore = useFirestore();
+
+  const commoditiesQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'commodities') : null),
+    [firestore]
+  );
+  const { data: commodities, loading: loadingCommodities } = useCollection<Commodity>(commoditiesQuery);
 
   const form = useForm<StorageRecordFormData>({
     resolver: zodResolver(StorageRecordSchema),
@@ -78,6 +88,10 @@ export function EditStorageDialog({ record, customers, children }: { record: Sto
       }
     });
   };
+  
+  if (loadingCommodities) {
+      return <div>Loading...</div>
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -120,7 +134,18 @@ export function EditStorageDialog({ record, customers, children }: { record: Sto
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Commodity</FormLabel>
-                    <FormControl><Input {...field} /></FormControl>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                             {commodities?.map(commodity => (
+                                <SelectItem key={commodity.id} value={commodity.name}>
+                                    {commodity.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}

@@ -6,7 +6,7 @@ import { useCollection } from "@/firebase/firestore/use-collection";
 import { collection } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
-import type { Customer, UnloadingRecord } from "@/lib/definitions";
+import type { Customer, UnloadingRecord, Commodity } from "@/lib/definitions";
 import { AddCustomerDialog } from "@/components/customers/add-customer-dialog";
 import { AddUnloadingRecordForm } from "@/components/unloading/add-unloading-form";
 import { useMemo } from "react";
@@ -27,6 +27,12 @@ export default function UnloadingPage() {
   );
   const { data: unloadingRecords, loading: loadingRecords } = useCollection<UnloadingRecord>(unloadingRecordsQuery);
 
+  const commoditiesQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'commodities') : null),
+    [firestore]
+  );
+  const { data: commodities, loading: loadingCommodities } = useCollection<Commodity>(commoditiesQuery);
+
   const nextBillNo = useMemo(() => {
     if (!unloadingRecords) return '1';
     const maxBillNo = unloadingRecords.reduce((max, record) => {
@@ -36,7 +42,7 @@ export default function UnloadingPage() {
     return (maxBillNo + 1).toString();
   }, [unloadingRecords]);
 
-  if (loadingCustomers || loadingRecords) {
+  if (loadingCustomers || loadingRecords || loadingCommodities) {
     return <AppLayout><div>Loading...</div></AppLayout>;
   }
 
@@ -51,7 +57,7 @@ export default function UnloadingPage() {
 
       <div className="grid gap-8 lg:grid-cols-3">
           <div className="lg:col-span-1">
-            <AddUnloadingRecordForm customers={customers || []} nextBillNo={nextBillNo} />
+            <AddUnloadingRecordForm customers={customers || []} commodities={commodities || []} nextBillNo={nextBillNo} />
           </div>
           <div className="lg:col-span-2">
             <UnloadingRecordsTable unloadingRecords={unloadingRecords || []} customers={customers || []} />

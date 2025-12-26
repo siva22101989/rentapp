@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -19,7 +18,7 @@ import {
 } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import type { DryingRecord, HamaliCharge } from '@/lib/definitions';
+import type { DryingRecord, HamaliCharge, UnloadingRecord } from '@/lib/definitions';
 import { useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { doc, updateDoc, arrayUnion, Timestamp } from 'firebase/firestore';
@@ -35,10 +34,11 @@ type HamaliFormData = z.infer<typeof AddHamaliSchema>;
 
 interface AddHamaliDialogProps {
     record: DryingRecord;
+    unloadingRecord?: UnloadingRecord;
     children: React.ReactNode;
 }
 
-export function AddHamaliDialog({ record, children }: AddHamaliDialogProps) {
+export function AddHamaliDialog({ record, unloadingRecord, children }: AddHamaliDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const firestore = useFirestore();
@@ -47,7 +47,7 @@ export function AddHamaliDialog({ record, children }: AddHamaliDialogProps) {
   const form = useForm<HamaliFormData>({
     resolver: zodResolver(AddHamaliSchema),
     defaultValues: {
-        hamaliPerBag: '' as any, // Initialize with empty string
+        hamaliPerBag: undefined,
         chargeDate: new Date().toISOString().split('T')[0],
     }
   });
@@ -55,7 +55,7 @@ export function AddHamaliDialog({ record, children }: AddHamaliDialogProps) {
   useEffect(() => {
     if (isOpen) {
       form.reset({
-        hamaliPerBag: '' as any, // Reset with empty string
+        hamaliPerBag: undefined,
         chargeDate: new Date().toISOString().split('T')[0],
       });
     }
@@ -109,7 +109,7 @@ export function AddHamaliDialog({ record, children }: AddHamaliDialogProps) {
             <DialogHeader>
               <DialogTitle>Add Additional Hamali</DialogTitle>
               <DialogDescription>
-                Add a new hamali charge for record {record.id}. Bags: {record.bagsPacked ?? record.bagsForDrying}.
+                Add a new hamali charge for Bill No. {unloadingRecord?.billNo ?? record.unloadingRecordId}. Bags: {record.bagsPacked ?? record.bagsForDrying}.
               </DialogDescription>
             </DialogHeader>
             <div className="py-4 space-y-4">
@@ -138,6 +138,7 @@ export function AddHamaliDialog({ record, children }: AddHamaliDialogProps) {
                           step="0.01" 
                           placeholder="0.00"
                           {...field}
+                          value={field.value ?? ''}
                         />
                     </FormControl>
                     <FormMessage />

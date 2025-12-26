@@ -3,7 +3,7 @@
 import { MoreHorizontal, Wind, Package, CircleCheck, IndianRupee, Plus } from "lucide-react";
 import { Button } from "../ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from "../ui/dropdown-menu";
-import type { DryingRecord, DryingStatus } from "@/lib/definitions";
+import type { DryingRecord, DryingStatus, UnloadingRecord } from "@/lib/definitions";
 import { useTransition } from "react";
 import { useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
@@ -11,7 +11,7 @@ import { doc, updateDoc, Timestamp } from "firebase/firestore";
 import { UpdatePackingDialog } from "./update-packing-dialog";
 import { AddHamaliDialog } from "./add-hamali-dialog";
 
-export function DryingActionsMenu({ record }: { record: DryingRecord }) {
+export function DryingActionsMenu({ record, unloadingRecord }: { record: DryingRecord, unloadingRecord?: UnloadingRecord }) {
     const [isPending, startTransition] = useTransition();
     const firestore = useFirestore();
     const { toast } = useToast();
@@ -63,7 +63,7 @@ export function DryingActionsMenu({ record }: { record: DryingRecord }) {
                 
                 {!isBilled && (
                     <>
-                        <AddHamaliDialog record={record}>
+                        <AddHamaliDialog record={record} unloadingRecord={unloadingRecord}>
                             <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                                 <Plus className="mr-2 h-4 w-4" />
                                 Add Additional Hamali

@@ -65,6 +65,7 @@ export function DryingRecordsTable({ dryingRecords, customers, unloadingRecords 
                 <TableBody>
                     {sortedRecords.map((record) => {
                         const dryingDate = record.dryingStartDate ? toDate(record.dryingStartDate) : null;
+                        const unloadingRecord = unloadingRecords.find(ur => ur.id === record.unloadingRecordId);
                         
                         return (
                         <TableRow key={record.id}>
@@ -107,7 +108,7 @@ export function DryingRecordsTable({ dryingRecords, customers, unloadingRecords 
                                 </Badge>
                             </TableCell>
                             <TableCell className="text-right">
-                                <DryingActionsMenu record={record} />
+                                <DryingActionsMenu record={record} unloadingRecord={unloadingRecord} />
                             </TableCell>
                         </TableRow>
                         )

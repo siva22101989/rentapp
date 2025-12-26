@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useState, useTransition } from 'react';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useState, useTransition, useEffect } from 'react';
+import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Loader2, Plus, Trash2, Equal } from 'lucide-react';
@@ -58,10 +58,17 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
     },
   });
 
-  const { fields, append, remove, update } = useFieldArray({
+  const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: 'charges',
   });
+  
+  const watchedCharges = useWatch({
+    control: form.control,
+    name: 'charges'
+  });
+
+  const totalHamali = watchedCharges.reduce((acc, charge) => acc + (Number(charge?.amount) || 0), 0);
 
   const onSubmit = (data: ManageHamaliFormData) => {
     if (!firestore) {
@@ -100,9 +107,6 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
         date: format(new Date(), 'yyyy-MM-dd')
     })
   }
-  
-  const watchedCharges = form.watch('charges');
-  const totalHamali = watchedCharges.reduce((acc, charge) => acc + (Number(charge?.amount) || 0), 0);
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -120,24 +124,8 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
                 <div className="space-y-4 py-4">
                 {fields.map((field, index) => {
                     const isUnloadingCharge = field.description.toLowerCase().includes('unloading');
-                    
-                    const handleRateChange = (rate: number) => {
-                        const bags = record.bagsForDrying || 0;
-                        if (bags > 0) {
-                            const newAmount = bags * rate;
-                            update(index, { ...watchedCharges[index], amount: newAmount });
-                        }
-                    };
-
-                    const handleAmountChange = (amount: number) => {
-                        update(index, { ...watchedCharges[index], amount: amount });
-                    }
-                    
-                    const currentCharge = watchedCharges[index];
-                    const currentAmount = currentCharge?.amount || 0;
                     const bagsForDrying = record.bagsForDrying || 0;
-                    const currentRate = bagsForDrying > 0 ? currentAmount / bagsForDrying : 0;
-
+                    
                     return (
                     <div key={field.id} className="p-3 rounded-md border space-y-2">
                         <div className="grid grid-cols-12 items-start gap-2">
@@ -167,24 +155,24 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
                                     </FormItem>
                                 )}
                             />
-                             <FormField
+                            <FormField
                                 control={form.control}
                                 name={`charges.${index}.amount`}
                                 render={({ field }) => (
-                                    <FormItem className="col-span-10 sm:col-span-4">
-                                        <FormLabel className="text-xs">Total Amount</FormLabel>
-                                        <FormControl>
-                                            <Input 
-                                                type="number" 
-                                                step="0.01" 
-                                                placeholder="0.00" 
-                                                {...field}
-                                                onChange={(e) => handleAmountChange(Number(e.target.value))}
-                                                readOnly={isUnloadingCharge || isBilled}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
+                                  <FormItem className="col-span-10 sm:col-span-4">
+                                      <FormLabel className="text-xs">Total Amount</FormLabel>
+                                      <FormControl>
+                                          <Input 
+                                              type="number" 
+                                              step="0.01" 
+                                              placeholder="0.00" 
+                                              {...field}
+                                              onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
+                                              readOnly={isUnloadingCharge || isBilled}
+                                          />
+                                      </FormControl>
+                                      <FormMessage />
+                                  </FormItem>
                                 )}
                             />
                             <div className="col-span-2 sm:col-span-1 flex items-end justify-end h-[52px]">
@@ -196,30 +184,33 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
                             </div>
                         </div>
 
-                         {!isUnloadingCharge && !isBilled && (
+                        {!isUnloadingCharge && !isBilled && (
                              <div className='grid grid-cols-12 items-center gap-2'>
                                 <div className='col-span-5'>
                                     <Label className="text-xs">Bags</Label>
                                     <Input 
                                         type="number" 
-                                        placeholder="Bags"
                                         value={bagsForDrying}
                                         readOnly
                                         disabled
                                     />
                                 </div>
-                                 <div className='col-span-5'>
+                                <div className='col-span-5'>
                                     <Label className="text-xs">Rate per Bag</Label>
                                     <Input 
                                         type="number" 
-                                        step="0.01" 
+                                        step="0.01"
                                         placeholder="Rate"
-                                        value={isNaN(currentRate) ? '' : currentRate.toFixed(2)}
-                                        onChange={(e) => handleRateChange(Number(e.target.value))}
+                                        value={bagsForDrying > 0 ? ((watchedCharges[index]?.amount || 0) / bagsForDrying).toFixed(2) : '0.00'}
+                                        onChange={(e) => {
+                                            const newRate = parseFloat(e.target.value) || 0;
+                                            const newAmount = bagsForDrying * newRate;
+                                            form.setValue(`charges.${index}.amount`, newAmount, { shouldDirty: true });
+                                        }}
                                         disabled={isBilled}
                                      />
                                 </div>
-                                 <div className="col-span-2 flex items-center justify-center h-10 pt-4">
+                                <div className="col-span-2 flex items-center justify-center h-10 pt-4">
                                     <Equal className="h-5 w-5 text-muted-foreground" />
                                 </div>
                              </div>

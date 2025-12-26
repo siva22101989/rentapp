@@ -56,10 +56,6 @@ export function AddHamaliDialog({ record, children }: AddHamaliDialogProps) {
 
   const form = useForm<HamaliFormData>({
     resolver: zodResolver(HamaliSchema),
-    defaultValues: {
-      hamaliPerBag: undefined,
-      chargeDate: nextChargeDate.toISOString().split('T')[0],
-    },
   });
 
   useEffect(() => {
@@ -154,7 +150,13 @@ export function AddHamaliDialog({ record, children }: AddHamaliDialogProps) {
                   <FormItem>
                     <FormLabel>Hamali Rate per Bag (for {dayDescription})</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" placeholder="Enter rate..." {...field} onChange={e => field.onChange(e.target.value === '' ? '' : +e.target.value)} value={field.value ?? ''} />
+                      <Input 
+                        type="number" 
+                        step="0.01" 
+                        placeholder="Enter rate..." 
+                        {...field}
+                        onChange={e => field.onChange(e.target.valueAsNumber)}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

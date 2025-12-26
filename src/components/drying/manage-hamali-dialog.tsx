@@ -121,13 +121,22 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
                 {fields.map((field, index) => {
                     const isUnloadingCharge = field.description.toLowerCase().includes('unloading');
                     
-                    const handlePerBagChange = (bags: number, rate: number) => {
-                        const newAmount = bags * rate;
-                        update(index, {...watchedCharges[index], amount: newAmount });
+                    const handleRateChange = (rate: number) => {
+                        const bags = record.bagsForDrying || 0;
+                        if (bags > 0) {
+                            const newAmount = bags * rate;
+                            update(index, { ...watchedCharges[index], amount: newAmount });
+                        }
                     };
+
+                    const handleAmountChange = (amount: number) => {
+                        update(index, { ...watchedCharges[index], amount: amount });
+                    }
                     
                     const currentCharge = watchedCharges[index];
-                    const currentRate = (currentCharge.amount || 0) / record.bagsForDrying;
+                    const currentAmount = currentCharge?.amount || 0;
+                    const bagsForDrying = record.bagsForDrying || 0;
+                    const currentRate = bagsForDrying > 0 ? currentAmount / bagsForDrying : 0;
 
                     return (
                     <div key={field.id} className="p-3 rounded-md border space-y-2">
@@ -161,11 +170,18 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
                              <FormField
                                 control={form.control}
                                 name={`charges.${index}.amount`}
-                                render={({ field: amountField }) => (
+                                render={({ field }) => (
                                     <FormItem className="col-span-10 sm:col-span-4">
                                         <FormLabel className="text-xs">Total Amount</FormLabel>
                                         <FormControl>
-                                            <Input type="number" step="0.01" placeholder="0.00" {...amountField} value={amountField.value ?? ''} readOnly />
+                                            <Input 
+                                                type="number" 
+                                                step="0.01" 
+                                                placeholder="0.00" 
+                                                {...field}
+                                                onChange={(e) => handleAmountChange(Number(e.target.value))}
+                                                readOnly={isUnloadingCharge || isBilled}
+                                            />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -187,7 +203,7 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
                                     <Input 
                                         type="number" 
                                         placeholder="Bags"
-                                        value={record.bagsForDrying}
+                                        value={bagsForDrying}
                                         readOnly
                                         disabled
                                     />
@@ -199,7 +215,7 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
                                         step="0.01" 
                                         placeholder="Rate"
                                         value={isNaN(currentRate) ? '' : currentRate.toFixed(2)}
-                                        onChange={(e) => handlePerBagChange(record.bagsForDrying, Number(e.target.value))}
+                                        onChange={(e) => handleRateChange(Number(e.target.value))}
                                         disabled={isBilled}
                                      />
                                 </div>

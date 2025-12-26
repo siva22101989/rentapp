@@ -1,16 +1,15 @@
-
 'use client';
 
-import { MoreHorizontal, Wind, Package, CircleCheck, IndianRupee } from "lucide-react";
+import { MoreHorizontal, Wind, Package, CircleCheck, IndianRupee, Plus } from "lucide-react";
 import { Button } from "../ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from "../ui/dropdown-menu";
 import type { DryingRecord, DryingStatus } from "@/lib/definitions";
-import { dryingStatus } from "@/lib/definitions";
 import { useTransition } from "react";
 import { useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { doc, updateDoc, Timestamp } from "firebase/firestore";
 import { UpdatePackingDialog } from "./update-packing-dialog";
+import { AddHamaliDialog } from "./add-hamali-dialog";
 
 export function DryingActionsMenu({ record }: { record: DryingRecord }) {
     const [isPending, startTransition] = useTransition();
@@ -64,6 +63,13 @@ export function DryingActionsMenu({ record }: { record: DryingRecord }) {
                 
                 {!isBilled && (
                     <>
+                        <AddHamaliDialog record={record}>
+                            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                <Plus className="mr-2 h-4 w-4" />
+                                Add Additional Hamali
+                            </DropdownMenuItem>
+                        </AddHamaliDialog>
+
                         <DropdownMenuSeparator />
                         <DropdownMenuLabel>Change Status</DropdownMenuLabel>
                         
@@ -82,14 +88,6 @@ export function DryingActionsMenu({ record }: { record: DryingRecord }) {
                                 Move to Billed
                             </DropdownMenuItem>
                         )}
-
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                            disabled={isPending || record.status === 'Drying'}
-                            onClick={() => handleStatusChange('Drying')}
-                        >
-                            Set as Drying
-                        </DropdownMenuItem>
                     </>
                 )}
 

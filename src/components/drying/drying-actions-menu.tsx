@@ -10,7 +10,6 @@ import { useTransition } from "react";
 import { useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { doc, updateDoc, Timestamp } from "firebase/firestore";
-import { AddHamaliDialog } from "./add-hamali-dialog";
 import { UpdatePackingDialog } from "./update-packing-dialog";
 
 export function DryingActionsMenu({ record }: { record: DryingRecord }) {
@@ -62,13 +61,6 @@ export function DryingActionsMenu({ record }: { record: DryingRecord }) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                 <AddHamaliDialog record={record}>
-                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} disabled={isBilled}>
-                        <IndianRupee className="mr-2 h-4 w-4" />
-                        Add Additional Hamali
-                    </DropdownMenuItem>
-                </AddHamaliDialog>
                 
                 {!isBilled && (
                     <>

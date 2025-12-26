@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -46,7 +47,7 @@ export function AddHamaliDialog({ record, children }: AddHamaliDialogProps) {
   const form = useForm<HamaliFormData>({
     resolver: zodResolver(AddHamaliSchema),
     defaultValues: {
-        hamaliPerBag: undefined,
+        hamaliPerBag: '' as any, // Initialize with empty string
         chargeDate: new Date().toISOString().split('T')[0],
     }
   });
@@ -54,7 +55,7 @@ export function AddHamaliDialog({ record, children }: AddHamaliDialogProps) {
   useEffect(() => {
     if (isOpen) {
       form.reset({
-        hamaliPerBag: undefined,
+        hamaliPerBag: '' as any, // Reset with empty string
         chargeDate: new Date().toISOString().split('T')[0],
       });
     }
@@ -137,7 +138,6 @@ export function AddHamaliDialog({ record, children }: AddHamaliDialogProps) {
                           step="0.01" 
                           placeholder="0.00"
                           {...field}
-                          onChange={event => field.onChange(+event.target.value)}
                         />
                     </FormControl>
                     <FormMessage />

@@ -41,8 +41,8 @@ export function AddCommodityDialog() {
     resolver: zodResolver(CommoditySchema),
     defaultValues: {
       name: '',
-      rate6Months: undefined,
-      rate1Year: undefined,
+      rate6Months: '' as any,
+      rate1Year: '' as any,
     },
   });
 

@@ -47,23 +47,23 @@ export function AddHamaliDialog({ record, unloadingRecord, children }: AddHamali
   const form = useForm<HamaliFormData>({
     resolver: zodResolver(AddHamaliSchema),
     defaultValues: {
-        hamaliPerBag: undefined,
-        chargeDate: new Date().toISOString().split('T')[0],
+      hamaliPerBag: '' as any,
+      chargeDate: new Date().toISOString().split('T')[0],
     }
   });
   
   useEffect(() => {
     if (isOpen) {
       form.reset({
-        hamaliPerBag: undefined,
+        hamaliPerBag: '' as any,
         chargeDate: new Date().toISOString().split('T')[0],
       });
     }
   }, [isOpen, form]);
 
   const chargeDate = form.watch('chargeDate');
-  const dryingDay = chargeDate ? differenceInDays(new Date(chargeDate), toDate(record.dryingStartDate)) + 1 : 0;
-  const description = dryingDay > 1 ? `Drying Day ${dryingDay}` : 'Drying Day 1 (Adjustment)';
+  const dryingDay = chargeDate && record.dryingStartDate ? differenceInDays(new Date(chargeDate), toDate(record.dryingStartDate)) + 1 : 0;
+  const description = dryingDay > 0 ? `Drying Day ${dryingDay}` : 'Drying Day 1 (Adjustment)';
 
   const onSubmit = (data: HamaliFormData) => {
     if (!firestore) {

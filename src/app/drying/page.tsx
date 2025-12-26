@@ -3,12 +3,11 @@
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
 import { useCollection } from "@/firebase/firestore/use-collection";
-import { collection, query, where, or } from "firebase/firestore";
+import { collection, query, where } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
-import type { Customer, DryingRecord, UnloadingRecord } from "@/lib/definitions";
+import type { Customer, UnloadingRecord } from "@/lib/definitions";
 import { AddCustomerDialog } from "@/components/customers/add-customer-dialog";
-import { DryingRecordsTable } from "@/components/drying/drying-records-table";
 import { InitiateDryingForm } from "@/components/drying/initiate-drying-form";
 import { useState } from "react";
 
@@ -22,23 +21,13 @@ export default function DryingPage() {
   );
   const { data: customers, loading: loadingCustomers } = useCollection<Customer>(customersQuery);
 
-  const activeDryingRecordsQuery = useMemoFirebase(
-    () => (firestore ? query(collection(firestore, 'dryingRecords'), or(where('status', '==', 'Drying'), where('status', '==', 'Packing'))) : null),
-    [firestore]
-  );
-  const { data: allActiveDryingRecords, loading: loadingDryingRecords } = useCollection<DryingRecord>(activeDryingRecordsQuery);
-  
   const unloadingRecordsQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'unloadingRecords') : null),
+    () => (firestore ? query(collection(firestore, 'unloadingRecords'), where('status', '==', 'Unloading')) : null),
     [firestore]
   );
   const { data: unloadingRecords, loading: loadingUnloadingRecords } = useCollection<UnloadingRecord>(unloadingRecordsQuery);
 
-  const filteredDryingRecords = selectedCustomerId
-    ? allActiveDryingRecords?.filter(record => record.customerId === selectedCustomerId)
-    : allActiveDryingRecords;
-
-  if (loadingCustomers || loadingDryingRecords || loadingUnloadingRecords) {
+  if (loadingCustomers || loadingUnloadingRecords) {
     return <AppLayout><div>Loading...</div></AppLayout>;
   }
 
@@ -51,19 +40,12 @@ export default function DryingPage() {
         <AddCustomerDialog />
       </PageHeader>
 
-      <div className="grid gap-8 md:grid-cols-3">
-        <div className="md:col-span-1">
-          <InitiateDryingForm 
-            customers={customers || []} 
-            unloadingRecords={unloadingRecords?.filter(ur => ur.status === 'Unloading') || []}
-            onCustomerChange={setSelectedCustomerId}
-          />
-        </div>
-        <div className="md:col-span-2">
-            <DryingRecordsTable 
-              dryingRecords={filteredDryingRecords || []} 
-              customers={customers || []}
-              unloadingRecords={unloadingRecords || []}
+      <div className="flex justify-center">
+        <div className="w-full max-w-lg">
+            <InitiateDryingForm 
+                customers={customers || []} 
+                unloadingRecords={unloadingRecords || []}
+                onCustomerChange={setSelectedCustomerId}
             />
         </div>
       </div>

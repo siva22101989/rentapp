@@ -51,12 +51,13 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
     defaultValues: {
       charges: (record.hamaliCharges || []).map(charge => ({
         ...charge,
+        amount: charge.amount || 0,
         date: format(toDate(charge.date), 'yyyy-MM-dd'),
       })),
     },
   });
 
-  const { fields, append, remove, update } = useFieldArray({
+  const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: 'charges',
   });
@@ -99,7 +100,7 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
     })
   }
 
-  const totalHamali = form.watch('charges').reduce((acc, charge) => acc + (charge.amount || 0), 0);
+  const totalHamali = form.watch('charges').reduce((acc, charge) => acc + (Number(charge.amount) || 0), 0);
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -149,7 +150,7 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
                             render={({ field }) => (
                                 <FormItem className="col-span-3">
                                 <FormControl>
-                                    <Input type="number" step="0.01" placeholder="0.00" {...field} readOnly={isUnloadingCharge || isBilled} />
+                                    <Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} readOnly={isUnloadingCharge || isBilled} />
                                 </FormControl>
                                 <FormMessage />
                                 </FormItem>

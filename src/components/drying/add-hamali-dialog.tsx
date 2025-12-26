@@ -1,3 +1,3 @@
-// This file is no longer used and can be removed. I am replacing it with ManageHamaliDialog.
+// This file is no longer used and has been replaced by manage-hamali-dialog.tsx
 'use client';
 export function AddHamaliDialog() { return null; }

@@ -57,19 +57,18 @@ export function AddHamaliDialog({ record, children }: AddHamaliDialogProps) {
   const form = useForm<HamaliFormData>({
     resolver: zodResolver(HamaliSchema),
     defaultValues: {
-      hamaliPerBag: '' as any, // Use empty string for controlled component
-      chargeDate: new Date().toISOString().split('T')[0],
+      hamaliPerBag: undefined,
+      chargeDate: nextChargeDate.toISOString().split('T')[0],
     },
   });
 
   useEffect(() => {
     if (isOpen) {
         form.reset({
-          hamaliPerBag: '' as any, // Reset to empty string
+          hamaliPerBag: undefined,
           chargeDate: nextChargeDate.toISOString().split('T')[0],
         });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, form, nextChargeDate]);
 
 
@@ -97,7 +96,7 @@ export function AddHamaliDialog({ record, children }: AddHamaliDialogProps) {
     startTransition(async () => {
       try {
         const additionalAmount = data.hamaliPerBag * record.bagsForDrying;
-        const newCharge: HamaliCharge = {
+        const newCharge: Omit<HamaliCharge, 'date'> & { date: Timestamp } = {
             description: dayDescription,
             amount: additionalAmount,
             date: Timestamp.fromDate(new Date(data.chargeDate))
@@ -155,7 +154,7 @@ export function AddHamaliDialog({ record, children }: AddHamaliDialogProps) {
                   <FormItem>
                     <FormLabel>Hamali Rate per Bag (for {dayDescription})</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" placeholder="Enter rate..." {...field} />
+                      <Input type="number" step="0.01" placeholder="Enter rate..." {...field} onChange={e => field.onChange(e.target.value === '' ? '' : +e.target.value)} value={field.value ?? ''} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -14,7 +13,7 @@ import { format } from 'date-fns';
 import { formatCurrency, toDate } from "@/lib/utils";
 import type { Customer, DryingRecord, UnloadingRecord, DryingStatus } from "@/lib/definitions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
-import { DryingActionsMenu } from "./drying-actions-menu";
+import { DryingActionsMenu } from "@/components/drying/drying-actions-menu";
 
 const getStatusBadgeVariant = (status: DryingStatus) => {
     switch (status) {

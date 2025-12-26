@@ -56,6 +56,9 @@ export function AddHamaliDialog({ record, children }: AddHamaliDialogProps) {
 
   const form = useForm<HamaliFormData>({
     resolver: zodResolver(HamaliSchema),
+    defaultValues: {
+      hamaliPerBag: undefined,
+    }
   });
 
   useEffect(() => {
@@ -156,6 +159,7 @@ export function AddHamaliDialog({ record, children }: AddHamaliDialogProps) {
                         placeholder="Enter rate..." 
                         {...field}
                         onChange={e => field.onChange(e.target.valueAsNumber)}
+                        value={field.value ?? ''}
                       />
                     </FormControl>
                     <FormMessage />

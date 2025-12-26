@@ -45,6 +45,10 @@ export function AddHamaliDialog({ record, children }: AddHamaliDialogProps) {
 
   const form = useForm<HamaliFormData>({
     resolver: zodResolver(AddHamaliSchema),
+    defaultValues: {
+        hamaliPerBag: undefined,
+        chargeDate: new Date().toISOString().split('T')[0],
+    }
   });
   
   useEffect(() => {
@@ -131,11 +135,9 @@ export function AddHamaliDialog({ record, children }: AddHamaliDialogProps) {
                        <Input 
                           type="number" 
                           step="0.01" 
-                          placeholder="0.00" 
-                          {...field} 
-                          // This ensures that the field can be empty and is controlled
-                          value={field.value ?? ''}
-                          onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)}
+                          placeholder="0.00"
+                          {...field}
+                          onChange={event => field.onChange(+event.target.value)}
                         />
                     </FormControl>
                     <FormMessage />

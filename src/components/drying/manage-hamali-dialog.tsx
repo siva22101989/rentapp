@@ -102,7 +102,7 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
   }
   
   const watchedCharges = form.watch('charges');
-  const totalHamali = watchedCharges.reduce((acc, charge) => acc + (Number(charge.amount) || 0), 0);
+  const totalHamali = watchedCharges.reduce((acc, charge) => acc + (Number(charge?.amount) || 0), 0);
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -126,6 +126,9 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
                         update(index, {...watchedCharges[index], amount: newAmount });
                     };
                     
+                    const currentCharge = watchedCharges[index];
+                    const currentRate = (currentCharge.amount || 0) / record.bagsForDrying;
+
                     return (
                     <div key={field.id} className="p-3 rounded-md border space-y-2">
                         <div className="grid grid-cols-12 items-start gap-2">
@@ -177,16 +180,16 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
                             </div>
                         </div>
 
-                         {!isUnloadingCharge && (
+                         {!isUnloadingCharge && !isBilled && (
                              <div className='grid grid-cols-12 items-center gap-2'>
                                 <div className='col-span-5'>
                                     <Label className="text-xs">Bags</Label>
                                     <Input 
                                         type="number" 
                                         placeholder="Bags"
-                                        defaultValue={record.bagsForDrying}
-                                        onChange={(e) => handlePerBagChange(Number(e.target.value), (watchedCharges[index].amount / (Number(e.target.value) || 1)))}
-                                        disabled={isBilled}
+                                        value={record.bagsForDrying}
+                                        readOnly
+                                        disabled
                                     />
                                 </div>
                                  <div className='col-span-5'>
@@ -195,6 +198,7 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
                                         type="number" 
                                         step="0.01" 
                                         placeholder="Rate"
+                                        value={isNaN(currentRate) ? '' : currentRate.toFixed(2)}
                                         onChange={(e) => handlePerBagChange(record.bagsForDrying, Number(e.target.value))}
                                         disabled={isBilled}
                                      />

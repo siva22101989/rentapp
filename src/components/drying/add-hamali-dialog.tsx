@@ -47,7 +47,7 @@ export function AddHamaliDialog({ record, unloadingRecord, children }: AddHamali
   const form = useForm<HamaliFormData>({
     resolver: zodResolver(AddHamaliSchema),
     defaultValues: {
-        hamaliPerBag: undefined,
+        hamaliPerBag: '' as any,
         chargeDate: new Date().toISOString().split('T')[0],
     }
   });
@@ -55,7 +55,7 @@ export function AddHamaliDialog({ record, unloadingRecord, children }: AddHamali
   useEffect(() => {
     if (isOpen) {
       form.reset({
-        hamaliPerBag: undefined,
+        hamaliPerBag: '' as any,
         chargeDate: new Date().toISOString().split('T')[0],
       });
     }
@@ -109,7 +109,7 @@ export function AddHamaliDialog({ record, unloadingRecord, children }: AddHamali
             <DialogHeader>
               <DialogTitle>Add Additional Hamali</DialogTitle>
               <DialogDescription>
-                Add a new hamali charge for Bill No. {unloadingRecord?.billNo ?? record.unloadingRecordId}. Bags: {record.bagsPacked ?? record.bagsForDrying}.
+                Add a new hamali charge for Bill from {unloadingRecord?.billNo ?? record.unloadingRecordId}. Bags: {record.bagsPacked ?? record.bagsForDrying}.
               </DialogDescription>
             </DialogHeader>
             <div className="py-4 space-y-4">
@@ -138,7 +138,6 @@ export function AddHamaliDialog({ record, unloadingRecord, children }: AddHamali
                           step="0.01" 
                           placeholder="0.00"
                           {...field}
-                          value={field.value ?? ''}
                         />
                     </FormControl>
                     <FormMessage />

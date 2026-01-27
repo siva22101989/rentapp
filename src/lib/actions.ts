@@ -1,4 +1,3 @@
-
 'use server';
 
 import { z } from 'zod';
@@ -74,34 +73,6 @@ export async function addInflow(prevState: InflowFormState, formData: FormData) 
         success: true,
         recordId: formData.get('recordId') as string
     };
-}
-
-
-const OutflowSchema = z.object({
-    recordId: z.string().min(1, 'A storage record must be selected.'),
-    bagsToWithdraw: z.coerce.number().int().positive('Bags to withdraw must be a positive number.'),
-    withdrawalDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
-    finalRent: z.coerce.number().nonnegative('Final rent cannot be negative.'),
-    amountPaidNow: z.coerce.number().nonnegative('Amount paid must be non-negative.').optional(),
-});
-
-export type OutflowFormState = {
-    message: string;
-    success: boolean;
-};
-
-export async function addOutflow(prevState: OutflowFormState, formData: FormData) {
-    const validatedFields = OutflowSchema.safeParse(Object.fromEntries(formData.entries()));
-
-    if (!validatedFields.success) {
-        return { message: 'Invalid form data.', success: false };
-    }
-
-    const { recordId, bagsToWithdraw, finalRent, amountPaidNow } = validatedFields.data;
-
-    revalidatePath('/storage');
-    revalidatePath('/reports');
-    redirect(`/outflow/receipt/${recordId}?withdrawn=${bagsToWithdraw}&rent=${finalRent}&paidNow=${amountPaidNow || 0}`);
 }
 
 const PaymentSchema = z.object({

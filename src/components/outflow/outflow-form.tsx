@@ -1,15 +1,15 @@
-
 'use client';
 
-import { useActionState, useEffect, useState } from 'react';
-import { useFormStatus } from 'react-dom';
-import { addOutflow, type OutflowFormState } from '@/lib/actions';
+import { useEffect, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
+import { useFirestore } from '@/firebase';
+import { doc, updateDoc, arrayUnion, Timestamp, type Firestore } from 'firebase/firestore';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { Customer, StorageRecord } from '@/lib/definitions';
+import type { Customer, StorageRecord, Payment } from '@/lib/definitions';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Separator } from '../ui/separator';
@@ -17,11 +17,10 @@ import { calculateFinalRent } from '@/lib/billing';
 import { format } from 'date-fns';
 import { toDate } from '@/lib/utils';
 
-function SubmitButton() {
-    const { pending } = useFormStatus();
+function SubmitButton({ isPending }: { isPending: boolean }) {
     return (
-      <Button type="submit" disabled={pending} className="w-full">
-        {pending ? (
+      <Button type="submit" disabled={isPending} className="w-full">
+        {isPending ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             Processing...
@@ -35,12 +34,14 @@ function SubmitButton() {
 
 export function OutflowForm({ records, customers }: { records: StorageRecord[], customers: Customer[] }) {
     const { toast } = useToast();
-    const initialState: OutflowFormState = { message: '', success: false };
-    const [state, formAction] = useActionState(addOutflow, initialState);
-
+    const router = useRouter();
+    const firestore = useFirestore();
+    const [isPending, startTransition] = useTransition();
+    
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
     const [selectedRecordId, setSelectedRecordId] = useState<string>('');
-    const [bagsToWithdraw, setBagsToWithdraw] = useState(0);
+    const [bagsToWithdraw, setBagsToWithdraw] = useState<number | ''>('');
+    const [amountPaidNow, setAmountPaidNow] = useState<number | ''>('');
     const [withdrawalDate, setWithdrawalDate] = useState(new Date());
     
     const [finalRent, setFinalRent] = useState(0);
@@ -53,23 +54,12 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
     const totalPayable = finalRent + hamaliPending;
 
     useEffect(() => {
-        if (state.message) {
-            if (state.success) {
-                // Redirect is handled by the action, no toast needed for success
-            } else {
-                toast({
-                    title: 'Error',
-                    description: state.message,
-                    variant: 'destructive',
-                });
-            }
-        }
-    }, [state, toast]);
-
-    useEffect(() => {
         if (selectedRecord) {
-            const amountPaid = (selectedRecord.payments || []).reduce((acc, p) => acc + p.amount, 0);
-            const pending = selectedRecord.hamaliPayable - amountPaid;
+            const hamaliPaid = (selectedRecord.payments || [])
+                .filter(p => p.type === 'hamali')
+                .reduce((acc, p) => acc + p.amount, 0);
+
+            const pending = selectedRecord.hamaliPayable - hamaliPaid;
             setHamaliPending(pending > 0 ? pending : 0);
             
             const safeRecord = {
@@ -77,8 +67,9 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                 storageStartDate: toDate(selectedRecord.storageStartDate)
             };
 
-            if (bagsToWithdraw > 0) {
-                const { rent, monthsStored, rentPerBag: rentPerBagCalc } = calculateFinalRent(safeRecord, withdrawalDate, bagsToWithdraw);
+            const bags = Number(bagsToWithdraw) || 0;
+            if (bags > 0) {
+                const { rent, monthsStored, rentPerBag: rentPerBagCalc } = calculateFinalRent(safeRecord, withdrawalDate, bags);
                 setFinalRent(rent);
                 setStorageMonths(monthsStored);
                 setRentPerBag({ rentPerBag: rentPerBagCalc });
@@ -98,7 +89,7 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
     const handleCustomerChange = (customerId: string) => {
         setSelectedCustomerId(customerId);
         setSelectedRecordId('');
-        setBagsToWithdraw(0);
+        setBagsToWithdraw('');
         setFinalRent(0);
         setStorageMonths(0);
         setRentPerBag({ rentPerBag: 0 });
@@ -109,10 +100,70 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
         const dateValue = e.target.valueAsDate ? new Date(e.target.valueAsDate.valueOf() + e.target.valueAsDate.getTimezoneOffset() * 60 * 1000) : new Date();
         setWithdrawalDate(dateValue);
     }
+    
+    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        
+        if (!firestore || !selectedRecord) {
+            toast({ title: 'Error', description: 'Please select a customer and a record.', variant: 'destructive' });
+            return;
+        }
+
+        const bags = Number(bagsToWithdraw);
+        if (bags <= 0) {
+            toast({ title: 'Error', description: 'Bags to withdraw must be a positive number.', variant: 'destructive' });
+            return;
+        }
+
+        if (bags > selectedRecord.bagsStored) {
+            toast({ title: 'Error', description: `Cannot withdraw more than the stored amount of ${selectedRecord.bagsStored} bags.`, variant: 'destructive' });
+            return;
+        }
+
+        startTransition(async () => {
+            try {
+                const recordRef = doc(firestore, 'storageRecords', selectedRecord.id);
+
+                const bagsRemaining = selectedRecord.bagsStored - bags;
+                const isFinalWithdrawal = bagsRemaining <= 0;
+
+                const updateData: any = {
+                    bagsStored: bagsRemaining,
+                    bagsOut: (selectedRecord.bagsOut || 0) + bags,
+                    totalRentBilled: (selectedRecord.totalRentBilled || 0) + finalRent,
+                };
+                
+                if (isFinalWithdrawal) {
+                    updateData.storageEndDate = Timestamp.fromDate(withdrawalDate);
+                    updateData.billingCycle = 'Completed';
+                }
+
+                const paidNow = Number(amountPaidNow) || 0;
+                if (paidNow > 0) {
+                    const newPayment: Payment = {
+                        amount: paidNow,
+                        date: Timestamp.fromDate(withdrawalDate),
+                        type: 'rent', // Assume final payment is for rent/total due
+                    };
+                    updateData.payments = arrayUnion(newPayment);
+                }
+
+                await updateDoc(recordRef, updateData);
+
+                toast({ title: 'Success', description: 'Withdrawal processed successfully.' });
+
+                router.push(`/outflow/receipt/${selectedRecord.id}?withdrawn=${bags}&rent=${finalRent}&paidNow=${paidNow}`);
+
+            } catch (error) {
+                console.error("Outflow failed:", error);
+                toast({ title: 'Error', description: 'Failed to process outflow.', variant: 'destructive' });
+            }
+        });
+    }
 
   return (
     <div className="flex justify-center">
-        <form action={formAction} className="w-full max-w-lg">
+        <form onSubmit={handleSubmit} className="w-full max-w-lg">
             <Card>
                 <CardHeader>
                 <CardTitle>Withdrawal Details</CardTitle>
@@ -170,7 +221,8 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                                         type="number" 
                                         placeholder="0"
                                         required 
-                                        onChange={e => setBagsToWithdraw(Number(e.target.value))}
+                                        value={bagsToWithdraw}
+                                        onChange={e => setBagsToWithdraw(e.target.value === '' ? '' : Number(e.target.value))}
                                     />
                                     <p className="text-xs text-muted-foreground">
                                         Max: {selectedRecord.bagsStored} bags
@@ -197,7 +249,7 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                                         <span className="font-mono">{storageMonths} months</span>
                                     </div>
                                     <div className="flex justify-between items-center text-sm">
-                                        <span className="text-muted-foreground">Rent Due for {bagsToWithdraw} bags</span>
+                                        <span className="text-muted-foreground">Rent Due for {Number(bagsToWithdraw) || 0} bags</span>
                                         <span className="font-mono">₹{finalRent.toFixed(2)}</span>
                                     </div>
                                      <div className="flex justify-between items-center text-sm">
@@ -217,6 +269,8 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                                             type="number"
                                             placeholder="0.00"
                                             step="0.01"
+                                            value={amountPaidNow}
+                                            onChange={e => setAmountPaidNow(e.target.value === '' ? '' : Number(e.target.value))}
                                             max={totalPayable.toFixed(2)}
                                         />
                                         <p className="text-xs text-muted-foreground">
@@ -224,13 +278,12 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                                         </p>
                                     </div>
                                 </div>
-                                <input type="hidden" name="finalRent" value={finalRent} />
                             </div>
                         </>
                     )}
                 </CardContent>
                 <CardFooter>
-                    <SubmitButton />
+                    <SubmitButton isPending={isPending} />
                 </CardFooter>
             </Card>
         </form>

@@ -6,19 +6,22 @@ import type { Customer, StorageRecord } from "@/lib/definitions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from '@/components/ui/button';
-import { Download, Loader2 } from 'lucide-react';
+import { Download, Loader2, UserSearch } from 'lucide-react';
 import { ReportTable } from './report-table';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { CustomerStatement } from './customer-statement';
 
 export function ReportClient({ records, customers }: { records: StorageRecord[], customers: Customer[] }) {
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>('all');
+    const [statementCustomerId, setStatementCustomerId] = useState<string>('');
     const [activeTab, setActiveTab] = useState('inflow');
     const [isGenerating, setIsGenerating] = useState(false);
     
     const inflowReportRef = useRef<HTMLDivElement>(null);
     const outflowReportRef = useRef<HTMLDivElement>(null);
+    const statementReportRef = useRef<HTMLDivElement>(null);
 
     const filteredRecords = selectedCustomerId === 'all'
         ? records
@@ -27,10 +30,22 @@ export function ReportClient({ records, customers }: { records: StorageRecord[],
     const inflowRecords = filteredRecords;
     const outflowRecords = filteredRecords.filter(record => record.storageEndDate);
 
+    const statementCustomer = customers.find(c => c.id === statementCustomerId);
+    const statementRecords = records.filter(r => r.customerId === statementCustomerId);
 
     const handleDownloadPdf = async () => {
-        const reportRef = activeTab === 'inflow' ? inflowReportRef : outflowReportRef;
-        const element = reportRef.current;
+        let element: HTMLDivElement | null = null;
+        let orientation: 'l' | 'p' = 'l'; // landscape for most
+        
+        if (activeTab === 'inflow') {
+            element = inflowReportRef.current;
+        } else if (activeTab === 'outflow') {
+            element = outflowReportRef.current;
+        } else if (activeTab === 'statement') {
+            element = statementReportRef.current;
+            orientation = 'p'; // portrait for statement
+        }
+
         if (!element) return;
 
         setIsGenerating(true);
@@ -38,7 +53,7 @@ export function ReportClient({ records, customers }: { records: StorageRecord[],
         try {
             const canvas = await html2canvas(element, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
             const imgData = canvas.toDataURL('image/png');
-            const pdf = new jsPDF('l', 'mm', 'a4'); // landscape
+            const pdf = new jsPDF(orientation, 'mm', 'a4');
             const pdfWidth = pdf.internal.pageSize.getWidth();
             const pdfHeight = pdf.internal.pageSize.getHeight();
             const imgWidth = canvas.width;
@@ -76,22 +91,25 @@ export function ReportClient({ records, customers }: { records: StorageRecord[],
                         <TabsList>
                             <TabsTrigger value="inflow">Inflow Report</TabsTrigger>
                             <TabsTrigger value="outflow">Outflow Report</TabsTrigger>
+                            <TabsTrigger value="statement">Customer Statement</TabsTrigger>
                         </TabsList>
                     </div>
                     <div className="flex items-center gap-4 w-full md:w-auto">
-                        <Select onValueChange={setSelectedCustomerId} defaultValue="all">
-                            <SelectTrigger className="w-full md:w-[280px]">
-                                <SelectValue placeholder="Filter by customer..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Customers</SelectItem>
-                                {customers.map(customer => (
-                                    <SelectItem key={customer.id} value={customer.id}>
-                                        {customer.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        {activeTab !== 'statement' && (
+                             <Select onValueChange={setSelectedCustomerId} defaultValue="all">
+                                <SelectTrigger className="w-full md:w-[280px]">
+                                    <SelectValue placeholder="Filter by customer..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Customers</SelectItem>
+                                    {customers.map(customer => (
+                                        <SelectItem key={customer.id} value={customer.id}>
+                                            {customer.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        )}
                         <Button onClick={handleDownloadPdf} disabled={isGenerating}>
                             {isGenerating ? (
                                 <>
@@ -116,6 +134,35 @@ export function ReportClient({ records, customers }: { records: StorageRecord[],
                      <TabsContent value="outflow">
                         <div ref={outflowReportRef} className="printable-area">
                             <ReportTable records={outflowRecords} customers={customers} title={`Outflow Report for ${selectedCustomerName}`} />
+                        </div>
+                    </TabsContent>
+                    <TabsContent value="statement">
+                        <div className="flex flex-col gap-4">
+                             <Select onValueChange={setStatementCustomerId} value={statementCustomerId}>
+                                <SelectTrigger className="w-full md:w-[380px] mx-auto">
+                                    <SelectValue placeholder="Select a customer to generate their statement..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {customers.map(customer => (
+                                        <SelectItem key={customer.id} value={customer.id}>
+                                            {customer.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
+                            {statementCustomer && statementRecords.length > 0 ? (
+                                <div ref={statementReportRef}>
+                                    <CustomerStatement customer={statementCustomer} records={statementRecords} />
+                                </div>
+                            ) : (
+                                <div className="text-center text-muted-foreground py-16">
+                                    <UserSearch className="mx-auto h-12 w-12" />
+                                    <p className="mt-4">
+                                        {statementCustomerId ? "No records found for this customer." : "Please select a customer to view their statement."}
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     </TabsContent>
                 </CardContent>

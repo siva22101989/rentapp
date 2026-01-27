@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useTransition, useState, useEffect } from 'react';
@@ -14,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
 import type { Customer, UnloadingRecord, HamaliCharge } from '@/lib/definitions';
-import { addDoc, collection, Timestamp, doc, updateDoc } from 'firebase/firestore';
+import { addDoc, collection, Timestamp, doc, updateDoc, increment } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { formatCurrency } from '@/lib/utils';
 import { Separator } from '../ui/separator';
@@ -65,19 +64,28 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
 
     const selectedUnloadingRecordId = form.watch('unloadingRecordId');
     const selectedUnloadingRecord = unloadingRecords.find(ur => ur.id === selectedUnloadingRecordId);
+    const bagsRemainingOnRecord = selectedUnloadingRecord ? selectedUnloadingRecord.bagsUnloaded - (selectedUnloadingRecord.bagsSentToDrying || 0) : 0;
     
     const day1HamaliRate = form.watch('hamaliPerBag');
     const bagsForDrying = form.watch('bagsForDrying');
     const day1DryingHamali = (bagsForDrying || 0) * (day1HamaliRate || 0);
-    const unloadingHamali = selectedUnloadingRecord?.totalHamali || 0;
-    const totalHamali = unloadingHamali + day1DryingHamali;
+    const unloadingHamali = selectedUnloadingRecord?.totalHamali || 0; // This is the total for the original record. This seems wrong. Hamali should be proportional.
+
+    // Let's adjust how hamali is calculated. Hamali for unloading should be proportional to the bags being processed now.
+    const proportionalUnloadingHamali = selectedUnloadingRecord 
+        ? (selectedUnloadingRecord.hamaliPerBag * (bagsForDrying || 0))
+        : 0;
+
+    const totalHamali = proportionalUnloadingHamali + day1DryingHamali;
 
     useEffect(() => {
       if (selectedUnloadingRecord) {
-        form.setValue('bagsForDrying', selectedUnloadingRecord.bagsUnloaded);
+        // Default to drying the remaining bags
+        form.setValue('bagsForDrying', bagsRemainingOnRecord);
       } else {
         form.setValue('bagsForDrying', undefined);
       }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedUnloadingRecord, form]);
 
 
@@ -92,20 +100,21 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
             toast({ title: 'Error', description: 'Selected unloading record not found.', variant: 'destructive' });
             return;
         }
-
-        if (data.bagsForDrying > selectedUnloadingRecord.bagsUnloaded) {
-          form.setError('bagsForDrying', { message: `Cannot exceed unloaded bags (${selectedUnloadingRecord.bagsUnloaded}).`});
+        
+        const bagsStillAvailable = selectedUnloadingRecord.bagsUnloaded - (selectedUnloadingRecord.bagsSentToDrying || 0);
+        if (data.bagsForDrying > bagsStillAvailable) {
+          form.setError('bagsForDrying', { message: `Cannot exceed available bags (${bagsStillAvailable}).`});
           return;
         }
 
         startTransition(async () => {
             try {
                 const dryingStartDate = new Date(data.dryingStartDate);
+                const currentProportionalUnloadingHamali = selectedUnloadingRecord.hamaliPerBag * data.bagsForDrying;
                 const dryingDay1Hamali = data.bagsForDrying * data.hamaliPerBag;
-                const unloadingHamali = selectedUnloadingRecord.totalHamali || 0;
                 
                 const hamaliCharges: HamaliCharge[] = [
-                  { description: "Unloading Hamali", amount: unloadingHamali, date: selectedUnloadingRecord.unloadingDate },
+                  { description: `Unloading Hamali for ${data.bagsForDrying} bags`, amount: currentProportionalUnloadingHamali, date: selectedUnloadingRecord.unloadingDate },
                   { description: "Drying Day 1", amount: dryingDay1Hamali, date: Timestamp.fromDate(dryingStartDate) },
                 ];
                 
@@ -127,9 +136,11 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                 };
                 await addDoc(collection(firestore, 'dryingRecords'), newRecord);
 
-                // 2. Update status of unloading record
+                // 2. Update bagsSentToDrying on unloading record
                 const unloadingRecordRef = doc(firestore, 'unloadingRecords', data.unloadingRecordId);
-                await updateDoc(unloadingRecordRef, { status: 'Drying' });
+                await updateDoc(unloadingRecordRef, { 
+                    bagsSentToDrying: increment(data.bagsForDrying)
+                });
 
                 toast({ title: 'Success', description: 'Drying process initiated.' });
                 form.reset();
@@ -189,10 +200,10 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                                             <SelectContent>
                                                 {customerUnloadingRecords.length > 0 ? customerUnloadingRecords.map(ur => (
                                                     <SelectItem key={ur.id} value={ur.id}>
-                                                        Bill #{ur.billNo} - {ur.commodityDescription} ({ur.bagsUnloaded} bags)
+                                                        Bill #{ur.billNo} - {ur.commodityDescription} ({ur.bagsUnloaded - (ur.bagsSentToDrying || 0)} bags remaining)
                                                     </SelectItem>
                                                 )) : (
-                                                    <SelectItem value="none" disabled>No available records for drying</SelectItem>
+                                                    <SelectItem value="none" disabled>No records with remaining bags</SelectItem>
                                                 )}
                                             </SelectContent>
                                         </Select>
@@ -205,7 +216,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                                     <Info className="h-4 w-4" />
                                     <AlertTitle>Unloading Summary</AlertTitle>
                                     <AlertDescription>
-                                        Total Hamali from Bill #{selectedUnloadingRecord.billNo} is <strong>{formatCurrency(selectedUnloadingRecord.totalHamali)}</strong>. This will be added to the drying costs.
+                                        Total hamali for unloading was <strong>{formatCurrency(selectedUnloadingRecord.totalHamali)}</strong> for <strong>{selectedUnloadingRecord.bagsUnloaded}</strong> bags. The cost will be pro-rated for the bags you send to drying.
                                     </AlertDescription>
                                 </Alert>
                             )}
@@ -218,7 +229,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                             <FormItem>
                                 <FormLabel>Bags for Drying</FormLabel>
                                 <FormControl><Input type="number" placeholder="0" {...field} value={field.value ?? ''} /></FormControl>
-                                {selectedUnloadingRecord && <FormDescription>Unloaded: {selectedUnloadingRecord.bagsUnloaded} bags</FormDescription>}
+                                {selectedUnloadingRecord && <FormDescription>Remaining on Bill: {bagsRemainingOnRecord} bags</FormDescription>}
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -249,10 +260,10 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                     <Separator />
 
                     <div className="space-y-2">
-                        <h4 className="font-medium">Cost Summary</h4>
+                        <h4 className="font-medium">Cost Summary for this Drying Process</h4>
                         <div className="flex justify-between items-center text-sm">
-                            <span className="text-muted-foreground">Unloading Hamali</span>
-                            <span className="font-mono">{formatCurrency(unloadingHamali)}</span>
+                            <span className="text-muted-foreground">Pro-rated Unloading Hamali</span>
+                            <span className="font-mono">{formatCurrency(proportionalUnloadingHamali)}</span>
                         </div>
                          <div className="flex justify-between items-center text-sm">
                             <span className="text-muted-foreground">Drying Hamali (Day 1)</span>
@@ -260,7 +271,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                         </div>
                         <Separator />
                         <div className="flex justify-between items-center font-semibold">
-                            <span>Total Hamali (So Far)</span>
+                            <span>Total Hamali (For this process)</span>
                             <span className="font-mono">{formatCurrency(totalHamali)}</span>
                         </div>
                     </div>

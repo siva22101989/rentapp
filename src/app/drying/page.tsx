@@ -1,4 +1,3 @@
-
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
@@ -9,7 +8,7 @@ import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 import type { Customer, UnloadingRecord } from "@/lib/definitions";
 import { AddCustomerDialog } from "@/components/customers/add-customer-dialog";
 import { InitiateDryingForm } from "@/components/drying/initiate-drying-form";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { History } from "lucide-react";
@@ -25,10 +24,16 @@ export default function DryingPage() {
   const { data: customers, loading: loadingCustomers } = useCollection<Customer>(customersQuery);
 
   const unloadingRecordsQuery = useMemoFirebase(
-    () => (firestore ? query(collection(firestore, 'unloadingRecords'), where('status', '==', 'Unloading')) : null),
+    () => (firestore ? collection(firestore, 'unloadingRecords') : null),
     [firestore]
   );
   const { data: unloadingRecords, loading: loadingUnloadingRecords } = useCollection<UnloadingRecord>(unloadingRecordsQuery);
+
+  const availableForDryingRecords = useMemo(() => {
+    if (!unloadingRecords) return [];
+    return unloadingRecords.filter(r => r.bagsUnloaded > (r.bagsSentToDrying || 0));
+  }, [unloadingRecords]);
+
 
   if (loadingCustomers || loadingUnloadingRecords) {
     return <AppLayout><div>Loading...</div></AppLayout>;
@@ -53,7 +58,7 @@ export default function DryingPage() {
         <div className="w-full max-w-lg">
             <InitiateDryingForm 
                 customers={customers || []} 
-                unloadingRecords={unloadingRecords || []}
+                unloadingRecords={availableForDryingRecords || []}
                 onCustomerChange={setSelectedCustomerId}
             />
         </div>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useTransition, useState, useEffect } from 'react';
@@ -76,7 +75,7 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
                     ...data,
                     billNo: nextBillNo, // Ensure the latest bill number is used
                     unloadingDate: Timestamp.fromDate(new Date(data.unloadingDate)),
-                    status: 'Unloading' as const,
+                    bagsSentToDrying: 0,
                     totalHamali,
                 };
                 const docRef = await addDoc(collection(firestore, 'unloadingRecords'), newRecord);

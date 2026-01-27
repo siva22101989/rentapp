@@ -11,24 +11,24 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns';
 import { formatCurrency, toDate } from "@/lib/utils";
-import type { Customer, UnloadingRecord, UnloadingStatus } from "@/lib/definitions";
+import type { Customer, UnloadingRecord } from "@/lib/definitions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
-import { UnloadingActionsMenu } from "./unloading-actions-menu";
 
-const getStatusBadgeVariant = (status: UnloadingStatus) => {
-    switch (status) {
-        case 'Unloading':
-            return 'bg-blue-100 text-blue-800';
-        case 'Drying':
-            return 'bg-yellow-100 text-yellow-800';
-        case 'Packing':
-            return 'bg-purple-100 text-purple-800';
-        case 'Billed':
-            return 'bg-green-100 text-green-800';
-        default:
-            return 'bg-zinc-100 text-zinc-800';
-    }
+type StatusInfo = {
+    text: 'Unloading' | 'Partially Drying' | 'Drying Complete';
+    variant: 'bg-blue-100 text-blue-800' | 'bg-yellow-100 text-yellow-800' | 'bg-green-100 text-green-800';
 }
+
+const getRecordStatus = (record: UnloadingRecord): StatusInfo => {
+    const bagsSent = record.bagsSentToDrying || 0;
+    if (bagsSent === 0) {
+        return { text: 'Unloading', variant: 'bg-blue-100 text-blue-800' };
+    }
+    if (bagsSent < record.bagsUnloaded) {
+        return { text: 'Partially Drying', variant: 'bg-yellow-100 text-yellow-800' };
+    }
+    return { text: 'Drying Complete', variant: 'bg-green-100 text-green-800' };
+};
   
 export function UnloadingRecordsTable({ unloadingRecords, customers }: { unloadingRecords: UnloadingRecord[], customers: Customer[] }) {
 
@@ -55,31 +55,32 @@ export function UnloadingRecordsTable({ unloadingRecords, customers }: { unloadi
                     <TableHead>Date</TableHead>
                     <TableHead>Bill No.</TableHead>
                     <TableHead>Customer</TableHead>
-                    <TableHead className="text-right">Bags</TableHead>
-                    <TableHead className="text-right">Hamali/Bag</TableHead>
+                    <TableHead className="text-right">Total Bags</TableHead>
+                    <TableHead className="text-right">Bags for Drying</TableHead>
+                    <TableHead className="text-right">Bags Remaining</TableHead>
                     <TableHead className="text-right">Total Hamali</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead className="w-[50px] text-right"></TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>
                 {sortedRecords.map((record) => {
                     const unloadingDate = toDate(record.unloadingDate);
+                    const statusInfo = getRecordStatus(record);
+                    const bagsSent = record.bagsSentToDrying || 0;
+                    const bagsRemaining = record.bagsUnloaded - bagsSent;
                     return (
                     <TableRow key={record.id}>
                         <TableCell>{unloadingDate ? format(unloadingDate, 'dd MMM yyyy') : 'N/A'}</TableCell>
                         <TableCell>{record.billNo}</TableCell>
                         <TableCell className="font-medium">{getCustomerName(record.customerId)}</TableCell>
                         <TableCell className="text-right">{record.bagsUnloaded}</TableCell>
-                        <TableCell className="text-right font-mono">{formatCurrency(record.hamaliPerBag || 0)}</TableCell>
+                        <TableCell className="text-right">{bagsSent}</TableCell>
+                        <TableCell className="text-right font-bold">{bagsRemaining}</TableCell>
                         <TableCell className="text-right font-mono">{formatCurrency(record.totalHamali || 0)}</TableCell>
                         <TableCell>
-                            <Badge variant="secondary" className={getStatusBadgeVariant(record.status)}>
-                                {record.status}
+                            <Badge variant="secondary" className={statusInfo.variant}>
+                                {statusInfo.text}
                             </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                            <UnloadingActionsMenu record={record} />
                         </TableCell>
                     </TableRow>
                     )

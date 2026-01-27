@@ -63,9 +63,6 @@ export type Expense = {
   date: Date | Timestamp;
 };
 
-export const unloadingStatus = ["Unloading", "Drying", "Packing", "Billed"] as const;
-export type UnloadingStatus = typeof unloadingStatus[number];
-
 export type UnloadingRecord = {
   id: string;
   customerId: string;
@@ -73,7 +70,7 @@ export type UnloadingRecord = {
   lorryTractorNo?: string;
   unloadingDate: Date | Timestamp;
   bagsUnloaded: number;
-  status: UnloadingStatus;
+  bagsSentToDrying: number;
   hamaliPerBag: number;
   totalHamali: number;
   billNo?: string;

@@ -1,4 +1,3 @@
-
 import type { Timestamp } from 'firebase/firestore';
 
 export type Customer = {
@@ -24,6 +23,12 @@ export type Payment = {
   type?: 'rent' | 'hamali' | 'other';
 };
 
+export type Outflow = {
+  date: Date | Timestamp;
+  bagsWithdrawn: number;
+  rentBilled: number;
+};
+
 export type StorageRecord = {
   id: string;
   customerId: string;
@@ -43,6 +48,7 @@ export type StorageRecord = {
   inflowType?: 'Direct' | 'Plot';
   dryingRecordId?: string;
   khataAmount?: number;
+  outflows?: Outflow[];
 };
 
 export const expenseCategories = ["Worker Salary", "Petrol", "Maintenance", "Utilities", "Hamali", "Other"] as const;

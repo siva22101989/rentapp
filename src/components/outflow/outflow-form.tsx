@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { Customer, StorageRecord, Payment } from '@/lib/definitions';
+import type { Customer, StorageRecord, Payment, Outflow } from '@/lib/definitions';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Separator } from '../ui/separator';
@@ -127,10 +127,17 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                 const bagsRemaining = selectedRecord.bagsStored - bags;
                 const isFinalWithdrawal = bagsRemaining <= 0;
 
+                const newOutflow: Outflow = {
+                    date: Timestamp.fromDate(withdrawalDate),
+                    bagsWithdrawn: bags,
+                    rentBilled: finalRent,
+                };
+
                 const updateData: any = {
                     bagsStored: bagsRemaining,
                     bagsOut: (selectedRecord.bagsOut || 0) + bags,
                     totalRentBilled: (selectedRecord.totalRentBilled || 0) + finalRent,
+                    outflows: arrayUnion(newOutflow),
                 };
                 
                 if (isFinalWithdrawal) {

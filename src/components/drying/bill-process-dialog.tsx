@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -70,8 +69,8 @@ export function BillProcessDialog({
           <AlertDialogDescription>
             This will mark the drying process for customer <span className="font-bold">{record.customerId}</span> as 'Billed' as of today. This action prepares the items for storage inflow but cannot be easily undone.
             <div className="mt-4 text-sm space-y-1">
-              <p><span className="font-medium text-foreground">Packing Date:</span> {record.packingDate ? format(toDate(record.packingDate), 'dd MMM yyyy') : 'N/A'}</p>
-              <p><span className="font-medium text-foreground">Bags Packed:</span> {record.bagsPacked ?? 'N/A'}</p>
+              <div><span className="font-medium text-foreground">Packing Date:</span> {record.packingDate ? format(toDate(record.packingDate), 'dd MMM yyyy') : 'N/A'}</div>
+              <div><span className="font-medium text-foreground">Bags Packed:</span> {record.bagsPacked ?? 'N/A'}</div>
             </div>
           </AlertDialogDescription>
         </AlertDialogHeader>

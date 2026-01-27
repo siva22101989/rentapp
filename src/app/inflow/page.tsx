@@ -1,4 +1,3 @@
-
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
@@ -10,9 +9,12 @@ import { useCollection } from "@/firebase/firestore/use-collection";
 import { collection, query, where } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
+import { useSearchParams } from "next/navigation";
 
 export default function InflowPage() {
   const firestore = useFirestore();
+  const searchParams = useSearchParams();
+  const fromDryingRecordId = searchParams.get('fromDryingRecord');
 
   const customersQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'customers') : null),
@@ -68,6 +70,7 @@ export default function InflowPage() {
         dryingRecords={dryingRecords || []}
         commodities={commodities || []}
         nextSerialNumber={nextSerialNumber} 
+        fromDryingRecordId={fromDryingRecordId} 
       />
     </AppLayout>
   );

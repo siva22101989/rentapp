@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useTransition, useState, useEffect } from 'react';
@@ -36,7 +35,7 @@ function SubmitButton() {
     );
 }
 
-export function InflowForm({ customers, dryingRecords, commodities, nextSerialNumber }: { customers: Customer[], dryingRecords: DryingRecord[], commodities: Commodity[], nextSerialNumber: string }) {
+export function InflowForm({ customers, dryingRecords, commodities, nextSerialNumber, fromDryingRecordId }: { customers: Customer[], dryingRecords: DryingRecord[], commodities: Commodity[], nextSerialNumber: string, fromDryingRecordId?: string | null }) {
     const { toast } = useToast();
     const router = useRouter();
     const firestore = useFirestore();
@@ -60,6 +59,18 @@ export function InflowForm({ customers, dryingRecords, commodities, nextSerialNu
     const selectedDryingRecord = dryingRecords.find(dr => dr.id === selectedDryingRecordId);
 
     const [dryingSummary, setDryingSummary] = useState({ unloadingHamali: 0, dryingHamali: 0 });
+
+    useEffect(() => {
+        if (fromDryingRecordId && dryingRecords.length > 0 && customers.length > 0) {
+            const recordToPreFill = dryingRecords.find(dr => dr.id === fromDryingRecordId);
+            if (recordToPreFill) {
+                setInflowType('Plot');
+                setSelectedCustomerId(recordToPreFill.customerId);
+                setSelectedDryingRecordId(recordToPreFill.id);
+                // The other useEffects will trigger based on these state changes
+            }
+        }
+    }, [fromDryingRecordId, dryingRecords, customers]);
 
     useEffect(() => {
         const bagsValue = inflowType === 'Plot' ? (selectedDryingRecord?.bagsPacked || 0) : (bags || 0);
@@ -95,10 +106,16 @@ export function InflowForm({ customers, dryingRecords, commodities, nextSerialNu
     }, [inflowType, selectedDryingRecord]);
 
     useEffect(() => {
+        // Don't reset if we are pre-filling from a drying record
+        if (fromDryingRecordId) return;
+
         setSelectedDryingRecordId('');
-    }, [selectedCustomerId]);
+    }, [selectedCustomerId, fromDryingRecordId]);
 
     useEffect(() => {
+        // Don't reset if we are pre-filling from a drying record
+        if (fromDryingRecordId && inflowType === 'Plot') return;
+        
         setBags('');
         setRate('');
         setHamali(0);
@@ -108,7 +125,7 @@ export function InflowForm({ customers, dryingRecords, commodities, nextSerialNu
         setSelectedCustomerId('');
         setSelectedDryingRecordId('');
         setCommodityDescription('');
-    }, [inflowType]);
+    }, [inflowType, fromDryingRecordId]);
 
     const getPlotDuration = () => {
         if (!selectedDryingRecord || !selectedDryingRecord.dryingStartDate || !selectedDryingRecord.packingDate) return 0;
@@ -170,6 +187,7 @@ export function InflowForm({ customers, dryingRecords, commodities, nextSerialNu
                 await setDoc(doc(firestore, "storageRecords", nextSerialNumber), newRecord);
 
                 if (inflowType === 'Plot' && selectedDryingRecord) {
+                    // This status is already set to billed before redirecting, but let's be safe
                     const dryingRecordRef = doc(firestore, 'dryingRecords', selectedDryingRecord.id);
                     await updateDoc(dryingRecordRef, { status: 'Billed' });
                 }

@@ -19,6 +19,7 @@ import { doc, Timestamp, updateDoc } from 'firebase/firestore';
 import type { DryingRecord } from '@/lib/definitions';
 import { toDate } from '@/lib/utils';
 import { format } from 'date-fns';
+import { useRouter } from 'next/navigation';
 
 export function BillProcessDialog({
   record,
@@ -31,6 +32,7 @@ export function BillProcessDialog({
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const firestore = useFirestore();
+  const router = useRouter();
 
   const handleBilling = async () => {
     if (!firestore) {
@@ -48,8 +50,9 @@ export function BillProcessDialog({
             status: 'Billed',
             billingDate: Timestamp.now(),
         });
-        toast({ title: 'Success', description: 'Drying process has been billed successfully.' });
+        toast({ title: 'Success', description: 'Drying process billed. Redirecting to create inflow record...' });
         setIsOpen(false);
+        router.push(`/inflow?fromDryingRecord=${record.id}`);
       } catch (error) {
          toast({
           title: 'Error',
@@ -67,7 +70,7 @@ export function BillProcessDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>Are you sure you want to bill this process?</AlertDialogTitle>
           <AlertDialogDescription>
-            This will mark the drying process for customer <span className="font-bold">{record.customerId}</span> as 'Billed' as of today. This action prepares the items for storage inflow but cannot be easily undone.
+            This will mark the drying process for customer <span className="font-bold">{record.customerId}</span> as 'Billed' and redirect you to create the final storage record.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <div className="text-sm space-y-1">
@@ -82,7 +85,7 @@ export function BillProcessDialog({
             className="bg-green-600 hover:bg-green-700"
           >
             {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Confirm and Bill
+            Confirm and Create Inflow
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>

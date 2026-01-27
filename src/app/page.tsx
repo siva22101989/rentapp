@@ -4,7 +4,7 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ArrowRight, Users, FileText, IndianRupee, ArrowDownToDot, ArrowUpFromDot, Warehouse, CreditCard, Database, ArrowDownFromLine, Wind, Settings, Wheat } from "lucide-react";
+import { ArrowRight, Users, FileText, IndianRupee, ArrowDownToDot, ArrowUpFromDot, Warehouse, CreditCard, Database, ArrowDownFromLine, Wind, Settings, Wheat, ShieldAlert } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 type NavItem = {
@@ -25,7 +25,8 @@ const navItems: NavItem[] = [
   { href: '/commodities', label: 'Commodities', description: 'Manage commodity types and rents.', icon: Wheat },
   { href: '/reports', label: 'Reports', description: 'See all transactions.', icon: FileText },
   { href: '/expenses', label: 'Expenses', description: 'Track and manage expenses.', icon: CreditCard },
-  { href: '/settings', label: 'Settings', description: 'Manage app settings.', icon: Settings },
+  { href: '/settings', label: 'Database', description: 'Seed or clear your database.', icon: Database },
+  { href: '/anomaly-detection', label: 'Anomaly Detection', description: 'Use AI to find unusual patterns.', icon: ShieldAlert },
 ];
 
 function NavCard({ item }: { item: NavItem }) {

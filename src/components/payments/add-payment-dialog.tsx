@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -27,6 +26,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Separator } from '../ui/separator';
 
 const PaymentSchema = z.object({
+  paymentDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date" }),
   payForHamali: z.coerce.number().nonnegative('Must be a positive number').optional(),
   payForRent: z.coerce.number().nonnegative('Must be a positive number').optional(),
 }).refine(data => (data.payForHamali && data.payForHamali > 0) || (data.payForRent && data.payForRent > 0), {
@@ -53,6 +53,7 @@ export function AddPaymentDialog({ record }: AddPaymentDialogProps) {
   const form = useForm<PaymentFormData>({
     resolver: zodResolver(PaymentSchema),
     defaultValues: {
+        paymentDate: new Date().toISOString().split('T')[0],
         payForHamali: undefined,
         payForRent: undefined,
     },
@@ -67,7 +68,7 @@ export function AddPaymentDialog({ record }: AddPaymentDialogProps) {
     startTransition(async () => {
       try {
         const newPayments = [];
-        const paymentDate = Timestamp.now();
+        const paymentDate = Timestamp.fromDate(new Date(data.paymentDate));
 
         if (data.payForHamali && data.payForHamali > 0) {
           newPayments.push({
@@ -128,6 +129,23 @@ export function AddPaymentDialog({ record }: AddPaymentDialogProps) {
                     <span className="font-medium text-blue-600">{formatCurrency(record.rentPending)}</span>
                 </div>
                 <Separator className="my-2" />
+
+                <FormField
+                    control={form.control}
+                    name="paymentDate"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Payment Date</FormLabel>
+                            <FormControl>
+                                <Input 
+                                    type="date"
+                                    {...field}
+                                />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
 
                 <FormField
                     control={form.control}

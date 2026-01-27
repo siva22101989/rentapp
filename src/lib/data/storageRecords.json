@@ -70,7 +70,7 @@
     "lorryTractorNo": "Tractor",
     "weight": 12000,
     "inflowType": "Plot",
-    "plotBags": 300
+    "dryingRecordId": "some-drying-id-placeholder"
   },
   {
     "id": "SLWH-4",

@@ -32,11 +32,38 @@ function PendingPaymentsTable() {
     const pendingRecords = useMemo(() => {
         if (!allRecords) return [];
         return allRecords.map(record => {
-            const totalBilled = (record.hamaliPayable || 0) + (record.totalRentBilled || 0);
-            const amountPaid = (record.payments || []).reduce((acc, p) => acc + p.amount, 0);
+            const hamaliPayable = record.hamaliPayable || 0;
+            const totalRentBilled = record.totalRentBilled || 0;
+
+            const hamaliPaid = (record.payments || [])
+                .filter(p => p.type === 'hamali')
+                .reduce((acc, p) => acc + p.amount, 0);
+
+            const rentPaid = (record.payments || [])
+                .filter(p => p.type === 'rent')
+                .reduce((acc, p) => acc + p.amount, 0);
+            
+            // Treat 'other' or untyped payments as rent payments for balance calculation
+            const otherPaid = (record.payments || [])
+                .filter(p => p.type === 'other' || !p.type)
+                .reduce((acc, p) => acc + p.amount, 0);
+
+            const hamaliPending = hamaliPayable - hamaliPaid;
+            const rentPending = totalRentBilled - rentPaid - otherPaid;
+            
+            const totalBilled = hamaliPayable + totalRentBilled;
+            const amountPaid = hamaliPaid + rentPaid + otherPaid;
             const balanceDue = totalBilled - amountPaid;
-            return { ...record, totalBilled, amountPaid, balanceDue };
-        }).filter(record => record.balanceDue > 0);
+
+            return { 
+                ...record, 
+                totalBilled, 
+                amountPaid, 
+                balanceDue,
+                hamaliPending: Math.max(0, hamaliPending),
+                rentPending: Math.max(0, rentPending)
+            };
+        }).filter(record => record.balanceDue > 0.5); // Use a small buffer for floating point issues
     }, [allRecords]);
     
     const getCustomerName = (customerId: string) => {
@@ -60,8 +87,9 @@ function PendingPaymentsTable() {
                             <TableHead>Customer</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead className="text-right">Total Billed</TableHead>
-                            <TableHead className="text-right">Amount Paid</TableHead>
-                            <TableHead className="text-right">Balance Due</TableHead>
+                            <TableHead className="text-right">Hamali Pending</TableHead>
+                            <TableHead className="text-right">Rent Pending</TableHead>
+                            <TableHead className="text-right">Total Due</TableHead>
                             <TableHead className="w-[100px] text-right"></TableHead>
                         </TableRow>
                     </TableHeader>
@@ -78,13 +106,21 @@ function PendingPaymentsTable() {
                                     </Badge>
                                 </TableCell>
                                 <TableCell className="text-right font-mono">{formatCurrency(record.totalBilled)}</TableCell>
-                                <TableCell className="text-right font-mono">{formatCurrency(record.amountPaid)}</TableCell>
+                                <TableCell className="text-right font-mono text-orange-600">{formatCurrency(record.hamaliPending)}</TableCell>
+                                <TableCell className="text-right font-mono text-blue-600">{formatCurrency(record.rentPending)}</TableCell>
                                 <TableCell className="text-right font-mono text-destructive">{formatCurrency(record.balanceDue)}</TableCell>
                                 <TableCell className="text-right">
                                     <AddPaymentDialog record={record} />
                                 </TableCell>
                             </TableRow>
                         )})}
+                         {pendingRecords.length === 0 && (
+                            <TableRow>
+                                <TableCell colSpan={8} className="text-center text-muted-foreground">
+                                    No outstanding balances found.
+                                </TableCell>
+                            </TableRow>
+                        )}
                     </TableBody>
                  </Table>
             </CardContent>

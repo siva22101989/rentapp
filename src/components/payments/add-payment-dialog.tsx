@@ -1,11 +1,8 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useActionState } from 'react';
-import { useFormStatus } from 'react-dom';
+import { useState, useTransition } from 'react';
 import { Loader2 } from 'lucide-react';
-import { addPayment, type PaymentFormState } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -18,125 +15,179 @@ import {
   DialogClose,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import type { StorageRecord } from '@/lib/definitions';
-import { format } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
-import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
+import { useFirestore } from '@/firebase';
+import { doc, updateDoc, arrayUnion, Timestamp } from 'firebase/firestore';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
+import { Separator } from '../ui/separator';
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" disabled={pending}>
-      {pending ? (
-        <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Saving...
-        </>
-      ) : (
-        'Record Transaction'
-      )}
-    </Button>
-  );
-}
+const PaymentSchema = z.object({
+  payForHamali: z.coerce.number().nonnegative('Must be a positive number').optional(),
+  payForRent: z.coerce.number().nonnegative('Must be a positive number').optional(),
+}).refine(data => (data.payForHamali && data.payForHamali > 0) || (data.payForRent && data.payForRent > 0), {
+  message: "At least one payment amount is required.",
+  path: ["payForHamali"],
+});
 
-export function AddPaymentDialog({ record }: { record: StorageRecord & { balanceDue: number } }) {
+type PaymentFormData = z.infer<typeof PaymentSchema>;
+
+type AddPaymentDialogProps = {
+    record: StorageRecord & {
+        balanceDue: number;
+        hamaliPending: number;
+        rentPending: number;
+    }
+};
+
+export function AddPaymentDialog({ record }: AddPaymentDialogProps) {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
-  const [paymentType, setPaymentType] = useState<'Rent/Other' | 'Hamali'>('Rent/Other');
-  
-  const initialState: PaymentFormState = { message: '', success: false };
-  const [state, formAction] = useActionState(addPayment, initialState);
+  const [isPending, startTransition] = useTransition();
+  const firestore = useFirestore();
 
-  useEffect(() => {
-    if (!state.message) return;
-    if (state.success) {
-      toast({ title: 'Success', description: state.message });
-      setIsOpen(false);
-    } else {
-      toast({
-        title: 'Error',
-        description: state.message,
-        variant: 'destructive',
-      });
+  const form = useForm<PaymentFormData>({
+    resolver: zodResolver(PaymentSchema),
+    defaultValues: {
+        payForHamali: undefined,
+        payForRent: undefined,
+    },
+  });
+
+  const onSubmit = (data: PaymentFormData) => {
+    if (!firestore) {
+      toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
+      return;
     }
-  }, [state, toast]);
-  
-  const title = paymentType === 'Hamali' ? 'Add Extra Hamali Charges' : 'Add Payment to Record';
-  const description = paymentType === 'Hamali'
-    ? `Add an additional hamali charge to record ${record.id}.`
-    : `Record a payment for ${record.id}. Balance Due: ${formatCurrency(record.balanceDue)}`;
+
+    startTransition(async () => {
+      try {
+        const newPayments = [];
+        const paymentDate = Timestamp.now();
+
+        if (data.payForHamali && data.payForHamali > 0) {
+          newPayments.push({
+            amount: data.payForHamali,
+            date: paymentDate,
+            type: 'hamali',
+          });
+        }
+        if (data.payForRent && data.payForRent > 0) {
+          newPayments.push({
+            amount: data.payForRent,
+            date: paymentDate,
+            type: 'rent',
+          });
+        }
+
+        if (newPayments.length === 0) {
+          toast({ title: 'Info', description: 'No payment amount entered.' });
+          return;
+        }
+
+        const recordRef = doc(firestore, 'storageRecords', record.id);
+        await updateDoc(recordRef, {
+          payments: arrayUnion(...newPayments)
+        });
+
+        toast({ title: 'Success', description: 'Payment recorded successfully.' });
+        setIsOpen(false);
+        form.reset();
+      } catch (error) {
+        console.error(error);
+        toast({ title: 'Error', description: 'Failed to record payment.', variant: 'destructive' });
+      }
+    });
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button size="sm">Add Payment</Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
-        <form action={formAction}>
-          <input type="hidden" name="recordId" value={record.id} />
-          <DialogHeader>
-            <DialogTitle>{title}</DialogTitle>
-            <DialogDescription>
-              {description}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-             <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right">Type</Label>
-                <RadioGroup 
-                    defaultValue="Rent/Other"
-                    name="paymentType"
-                    className="col-span-3 flex gap-4"
-                    onValueChange={(value: 'Rent/Other' | 'Hamali') => setPaymentType(value)}
-                >
-                    <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="Rent/Other" id="r1" />
-                        <Label htmlFor="r1">Payment</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="Hamali" id="r2" />
-                        <Label htmlFor="r2">Add Hamali Charge</Label>
-                    </div>
-                </RadioGroup>
+      <DialogContent className="sm:max-w-md">
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)}>
+            <DialogHeader>
+                <DialogTitle>Record a Payment</DialogTitle>
+                <DialogDescription>
+                For storage record {record.id}. The total amount due is {formatCurrency(record.balanceDue)}.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+                <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Hamali Pending</span>
+                    <span className="font-medium text-orange-600">{formatCurrency(record.hamaliPending)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Rent Pending</span>
+                    <span className="font-medium text-blue-600">{formatCurrency(record.rentPending)}</span>
+                </div>
+                <Separator className="my-2" />
+
+                <FormField
+                    control={form.control}
+                    name="payForHamali"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Pay towards Hamali</FormLabel>
+                            <FormControl>
+                                <Input 
+                                    type="number" 
+                                    step="0.01" 
+                                    placeholder="0.00" 
+                                    max={record.hamaliPending}
+                                    {...field}
+                                    value={field.value ?? ''}
+                                />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                 <FormField
+                    control={form.control}
+                    name="payForRent"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Pay towards Rent</FormLabel>
+                            <FormControl>
+                                 <Input 
+                                    type="number" 
+                                    step="0.01" 
+                                    placeholder="0.00" 
+                                    max={record.rentPending}
+                                    {...field}
+                                    value={field.value ?? ''}
+                                />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="paymentAmount" className="text-right">
-                Amount
-              </Label>
-              <Input 
-                id="paymentAmount" 
-                name="paymentAmount" 
-                type="number"
-                step="0.01"
-                placeholder="0.00"
-                defaultValue={paymentType === 'Rent/Other' ? record.balanceDue.toFixed(2) : undefined}
-                className="col-span-3" 
-                required 
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="paymentDate" className="text-right">
-                Date
-              </Label>
-              <Input 
-                id="paymentDate" 
-                name="paymentDate" 
-                type="date"
-                defaultValue={new Date().toISOString().split('T')[0]}
-                className="col-span-3" 
-                required 
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline">Cancel</Button>
-            </DialogClose>
-            <SubmitButton />
-          </DialogFooter>
-        </form>
+            <DialogFooter>
+                <DialogClose asChild>
+                    <Button variant="outline" type="button">Cancel</Button>
+                </DialogClose>
+                <Button type="submit" disabled={isPending}>
+                {isPending ? (
+                    <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                    </>
+                ) : (
+                    'Record Payment'
+                )}
+                </Button>
+            </DialogFooter>
+            </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

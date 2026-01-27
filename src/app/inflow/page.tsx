@@ -4,17 +4,14 @@ import { PageHeader } from "@/components/shared/page-header";
 import { InflowForm } from "@/components/inflow/inflow-form";
 import { AddCustomerDialog } from "@/components/customers/add-customer-dialog";
 import { useMemo } from "react";
-import type { Customer, StorageRecord, DryingRecord, Commodity } from "@/lib/definitions";
+import type { Customer, StorageRecord, Commodity } from "@/lib/definitions";
 import { useCollection } from "@/firebase/firestore/use-collection";
-import { collection, query, where } from "firebase/firestore";
+import { collection, query } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
-import { useSearchParams } from "next/navigation";
 
 export default function InflowPage() {
   const firestore = useFirestore();
-  const searchParams = useSearchParams();
-  const fromDryingRecordId = searchParams.get('fromDryingRecord');
 
   const customersQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'customers') : null),
@@ -27,12 +24,6 @@ export default function InflowPage() {
     [firestore]
   );
   const { data: records, loading: loadingRecords } = useCollection<StorageRecord>(recordsQuery);
-
-  const dryingRecordsQuery = useMemoFirebase(
-    () => (firestore ? query(collection(firestore, 'dryingRecords'), where('status', '==', 'Billed')) : null),
-    [firestore]
-  );
-  const { data: dryingRecords, loading: loadingDryingRecords } = useCollection<DryingRecord>(dryingRecordsQuery);
 
   const commoditiesQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'commodities') : null),
@@ -53,7 +44,7 @@ export default function InflowPage() {
   }, [records]);
 
 
-  if (loadingCustomers || loadingRecords || loadingDryingRecords || loadingCommodities) {
+  if (loadingCustomers || loadingRecords || loadingCommodities) {
     return <AppLayout><div>Loading...</div></AppLayout>;
   }
 
@@ -67,10 +58,8 @@ export default function InflowPage() {
       </PageHeader>
       <InflowForm 
         customers={customers || []} 
-        dryingRecords={dryingRecords || []}
         commodities={commodities || []}
         nextSerialNumber={nextSerialNumber} 
-        fromDryingRecordId={fromDryingRecordId} 
       />
     </AppLayout>
   );

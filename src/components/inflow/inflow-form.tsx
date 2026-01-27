@@ -7,16 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { Customer, DryingRecord, Payment, Commodity } from '@/lib/definitions';
+import type { Customer, Payment, Commodity } from '@/lib/definitions';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Info } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { Separator } from '../ui/separator';
-import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
-import { format, differenceInDays } from 'date-fns';
-import { toDate, formatCurrency } from '@/lib/utils';
-import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { formatCurrency } from '@/lib/utils';
 import { useFirestore } from '@/firebase';
-import { setDoc, doc, Timestamp, updateDoc } from 'firebase/firestore';
+import { setDoc, doc, Timestamp } from 'firebase/firestore';
 
 function SubmitButton() {
     const [pending, setPending] = useState(false);
@@ -35,7 +32,7 @@ function SubmitButton() {
     );
 }
 
-export function InflowForm({ customers, dryingRecords, commodities, nextSerialNumber, fromDryingRecordId }: { customers: Customer[], dryingRecords: DryingRecord[], commodities: Commodity[], nextSerialNumber: string, fromDryingRecordId?: string | null }) {
+export function InflowForm({ customers, commodities, nextSerialNumber }: { customers: Customer[], commodities: Commodity[], nextSerialNumber: string }) {
     const { toast } = useToast();
     const router = useRouter();
     const firestore = useFirestore();
@@ -46,93 +43,19 @@ export function InflowForm({ customers, dryingRecords, commodities, nextSerialNu
     const [hamali, setHamali] = useState(0);
     const [hamaliPaid, setHamaliPaid] = useState<number | ''>('');
     const [selectedCustomerId, setSelectedCustomerId] = useState('');
-    const [inflowType, setInflowType] = useState<'Direct' | 'Plot'>('Direct');
-    
-    const [selectedDryingRecordId, setSelectedDryingRecordId] = useState('');
     const [commodityDescription, setCommodityDescription] = useState('');
     const [weight, setWeight] = useState<number | ''>('');
     const [khataAmount, setKhataAmount] = useState<number | ''>('');
 
 
-    const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
-    const customerDryingRecords = dryingRecords.filter(dr => dr.customerId === selectedCustomerId);
-    const selectedDryingRecord = dryingRecords.find(dr => dr.id === selectedDryingRecordId);
-
-    const [dryingSummary, setDryingSummary] = useState({ unloadingHamali: 0, dryingHamali: 0 });
-
     useEffect(() => {
-        if (fromDryingRecordId && dryingRecords.length > 0 && customers.length > 0) {
-            const recordToPreFill = dryingRecords.find(dr => dr.id === fromDryingRecordId);
-            if (recordToPreFill) {
-                setInflowType('Plot');
-                setSelectedCustomerId(recordToPreFill.customerId);
-                setSelectedDryingRecordId(recordToPreFill.id);
-                // The other useEffects will trigger based on these state changes
-            }
-        }
-    }, [fromDryingRecordId, dryingRecords, customers]);
-
-    useEffect(() => {
-        const bagsValue = inflowType === 'Plot' ? (selectedDryingRecord?.bagsPacked || 0) : (bags || 0);
+        const bagsValue = bags || 0;
         const rateValue = rate || 0;
         
-        const currentHamali = (bagsValue || 0) * rateValue;
-        const dryingHamaliTotal = inflowType === 'Plot' ? (selectedDryingRecord?.totalDryingHamali || 0) : 0;
-        
-        setHamali(currentHamali + dryingHamaliTotal);
+        const currentHamali = bagsValue * rateValue;
+        setHamali(currentHamali);
 
-        if (inflowType === 'Plot' && selectedDryingRecord && selectedDryingRecord.hamaliCharges) {
-            const unloading = selectedDryingRecord.hamaliCharges.find(c => c.description.toLowerCase().includes('unloading'))?.amount || 0;
-            const drying = selectedDryingRecord.totalDryingHamali - unloading;
-            setDryingSummary({ unloadingHamali: unloading, dryingHamali: drying });
-        } else {
-            setDryingSummary({ unloadingHamali: 0, dryingHamali: 0 });
-        }
-
-    }, [bags, selectedDryingRecord, rate, inflowType]);
-    
-    useEffect(() => {
-      if (inflowType === 'Plot' && selectedDryingRecord) {
-        setCommodityDescription(selectedDryingRecord.commodityDescription || '');
-        setBags(selectedDryingRecord.bagsPacked || 0);
-        setWeight('');
-      } else {
-         if (inflowType === 'Direct') {
-            setCommodityDescription('');
-            setBags('');
-            setWeight('');
-        }
-      }
-    }, [inflowType, selectedDryingRecord]);
-
-    useEffect(() => {
-        // Don't reset if we are pre-filling from a drying record
-        if (fromDryingRecordId) return;
-
-        setSelectedDryingRecordId('');
-    }, [selectedCustomerId, fromDryingRecordId]);
-
-    useEffect(() => {
-        // Don't reset if we are pre-filling from a drying record
-        if (fromDryingRecordId && inflowType === 'Plot') return;
-        
-        setBags('');
-        setRate('');
-        setHamali(0);
-        setHamaliPaid('');
-        setKhataAmount('');
-        setWeight('');
-        setSelectedCustomerId('');
-        setSelectedDryingRecordId('');
-        setCommodityDescription('');
-    }, [inflowType, fromDryingRecordId]);
-
-    const getPlotDuration = () => {
-        if (!selectedDryingRecord || !selectedDryingRecord.dryingStartDate || !selectedDryingRecord.packingDate) return 0;
-        const start = toDate(selectedDryingRecord.dryingStartDate);
-        const end = toDate(selectedDryingRecord.packingDate);
-        return differenceInDays(end, start) + 1; // Add 1 to be inclusive
-    }
+    }, [bags, rate]);
     
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -148,11 +71,19 @@ export function InflowForm({ customers, dryingRecords, commodities, nextSerialNu
                 const data = Object.fromEntries(formData.entries());
 
                 const bagsStored = Number(data.bagsStored);
+                 if (!bagsStored || bagsStored <= 0) {
+                     toast({ title: 'Error', description: 'Number of bags must be a positive number.', variant: 'destructive' });
+                     return;
+                }
+                const weightValue = Number(data.weight);
+                 if (!weightValue || weightValue <= 0) {
+                     toast({ title: 'Error', description: 'Weight is required and must be a positive number.', variant: 'destructive' });
+                     return;
+                }
                 const hamaliRate = Number(data.hamaliRate) || 0;
                 const hamaliPaidAmount = Number(data.hamaliPaid) || 0;
 
-                const dryingHamali = inflowType === 'Plot' ? (selectedDryingRecord?.totalDryingHamali || 0) : 0;
-                const hamaliPayable = (bagsStored * hamaliRate) + dryingHamali;
+                const hamaliPayable = bagsStored * hamaliRate;
 
                 const payments: Payment[] = [];
                 if (hamaliPaidAmount > 0) {
@@ -178,19 +109,13 @@ export function InflowForm({ customers, dryingRecords, commodities, nextSerialNu
                     hamaliPayable,
                     totalRentBilled: 0,
                     lorryTractorNo: data.lorryTractorNo,
-                    weight: Number(data.weight) || 0,
-                    inflowType: inflowType,
-                    dryingRecordId: inflowType === 'Plot' ? data.dryingRecordId : '',
+                    weight: weightValue,
+                    inflowType: 'Direct' as const,
+                    dryingRecordId: '',
                     khataAmount: Number(data.khataAmount) || 0
                 };
 
                 await setDoc(doc(firestore, "storageRecords", nextSerialNumber), newRecord);
-
-                if (inflowType === 'Plot' && selectedDryingRecord) {
-                    // This status is already set to billed before redirecting, but let's be safe
-                    const dryingRecordRef = doc(firestore, 'dryingRecords', selectedDryingRecord.id);
-                    await updateDoc(dryingRecordRef, { status: 'Billed' });
-                }
 
                 toast({ title: 'Success', description: 'Inflow record created successfully.' });
                 router.push(`/inflow/receipt/${nextSerialNumber}`);
@@ -213,26 +138,6 @@ export function InflowForm({ customers, dryingRecords, commodities, nextSerialNu
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                        <Label>Inflow Type</Label>
-                        <RadioGroup 
-                            name="inflowType"
-                            defaultValue="Direct"
-                            className="flex gap-4"
-                            onValueChange={(value: 'Direct' | 'Plot') => setInflowType(value)}
-                            value={inflowType}
-                        >
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="Direct" id="direct" />
-                                <Label htmlFor="direct">Direct</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="Plot" id="plot" />
-                                <Label htmlFor="plot">From Plot</Label>
-                            </div>
-                        </RadioGroup>
-                    </div>
-
                      <div className="space-y-2">
                         <Label htmlFor="customerId">Customer</Label>
                         <Select name="customerId" required onValueChange={setSelectedCustomerId} value={selectedCustomerId}>
@@ -249,74 +154,26 @@ export function InflowForm({ customers, dryingRecords, commodities, nextSerialNu
                         </Select>
                     </div>
                     
-                    {inflowType === 'Plot' && selectedCustomerId && (
-                        <>
-                            <div className="space-y-2">
-                                <Label htmlFor="dryingRecordId">Drying Bill</Label>
-                                <Select name="dryingRecordId" required onValueChange={setSelectedDryingRecordId} value={selectedDryingRecordId}>
-                                    <SelectTrigger id="dryingRecordId">
-                                        <SelectValue placeholder="Select a completed drying bill" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {customerDryingRecords.length > 0 ? (
-                                            customerDryingRecords.map(dr => (
-                                                <SelectItem key={dr.id} value={dr.id}>
-                                                    {dr.commodityDescription} ({dr.bagsPacked} bags, Billed: {format(toDate(dr.billingDate!), 'dd MMM yyyy')})
-                                                </SelectItem>
-                                            ))
-                                        ) : (
-                                            <SelectItem value="none" disabled>No completed drying records for this customer</SelectItem>
-                                        )}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            {selectedDryingRecord && (
-                                <Alert>
-                                    <Info className="h-4 w-4" />
-                                    <AlertTitle>Drying Process Summary</AlertTitle>
-                                    <AlertDescription>
-                                        <div className="space-y-1 mt-2 text-sm">
-                                            <div className="flex justify-between"><span className="text-muted-foreground">Bags Plotted:</span> <strong>{selectedDryingRecord.bagsForDrying}</strong></div>
-                                            <div className="flex justify-between"><span className="text-muted-foreground">Bags Packed:</span> <strong>{selectedDryingRecord.bagsPacked}</strong></div>
-                                            <div className="flex justify-between"><span className="text-muted-foreground">Total Drying Hamali:</span> <strong>{formatCurrency(selectedDryingRecord.totalDryingHamali)}</strong></div>
-                                            <div className="flex justify-between"><span className="text-muted-foreground">Duration in Plot:</span> <strong>{getPlotDuration()} days</strong></div>
-                                        </div>
-                                    </AlertDescription>
-                                </Alert>
-                            )}
-                        </>
-                    )}
-
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="commodityDescription">Product</Label>
-                            {inflowType === 'Plot' ? (
-                                <Input 
-                                    id="commodityDescription" 
-                                    name="commodityDescription"
-                                    value={commodityDescription}
-                                    readOnly
-                                />
-                            ) : (
-                                <Select 
-                                    name="commodityDescription" 
-                                    required 
-                                    onValueChange={setCommodityDescription} 
-                                    value={commodityDescription}
-                                >
-                                    <SelectTrigger id="commodityDescription">
-                                        <SelectValue placeholder="Select a product" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {commodities.map(commodity => (
-                                            <SelectItem key={commodity.id} value={commodity.name}>
-                                                {commodity.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            )}
+                            <Select 
+                                name="commodityDescription" 
+                                required 
+                                onValueChange={setCommodityDescription} 
+                                value={commodityDescription}
+                            >
+                                <SelectTrigger id="commodityDescription">
+                                    <SelectValue placeholder="Select a product" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {commodities.map(commodity => (
+                                        <SelectItem key={commodity.id} value={commodity.name}>
+                                            {commodity.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="location">Lot No. <span className="text-muted-foreground text-xs">(Optional)</span></Label>
@@ -350,18 +207,17 @@ export function InflowForm({ customers, dryingRecords, commodities, nextSerialNu
                                 required
                                 value={bags}
                                 onChange={(e) => setBags(e.target.value === '' ? '' : Number(e.target.value))}
-                                readOnly={inflowType === 'Plot'}
                             />
                         </div>
                          <div className="space-y-2">
-                            <Label htmlFor="weight">Weight {inflowType === 'Direct' && '*'}</Label>
+                            <Label htmlFor="weight">Weight *</Label>
                             <Input 
                                 id="weight" 
                                 name="weight" 
                                 type="number" 
                                 step="0.01" 
                                 placeholder="0.00" 
-                                required={inflowType === 'Direct'}
+                                required
                                 value={weight}
                                 onChange={(e) => setWeight(e.target.value === '' ? '' : Number(e.target.value))}
                             />
@@ -385,18 +241,6 @@ export function InflowForm({ customers, dryingRecords, commodities, nextSerialNu
                      <div className="space-y-4">
                         <h4 className="font-medium">Billing Summary</h4>
                         <div className="space-y-2 text-sm">
-                            {inflowType === 'Plot' && selectedDryingRecord && (
-                                <>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-muted-foreground">Unloading Hamali</span>
-                                        <span className="font-mono">{formatCurrency(dryingSummary.unloadingHamali)}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-muted-foreground">Drying Hamali</span>
-                                        <span className="font-mono">{formatCurrency(dryingSummary.dryingHamali)}</span>
-                                    </div>
-                                </>
-                            )}
                             <div className="flex justify-between items-center">
                                 <span className="text-muted-foreground">Storage Inflow Hamali</span>
                                 <span className="font-mono">{formatCurrency((Number(bags) || 0) * (Number(rate) || 0))}</span>

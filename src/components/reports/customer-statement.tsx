@@ -24,7 +24,8 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             invoiceId: record.id,
             bagsIn: record.bagsIn || 0,
             bagsOut: 0,
-            debit: record.hamaliPayable || 0,
+            hamaliBilled: record.hamaliPayable || 0,
+            rentBilled: 0,
             credit: 0
         });
 
@@ -37,7 +38,8 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 invoiceId: record.id,
                 bagsIn: 0,
                 bagsOut: outflow.bagsWithdrawn,
-                debit: outflow.rentBilled || 0,
+                hamaliBilled: 0,
+                rentBilled: outflow.rentBilled || 0,
                 credit: 0,
             });
         });
@@ -50,7 +52,8 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 invoiceId: record.id,
                 bagsIn: 0,
                 bagsOut: record.bagsOut,
-                debit: record.totalRentBilled || 0,
+                hamaliBilled: 0,
+                rentBilled: record.totalRentBilled || 0,
                 credit: 0,
             });
         }
@@ -63,7 +66,8 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 invoiceId: record.id,
                 bagsIn: 0,
                 bagsOut: 0,
-                debit: 0,
+                hamaliBilled: 0,
+                rentBilled: 0,
                 credit: payment.amount || 0,
             });
         });
@@ -74,14 +78,17 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
     let runningBalance = 0;
     let totalBagsIn = 0;
     let totalBagsOut = 0;
-    let totalDebit = 0;
+    let totalHamaliBilled = 0;
+    let totalRentBilled = 0;
     let totalCredit = 0;
 
     const lineItems = sortedEvents.map(event => {
-        runningBalance += event.debit - event.credit;
+        const debit = (event.hamaliBilled || 0) + (event.rentBilled || 0);
+        runningBalance += debit - event.credit;
         totalBagsIn += event.bagsIn;
         totalBagsOut += event.bagsOut;
-        totalDebit += event.debit;
+        totalHamaliBilled += event.hamaliBilled || 0;
+        totalRentBilled += event.rentBilled || 0;
         totalCredit += event.credit;
         return {
             ...event,
@@ -93,7 +100,9 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         totalBagsIn,
         totalBagsOut,
         balanceStock: totalBagsIn - totalBagsOut,
-        totalBilled: totalDebit,
+        totalHamali: totalHamaliBilled,
+        totalRent: totalRentBilled,
+        totalBilled: totalHamaliBilled + totalRentBilled,
         totalPaid: totalCredit,
         balanceDue: runningBalance
     };
@@ -144,22 +153,22 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         </div>
 
         {/* New Summary Box */}
-        <div className="grid grid-cols-4 gap-x-4 gap-y-2 mb-6 p-4 border rounded-lg">
-            <div className="font-bold">Total Bags In:</div>
-            <div>{summary.totalBagsIn}</div>
-            <div className="font-bold">Total Billed:</div>
-            <div className="text-right">{formatCurrency(summary.totalBilled)}</div>
-
-            <div className="font-bold">Total Bags Out:</div>
-            <div>{summary.totalBagsOut}</div>
-            <div className="font-bold">Total Paid:</div>
-            <div className="text-right">{formatCurrency(summary.totalPaid)}</div>
-
-            <div className="font-bold">Balance Stock:</div>
-            <div>{summary.balanceStock}</div>
-            <div className="font-bold border-t pt-2">Balance Due:</div>
-            <div className="text-right font-bold border-t pt-2">{formatCurrency(summary.balanceDue)}</div>
+        <div className="grid grid-cols-2 gap-x-8 mb-6 p-4 border rounded-lg">
+            {/* Stock Summary */}
+            <div className="space-y-1">
+                <div className="flex justify-between"><span className="font-bold">Total Bags In:</span><span>{summary.totalBagsIn}</span></div>
+                <div className="flex justify-between"><span className="font-bold">Total Bags Out:</span><span>{summary.totalBagsOut}</span></div>
+                <div className="flex justify-between border-t pt-1 mt-1"><span className="font-bold">Balance Stock:</span><span>{summary.balanceStock}</span></div>
+            </div>
+            {/* Financial Summary */}
+            <div className="space-y-1">
+                <div className="flex justify-between"><span className="font-bold">Total Hamali:</span><span>{formatCurrency(summary.totalHamali)}</span></div>
+                <div className="flex justify-between"><span className="font-bold">Total Rent:</span><span>{formatCurrency(summary.totalRent)}</span></div>
+                <div className="flex justify-between"><span className="font-bold">Total Paid:</span><span>({formatCurrency(summary.totalPaid)})</span></div>
+                <div className="flex justify-between border-t pt-1 mt-1"><span className="font-bold">Balance Due:</span><span className="font-bold">{formatCurrency(summary.balanceDue)}</span></div>
+            </div>
         </div>
+
 
         {/* Transaction History */}
         <div>
@@ -171,7 +180,8 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                         <TableHead className="text-black font-bold">Invoice No</TableHead>
                         <TableHead className="text-right text-black font-bold">Bags In</TableHead>
                         <TableHead className="text-right text-black font-bold">Bags Out</TableHead>
-                        <TableHead className="text-right text-black font-bold">Debit</TableHead>
+                        <TableHead className="text-right text-black font-bold">Hamali</TableHead>
+                        <TableHead className="text-right text-black font-bold">Rent</TableHead>
                         <TableHead className="text-right text-black font-bold">Credit</TableHead>
                         <TableHead className="text-right text-black font-bold">Balance</TableHead>
                     </TableRow>
@@ -184,7 +194,8 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                             <TableCell className="py-1">{item.invoiceId}</TableCell>
                             <TableCell className="text-right py-1">{item.bagsIn || ''}</TableCell>
                             <TableCell className="text-right py-1">{item.bagsOut || ''}</TableCell>
-                            <TableCell className="text-right py-1">{item.debit > 0 ? formatCurrency(item.debit) : ''}</TableCell>
+                            <TableCell className="text-right py-1">{item.hamaliBilled > 0 ? formatCurrency(item.hamaliBilled) : ''}</TableCell>
+                            <TableCell className="text-right py-1">{item.rentBilled > 0 ? formatCurrency(item.rentBilled) : ''}</TableCell>
                             <TableCell className="text-right py-1">{item.credit > 0 ? formatCurrency(item.credit) : ''}</TableCell>
                             <TableCell className="text-right py-1">{formatCurrency(item.balance)}</TableCell>
                         </TableRow>
@@ -193,7 +204,8 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                  <TableFooter>
                     <TableRow className="border-t-2 border-black">
                         <TableCell colSpan={5} className="text-right font-bold">Totals:</TableCell>
-                        <TableCell className="text-right font-bold">{formatCurrency(summary.totalBilled)}</TableCell>
+                        <TableCell className="text-right font-bold">{formatCurrency(summary.totalHamali)}</TableCell>
+                        <TableCell className="text-right font-bold">{formatCurrency(summary.totalRent)}</TableCell>
                         <TableCell className="text-right font-bold">{formatCurrency(summary.totalPaid)}</TableCell>
                         <TableCell className="text-right font-bold">{formatCurrency(summary.balanceDue)}</TableCell>
                     </TableRow>

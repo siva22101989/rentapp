@@ -11,8 +11,9 @@ import { useMemo } from "react";
 import type { StorageRecord } from "@/lib/definitions";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { useFirestore } from "@/firebase";
-import { collection, query, where } from "firebase/firestore";
+import { collection } from "firebase/firestore";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
+import { StorageTable } from "@/components/dashboard/storage-table";
 
 export default function StoragePage() {
   const firestore = useFirestore();
@@ -26,12 +27,9 @@ export default function StoragePage() {
   const stats = useMemo(() => {
     if (!allRecords) return { totalInflow: 0, totalOutflow: 0, balanceStock: 0, estimatedRent: 0 };
     
-    const totalInflow = allRecords.reduce((acc, record) => acc + record.bagsStored, 0);
-    
-    const completedRecords = allRecords.filter(r => r.storageEndDate);
-    const totalOutflow = completedRecords.reduce((acc, record) => acc + record.bagsStored, 0);
-
-    const balanceStock = totalInflow - totalOutflow;
+    const totalInflow = allRecords.reduce((acc, record) => acc + (record.bagsIn || 0), 0);
+    const totalOutflow = allRecords.reduce((acc, record) => acc + (record.bagsOut || 0), 0);
+    const balanceStock = allRecords.reduce((acc, record) => acc + record.bagsStored, 0);
 
     const activeRecords = allRecords.filter(r => !r.storageEndDate);
     const estimatedRent = activeRecords.reduce((total, record) => {
@@ -95,6 +93,15 @@ export default function StoragePage() {
             </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Active Storage Details</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <StorageTable />
+        </CardContent>
+      </Card>
     </AppLayout>
   );
 }

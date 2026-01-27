@@ -1,13 +1,13 @@
-
 'use client';
 
-import { useTransition } from 'react';
-import { Loader2, Trash2 } from 'lucide-react';
+import { useTransition, useState } from 'react';
+import { Loader2, Trash2, Database, Terminal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { collection, writeBatch, getDocs } from 'firebase/firestore';
+import { collection, writeBatch, getDocs, doc, Timestamp } from 'firebase/firestore';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,13 +19,17 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-
+import customersData from '@/lib/data/customers.json';
+import storageRecordsData from '@/lib/data/storageRecords.json';
 
 export function SettingsClient() {
   const [isClearingCache, startClearingCacheTransition] = useTransition();
   const [isClearingDb, startClearingDbTransition] = useTransition();
+  const [isSeeding, startSeedingTransition] = useTransition();
+  
   const firestore = useFirestore();
   const { toast } = useToast();
+  const [seedResult, setSeedResult] = useState<{ message: string; success: boolean } | null>(null);
 
   const handleClearCache = () => {
     startClearingCacheTransition(() => {
@@ -98,8 +102,93 @@ export function SettingsClient() {
     });
   };
 
+  const handleSeed = () => {
+    if (!firestore) {
+      toast({
+        title: 'Error',
+        description: 'Firestore is not initialized.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    startSeedingTransition(async () => {
+      try {
+        const batch = writeBatch(firestore);
+
+        // Seed Customers
+        customersData.forEach((customer) => {
+          const docRef = doc(firestore, 'customers', customer.id);
+          batch.set(docRef, customer);
+        });
+
+        // Seed Storage Records
+        storageRecordsData.forEach((record: any) => {
+          const docRef = doc(firestore, 'storageRecords', record.id);
+          const adaptedRecord = {
+            ...record,
+            storageStartDate: Timestamp.fromDate(new Date(record.storageStartDate)),
+            storageEndDate: record.storageEndDate ? Timestamp.fromDate(new Date(record.storageEndDate)) : null,
+            payments: (record.payments || []).map((p: any) => ({
+              ...p,
+              date: Timestamp.fromDate(new Date(p.date)),
+            })),
+          };
+          batch.set(docRef, adaptedRecord);
+        });
+
+        await batch.commit();
+
+        setSeedResult({
+            message: `Successfully seeded database.\n- Customers: ${customersData.length}\n- Storage Records: ${storageRecordsData.length}`,
+            success: true,
+        });
+      } catch (error: any) {
+        console.error('Seeding failed:', error);
+        setSeedResult({
+            message: `Failed to seed database: ${error.message}`,
+            success: false,
+        });
+      }
+    });
+  };
+
   return (
     <div className="flex flex-col items-center justify-center text-center gap-8">
+        <Card className="w-full max-w-md">
+            <CardHeader>
+                <CardTitle>Seed Database</CardTitle>
+                <CardDescription>
+                    Populate your Firestore database with initial dummy data. This will overwrite existing data with matching IDs.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                 <Button onClick={handleSeed} disabled={isSeeding} size="lg">
+                    {isSeeding ? (
+                        <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Seeding...
+                        </>
+                    ) : (
+                        <>
+                        <Database className="mr-2 h-4 w-4" />
+                        Seed Database
+                        </>
+                    )}
+                </Button>
+            </CardContent>
+        </Card>
+
+        {seedResult && (
+            <Alert className={`max-w-md ${seedResult.success ? 'border-green-500 text-green-700' : 'border-destructive text-destructive'}`}>
+            <Terminal className="h-4 w-4" />
+            <AlertTitle>{seedResult.success ? 'Success!' : 'Error!'}</AlertTitle>
+            <AlertDescription className="whitespace-pre-wrap">
+                {seedResult.message}
+            </AlertDescription>
+            </Alert>
+        )}
+        
         <Card className="w-full max-w-md border-orange-500/50">
             <CardHeader>
                 <CardTitle className="text-orange-600">Clear Local Data</CardTitle>

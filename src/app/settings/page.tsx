@@ -8,7 +8,7 @@ export default function SettingsPage() {
     <AppLayout>
       <PageHeader
         title="Application Settings"
-        description="Manage dangerous operations like clearing data."
+        description="Manage data operations like seeding and clearing the database."
       />
       <div className="mt-8">
         <SettingsClient />

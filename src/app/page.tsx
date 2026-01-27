@@ -1,4 +1,3 @@
-
 'use client';
 
 import { AppLayout } from "@/components/layout/app-layout";
@@ -27,7 +26,6 @@ const navItems: NavItem[] = [
   { href: '/commodities', label: 'Commodities', description: 'Manage commodity types and rents.', icon: Wheat },
   { href: '/reports', label: 'Reports', description: 'See all transactions.', icon: FileText },
   { href: '/expenses', label: 'Expenses', description: 'Track and manage expenses.', icon: CreditCard },
-  { href: '/seed', label: 'Seed Data', description: 'Populate the database with data.', icon: Database },
   { href: '/settings', label: 'Settings', description: 'Manage app settings.', icon: Settings },
 ];
 

@@ -86,7 +86,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 <TableHeader>
                     <TableRow className="border-b-2 border-black">
                         <TableHead className="text-black font-bold">Date</TableHead>
-                        <TableHead className="text-black font-bold">Description</TableHead>
+                        <TableHead className="text-black font-bold">Invoice No</TableHead>
                         <TableHead className="text-right text-black font-bold">Original Amount</TableHead>
                         <TableHead className="text-right text-black font-bold">Already Paid</TableHead>
                         <TableHead className="text-right text-black font-bold">Still Due</TableHead>
@@ -96,7 +96,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                     {recordsWithBalance.map(record => (
                         <TableRow key={record.id} className="border-0">
                             <TableCell className="py-1">{format(toDate(record.storageStartDate), 'dd/MM/yyyy')}</TableCell>
-                            <TableCell className="py-1">{`Invoice ${record.id}`}</TableCell>
+                            <TableCell className="py-1">{record.id}</TableCell>
                             <TableCell className="text-right py-1">{formatCurrency(record.totalBilled)}</TableCell>
                             <TableCell className="text-right py-1">{formatCurrency(record.amountPaid)}</TableCell>
                             <TableCell className="text-right py-1">{formatCurrency(record.balanceDue)}</TableCell>

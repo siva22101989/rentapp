@@ -15,7 +15,7 @@ import { useFirestore } from '@/firebase';
 import type { Customer, Commodity } from '@/lib/definitions';
 import { addDoc, collection, Timestamp } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, cleanForFirestore } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 
 const UnloadingRecordSchema = z.object({
@@ -71,14 +71,15 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
         startTransition(async () => {
             try {
                 const totalHamali = data.bagsUnloaded * data.hamaliPerBag;
-                const newRecord = {
+                const rawRecord = {
                     ...data,
                     billNo: nextBillNo, // Ensure the latest bill number is used
                     unloadingDate: Timestamp.fromDate(new Date(data.unloadingDate)),
                     bagsSentToDrying: 0,
+                    status: 'Unloading' as const,
                     totalHamali,
                 };
-                const docRef = await addDoc(collection(firestore, 'unloadingRecords'), newRecord);
+                const docRef = await addDoc(collection(firestore, 'unloadingRecords'), cleanForFirestore(rawRecord));
                 toast({ title: 'Success', description: 'Unloading record added.' });
                 form.reset();
                 router.push(`/unloading/receipt/${docRef.id}`);

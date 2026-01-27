@@ -11,7 +11,7 @@ import type { Customer, Payment, Commodity } from '@/lib/definitions';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Separator } from '../ui/separator';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, cleanForFirestore } from '@/lib/utils';
 import { useFirestore } from '@/firebase';
 import { setDoc, doc, Timestamp } from 'firebase/firestore';
 
@@ -94,7 +94,7 @@ export function InflowForm({ customers, commodities, nextSerialNumber }: { custo
                     });
                 }
                 
-                const newRecord = {
+                const rawRecord = {
                     id: nextSerialNumber,
                     customerId: data.customerId,
                     commodityDescription: data.commodityDescription,
@@ -115,7 +115,7 @@ export function InflowForm({ customers, commodities, nextSerialNumber }: { custo
                     khataAmount: Number(data.khataAmount) || 0
                 };
 
-                await setDoc(doc(firestore, "storageRecords", nextSerialNumber), newRecord);
+                await setDoc(doc(firestore, "storageRecords", nextSerialNumber), cleanForFirestore(rawRecord));
 
                 toast({ title: 'Success', description: 'Inflow record created successfully.' });
                 router.push(`/inflow/receipt/${nextSerialNumber}`);

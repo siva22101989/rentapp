@@ -3,11 +3,11 @@ import type { Timestamp } from 'firebase/firestore';
 export type Customer = {
   id: string;
   name: string;
-  email: string;
+  email?: string;
   phone: string;
   address: string;
-  fatherName: string;
-  village: string;
+  fatherName?: string;
+  village?: string;
 };
 
 export type Commodity = {
@@ -33,7 +33,7 @@ export type StorageRecord = {
   id: string;
   customerId: string;
   commodityDescription: string;
-  location: string;
+  location?: string;
   bagsIn: number;
   bagsOut: number;
   bagsStored: number;
@@ -43,7 +43,7 @@ export type StorageRecord = {
   payments: Payment[];
   hamaliPayable: number;
   totalRentBilled: number;
-  lorryTractorNo: string;
+  lorryTractorNo?: string;
   weight: number;
   inflowType?: 'Direct' | 'Plot';
   dryingRecordId?: string;
@@ -63,6 +63,10 @@ export type Expense = {
   date: Date | Timestamp;
 };
 
+export const unloadingStatus = ["Unloading", "Drying", "Packing", "Billed"] as const;
+export type UnloadingStatus = (typeof unloadingStatus)[number];
+
+
 export type UnloadingRecord = {
   id: string;
   customerId: string;
@@ -71,6 +75,7 @@ export type UnloadingRecord = {
   unloadingDate: Date | Timestamp;
   bagsUnloaded: number;
   bagsSentToDrying: number;
+  status: UnloadingStatus;
   hamaliPerBag: number;
   totalHamali: number;
   billNo?: string;

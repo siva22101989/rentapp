@@ -17,7 +17,7 @@ import { Loader2 } from 'lucide-react';
 import { useFirestore } from '@/firebase';
 import { doc, Timestamp, getDocs, collection, writeBatch, setDoc } from 'firebase/firestore';
 import type { DryingRecord, UnloadingRecord, StorageRecord } from '@/lib/definitions';
-import { toDate } from '@/lib/utils';
+import { toDate, cleanForFirestore } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
@@ -70,7 +70,7 @@ export function BillProcessDialog({
         const billingDate = Timestamp.now();
         const bagsStored = record.bagsPacked || 0;
 
-        const newStorageRecord: StorageRecord = {
+        const newStorageRecord: Omit<StorageRecord, 'id'> & { id: string } = {
             id: nextSerialNumber,
             customerId: record.customerId,
             commodityDescription: record.commodityDescription,
@@ -101,7 +101,7 @@ export function BillProcessDialog({
         });
 
         const newStorageRecordRef = doc(firestore, 'storageRecords', nextSerialNumber);
-        batch.set(newStorageRecordRef, newStorageRecord);
+        batch.set(newStorageRecordRef, cleanForFirestore(newStorageRecord));
         
         // 4. Commit the batch
         await batch.commit();

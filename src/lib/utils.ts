@@ -31,3 +31,17 @@ export function toDate(date: Date | Timestamp | string | null | undefined): Date
     }
     return new Date();
 }
+
+/**
+ * Removes properties with `undefined` values from an object.
+ * Firestore throws an error if you try to write `undefined` values.
+ */
+export function cleanForFirestore(data: any) {
+  const cleaned: { [key: string]: any } = {};
+  for (const key in data) {
+    if (data[key] !== undefined) {
+      cleaned[key] = data[key];
+    }
+  }
+  return cleaned;
+}

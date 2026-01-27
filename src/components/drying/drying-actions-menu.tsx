@@ -39,10 +39,10 @@ export function DryingActionsMenu({ record, unloadingRecord }: { record: DryingR
 
                 <DropdownMenuSeparator />
                 
-                <BillProcessDialog record={record}>
+                <BillProcessDialog record={record} unloadingRecord={unloadingRecord}>
                     <DropdownMenuItem onSelect={(e) => e.preventDefault()} disabled={isBilled || !record.packingDate}>
                         <FileCheck className="mr-2 h-4 w-4" />
-                        Bill Process
+                        Bill & Create Inflow
                     </DropdownMenuItem>
                 </BillProcessDialog>
             </DropdownMenuContent>

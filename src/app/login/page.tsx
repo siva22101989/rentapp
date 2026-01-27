@@ -16,7 +16,7 @@ import { useFirebase } from '@/firebase';
 import {
   GoogleAuthProvider,
   signInWithEmailAndPassword,
-  signInWithPopup,
+  signInWithRedirect,
 } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
@@ -73,9 +73,7 @@ export default function LoginPage() {
     }
     const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
-      showAuthToast();
-      router.push('/');
+      await signInWithRedirect(auth, provider);
     } catch (err: any) {
       setError(err.message);
     }

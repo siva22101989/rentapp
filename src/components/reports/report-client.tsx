@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import type { Customer, StorageRecord } from "@/lib/definitions";
+import type { Customer, StorageRecord, UnloadingRecord } from "@/lib/definitions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,7 @@ import html2canvas from 'html2canvas';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { CustomerStatement } from './customer-statement';
 
-export function ReportClient({ records, customers }: { records: StorageRecord[], customers: Customer[] }) {
+export function ReportClient({ records, customers, unloadingRecords }: { records: StorageRecord[], customers: Customer[], unloadingRecords: UnloadingRecord[] }) {
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>('all');
     const [statementCustomerId, setStatementCustomerId] = useState<string>('');
     const [activeTab, setActiveTab] = useState('inflow');
@@ -32,6 +32,7 @@ export function ReportClient({ records, customers }: { records: StorageRecord[],
 
     const statementCustomer = customers.find(c => c.id === statementCustomerId);
     const statementRecords = records.filter(r => r.customerId === statementCustomerId);
+    const statementUnloadingRecords = unloadingRecords.filter(r => r.customerId === statementCustomerId);
 
     const handleDownloadPdf = async () => {
         let element: HTMLDivElement | null = null;
@@ -110,7 +111,7 @@ export function ReportClient({ records, customers }: { records: StorageRecord[],
                                 </SelectContent>
                             </Select>
                         )}
-                        <Button onClick={handleDownloadPdf} disabled={isGenerating}>
+                        <Button onClick={handleDownloadPdf} disabled={isGenerating || (activeTab === 'statement' && !statementCustomerId)}>
                             {isGenerating ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -151,15 +152,15 @@ export function ReportClient({ records, customers }: { records: StorageRecord[],
                                 </SelectContent>
                             </Select>
 
-                            {statementCustomer && statementRecords.length > 0 ? (
+                            {statementCustomer ? (
                                 <div ref={statementReportRef}>
-                                    <CustomerStatement customer={statementCustomer} records={statementRecords} />
+                                    <CustomerStatement customer={statementCustomer} records={statementRecords} unloadingRecords={statementUnloadingRecords} />
                                 </div>
                             ) : (
                                 <div className="text-center text-muted-foreground py-16">
                                     <UserSearch className="mx-auto h-12 w-12" />
                                     <p className="mt-4">
-                                        {statementCustomerId ? "No records found for this customer." : "Please select a customer to view their statement."}
+                                        Please select a customer to view their statement.
                                     </p>
                                 </div>
                             )}

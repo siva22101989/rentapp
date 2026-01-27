@@ -3,7 +3,7 @@
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
 import { ReportClient } from "@/components/reports/report-client";
-import type { Customer, StorageRecord } from "@/lib/definitions";
+import type { Customer, StorageRecord, UnloadingRecord } from "@/lib/definitions";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { collection } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
@@ -24,7 +24,13 @@ export default function ReportsPage() {
     );
     const { data: allCustomers, loading: loadingCustomers } = useCollection<Customer>(customersQuery);
 
-    if (loadingRecords || loadingCustomers) {
+    const unloadingRecordsQuery = useMemoFirebase(
+      () => (firestore ? collection(firestore, 'unloadingRecords') : null),
+      [firestore]
+    );
+    const { data: allUnloadingRecords, loading: loadingUnloadingRecords } = useCollection<UnloadingRecord>(unloadingRecordsQuery);
+
+    if (loadingRecords || loadingCustomers || loadingUnloadingRecords) {
         return <AppLayout><div>Loading...</div></AppLayout>;
     }
     
@@ -34,7 +40,11 @@ export default function ReportsPage() {
         title="All Transactions Report"
         description="A complete log of all storage records, filterable by customer."
       />
-      <ReportClient records={allRecords || []} customers={allCustomers || []} />
+      <ReportClient 
+        records={allRecords || []} 
+        customers={allCustomers || []} 
+        unloadingRecords={allUnloadingRecords || []} 
+      />
     </AppLayout>
   );
 }

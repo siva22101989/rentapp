@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useMemo, forwardRef } from 'react';
-import type { Customer, StorageRecord } from '@/lib/definitions';
+import type { Customer, StorageRecord, UnloadingRecord } from '@/lib/definitions';
 import { formatCurrency, toDate } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '../ui/table';
 import { format } from 'date-fns';
@@ -9,19 +10,35 @@ import { format } from 'date-fns';
 type CustomerStatementProps = {
   customer: Customer;
   records: StorageRecord[];
+  unloadingRecords: UnloadingRecord[];
 };
 
-export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementProps>(({ customer, records }, ref) => {
+export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementProps>(({ customer, records, unloadingRecords }, ref) => {
 
   const { lineItems, summary } = useMemo(() => {
     const events: any[] = [];
     
-    records.forEach(record => {
+    (unloadingRecords || []).forEach(unloading => {
+        events.push({
+            date: toDate(unloading.unloadingDate),
+            description: `Unloading Bill`,
+            invoiceId: unloading.billNo || unloading.id.substring(0, 5),
+            bagsUnloaded: unloading.bagsUnloaded,
+            bagsIn: 0,
+            bagsOut: 0,
+            hamaliBilled: unloading.totalHamali || 0,
+            rentBilled: 0,
+            credit: 0
+        });
+    });
+
+    (records || []).forEach(record => {
         // Inflow
         events.push({
             date: toDate(record.storageStartDate),
-            description: `Inflow: ${record.commodityDescription}`,
+            description: record.inflowType === 'Direct' ? 'Direct Inflow' : 'Inflow from Plot',
             invoiceId: record.id,
+            bagsUnloaded: 0,
             bagsIn: record.bagsIn || 0,
             bagsOut: 0,
             hamaliBilled: record.hamaliPayable || 0,
@@ -30,12 +47,12 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         });
 
         // Outflows from the new model
-        const recordOutflows = record.outflows || [];
-        recordOutflows.forEach(outflow => {
+        (record.outflows || []).forEach(outflow => {
             events.push({
                 date: toDate(outflow.date),
                 description: `Outflow`,
                 invoiceId: record.id,
+                bagsUnloaded: 0,
                 bagsIn: 0,
                 bagsOut: outflow.bagsWithdrawn,
                 hamaliBilled: 0,
@@ -44,26 +61,13 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             });
         });
 
-        // Legacy Outflow (for records without the new outflows array)
-        if (recordOutflows.length === 0 && (record.bagsOut || 0) > 0 && record.storageEndDate) {
-            events.push({
-                date: toDate(record.storageEndDate),
-                description: `Outflow (Completed Record)`,
-                invoiceId: record.id,
-                bagsIn: 0,
-                bagsOut: record.bagsOut,
-                hamaliBilled: 0,
-                rentBilled: record.totalRentBilled || 0,
-                credit: 0,
-            });
-        }
-
         // Payments
         (record.payments || []).forEach(payment => {
             events.push({
                 date: toDate(payment.date),
                 description: `Payment Received (${payment.type || 'other'})`,
                 invoiceId: record.id,
+                bagsUnloaded: 0,
                 bagsIn: 0,
                 bagsOut: 0,
                 hamaliBilled: 0,
@@ -76,6 +80,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
     const sortedEvents = events.sort((a, b) => a.date.getTime() - b.date.getTime());
 
     let runningBalance = 0;
+    let totalBagsUnloaded = 0;
     let totalBagsIn = 0;
     let totalBagsOut = 0;
     let totalHamaliBilled = 0;
@@ -84,12 +89,13 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
 
     const lineItems = sortedEvents.map(event => {
         const debit = (event.hamaliBilled || 0) + (event.rentBilled || 0);
-        runningBalance += debit - event.credit;
-        totalBagsIn += event.bagsIn;
-        totalBagsOut += event.bagsOut;
+        runningBalance += debit - (event.credit || 0);
+        totalBagsUnloaded += event.bagsUnloaded || 0;
+        totalBagsIn += event.bagsIn || 0;
+        totalBagsOut += event.bagsOut || 0;
         totalHamaliBilled += event.hamaliBilled || 0;
         totalRentBilled += event.rentBilled || 0;
-        totalCredit += event.credit;
+        totalCredit += event.credit || 0;
         return {
             ...event,
             balance: runningBalance
@@ -97,6 +103,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
     });
 
     const summary = {
+        totalBagsUnloaded,
         totalBagsIn,
         totalBagsOut,
         balanceStock: totalBagsIn - totalBagsOut,
@@ -109,10 +116,18 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
 
     return { lineItems, summary };
 
-  }, [records]);
+  }, [records, unloadingRecords]);
   
   const generatedDate = useMemo(() => format(new Date(), 'dd/MM/yyyy'), []);
   const generatedTimestamp = useMemo(() => format(new Date(), 'dd/MM/yyyy HH:mm:ss'), []);
+
+  if (lineItems.length === 0) {
+    return (
+        <div ref={ref} className="text-center text-muted-foreground py-16">
+            <p>No transactions found for this customer.</p>
+        </div>
+    );
+  }
 
   return (
     <div ref={ref} className="bg-white p-8 printable-area text-black font-sans text-xs">
@@ -156,7 +171,8 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         <div className="grid grid-cols-2 gap-x-8 mb-6 p-4 border rounded-lg">
             {/* Stock Summary */}
             <div className="space-y-1">
-                <div className="flex justify-between"><span className="font-bold">Total Bags In:</span><span>{summary.totalBagsIn}</span></div>
+                <div className="flex justify-between"><span className="font-bold">Total Bags Unloaded:</span><span>{summary.totalBagsUnloaded}</span></div>
+                <div className="flex justify-between"><span className="font-bold">Total Bags Stored (In):</span><span>{summary.totalBagsIn}</span></div>
                 <div className="flex justify-between"><span className="font-bold">Total Bags Out:</span><span>{summary.totalBagsOut}</span></div>
                 <div className="flex justify-between border-t pt-1 mt-1"><span className="font-bold">Balance Stock:</span><span>{summary.balanceStock}</span></div>
             </div>
@@ -178,8 +194,9 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                         <TableHead className="text-black font-bold">Date</TableHead>
                         <TableHead className="text-black font-bold">Description</TableHead>
                         <TableHead className="text-black font-bold">Invoice No</TableHead>
-                        <TableHead className="text-right text-black font-bold">Bags In</TableHead>
-                        <TableHead className="text-right text-black font-bold">Bags Out</TableHead>
+                        <TableHead className="text-right text-black font-bold">Unloaded</TableHead>
+                        <TableHead className="text-right text-black font-bold">Stored</TableHead>
+                        <TableHead className="text-right text-black font-bold">Out</TableHead>
                         <TableHead className="text-right text-black font-bold">Hamali</TableHead>
                         <TableHead className="text-right text-black font-bold">Rent</TableHead>
                         <TableHead className="text-right text-black font-bold">Credit</TableHead>
@@ -192,6 +209,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                             <TableCell className="py-1">{format(item.date, 'dd/MM/yyyy')}</TableCell>
                             <TableCell className="py-1">{item.description}</TableCell>
                             <TableCell className="py-1">{item.invoiceId}</TableCell>
+                            <TableCell className="text-right py-1">{item.bagsUnloaded || ''}</TableCell>
                             <TableCell className="text-right py-1">{item.bagsIn || ''}</TableCell>
                             <TableCell className="text-right py-1">{item.bagsOut || ''}</TableCell>
                             <TableCell className="text-right py-1">{item.hamaliBilled > 0 ? formatCurrency(item.hamaliBilled) : ''}</TableCell>
@@ -203,7 +221,10 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 </TableBody>
                  <TableFooter>
                     <TableRow className="border-t-2 border-black">
-                        <TableCell colSpan={5} className="text-right font-bold">Totals:</TableCell>
+                        <TableCell colSpan={3} className="text-right font-bold">Totals:</TableCell>
+                        <TableCell className="text-right font-bold">{summary.totalBagsUnloaded}</TableCell>
+                        <TableCell className="text-right font-bold">{summary.totalBagsIn}</TableCell>
+                        <TableCell className="text-right font-bold">{summary.totalBagsOut}</TableCell>
                         <TableCell className="text-right font-bold">{formatCurrency(summary.totalHamali)}</TableCell>
                         <TableCell className="text-right font-bold">{formatCurrency(summary.totalRent)}</TableCell>
                         <TableCell className="text-right font-bold">{formatCurrency(summary.totalPaid)}</TableCell>

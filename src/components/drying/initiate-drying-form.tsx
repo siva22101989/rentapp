@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useTransition, useState, useEffect } from 'react';
@@ -13,9 +14,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
 import type { Customer, UnloadingRecord, HamaliCharge } from '@/lib/definitions';
-import { addDoc, collection, Timestamp, doc, updateDoc, increment } from 'firebase/firestore';
+import { addDoc, collection, doc, updateDoc, increment } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, cleanForFirestore } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 
 const InitiateDryingSchema = z.object({
@@ -113,12 +114,12 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                 const currentProportionalUnloadingHamali = selectedUnloadingRecord.hamaliPerBag * data.bagsForDrying;
                 const dryingDay1Hamali = data.bagsForDrying * data.hamaliPerBag;
                 
-                const hamaliCharges: HamaliCharge[] = [
+                const hamaliCharges: Partial<HamaliCharge>[] = [
                   { description: `Unloading Hamali for ${data.bagsForDrying} bags`, amount: currentProportionalUnloadingHamali, date: selectedUnloadingRecord.unloadingDate },
-                  { description: "Drying Day 1", amount: dryingDay1Hamali, date: Timestamp.fromDate(dryingStartDate) },
+                  { description: "Drying Day 1", amount: dryingDay1Hamali, date: dryingStartDate },
                 ];
                 
-                const totalDryingHamali = hamaliCharges.reduce((acc, charge) => acc + charge.amount, 0);
+                const totalDryingHamali = hamaliCharges.reduce((acc, charge) => acc + (charge.amount || 0), 0);
                 
                 // 1. Create new drying record
                 const newRecord = {
@@ -126,7 +127,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                     customerId: selectedUnloadingRecord.customerId,
                     commodityDescription: selectedUnloadingRecord.commodityDescription,
                     bagsForDrying: data.bagsForDrying,
-                    dryingStartDate: Timestamp.fromDate(dryingStartDate),
+                    dryingStartDate: dryingStartDate,
                     status: 'Drying' as const,
                     hamaliCharges,
                     totalDryingHamali,
@@ -134,7 +135,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                     billingDate: null,
                     bagsPacked: null,
                 };
-                await addDoc(collection(firestore, 'dryingRecords'), newRecord);
+                await addDoc(collection(firestore, 'dryingRecords'), cleanForFirestore(newRecord));
 
                 // 2. Update bagsSentToDrying on unloading record
                 const unloadingRecordRef = doc(firestore, 'unloadingRecords', data.unloadingRecordId);

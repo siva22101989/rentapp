@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useTransition, useState, useEffect } from 'react';
@@ -13,7 +14,7 @@ import { Loader2 } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { formatCurrency, cleanForFirestore } from '@/lib/utils';
 import { useFirestore } from '@/firebase';
-import { setDoc, doc, Timestamp } from 'firebase/firestore';
+import { setDoc, doc } from 'firebase/firestore';
 
 function SubmitButton() {
     const [pending, setPending] = useState(false);
@@ -89,7 +90,7 @@ export function InflowForm({ customers, commodities, nextSerialNumber }: { custo
                 if (hamaliPaidAmount > 0) {
                     payments.push({
                         amount: hamaliPaidAmount,
-                        date: Timestamp.fromDate(new Date(data.storageStartDate as string)),
+                        date: new Date(data.storageStartDate as string),
                         type: 'hamali'
                     });
                 }
@@ -102,7 +103,7 @@ export function InflowForm({ customers, commodities, nextSerialNumber }: { custo
                     bagsIn: bagsStored,
                     bagsOut: 0,
                     bagsStored,
-                    storageStartDate: Timestamp.fromDate(new Date(data.storageStartDate as string)),
+                    storageStartDate: new Date(data.storageStartDate as string),
                     storageEndDate: null,
                     billingCycle: '6-Month Initial' as const,
                     payments,

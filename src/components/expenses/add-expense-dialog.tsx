@@ -25,7 +25,8 @@ import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
-import { addDoc, collection, Timestamp } from 'firebase/firestore';
+import { addDoc, collection } from 'firebase/firestore';
+import { cleanForFirestore } from '@/lib/utils';
 
 const ExpenseSchema = z.object({
   description: z.string().min(2, 'Description is required.'),
@@ -62,9 +63,9 @@ export function AddExpenseDialog() {
       try {
         const newExpense = {
           ...data,
-          date: Timestamp.fromDate(new Date(data.date)),
+          date: new Date(data.date),
         };
-        await addDoc(collection(firestore, 'expenses'), newExpense);
+        await addDoc(collection(firestore, 'expenses'), cleanForFirestore(newExpense));
         toast({ title: 'Success', description: 'Expense added successfully.' });
         setIsOpen(false);
         form.reset();

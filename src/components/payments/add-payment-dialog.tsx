@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -16,9 +17,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import type { StorageRecord } from '@/lib/definitions';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, cleanForFirestore } from '@/lib/utils';
 import { useFirestore } from '@/firebase';
-import { doc, updateDoc, arrayUnion, Timestamp } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -68,21 +69,21 @@ export function AddPaymentDialog({ record }: AddPaymentDialogProps) {
     startTransition(async () => {
       try {
         const newPayments = [];
-        const paymentDate = Timestamp.fromDate(new Date(data.paymentDate));
+        const paymentDate = new Date(data.paymentDate);
 
         if (data.payForHamali && data.payForHamali > 0) {
-          newPayments.push({
+          newPayments.push(cleanForFirestore({
             amount: data.payForHamali,
             date: paymentDate,
             type: 'hamali',
-          });
+          }));
         }
         if (data.payForRent && data.payForRent > 0) {
-          newPayments.push({
+          newPayments.push(cleanForFirestore({
             amount: data.payForRent,
             date: paymentDate,
             type: 'rent',
-          });
+          }));
         }
 
         if (newPayments.length === 0) {

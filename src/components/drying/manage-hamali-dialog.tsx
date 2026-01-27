@@ -23,9 +23,9 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
 import type { DryingRecord, HamaliCharge, UnloadingRecord } from '@/lib/definitions';
-import { doc, Timestamp, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 import { format } from 'date-fns';
-import { formatCurrency, toDate } from '@/lib/utils';
+import { formatCurrency, toDate, cleanForFirestore } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 
 const HamaliChargeSchema = z.object({
@@ -78,18 +78,18 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
 
     startTransition(async () => {
       try {
-        const hamaliCharges: HamaliCharge[] = data.charges.map(charge => ({
+        const hamaliCharges: Partial<HamaliCharge>[] = data.charges.map(charge => ({
           ...charge,
-          date: Timestamp.fromDate(new Date(charge.date)),
+          date: new Date(charge.date),
         }));
         
-        const totalDryingHamali = hamaliCharges.reduce((acc, charge) => acc + charge.amount, 0);
+        const totalDryingHamali = hamaliCharges.reduce((acc, charge) => acc + (charge.amount || 0), 0);
 
         const recordRef = doc(firestore, 'dryingRecords', record.id);
-        await updateDoc(recordRef, {
+        await updateDoc(recordRef, cleanForFirestore({
           hamaliCharges,
           totalDryingHamali,
-        });
+        }));
 
         toast({ title: 'Success', description: 'Hamali charges updated successfully.' });
         setIsOpen(false);

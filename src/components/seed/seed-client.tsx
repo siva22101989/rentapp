@@ -9,9 +9,10 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Terminal } from "lucide-react"
 import { useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { collection, writeBatch, doc, Timestamp } from 'firebase/firestore';
+import { collection, writeBatch, doc } from 'firebase/firestore';
 import customersData from '@/lib/data/customers.json';
 import storageRecordsData from '@/lib/data/storageRecords.json';
+import { cleanForFirestore } from '@/lib/utils';
 
 export function SeedClient() {
   const [isSeeding, startSeedingTransition] = useTransition();
@@ -36,22 +37,23 @@ export function SeedClient() {
         // Seed Customers
         customersData.forEach((customer) => {
           const docRef = doc(firestore, 'customers', customer.id);
-          batch.set(docRef, customer);
+          batch.set(docRef, cleanForFirestore(customer));
         });
 
         // Seed Storage Records
         storageRecordsData.forEach((record: any) => {
           const docRef = doc(firestore, 'storageRecords', record.id);
+          // Dates in JSON are strings, cleanForFirestore will convert them
           const adaptedRecord = {
             ...record,
-            storageStartDate: Timestamp.fromDate(new Date(record.storageStartDate)),
-            storageEndDate: record.storageEndDate ? Timestamp.fromDate(new Date(record.storageEndDate)) : null,
+            storageStartDate: new Date(record.storageStartDate),
+            storageEndDate: record.storageEndDate ? new Date(record.storageEndDate) : null,
             payments: (record.payments || []).map((p: any) => ({
               ...p,
-              date: Timestamp.fromDate(new Date(p.date)),
+              date: new Date(p.date),
             })),
           };
-          batch.set(docRef, adaptedRecord);
+          batch.set(docRef, cleanForFirestore(adaptedRecord));
         });
 
         await batch.commit();

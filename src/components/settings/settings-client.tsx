@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useTransition, useState } from 'react';
@@ -7,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { collection, writeBatch, getDocs, doc, Timestamp } from 'firebase/firestore';
+import { collection, writeBatch, getDocs, doc } from 'firebase/firestore';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,6 +22,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import customersData from '@/lib/data/customers.json';
 import storageRecordsData from '@/lib/data/storageRecords.json';
+import { cleanForFirestore } from '@/lib/utils';
+
 
 export function SettingsClient() {
   const [isClearingCache, startClearingCacheTransition] = useTransition();
@@ -119,7 +122,7 @@ export function SettingsClient() {
         // Seed Customers
         customersData.forEach((customer) => {
           const docRef = doc(firestore, 'customers', customer.id);
-          batch.set(docRef, customer);
+          batch.set(docRef, cleanForFirestore(customer));
         });
 
         // Seed Storage Records
@@ -127,14 +130,14 @@ export function SettingsClient() {
           const docRef = doc(firestore, 'storageRecords', record.id);
           const adaptedRecord = {
             ...record,
-            storageStartDate: Timestamp.fromDate(new Date(record.storageStartDate)),
-            storageEndDate: record.storageEndDate ? Timestamp.fromDate(new Date(record.storageEndDate)) : null,
+            storageStartDate: new Date(record.storageStartDate),
+            storageEndDate: record.storageEndDate ? new Date(record.storageEndDate) : null,
             payments: (record.payments || []).map((p: any) => ({
               ...p,
-              date: Timestamp.fromDate(new Date(p.date)),
+              date: new Date(p.date),
             })),
           };
-          batch.set(docRef, adaptedRecord);
+          batch.set(docRef, cleanForFirestore(adaptedRecord));
         });
 
         await batch.commit();

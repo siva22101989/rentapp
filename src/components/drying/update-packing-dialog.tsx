@@ -22,9 +22,9 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
 import type { DryingRecord } from '@/lib/definitions';
-import { doc, Timestamp, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 import { format } from 'date-fns';
-import { toDate } from '@/lib/utils';
+import { toDate, cleanForFirestore } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Info } from 'lucide-react';
 
@@ -59,11 +59,11 @@ export function UpdatePackingDialog({ record, children }: { record: DryingRecord
     startTransition(async () => {
       try {
         const recordRef = doc(firestore, 'dryingRecords', record.id);
-        await updateDoc(recordRef, {
+        await updateDoc(recordRef, cleanForFirestore({
           bagsPacked: data.bagsPacked,
-          packingDate: Timestamp.fromDate(new Date(data.packingDate)),
+          packingDate: new Date(data.packingDate),
           status: 'Packing',
-        });
+        }));
 
         toast({ title: 'Success', description: 'Packing information updated successfully.' });
         setIsOpen(false);

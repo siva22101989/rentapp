@@ -21,13 +21,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { expenseCategories } from '@/lib/definitions';
 import { Textarea } from '../ui/textarea';
 import { format } from 'date-fns';
-import { toDate } from '@/lib/utils';
+import { toDate, cleanForFirestore } from '@/lib/utils';
 import { useFirestore } from '@/firebase';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
-import { doc, Timestamp, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 
 const ExpenseSchema = z.object({
   description: z.string().min(2, 'Description is required.'),
@@ -64,9 +64,9 @@ export function EditExpenseDialog({ expense, children }: { expense: Expense, chi
       try {
         const updatedExpense = {
           ...data,
-          date: Timestamp.fromDate(new Date(data.date)),
+          date: new Date(data.date),
         };
-        await updateDoc(doc(firestore, 'expenses', expense.id), updatedExpense);
+        await updateDoc(doc(firestore, 'expenses', expense.id), cleanForFirestore(updatedExpense));
         toast({ title: 'Success', description: 'Expense updated successfully.' });
         setIsOpen(false);
       } catch (error) {

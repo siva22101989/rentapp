@@ -1,9 +1,10 @@
+
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useFirestore } from '@/firebase';
-import { doc, updateDoc, arrayUnion, Timestamp, type Firestore } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, type Firestore } from 'firebase/firestore';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,7 +16,7 @@ import { Loader2 } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { calculateFinalRent } from '@/lib/billing';
 import { format } from 'date-fns';
-import { toDate } from '@/lib/utils';
+import { toDate, cleanForFirestore } from '@/lib/utils';
 
 function SubmitButton({ isPending }: { isPending: boolean }) {
     return (
@@ -127,8 +128,8 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                 const bagsRemaining = selectedRecord.bagsStored - bags;
                 const isFinalWithdrawal = bagsRemaining <= 0;
 
-                const newOutflow: Outflow = {
-                    date: Timestamp.fromDate(withdrawalDate),
+                const newOutflow: Partial<Outflow> = {
+                    date: withdrawalDate,
                     bagsWithdrawn: bags,
                     rentBilled: finalRent,
                 };
@@ -137,25 +138,25 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                     bagsStored: bagsRemaining,
                     bagsOut: (selectedRecord.bagsOut || 0) + bags,
                     totalRentBilled: (selectedRecord.totalRentBilled || 0) + finalRent,
-                    outflows: arrayUnion(newOutflow),
+                    outflows: arrayUnion(cleanForFirestore(newOutflow)),
                 };
                 
                 if (isFinalWithdrawal) {
-                    updateData.storageEndDate = Timestamp.fromDate(withdrawalDate);
+                    updateData.storageEndDate = withdrawalDate;
                     updateData.billingCycle = 'Completed';
                 }
 
                 const paidNow = Number(amountPaidNow) || 0;
                 if (paidNow > 0) {
-                    const newPayment: Payment = {
+                    const newPayment: Partial<Payment> = {
                         amount: paidNow,
-                        date: Timestamp.fromDate(withdrawalDate),
+                        date: withdrawalDate,
                         type: 'rent', // Assume final payment is for rent/total due
                     };
-                    updateData.payments = arrayUnion(newPayment);
+                    updateData.payments = arrayUnion(cleanForFirestore(newPayment));
                 }
 
-                await updateDoc(recordRef, updateData);
+                await updateDoc(recordRef, cleanForFirestore(updateData));
 
                 toast({ title: 'Success', description: 'Withdrawal processed successfully.' });
 

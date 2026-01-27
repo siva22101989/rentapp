@@ -34,14 +34,7 @@ export const deleteCustomer = async (db: Firestore, id: string): Promise<void> =
 
 export const updateStorageRecord = async (db: Firestore, id: string, data: Partial<StorageRecord>): Promise<void> => {
     const recordRef = doc(db, 'storageRecords', id);
-    const updateData: { [key: string]: any } = cleanForFirestore(data);
-    
-    // Convert Date objects to Timestamps for Firestore
-    if (data.storageStartDate instanceof Date) {
-        updateData.storageStartDate = Timestamp.fromDate(data.storageStartDate);
-    }
-    
-    await updateDoc(recordRef, updateData);
+    await updateDoc(recordRef, cleanForFirestore(data));
 };
 
 export const saveCommodity = async (db: Firestore, commodity: Omit<Commodity, 'id'>): Promise<string> => {

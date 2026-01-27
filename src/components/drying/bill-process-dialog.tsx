@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -15,7 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '../ui/button';
 import { Loader2 } from 'lucide-react';
 import { useFirestore } from '@/firebase';
-import { doc, Timestamp, getDocs, collection, writeBatch, setDoc } from 'firebase/firestore';
+import { doc, getDocs, collection, writeBatch } from 'firebase/firestore';
 import type { DryingRecord, UnloadingRecord, StorageRecord } from '@/lib/definitions';
 import { toDate, cleanForFirestore } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -67,7 +68,7 @@ export function BillProcessDialog({
         }
         
         // 2. Prepare new storage record
-        const billingDate = Timestamp.now();
+        const billingDate = new Date();
         const bagsStored = record.bagsPacked || 0;
 
         const newStorageRecord: Omit<StorageRecord, 'id'> & { id: string } = {
@@ -95,10 +96,10 @@ export function BillProcessDialog({
         const batch = writeBatch(firestore);
 
         const dryingRecordRef = doc(firestore, 'dryingRecords', record.id);
-        batch.update(dryingRecordRef, {
+        batch.update(dryingRecordRef, cleanForFirestore({
             status: 'Billed',
             billingDate: billingDate,
-        });
+        }));
 
         const newStorageRecordRef = doc(firestore, 'storageRecords', nextSerialNumber);
         batch.set(newStorageRecordRef, cleanForFirestore(newStorageRecord));

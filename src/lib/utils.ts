@@ -1,7 +1,7 @@
 
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import type { Timestamp } from "firebase/firestore";
+import { Timestamp } from "firebase/firestore";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -33,15 +33,39 @@ export function toDate(date: Date | Timestamp | string | null | undefined): Date
 }
 
 /**
- * Removes properties with `undefined` values from an object.
- * Firestore throws an error if you try to write `undefined` values.
+ * Recursively cleans an object to be Firestore-compatible.
+ * - Removes properties with `undefined` values.
+ * - Converts `Date` objects to Firestore `Timestamp` objects.
+ * This function should be used on any data object before it's sent to Firestore.
  */
-export function cleanForFirestore(data: any) {
-  const cleaned: { [key: string]: any } = {};
-  for (const key in data) {
-    if (data[key] !== undefined) {
-      cleaned[key] = data[key];
-    }
+export function cleanForFirestore(data: any): any {
+  if (data === null || data === undefined) {
+    return null;
   }
-  return cleaned;
+
+  if (Array.isArray(data)) {
+    return data.map(item => cleanForFirestore(item));
+  }
+
+  if (data instanceof Date) {
+    return Timestamp.fromDate(data);
+  }
+
+  if (data.toDate && typeof data.toDate === 'function') {
+    // It's already a Firestore Timestamp, return as is.
+    return data;
+  }
+
+  if (typeof data === 'object') {
+    const cleanedData: { [key: string]: any } = {};
+    for (const key of Object.keys(data)) {
+      const value = data[key];
+      if (value !== undefined) {
+        cleanedData[key] = cleanForFirestore(value);
+      }
+    }
+    return cleanedData;
+  }
+
+  return data;
 }

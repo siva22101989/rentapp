@@ -20,7 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { Customer, StorageRecord, Commodity } from '@/lib/definitions';
 import { format } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { toDate } from '@/lib/utils';
+import { toDate, cleanForFirestore } from '@/lib/utils';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -77,7 +77,7 @@ export function EditStorageDialog({ record, customers, children }: { record: Sto
       try {
         const updateData = {
           ...data,
-          storageStartDate: toDate(data.storageStartDate),
+          storageStartDate: new Date(data.storageStartDate),
         };
         await updateStorageRecord(firestore, record.id, updateData);
         toast({ title: 'Success', description: 'Storage record updated.' });

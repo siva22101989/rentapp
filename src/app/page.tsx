@@ -1,7 +1,6 @@
 'use client';
 
 import { AppLayout } from "@/components/layout/app-layout";
-import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -53,10 +52,10 @@ function NavCard({ item }: { item: NavItem }) {
 export default function DashboardPage() {
   return (
     <AppLayout>
-      <PageHeader
-        title="Welcome to BagBill"
-        description="Your central hub for managing warehouse storage and billing."
-      />
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold tracking-tight font-headline">Welcome to BagBill</h1>
+        <p className="mt-1 text-muted-foreground">Your central hub for managing warehouse storage and billing.</p>
+      </div>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {navItems.map((item) => (
           <NavCard key={item.href} item={item} />

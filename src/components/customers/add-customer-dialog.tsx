@@ -66,7 +66,7 @@ export function AddCustomerDialog() {
         form.reset();
       } catch (error) {
         console.error(error);
-        toast({ title: 'Error', description: 'Failed to save customer. You might not have permission.', variant: 'destructive' });
+        toast({ title: 'Error', description: 'Failed to save customer.', variant: 'destructive' });
       }
     });
   };
@@ -85,7 +85,7 @@ export function AddCustomerDialog() {
             <DialogHeader>
               <DialogTitle>Add New Customer</DialogTitle>
               <DialogDescription>
-                Enter the details for the new customer. Click save when you&apos;re done.
+                Enter the details for the new customer. Click save when you're done.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">

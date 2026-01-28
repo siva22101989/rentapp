@@ -20,6 +20,6 @@ function initializeFirebase() {
 
 export { initializeFirebase };
 export * from './provider';
-export * from './auth/use-user';
+// use-user is removed as auth is no longer part of the app.
 export * from './firestore/use-collection';
 export * from './firestore/use-doc';

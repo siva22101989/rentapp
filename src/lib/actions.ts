@@ -1,3 +1,4 @@
+
 'use server';
 
 import { z } from 'zod';
@@ -13,14 +14,20 @@ export type FormState = {
   success: boolean;
 };
 
-export async function getAnomalyDetection() {
+export type AnomalyState = {
+  anomalies: string | null;
+  success: boolean;
+};
+
+export async function getAnomalyDetection(records: StorageRecord[]): Promise<AnomalyState> {
+  if (!records || records.length === 0) {
+    return { success: true, anomalies: 'No storage records found to analyze.' };
+  }
   try {
-    // This needs to be a client-side call if it needs auth, or use admin SDK properly
-    // For now, let's assume it can be called without records for the sake of fixing build.
-    // const records = await getStorageRecords(); 
-    const result = await detectStorageAnomaliesFlow({ storageRecords: JSON.stringify([]) });
+    const result = await detectStorageAnomaliesFlow({ storageRecords: JSON.stringify(records) });
     return { success: true, anomalies: result.anomalies };
   } catch (error) {
+    console.error("Anomaly detection failed:", error);
     return { success: false, anomalies: 'An error occurred while analyzing records.' };
   }
 }

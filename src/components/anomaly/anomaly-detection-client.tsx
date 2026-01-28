@@ -1,7 +1,8 @@
 
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
+import { useFormStatus } from 'react-dom';
 import { Loader2, ShieldAlert } from 'lucide-react';
 import { getAnomalyDetection } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
@@ -33,7 +34,7 @@ function SubmitButton() {
 
 export function AnomalyDetectionClient() {
   const initialState: AnomalyState = { anomalies: null, success: true };
-  const [state, formAction] = useFormState(getAnomalyDetection, initialState);
+  const [state, formAction] = useActionState(getAnomalyDetection, initialState);
 
   return (
     <div className="flex flex-col items-center justify-center text-center">

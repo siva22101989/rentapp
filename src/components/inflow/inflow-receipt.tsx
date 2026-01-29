@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
@@ -74,8 +73,6 @@ export function InflowReceipt({ record, customer }: { record: StorageRecord, cus
         );
     }
     
-    const bagsToShow = record.bagsStored;
-
     return (
         <div className="w-full max-w-2xl mx-auto bg-background p-4 sm:p-6">
             <div ref={receiptRef} className="printable-area bg-white p-6 border-2 border-blue-800 font-sans text-sm" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
@@ -121,7 +118,7 @@ export function InflowReceipt({ record, customer }: { record: StorageRecord, cus
                     <div className="flex">
                         <span className="w-1/3 font-bold">No. OF BAGS</span>
                         <div className="flex-1 flex justify-between">
-                           <span>: {bagsToShow}</span>
+                           <span>: {record.bagsIn || 0}</span>
                            <div><span className="font-bold">WEIGHT :</span> {record.weight ? `${record.weight} kgs` : '____'}</div>
                         </div>
                     </div>

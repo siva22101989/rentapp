@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -82,7 +81,7 @@ export const BillReceipt = React.forwardRef<HTMLDivElement, BillReceiptProps>(
                             <TableRow>
                                 <TableCell>1</TableCell>
                                 <TableCell>{record.commodityDescription}</TableCell>
-                                <TableCell className="text-right">{record.bagsStored} bags</TableCell>
+                                <TableCell className="text-right">{record.bagsIn || 0} bags</TableCell>
                                 <TableCell className="text-right">-</TableCell>
                             </TableRow>
                             <TableRow>

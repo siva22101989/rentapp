@@ -53,24 +53,17 @@ export function OutflowReceipt({ record, customer, withdrawnBags, finalRent, pai
         const { rentPerBag } = calculateFinalRent(safeRecord, endDate, withdrawnBags);
         setRentBreakdown({ rentPerBag });
 
-        // Calculate hamali pending at the time of outflow
-        // Total Hamali - all payments made before outflow
-        const originalHamaliPayable = record.hamaliPayable;
-        
-        const totalPaidForHamaliAndRent = (record.payments || [])
-            .filter(p => toDate(p.date) <= endDate) // only payments made before or on outflow
+        // Calculate hamali pending.
+        // This is the total hamali payable on the record minus all payments specifically for hamali.
+        const originalHamaliPayable = record.hamaliPayable || 0;
+        const hamaliPaid = (record.payments || [])
+            .filter(p => p.type === 'hamali')
             .reduce((acc, p) => acc + p.amount, 0);
         
-        // This logic is tricky. Let's assume outflow `addPayment` action creates a new payment for the final settlement.
-        // The hamali pending is what was originally due minus what was paid *before* this final settlement.
-        const priorPayments = (record.payments || [])
-            .filter(p => toDate(p.date) < endDate)
-            .reduce((acc, p) => acc + p.amount, 0);
-
-        const pending = originalHamaliPayable - priorPayments;
+        const pending = originalHamaliPayable - hamaliPaid;
         setHamaliPending(pending > 0 ? pending : 0);
         
-    }, [record, withdrawnBags, paidNow]);
+    }, [record, withdrawnBags]);
 
     const totalPayable = finalRent + hamaliPending;
     const balanceDue = totalPayable - paidNow;
@@ -145,6 +138,25 @@ export function OutflowReceipt({ record, customer, withdrawnBags, finalRent, pai
                         <p><span className="font-medium">Commodity:</span> {record.commodityDescription}</p>
                         <p><span className="font-medium">Date In:</span> {formattedStartDate}</p>
                         <p><span className="font-medium">Storage Duration:</span> {duration.months} months ({duration.days} days)</p>
+                    </div>
+                </div>
+
+                {/* Storage Summary */}
+                <div className="mb-8 p-4 bg-secondary/30 rounded-lg">
+                    <h3 className="text-sm font-semibold mb-2 text-muted-foreground">STORAGE SUMMARY</h3>
+                    <div className="grid grid-cols-3 gap-4 text-center">
+                        <div>
+                            <p className="text-xs text-muted-foreground">Bags Before</p>
+                            <p className="text-lg font-bold">{(record.bagsStored || 0) + withdrawnBags}</p>
+                        </div>
+                        <div>
+                            <p className="text-xs text-muted-foreground">Bags Withdrawn</p>
+                            <p className="text-lg font-bold text-destructive">-{withdrawnBags}</p>
+                        </div>
+                        <div>
+                            <p className="text-xs text-muted-foreground">Bags Remaining</p>
+                            <p className="text-lg font-bold text-green-600">{record.bagsStored}</p>
+                        </div>
                     </div>
                 </div>
 

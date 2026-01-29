@@ -16,12 +16,13 @@ import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { DateRange } from 'react-day-picker';
 
-type HamaliEvent = {
+export type HamaliEvent = {
     date: Date;
     customerId: string;
     description: string;
     recordId: string;
     amount: number;
+    type: 'charge' | 'payment';
 }
 
 export function HamaliReport({ records, customers, unloadingRecords, dryingRecords }: { records: StorageRecord[], customers: Customer[], unloadingRecords: UnloadingRecord[], dryingRecords: DryingRecord[] }) {
@@ -34,10 +35,12 @@ export function HamaliReport({ records, customers, unloadingRecords, dryingRecor
     const hamaliEvents = useMemo(() => {
         const events: HamaliEvent[] = [];
 
-        // Source 1: Detailed Hamali from Drying Records
+        // --- CHARGES ---
+
+        // Source 1: Detailed Hamali from Drying Records (covers Plot Inflows)
         dryingRecords.forEach(dr => {
             const unloadingRecord = unloadingRecords.find(ur => ur.id === dr.unloadingRecordId);
-            const refId = unloadingRecord?.billNo || 'N/A'; // Use Unloading Bill No or fallback to N/A
+            const refId = unloadingRecord?.billNo || 'N/A';
             (dr.hamaliCharges || []).forEach(charge => {
                  events.push({
                     date: toDate(charge.date),
@@ -45,24 +48,56 @@ export function HamaliReport({ records, customers, unloadingRecords, dryingRecor
                     description: charge.description,
                     recordId: refId,
                     amount: charge.amount,
+                    type: 'charge',
                 });
             });
         });
         
-        // Source 2: Hamali from Direct Inflows
+        // Source 2: Hamali from Direct Inflows (Storage Records)
         records.forEach(sr => {
             if ((sr.inflowType === 'Direct' || !sr.inflowType) && sr.hamaliPayable > 0) {
                  events.push({
                     date: toDate(sr.storageStartDate),
                     customerId: sr.customerId,
                     description: 'Direct Storage Inflow Hamali',
-                    recordId: sr.id, // This is already a simple number
+                    recordId: sr.id,
                     amount: sr.hamaliPayable,
+                    type: 'charge',
                 });
             }
         });
+
+        // --- PAYMENTS ---
+
+        // Source 3: Hamali Payments from Storage Records
+        records.forEach(sr => {
+            (sr.payments || []).filter(p => p.type === 'hamali').forEach(payment => {
+                events.push({
+                    date: toDate(payment.date),
+                    customerId: sr.customerId,
+                    description: 'Payment for Storage Hamali',
+                    recordId: sr.id,
+                    amount: payment.amount,
+                    type: 'payment',
+                });
+            });
+        });
+
+        // Source 4: Hamali Payments from Unloading Records
+        unloadingRecords.forEach(ur => {
+            (ur.payments || []).forEach(payment => {
+                events.push({
+                    date: toDate(payment.date),
+                    customerId: ur.customerId,
+                    description: 'Payment for Unloading Hamali',
+                    recordId: ur.billNo || ur.id,
+                    amount: payment.amount,
+                    type: 'payment',
+                });
+            });
+        });
         
-        // Let's filter these events.
+        // Filter events based on UI selection
         let filteredEvents = events;
         if (selectedCustomerId && selectedCustomerId !== 'all') {
             filteredEvents = filteredEvents.filter(e => e.customerId === selectedCustomerId);
@@ -71,9 +106,9 @@ export function HamaliReport({ records, customers, unloadingRecords, dryingRecor
             filteredEvents = filteredEvents.filter(e => e.date >= dateRange.from!);
         }
         if (dateRange?.to) {
-            const toDate = new Date(dateRange.to);
-            toDate.setHours(23, 59, 59, 999); // Include the whole day
-            filteredEvents = filteredEvents.filter(e => e.date <= toDate);
+            const toDateObj = new Date(dateRange.to);
+            toDateObj.setHours(23, 59, 59, 999); // Include the whole day
+            filteredEvents = filteredEvents.filter(e => e.date <= toDateObj);
         }
 
         return filteredEvents.sort((a,b) => a.date.getTime() - b.date.getTime());

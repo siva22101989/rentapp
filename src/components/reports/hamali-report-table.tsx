@@ -6,14 +6,7 @@ import { format } from "date-fns";
 import type { Customer } from "@/lib/definitions";
 import { formatCurrency } from '@/lib/utils';
 import { useMemo } from "react";
-
-type HamaliEvent = {
-    date: Date;
-    customerId: string;
-    description: string;
-    recordId: string;
-    amount: number;
-}
+import type { HamaliEvent } from "./hamali-report";
 
 type ReportTableProps = {
     events: HamaliEvent[];
@@ -28,7 +21,8 @@ export function HamaliReportTable({ events, customers, title }: ReportTableProps
         return customers.find(c => c.id === customerId)?.name ?? 'Unknown';
     }
 
-    const totalHamali = events.reduce((acc, event) => acc + event.amount, 0);
+    const totalCharges = events.filter(e => e.type === 'charge').reduce((acc, event) => acc + event.amount, 0);
+    const totalPayments = events.filter(e => e.type === 'payment').reduce((acc, event) => acc + event.amount, 0);
 
     return (
         <div className="bg-white p-4 rounded-lg">
@@ -44,7 +38,8 @@ export function HamaliReportTable({ events, customers, title }: ReportTableProps
                         <TableHead>Customer</TableHead>
                         <TableHead>Description</TableHead>
                         <TableHead>Reference ID</TableHead>
-                        <TableHead className="text-right">Amount</TableHead>
+                        <TableHead className="text-right">Charge</TableHead>
+                        <TableHead className="text-right">Payment</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -54,21 +49,31 @@ export function HamaliReportTable({ events, customers, title }: ReportTableProps
                             <TableCell className="font-medium">{getCustomerName(event.customerId)}</TableCell>
                             <TableCell>{event.description}</TableCell>
                             <TableCell>{event.recordId}</TableCell>
-                            <TableCell className="text-right font-mono">{formatCurrency(event.amount)}</TableCell>
+                            <TableCell className="text-right font-mono">
+                                {event.type === 'charge' ? formatCurrency(event.amount) : ''}
+                            </TableCell>
+                            <TableCell className="text-right font-mono text-green-600">
+                                {event.type === 'payment' ? formatCurrency(event.amount) : ''}
+                            </TableCell>
                         </TableRow>
                     ))}
                     {events.length === 0 && (
                         <TableRow>
-                            <TableCell colSpan={5} className="text-center text-muted-foreground">
-                                No hamali charges found for the selected criteria.
+                            <TableCell colSpan={6} className="text-center text-muted-foreground">
+                                No hamali transactions found for the selected criteria.
                             </TableCell>
                         </TableRow>
                     )}
                 </TableBody>
                 <TableFooter>
                     <TableRow>
-                        <TableCell colSpan={4} className="text-right font-bold text-lg">Total Hamali</TableCell>
-                        <TableCell className="text-right font-mono font-bold text-lg">{formatCurrency(totalHamali)}</TableCell>
+                        <TableCell colSpan={4} className="text-right font-bold">Totals</TableCell>
+                        <TableCell className="text-right font-mono font-bold">{formatCurrency(totalCharges)}</TableCell>
+                        <TableCell className="text-right font-mono font-bold text-green-600">{formatCurrency(totalPayments)}</TableCell>
+                    </TableRow>
+                     <TableRow>
+                        <TableCell colSpan={5} className="text-right font-bold">Pending Hamali</TableCell>
+                        <TableCell className="text-right font-mono font-bold text-destructive">{formatCurrency(totalCharges - totalPayments)}</TableCell>
                     </TableRow>
                 </TableFooter>
             </Table>

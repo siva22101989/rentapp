@@ -46,19 +46,21 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         });
 
         // Outflows from the new model
-        (record.outflows || []).forEach(outflow => {
-            events.push({
-                date: toDate(outflow.date),
-                description: `Outflow`,
-                invoiceId: record.id,
-                bagsUnloaded: 0,
-                bagsIn: 0,
-                bagsOut: outflow.bagsWithdrawn,
-                hamaliBilled: 0,
-                rentBilled: outflow.rentBilled || 0,
-                credit: 0,
+        if (Array.isArray(record.outflows)) {
+            record.outflows.forEach(outflow => {
+                events.push({
+                    date: toDate(outflow.date),
+                    description: `Outflow`,
+                    invoiceId: record.id,
+                    bagsUnloaded: 0,
+                    bagsIn: 0,
+                    bagsOut: outflow.bagsWithdrawn,
+                    hamaliBilled: 0,
+                    rentBilled: outflow.rentBilled || 0,
+                    credit: 0,
+                });
             });
-        });
+        }
 
         // Payments
         (record.payments || []).forEach(payment => {

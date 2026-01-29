@@ -1,10 +1,9 @@
-
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useFirestore } from '@/firebase';
-import { doc, updateDoc, arrayUnion, type Firestore } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, type Firestore, Timestamp } from 'firebase/firestore';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -142,7 +141,7 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                 };
                 
                 if (isFinalWithdrawal) {
-                    updateData.storageEndDate = withdrawalDate;
+                    updateData.storageEndDate = Timestamp.fromDate(withdrawalDate);
                     updateData.billingCycle = 'Completed';
                 }
 
@@ -156,7 +155,7 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                     updateData.payments = arrayUnion(cleanForFirestore(newPayment));
                 }
 
-                await updateDoc(recordRef, cleanForFirestore(updateData));
+                await updateDoc(recordRef, updateData);
 
                 toast({ title: 'Success', description: 'Withdrawal processed successfully.' });
 

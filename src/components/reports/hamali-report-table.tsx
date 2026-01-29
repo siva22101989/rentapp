@@ -38,6 +38,7 @@ export function HamaliReportTable({ events, customers, title }: ReportTableProps
                         <TableHead>Customer</TableHead>
                         <TableHead>Description</TableHead>
                         <TableHead>Reference ID</TableHead>
+                        <TableHead className="text-center">Bags</TableHead>
                         <TableHead className="text-right">Charge</TableHead>
                         <TableHead className="text-right">Payment</TableHead>
                     </TableRow>
@@ -49,6 +50,7 @@ export function HamaliReportTable({ events, customers, title }: ReportTableProps
                             <TableCell className="font-medium">{getCustomerName(event.customerId)}</TableCell>
                             <TableCell>{event.description}</TableCell>
                             <TableCell>{event.recordId}</TableCell>
+                            <TableCell className="text-center">{event.bags || ''}</TableCell>
                             <TableCell className="text-right font-mono">
                                 {event.type === 'charge' ? formatCurrency(event.amount) : ''}
                             </TableCell>
@@ -59,7 +61,7 @@ export function HamaliReportTable({ events, customers, title }: ReportTableProps
                     ))}
                     {events.length === 0 && (
                         <TableRow>
-                            <TableCell colSpan={6} className="text-center text-muted-foreground">
+                            <TableCell colSpan={7} className="text-center text-muted-foreground">
                                 No hamali transactions found for the selected criteria.
                             </TableCell>
                         </TableRow>
@@ -67,12 +69,12 @@ export function HamaliReportTable({ events, customers, title }: ReportTableProps
                 </TableBody>
                 <TableFooter>
                     <TableRow>
-                        <TableCell colSpan={4} className="text-right font-bold">Totals</TableCell>
+                        <TableCell colSpan={5} className="text-right font-bold">Totals</TableCell>
                         <TableCell className="text-right font-mono font-bold">{formatCurrency(totalCharges)}</TableCell>
                         <TableCell className="text-right font-mono font-bold text-green-600">{formatCurrency(totalPayments)}</TableCell>
                     </TableRow>
                      <TableRow>
-                        <TableCell colSpan={5} className="text-right font-bold">Pending Hamali</TableCell>
+                        <TableCell colSpan={6} className="text-right font-bold">Pending Hamali</TableCell>
                         <TableCell className="text-right font-mono font-bold text-destructive">{formatCurrency(totalCharges - totalPayments)}</TableCell>
                     </TableRow>
                 </TableFooter>

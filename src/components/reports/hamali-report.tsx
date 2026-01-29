@@ -23,6 +23,7 @@ export type HamaliEvent = {
     recordId: string;
     amount: number;
     type: 'charge' | 'payment';
+    bags?: number;
 }
 
 export function HamaliReport({ records, customers, unloadingRecords, dryingRecords }: { records: StorageRecord[], customers: Customer[], unloadingRecords: UnloadingRecord[], dryingRecords: DryingRecord[] }) {
@@ -49,6 +50,7 @@ export function HamaliReport({ records, customers, unloadingRecords, dryingRecor
                     recordId: refId,
                     amount: charge.amount,
                     type: 'charge',
+                    bags: dr.bagsForDrying,
                 });
             });
         });
@@ -63,6 +65,7 @@ export function HamaliReport({ records, customers, unloadingRecords, dryingRecor
                     recordId: sr.id,
                     amount: sr.hamaliPayable,
                     type: 'charge',
+                    bags: sr.bagsIn,
                 });
             }
         });
@@ -90,7 +93,7 @@ export function HamaliReport({ records, customers, unloadingRecords, dryingRecor
                     date: toDate(payment.date),
                     customerId: ur.customerId,
                     description: 'Payment for Unloading Hamali',
-                    recordId: ur.billNo || ur.id,
+                    recordId: ur.billNo || 'N/A',
                     amount: payment.amount,
                     type: 'payment',
                 });

@@ -2,8 +2,8 @@
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
-import { ReportClient } from "@/components/reports/report-client";
-import type { Customer, StorageRecord, UnloadingRecord } from "@/lib/definitions";
+import { CustomReportGenerator } from "@/components/reports/custom-report-generator";
+import type { Customer, StorageRecord, UnloadingRecord, Expense } from "@/lib/definitions";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { collection } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
@@ -29,21 +29,29 @@ export default function ReportsPage() {
       [firestore]
     );
     const { data: allUnloadingRecords, loading: loadingUnloadingRecords } = useCollection<UnloadingRecord>(unloadingRecordsQuery);
+    
+    const expensesQuery = useMemoFirebase(
+      () => (firestore ? collection(firestore, 'expenses') : null),
+      [firestore]
+    );
+    const { data: allExpenses, loading: loadingExpenses } = useCollection<Expense>(expensesQuery);
 
-    if (loadingRecords || loadingCustomers || loadingUnloadingRecords) {
+
+    if (loadingRecords || loadingCustomers || loadingUnloadingRecords || loadingExpenses) {
         return <AppLayout><div>Loading...</div></AppLayout>;
     }
     
   return (
     <AppLayout>
       <PageHeader
-        title="All Transactions Report"
-        description="A complete log of all storage records, filterable by customer."
+        title="Custom Reports"
+        description="Select the report type to generate a detailed analysis."
       />
-      <ReportClient 
+      <CustomReportGenerator 
         records={allRecords || []} 
         customers={allCustomers || []} 
-        unloadingRecords={allUnloadingRecords || []} 
+        unloadingRecords={allUnloadingRecords || []}
+        expenses={allExpenses || []}
       />
     </AppLayout>
   );

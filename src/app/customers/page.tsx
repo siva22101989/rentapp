@@ -1,25 +1,15 @@
-
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Card, CardContent } from "@/components/ui/card";
 import { AddCustomerDialog } from "@/components/customers/add-customer-dialog";
 import type { Customer } from "@/lib/definitions";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { collection } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
-import { CustomerActionsMenu } from "@/components/customers/customer-actions-menu";
+import { CustomersTable } from "@/components/customers/customers-table";
 
-function CustomersTable() {
+export default function CustomersPage() {
   const firestore = useFirestore();
   const customersQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'customers') : null),
@@ -28,43 +18,9 @@ function CustomersTable() {
   const { data: customers, loading } = useCollection<Customer>(customersQuery);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <AppLayout><div>Loading...</div></AppLayout>;
   }
 
-  return (
-    <Card>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Phone</TableHead>
-              <TableHead>Address</TableHead>
-              <TableHead className="w-[50px]"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {customers?.map((customer) => (
-              <TableRow key={customer.id}>
-                <TableCell className="font-medium">{customer.name}</TableCell>
-                <TableCell>{customer.email}</TableCell>
-                <TableCell>{customer.phone}</TableCell>
-                <TableCell>{customer.address}</TableCell>
-                <TableCell>
-                  <CustomerActionsMenu customer={customer} />
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
-  );
-}
-
-
-export default function CustomersPage() {
   return (
     <AppLayout>
       <PageHeader
@@ -73,7 +29,7 @@ export default function CustomersPage() {
       >
         <AddCustomerDialog />
       </PageHeader>
-      <CustomersTable />
+      <CustomersTable customers={customers || []} />
     </AppLayout>
   );
 }

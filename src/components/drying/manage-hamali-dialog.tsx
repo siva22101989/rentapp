@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -231,9 +230,9 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
                 </div>
             </div>
             <DialogFooter>
-              <DialogClose asChild><Button variant="outline" type="button">Cancel</Button></DialogClose>
+              <DialogClose asChild><Button variant="outline" type="button" size="sm">Cancel</Button></DialogClose>
               {!isBilled && (
-                <Button type="submit" disabled={isPending}>
+                <Button type="submit" disabled={isPending} size="sm">
                   {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Save Changes
                 </Button>

@@ -26,7 +26,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 const CustomerSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters.'),
   phone: z.string().min(10, 'Phone number must be at least 10 digits.'),
-  address: z.string().min(5, 'Address must be at least 5 characters.'),
+  address: z.string().min(1, 'Address is required.'),
   email: z.string().email('Invalid email address.').optional().or(z.literal('')),
   fatherName: z.string().optional(),
   village: z.string().optional(),

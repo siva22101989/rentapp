@@ -1,6 +1,6 @@
 
 'use client';
-import { initializeFirebase } from '.';
+import { firebaseApp, auth, firestore } from '.';
 import { FirebaseProvider } from './provider';
 
 export function FirebaseClientProvider({
@@ -8,6 +8,5 @@ export function FirebaseClientProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const firebase = initializeFirebase();
-  return <FirebaseProvider value={firebase}>{children}</FirebaseProvider>;
+  return <FirebaseProvider value={{ firebaseApp, auth, firestore }}>{children}</FirebaseProvider>;
 }

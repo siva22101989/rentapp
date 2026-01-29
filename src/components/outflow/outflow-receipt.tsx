@@ -130,7 +130,7 @@ export function OutflowReceipt({ record, customer, withdrawnBags, finalRent, pai
                     <div>
                         <h3 className="text-sm font-semibold mb-2 text-muted-foreground">BILL TO</h3>
                         <p className="font-medium text-lg">{customer.name}</p>
-                        <p>{customer.address}</p>
+                        {customer.village && <p>{customer.village}</p>}
                         <p>Phone: {customer.phone}</p>
                     </div>
                      <div>

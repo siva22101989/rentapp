@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -55,7 +56,7 @@ export const BillReceipt = React.forwardRef<HTMLDivElement, BillReceiptProps>(
                             <h3 className="font-semibold mb-2">Customer Details</h3>
                             <p>{customer.name}</p>
                             {customer.fatherName && <p>S/o {customer.fatherName}</p>}
-                            <p>{customer.village || customer.address}</p>
+                            {customer.village && <p>{customer.village}</p>}
                             <p>Phone: {customer.phone}</p>
                         </div>
                          <div>

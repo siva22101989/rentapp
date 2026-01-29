@@ -32,7 +32,7 @@
             "description": "The village of the customer."
         }
       },
-      "required": ["name", "phone", "address"]
+      "required": ["name", "phone"]
     },
     "commodity": {
       "title": "Commodity",

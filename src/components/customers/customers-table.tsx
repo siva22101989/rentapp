@@ -1,3 +1,4 @@
+
 'use client';
 import {
   Table,
@@ -31,7 +32,6 @@ export function CustomersTable({ customers }: { customers: Customer[] }) {
               <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Phone</TableHead>
-              <TableHead>Address</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -41,7 +41,6 @@ export function CustomersTable({ customers }: { customers: Customer[] }) {
                 <TableCell className="font-medium">{customer.name}</TableCell>
                 <TableCell>{customer.email}</TableCell>
                 <TableCell>{customer.phone}</TableCell>
-                <TableCell>{customer.address}</TableCell>
                 <TableCell>
                   <CustomerActionsMenu customer={customer} />
                 </TableCell>

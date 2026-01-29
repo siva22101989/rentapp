@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
@@ -28,7 +29,6 @@ import { updateCustomer } from '@/lib/data';
 const CustomerSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters.'),
   phone: z.string().min(10, 'Phone number must be at least 10 digits.'),
-  address: z.string().min(1, 'Address is required.'),
   email: z.string().email('Invalid email address.').optional().or(z.literal('')),
   fatherName: z.string().optional(),
   village: z.string().optional(),
@@ -48,7 +48,6 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer,
     defaultValues: {
       name: customer.name || '',
       phone: customer.phone || '',
-      address: customer.address || '',
       email: customer.email || '',
       fatherName: customer.fatherName || '',
       village: customer.village || '',
@@ -118,19 +117,6 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer,
                 render={({ field }) => (
                   <FormItem className="grid grid-cols-4 items-center gap-4">
                     <FormLabel className="text-right">Village</FormLabel>
-                    <FormControl>
-                      <Input {...field} className="col-span-3" />
-                    </FormControl>
-                     <FormMessage className="col-span-4 pl-[calc(25%+1rem)]" />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="address"
-                render={({ field }) => (
-                   <FormItem className="grid grid-cols-4 items-center gap-4">
-                    <FormLabel className="text-right">Address</FormLabel>
                     <FormControl>
                       <Input {...field} className="col-span-3" />
                     </FormControl>

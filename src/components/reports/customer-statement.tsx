@@ -161,7 +161,6 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         <div className="flex justify-between items-start mb-6">
              <div className="w-1/2">
                 <p className="font-bold">{customer.name}</p>
-                <p>{customer.address}</p>
                 <p>{customer.village}</p>
             </div>
             <div className="w-1/2 text-right">

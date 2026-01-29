@@ -80,6 +80,7 @@ export type UnloadingRecord = {
   hamaliPerBag: number;
   totalHamali: number;
   billNo?: string;
+  payments?: Payment[];
 };
 
 export const dryingStatus = ["Drying", "Packing", "Billed"] as const;

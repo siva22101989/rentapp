@@ -31,6 +31,22 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             rentBilled: 0,
             credit: 0
         });
+
+        // Add payments from unloading record
+        (unloading.payments || []).forEach(payment => {
+            events.push({
+                date: toDate(payment.date),
+                description: `Payment for Unloading Bill`,
+                invoiceId: unloading.billNo || unloading.id.substring(0, 5),
+                lotNo: '',
+                bagsUnloaded: 0,
+                bagsIn: 0,
+                bagsOut: 0,
+                hamaliBilled: 0,
+                rentBilled: 0,
+                credit: payment.amount || 0,
+            });
+        });
     });
 
     (records || []).forEach(record => {
@@ -68,9 +84,16 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
 
         // Payments
         (record.payments || []).forEach(payment => {
+            let paymentDescription = 'Payment Received';
+            if (payment.type === 'hamali') {
+                paymentDescription = 'Payment for Storage Hamali';
+            } else if (payment.type === 'rent') {
+                paymentDescription = 'Payment for Rent';
+            }
+
             events.push({
                 date: toDate(payment.date),
-                description: `Payment Received (${payment.type || 'other'})`,
+                description: paymentDescription,
                 invoiceId: record.id,
                 lotNo: record.location || '',
                 bagsUnloaded: 0,
@@ -204,7 +227,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                         <TableHead className="text-right text-black font-bold">Out</TableHead>
                         <TableHead className="text-right text-black font-bold">Hamali</TableHead>
                         <TableHead className="text-right text-black font-bold">Rent</TableHead>
-                        <TableHead className="text-right text-black font-bold">Credit</TableHead>
+                        <TableHead className="text-right text-black font-bold">Paid</TableHead>
                         <TableHead className="text-right text-black font-bold">Balance</TableHead>
                     </TableRow>
                 </TableHeader>

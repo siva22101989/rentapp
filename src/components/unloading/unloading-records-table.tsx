@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -13,6 +14,7 @@ import { format } from 'date-fns';
 import { formatCurrency, toDate } from "@/lib/utils";
 import type { Customer, UnloadingRecord } from "@/lib/definitions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
+import { UnloadingTableActionsMenu } from "./unloading-table-actions-menu";
 
 type StatusInfo = {
     text: 'Unloading' | 'Partially Drying' | 'Drying Complete';
@@ -36,7 +38,14 @@ export function UnloadingRecordsTable({ unloadingRecords, customers }: { unloadi
         return customers.find(c => c.id === customerId)?.name ?? 'Unknown';
     };
 
-    const sortedRecords = [...unloadingRecords].sort((a, b) => {
+    const recordsWithPending = unloadingRecords.map(record => {
+        const totalPaid = (record.payments || []).reduce((acc, p) => acc + p.amount, 0);
+        const hamaliPending = (record.totalHamali || 0) - totalPaid;
+        return {
+            ...record,
+            hamaliPending: Math.max(0, hamaliPending)
+        }
+    }).sort((a, b) => {
         const dateA = toDate(a.unloadingDate);
         const dateB = toDate(b.unloadingDate);
         return dateB.getTime() - dateA.getTime();
@@ -59,11 +68,13 @@ export function UnloadingRecordsTable({ unloadingRecords, customers }: { unloadi
                     <TableHead className="text-right">Bags for Drying</TableHead>
                     <TableHead className="text-right">Bags Remaining</TableHead>
                     <TableHead className="text-right">Total Hamali</TableHead>
+                    <TableHead className="text-right">Hamali Pending</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>
-                {sortedRecords.map((record) => {
+                {recordsWithPending.map((record) => {
                     const unloadingDate = toDate(record.unloadingDate);
                     const statusInfo = getRecordStatus(record);
                     const bagsSent = record.bagsSentToDrying || 0;
@@ -77,17 +88,21 @@ export function UnloadingRecordsTable({ unloadingRecords, customers }: { unloadi
                         <TableCell className="text-right">{bagsSent}</TableCell>
                         <TableCell className="text-right font-bold">{bagsRemaining}</TableCell>
                         <TableCell className="text-right font-mono">{formatCurrency(record.totalHamali || 0)}</TableCell>
+                        <TableCell className="text-right font-mono text-destructive">{formatCurrency(record.hamaliPending)}</TableCell>
                         <TableCell>
                             <Badge variant="secondary" className={statusInfo.variant}>
                                 {statusInfo.text}
                             </Badge>
+                        </TableCell>
+                        <TableCell>
+                            <UnloadingTableActionsMenu record={record} />
                         </TableCell>
                     </TableRow>
                     )
                 })}
                  {unloadingRecords.length === 0 && (
                     <TableRow>
-                        <TableCell colSpan={8} className="text-center text-muted-foreground">
+                        <TableCell colSpan={10} className="text-center text-muted-foreground">
                             No unloading records found.
                         </TableCell>
                     </TableRow>

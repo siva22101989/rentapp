@@ -76,11 +76,7 @@ export function InflowForm({ customers, commodities, nextSerialNumber }: { custo
                      toast({ title: 'Error', description: 'Number of bags must be a positive number.', variant: 'destructive' });
                      return;
                 }
-                const weightValue = Number(data.weight);
-                 if (!weightValue || weightValue <= 0) {
-                     toast({ title: 'Error', description: 'Weight is required and must be a positive number.', variant: 'destructive' });
-                     return;
-                }
+                const weightValue = Number(data.weight) || 0;
                 const hamaliRate = Number(data.hamaliRate) || 0;
                 const hamaliPaidAmount = Number(data.hamaliPaid) || 0;
 
@@ -211,14 +207,13 @@ export function InflowForm({ customers, commodities, nextSerialNumber }: { custo
                             />
                         </div>
                          <div className="space-y-2">
-                            <Label htmlFor="weight">Weight *</Label>
+                            <Label htmlFor="weight">Weight <span className="text-muted-foreground text-xs">(Optional)</span></Label>
                             <Input 
                                 id="weight" 
                                 name="weight" 
                                 type="number" 
                                 step="0.01" 
                                 placeholder="0.00" 
-                                required
                                 value={weight}
                                 onChange={(e) => setWeight(e.target.value === '' ? '' : Number(e.target.value))}
                             />

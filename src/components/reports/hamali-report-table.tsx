@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -42,7 +43,7 @@ export function HamaliReportTable({ events, customers, title }: ReportTableProps
                         <TableHead>Date</TableHead>
                         <TableHead>Customer</TableHead>
                         <TableHead>Description</TableHead>
-                        <TableHead>Record ID</TableHead>
+                        <TableHead>Reference ID</TableHead>
                         <TableHead className="text-right">Amount</TableHead>
                     </TableRow>
                 </TableHeader>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -100,12 +101,19 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
   };
 
   const addNewCharge = () => {
+    // Count how many "Drying Day" charges already exist to suggest the next number.
+    const dryingDayChargesCount = watchedCharges.filter(c =>
+      c.description?.toLowerCase().startsWith('drying day')
+    ).length;
+    
+    const nextDayNumber = dryingDayChargesCount + 1;
+
     append({
-        description: 'Drying Hamali',
-        amount: 0,
-        date: format(new Date(), 'yyyy-MM-dd')
-    })
-  }
+      description: `Drying Day ${nextDayNumber}`,
+      amount: 0,
+      date: format(new Date(), 'yyyy-MM-dd'),
+    });
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>

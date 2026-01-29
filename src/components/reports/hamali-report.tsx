@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useMemo } from 'react';
@@ -35,12 +36,14 @@ export function HamaliReport({ records, customers, unloadingRecords, dryingRecor
 
         // Source 1: Detailed Hamali from Drying Records
         dryingRecords.forEach(dr => {
+            const unloadingRecord = unloadingRecords.find(ur => ur.id === dr.unloadingRecordId);
+            const refId = unloadingRecord?.billNo || dr.id.slice(-5); // Use Unloading Bill No or fallback
             (dr.hamaliCharges || []).forEach(charge => {
                  events.push({
                     date: toDate(charge.date),
                     customerId: dr.customerId,
                     description: charge.description,
-                    recordId: dr.id, // Drying record ID
+                    recordId: refId,
                     amount: charge.amount,
                 });
             });
@@ -53,7 +56,7 @@ export function HamaliReport({ records, customers, unloadingRecords, dryingRecor
                     date: toDate(sr.storageStartDate),
                     customerId: sr.customerId,
                     description: 'Direct Storage Inflow Hamali',
-                    recordId: sr.id,
+                    recordId: sr.id, // This is already a simple number
                     amount: sr.hamaliPayable,
                 });
             }
@@ -74,7 +77,7 @@ export function HamaliReport({ records, customers, unloadingRecords, dryingRecor
         }
 
         return filteredEvents.sort((a,b) => a.date.getTime() - b.date.getTime());
-    }, [records, dryingRecords, selectedCustomerId, dateRange]);
+    }, [records, unloadingRecords, dryingRecords, selectedCustomerId, dateRange]);
 
 
     const handleDownloadPdf = async () => {

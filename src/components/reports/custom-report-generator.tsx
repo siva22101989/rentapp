@@ -1,19 +1,21 @@
 'use client';
 
 import { useState } from 'react';
-import type { Customer, StorageRecord, UnloadingRecord, Expense } from "@/lib/definitions";
+import type { Customer, StorageRecord, UnloadingRecord, Expense, DryingRecord } from "@/lib/definitions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CustomersTable } from '@/components/customers/customers-table';
 import { ReportClient } from '@/components/reports/report-client';
 import { StorageTable } from '@/components/dashboard/storage-table';
 import { PendingPaymentsTable } from '@/components/payments/pending-payments-table';
+import { HamaliReport } from './hamali-report';
 
 const reportTypes = [
     { value: 'all-customers', label: 'All Customers List' },
     { value: 'customer-statement', label: 'Customer Dues Statement (Detailed)' },
     { value: 'active-inventory', label: 'Active Inventory (Stock)' },
     { value: 'pending-dues', label: 'Pending Dues List' },
+    { value: 'hamali-register', label: 'Hamali Register' },
     { value: 'inflow-register', label: 'Inflow Register (Date Range)' },
     { value: 'outflow-register', label: 'Outflow Register (Date Range)' },
     { value: 'payment-register', label: 'Payment Register (Date Range)' },
@@ -26,10 +28,11 @@ type ReportGeneratorProps = {
     customers: Customer[];
     unloadingRecords: UnloadingRecord[];
     expenses: Expense[];
+    dryingRecords: DryingRecord[];
 }
 
-export function CustomReportGenerator({ records, customers, unloadingRecords, expenses }: ReportGeneratorProps) {
-    const [selectedReport, setSelectedReport] = useState<string>(reportTypes[0].value);
+export function CustomReportGenerator({ records, customers, unloadingRecords, expenses, dryingRecords }: ReportGeneratorProps) {
+    const [selectedReport, setSelectedReport] = useState<string>('hamali-register');
 
     const renderReport = () => {
         switch (selectedReport) {
@@ -41,6 +44,8 @@ export function CustomReportGenerator({ records, customers, unloadingRecords, ex
                 return <StorageTable />;
             case 'pending-dues':
                 return <PendingPaymentsTable records={records} customers={customers} />;
+            case 'hamali-register':
+                return <HamaliReport records={records} customers={customers} unloadingRecords={unloadingRecords} dryingRecords={dryingRecords} />;
             default:
                 return (
                     <Card>

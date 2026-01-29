@@ -1,9 +1,8 @@
-
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
 import { CustomReportGenerator } from "@/components/reports/custom-report-generator";
-import type { Customer, StorageRecord, UnloadingRecord, Expense } from "@/lib/definitions";
+import type { Customer, StorageRecord, UnloadingRecord, Expense, DryingRecord } from "@/lib/definitions";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { collection } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
@@ -36,8 +35,14 @@ export default function ReportsPage() {
     );
     const { data: allExpenses, loading: loadingExpenses } = useCollection<Expense>(expensesQuery);
 
+    const dryingRecordsQuery = useMemoFirebase(
+      () => (firestore ? collection(firestore, 'dryingRecords') : null),
+      [firestore]
+    );
+    const { data: allDryingRecords, loading: loadingDryingRecords } = useCollection<DryingRecord>(dryingRecordsQuery);
 
-    if (loadingRecords || loadingCustomers || loadingUnloadingRecords || loadingExpenses) {
+
+    if (loadingRecords || loadingCustomers || loadingUnloadingRecords || loadingExpenses || loadingDryingRecords) {
         return <AppLayout><div>Loading...</div></AppLayout>;
     }
     
@@ -52,6 +57,7 @@ export default function ReportsPage() {
         customers={allCustomers || []} 
         unloadingRecords={allUnloadingRecords || []}
         expenses={allExpenses || []}
+        dryingRecords={allDryingRecords || []}
       />
     </AppLayout>
   );

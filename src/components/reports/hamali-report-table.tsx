@@ -1,0 +1,76 @@
+'use client';
+
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
+import { format } from "date-fns";
+import type { Customer } from "@/lib/definitions";
+import { formatCurrency } from '@/lib/utils';
+import { useMemo } from "react";
+
+type HamaliEvent = {
+    date: Date;
+    customerId: string;
+    description: string;
+    recordId: string;
+    amount: number;
+}
+
+type ReportTableProps = {
+    events: HamaliEvent[];
+    customers: Customer[];
+    title: string;
+}
+
+export function HamaliReportTable({ events, customers, title }: ReportTableProps) {
+    const generatedDate = useMemo(() => format(new Date(), 'dd MMM yyyy, hh:mm a'), []);
+
+    const getCustomerName = (customerId: string) => {
+        return customers.find(c => c.id === customerId)?.name ?? 'Unknown';
+    }
+
+    const totalHamali = events.reduce((acc, event) => acc + event.amount, 0);
+
+    return (
+        <div className="bg-white p-4 rounded-lg">
+             <div className="mb-4">
+                <h2 className="text-xl font-bold">Srilakshmi Warehouse</h2>
+                <p className="text-muted-foreground">{title}</p>
+                <p className="text-xs text-muted-foreground">Generated on: {generatedDate}</p>
+            </div>
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Customer</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Record ID</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {events.map((event, index) => (
+                        <TableRow key={index}>
+                            <TableCell>{format(event.date, 'dd MMM yyyy')}</TableCell>
+                            <TableCell className="font-medium">{getCustomerName(event.customerId)}</TableCell>
+                            <TableCell>{event.description}</TableCell>
+                            <TableCell>{event.recordId}</TableCell>
+                            <TableCell className="text-right font-mono">{formatCurrency(event.amount)}</TableCell>
+                        </TableRow>
+                    ))}
+                    {events.length === 0 && (
+                        <TableRow>
+                            <TableCell colSpan={5} className="text-center text-muted-foreground">
+                                No hamali charges found for the selected criteria.
+                            </TableCell>
+                        </TableRow>
+                    )}
+                </TableBody>
+                <TableFooter>
+                    <TableRow>
+                        <TableCell colSpan={4} className="text-right font-bold text-lg">Total Hamali</TableCell>
+                        <TableCell className="text-right font-mono font-bold text-lg">{formatCurrency(totalHamali)}</TableCell>
+                    </TableRow>
+                </TableFooter>
+            </Table>
+        </div>
+    );
+}

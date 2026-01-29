@@ -107,12 +107,15 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             balance: runningBalance
         };
     });
+    
+    // Correctly calculate final balance stock from the source of truth (the records)
+    const finalBalanceStock = (records || []).reduce((acc, r) => acc + (r.bagsStored || 0), 0);
 
     const summary = {
         totalBagsUnloaded,
         totalBagsIn,
         totalBagsOut,
-        balanceStock: totalBagsIn - totalBagsOut,
+        balanceStock: finalBalanceStock,
         totalHamali: totalHamaliBilled,
         totalRent: totalRentBilled,
         totalBilled: totalHamaliBilled + totalRentBilled,
@@ -163,11 +166,11 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             </div>
             <div className="w-1/2 text-right">
                 <div className="flex justify-end">
-                    <span className="font-bold w-20 text-left">Account</span>
-                    <span>{customer.id.substring(0, 10)}</span>
+                    <span className="font-bold w-24 text-left">Customer ID</span>
+                    <span>{customer.id}</span>
                 </div>
                  <div className="flex justify-end">
-                    <span className="font-bold w-20 text-left">Date</span>
+                    <span className="font-bold w-24 text-left">Date</span>
                     <span>{generatedDate}</span>
                 </div>
             </div>
@@ -251,7 +254,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 </div>
                 <div className="text-right w-1/2 max-w-sm">
                     <div className="flex justify-between"><span className="font-bold">Customer</span><span>{customer.name}</span></div>
-                    <div className="flex justify-between"><span className="font-bold">Account</span><span>{customer.id.substring(0, 10)}</span></div>
+                    <div className="flex justify-between"><span className="font-bold">Customer ID</span><span>{customer.id}</span></div>
                     <div className="flex justify-between"><span className="font-bold">Date</span><span>{generatedDate}</span></div>
                     <div className="flex justify-between mt-2"><span className="font-bold">Total Due</span><span>{formatCurrency(summary.balanceDue)}</span></div>
                     <div className="flex justify-between items-center mt-1"><span className="font-bold">Amount Paid</span><span className="inline-block border-b border-black w-24 h-4 ml-2"></span></div>

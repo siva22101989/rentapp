@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
@@ -124,7 +125,8 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
             try {
                 const recordRef = doc(firestore, 'storageRecords', selectedRecord.id);
 
-                const bagsRemaining = selectedRecord.bagsStored - bags;
+                const newBagsOut = (selectedRecord.bagsOut || 0) + bags;
+                const bagsRemaining = selectedRecord.bagsIn - newBagsOut;
                 const isFinalWithdrawal = bagsRemaining <= 0;
 
                 const newOutflow: Partial<Outflow> = {
@@ -135,7 +137,7 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
 
                 const updateData: any = {
                     bagsStored: bagsRemaining,
-                    bagsOut: (selectedRecord.bagsOut || 0) + bags,
+                    bagsOut: newBagsOut,
                     totalRentBilled: (selectedRecord.totalRentBilled || 0) + finalRent,
                     outflows: arrayUnion(cleanForFirestore(newOutflow)),
                 };

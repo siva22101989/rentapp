@@ -37,7 +37,7 @@ export function HamaliReport({ records, customers, unloadingRecords, dryingRecor
         // Source 1: Detailed Hamali from Drying Records
         dryingRecords.forEach(dr => {
             const unloadingRecord = unloadingRecords.find(ur => ur.id === dr.unloadingRecordId);
-            const refId = unloadingRecord?.billNo || dr.id.slice(-5); // Use Unloading Bill No or fallback
+            const refId = unloadingRecord?.billNo || 'N/A'; // Use Unloading Bill No or fallback to N/A
             (dr.hamaliCharges || []).forEach(charge => {
                  events.push({
                     date: toDate(charge.date),

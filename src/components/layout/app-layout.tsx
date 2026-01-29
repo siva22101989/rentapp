@@ -1,7 +1,7 @@
-
 'use client';
 
 import * as React from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { Logo } from './logo';
@@ -10,6 +10,32 @@ import { ArrowLeft, LogOut } from 'lucide-react';
 import { useUser } from '@/firebase/auth/use-user';
 import { useAuth } from '@/firebase';
 import { Loader2 } from 'lucide-react';
+
+function LiveClock() {
+  const [currentTime, setCurrentTime] = useState<Date | null>(null);
+
+  useEffect(() => {
+    // Set initial time on client-side to avoid hydration mismatch
+    setCurrentTime(new Date());
+
+    const timerId = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    // Cleanup interval on component unmount
+    return () => clearInterval(timerId);
+  }, []);
+
+  if (!currentTime) {
+    return <span className="text-sm font-mono text-muted-foreground w-[80px] text-center hidden md:inline-block">...</span>;
+  }
+
+  return (
+    <span className="text-sm font-mono text-muted-foreground w-[80px] text-center hidden md:inline-block">
+      {currentTime.toLocaleTimeString()}
+    </span>
+  );
+}
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -69,6 +95,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               <Logo />
             </div>
             <div className='flex items-center gap-4'>
+                <LiveClock />
                 <span className='text-sm text-muted-foreground hidden sm:inline'>
                     {user.email}
                 </span>

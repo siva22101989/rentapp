@@ -61,7 +61,7 @@ export function HamaliReport({ records, customers, unloadingRecords, dryingRecor
                  events.push({
                     date: toDate(sr.storageStartDate),
                     customerId: sr.customerId,
-                    description: 'Direct Storage Inflow Hamali',
+                    description: 'Direct Inflow Hamali',
                     recordId: sr.id,
                     amount: sr.hamaliPayable,
                     type: 'charge',

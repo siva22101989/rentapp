@@ -115,7 +115,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                 const dryingDay1Hamali = data.bagsForDrying * data.hamaliPerBag;
                 
                 const hamaliCharges: Partial<HamaliCharge>[] = [
-                  { description: `Unloading Hamali for ${data.bagsForDrying} bags`, amount: currentProportionalUnloadingHamali, date: selectedUnloadingRecord.unloadingDate },
+                  { description: "Unloading Hamali", amount: currentProportionalUnloadingHamali, date: selectedUnloadingRecord.unloadingDate },
                   { description: "Drying Day 1", amount: dryingDay1Hamali, date: dryingStartDate },
                 ];
                 

@@ -43,10 +43,14 @@ export function HamaliReport({ records, customers, unloadingRecords, dryingRecor
             const unloadingRecord = unloadingRecords.find(ur => ur.id === dr.unloadingRecordId);
             const refId = unloadingRecord?.billNo || 'N/A';
             (dr.hamaliCharges || []).forEach(charge => {
+                let simpleDescription = charge.description;
+                if (simpleDescription?.toLowerCase().includes('unloading')) {
+                    simpleDescription = 'Unloading';
+                }
                  events.push({
                     date: toDate(charge.date),
                     customerId: dr.customerId,
-                    description: charge.description,
+                    description: simpleDescription,
                     recordId: refId,
                     amount: charge.amount,
                     type: 'charge',
@@ -61,7 +65,7 @@ export function HamaliReport({ records, customers, unloadingRecords, dryingRecor
                  events.push({
                     date: toDate(sr.storageStartDate),
                     customerId: sr.customerId,
-                    description: 'Direct Inflow Hamali',
+                    description: 'Direct',
                     recordId: sr.id,
                     amount: sr.hamaliPayable,
                     type: 'charge',
@@ -78,7 +82,7 @@ export function HamaliReport({ records, customers, unloadingRecords, dryingRecor
                 events.push({
                     date: toDate(payment.date),
                     customerId: sr.customerId,
-                    description: 'Payment for Storage Hamali',
+                    description: 'Payment (Storage)',
                     recordId: sr.id,
                     amount: payment.amount,
                     type: 'payment',
@@ -92,7 +96,7 @@ export function HamaliReport({ records, customers, unloadingRecords, dryingRecor
                 events.push({
                     date: toDate(payment.date),
                     customerId: ur.customerId,
-                    description: 'Payment for Unloading Hamali',
+                    description: 'Payment (Unloading)',
                     recordId: ur.billNo || 'N/A',
                     amount: payment.amount,
                     type: 'payment',

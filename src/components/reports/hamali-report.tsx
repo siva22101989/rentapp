@@ -24,7 +24,7 @@ type HamaliEvent = {
 }
 
 export function HamaliReport({ records, customers, unloadingRecords, dryingRecords }: { records: StorageRecord[], customers: Customer[], unloadingRecords: UnloadingRecord[], dryingRecords: DryingRecord[] }) {
-    const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
+    const [selectedCustomerId, setSelectedCustomerId] = useState<string>('all');
     const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
     const [isGenerating, setIsGenerating] = useState(false);
     
@@ -61,7 +61,7 @@ export function HamaliReport({ records, customers, unloadingRecords, dryingRecor
         
         // Let's filter these events.
         let filteredEvents = events;
-        if (selectedCustomerId) {
+        if (selectedCustomerId && selectedCustomerId !== 'all') {
             filteredEvents = filteredEvents.filter(e => e.customerId === selectedCustomerId);
         }
         if (dateRange?.from) {
@@ -122,7 +122,7 @@ export function HamaliReport({ records, customers, unloadingRecords, dryingRecor
                             <SelectValue placeholder="All Customers" />
                         </SelectTrigger>
                         <SelectContent>
-                             <SelectItem value="">All Customers</SelectItem>
+                             <SelectItem value="all">All Customers</SelectItem>
                             {customers.map(customer => (
                                 <SelectItem key={customer.id} value={customer.id}>
                                     {customer.name}

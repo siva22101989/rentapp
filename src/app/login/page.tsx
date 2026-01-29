@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -7,8 +6,10 @@ import { GoogleAuthProvider, signInWithPopup, User } from 'firebase/auth';
 import { useAuth } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 import { Logo } from '@/components/layout/logo';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import Link from 'next/link';
 
 function GoogleIcon() {
     return (
@@ -26,10 +27,12 @@ export default function LoginPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [unauthorizedDomain, setUnauthorizedDomain] = useState<string | null>(null);
 
   const handleSignIn = async () => {
     setIsLoading(true);
     setError(null);
+    setUnauthorizedDomain(null);
     if (auth) {
       const provider = new GoogleAuthProvider();
       try {
@@ -37,7 +40,7 @@ export default function LoginPage() {
         router.push('/');
       } catch (error: any) {
         if (error.code === 'auth/unauthorized-domain') {
-            setError(`This domain is not authorized. Please add '${window.location.hostname}' to the authorized domains in your Firebase project.`);
+            setUnauthorizedDomain(window.location.hostname);
         } else if (error.code === 'auth/popup-blocked') {
             setError('Sign-in pop-up blocked by browser. Please allow pop-ups for this site.');
         } else if (error.code === 'auth/cancelled-popup-request') {
@@ -53,7 +56,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-sm">
+      <Card className="w-full max-w-md">
         <CardHeader className="text-center">
             <div className="mx-auto mb-4">
               <Logo />
@@ -62,14 +65,35 @@ export default function LoginPage() {
           <CardDescription>Sign in to access your warehouse dashboard</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <Button onClick={handleSignIn} disabled={isLoading} className="w-full">
-            {isLoading ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-                <GoogleIcon />
-            )}
-            Sign in with Google
-          </Button>
+          {unauthorizedDomain ? (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Domain Not Authorized</AlertTitle>
+              <AlertDescription>
+                <p className="mb-2">
+                    To sign in, you must authorize this domain in your Firebase project settings:
+                </p>
+                <pre className="mb-4 bg-muted p-2 rounded text-xs font-mono text-destructive-foreground break-all">
+                    {unauthorizedDomain}
+                </pre>
+                <Button asChild size="sm">
+                    <Link href="https://console.firebase.google.com/project/vocal-byte-457809-n2/authentication/settings" target="_blank" rel="noopener noreferrer">
+                        Open Firebase Auth Settings
+                    </Link>
+                </Button>
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <Button onClick={handleSignIn} disabled={isLoading} className="w-full">
+              {isLoading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                  <GoogleIcon />
+              )}
+              Sign in with Google
+            </Button>
+          )}
+
           {error && (
             <p className="text-sm text-center text-destructive">{error}</p>
           )}

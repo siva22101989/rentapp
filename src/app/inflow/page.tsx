@@ -1,3 +1,4 @@
+
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
@@ -34,13 +35,16 @@ export default function InflowPage() {
 
   const nextSerialNumber = useMemo(() => {
     if (!records || records.length === 0) {
-      return 'SLWH-1';
+      return '1';
     }
     const maxId = records.reduce((max, record) => {
-      const idNum = parseInt(record.id.replace('SLWH-', ''), 10);
+      let idNum = parseInt(record.id, 10);
+      if (isNaN(idNum)) {
+        idNum = parseInt(record.id.replace(/[^0-9]/g, ''), 10);
+      }
       return isNaN(idNum) ? max : Math.max(max, idNum);
     }, 0);
-    return `SLWH-${maxId + 1}`;
+    return `${maxId + 1}`;
   }, [records]);
 
 

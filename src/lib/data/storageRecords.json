@@ -1,7 +1,7 @@
 
 [
   {
-    "id": "SLWH-1",
+    "id": "1",
     "customerId": "CUST-001",
     "commodityDescription": "Paddy (Sona Masoori)",
     "location": "A1/Left",
@@ -25,7 +25,7 @@
     "inflowType": "Direct"
   },
   {
-    "id": "SLWH-2",
+    "id": "2",
     "customerId": "CUST-002",
     "commodityDescription": "Red Chilli",
     "location": "B3/Center",
@@ -54,7 +54,7 @@
     "inflowType": "Direct"
   },
   {
-    "id": "SLWH-3",
+    "id": "3",
     "customerId": "CUST-003",
     "commodityDescription": "Groundnut",
     "location": "C2/Right",
@@ -73,7 +73,7 @@
     "dryingRecordId": "some-drying-id-placeholder"
   },
   {
-    "id": "SLWH-4",
+    "id": "4",
     "customerId": "CUST-004",
     "commodityDescription": "Paddy",
     "location": "A2/Center",
@@ -97,7 +97,7 @@
     "inflowType": "Direct"
   },
   {
-    "id": "SLWH-5",
+    "id": "5",
     "customerId": "CUST-005",
     "commodityDescription": "Maize",
     "location": "D1/Left",

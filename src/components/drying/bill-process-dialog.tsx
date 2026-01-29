@@ -58,13 +58,16 @@ export function BillProcessDialog({
         const storageCollectionRef = collection(firestore, 'storageRecords');
         const querySnapshot = await getDocs(storageCollectionRef);
         const records = querySnapshot.docs.map(doc => doc.data() as { id: string });
-        let nextSerialNumber = 'SLWH-1';
+        let nextSerialNumber = '1';
         if (records.length > 0) {
             const maxId = records.reduce((max, r) => {
-                const idNum = parseInt(r.id.replace('SLWH-', ''), 10);
+                let idNum = parseInt(r.id, 10);
+                if (isNaN(idNum)) {
+                  idNum = parseInt(r.id.replace(/[^0-9]/g, ''), 10);
+                }
                 return isNaN(idNum) ? max : Math.max(max, idNum);
             }, 0);
-            nextSerialNumber = `SLWH-${maxId + 1}`;
+            nextSerialNumber = `${maxId + 1}`;
         }
         
         // 2. Prepare new storage record

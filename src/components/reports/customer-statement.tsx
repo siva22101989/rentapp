@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, forwardRef } from 'react';
@@ -22,6 +23,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             date: toDate(unloading.unloadingDate),
             description: `Unloading Bill`,
             invoiceId: unloading.billNo || unloading.id.substring(0, 5),
+            lotNo: '', // Unloading records don't have a lot no.
             bagsUnloaded: unloading.bagsUnloaded,
             bagsIn: 0,
             bagsOut: 0,
@@ -37,6 +39,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             date: toDate(record.storageStartDate),
             description: record.inflowType === 'Direct' ? 'Direct Inflow' : 'Inflow from Plot',
             invoiceId: record.id,
+            lotNo: record.location || '',
             bagsUnloaded: 0,
             bagsIn: record.bagsIn || 0,
             bagsOut: 0,
@@ -52,6 +55,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                     date: toDate(outflow.date),
                     description: `Outflow`,
                     invoiceId: record.id,
+                    lotNo: record.location || '',
                     bagsUnloaded: 0,
                     bagsIn: 0,
                     bagsOut: outflow.bagsWithdrawn,
@@ -68,6 +72,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 date: toDate(payment.date),
                 description: `Payment Received (${payment.type || 'other'})`,
                 invoiceId: record.id,
+                lotNo: record.location || '',
                 bagsUnloaded: 0,
                 bagsIn: 0,
                 bagsOut: 0,
@@ -195,6 +200,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                         <TableHead className="text-black font-bold">Date</TableHead>
                         <TableHead className="text-black font-bold">Description</TableHead>
                         <TableHead className="text-black font-bold">Invoice No</TableHead>
+                        <TableHead className="text-black font-bold">Lot No</TableHead>
                         <TableHead className="text-right text-black font-bold">Unloaded</TableHead>
                         <TableHead className="text-right text-black font-bold">Stored</TableHead>
                         <TableHead className="text-right text-black font-bold">Out</TableHead>
@@ -210,6 +216,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                             <TableCell className="py-1">{format(item.date, 'dd/MM/yyyy')}</TableCell>
                             <TableCell className="py-1">{item.description}</TableCell>
                             <TableCell className="py-1">{item.invoiceId}</TableCell>
+                            <TableCell className="py-1">{item.lotNo}</TableCell>
                             <TableCell className="text-right py-1">{item.bagsUnloaded || ''}</TableCell>
                             <TableCell className="text-right py-1">{item.bagsIn || ''}</TableCell>
                             <TableCell className="text-right py-1">{item.bagsOut || ''}</TableCell>
@@ -222,7 +229,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 </TableBody>
                  <TableFooter>
                     <TableRow className="border-t-2 border-black">
-                        <TableCell colSpan={3} className="text-right font-bold">Totals:</TableCell>
+                        <TableCell colSpan={4} className="text-right font-bold">Totals:</TableCell>
                         <TableCell className="text-right font-bold">{summary.totalBagsUnloaded}</TableCell>
                         <TableCell className="text-right font-bold">{summary.totalBagsIn}</TableCell>
                         <TableCell className="text-right font-bold">{summary.totalBagsOut}</TableCell>

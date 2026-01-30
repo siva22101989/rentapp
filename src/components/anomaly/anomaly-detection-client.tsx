@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -31,7 +30,8 @@ export function AnomalyDetectionClient() {
         return;
     }
     startTransition(async () => {
-        const result = await getAnomalyDetection(storageRecords);
+        const plainRecords = JSON.parse(JSON.stringify(storageRecords));
+        const result = await getAnomalyDetection(plainRecords);
         if (result.success) {
             setAnalysisResult(result.anomalies);
         } else {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useEffect } from 'react';
+import { useState, useTransition } from 'react';
 import { Loader2, PackageCheck, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -30,32 +30,35 @@ export function UpdatePackingDialog({ record, children }: { record: DryingRecord
   const firestore = useFirestore();
   const isBilled = record.status === 'Billed';
 
-  const [bagsPacked, setBagsPacked] = useState<number | ''>('');
-  const [packingDate, setPackingDate] = useState<string>('');
+  const [formData, setFormData] = useState({ bagsPacked: '', packingDate: '' });
   const [error, setError] = useState<string | null>(null);
 
-  // This effect will correctly reset the state every time the dialog is opened.
-  useEffect(() => {
-    if (isOpen) {
-      setBagsPacked(record.bagsPacked || '');
-      setPackingDate(
-        record.packingDate ? format(toDate(record.packingDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd')
-      );
+  const handleOpenChange = (open: boolean) => {
+    if (open) {
+      setFormData({
+        bagsPacked: String(record.bagsPacked || ''),
+        packingDate: record.packingDate ? format(toDate(record.packingDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+      });
       setError(null);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
-
+    setIsOpen(open);
+  };
+  
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setFormData(prev => ({ ...prev, [id]: value }));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (bagsPacked === '' || Number(bagsPacked) <= 0) {
+    const bagsPackedNum = Number(formData.bagsPacked);
+    if (formData.bagsPacked === '' || bagsPackedNum <= 0) {
       setError('Number of bags packed must be a positive number.');
       return;
     }
-    if (!packingDate) {
+    if (!formData.packingDate) {
       setError('Packing date is required.');
       return;
     }
@@ -68,8 +71,8 @@ export function UpdatePackingDialog({ record, children }: { record: DryingRecord
       try {
         const recordRef = doc(firestore, 'dryingRecords', record.id);
         await updateDoc(recordRef, cleanForFirestore({
-          bagsPacked: Number(bagsPacked),
-          packingDate: new Date(packingDate),
+          bagsPacked: bagsPackedNum,
+          packingDate: new Date(formData.packingDate),
           status: 'Packing',
         }));
 
@@ -82,10 +85,10 @@ export function UpdatePackingDialog({ record, children }: { record: DryingRecord
     });
   };
 
-  const bagsDifference = bagsPacked !== '' ? record.bagsForDrying - Number(bagsPacked) : null;
+  const bagsDifference = formData.bagsPacked !== '' ? record.bagsForDrying - Number(formData.bagsPacked) : null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <form onSubmit={handleSubmit}>
@@ -109,8 +112,8 @@ export function UpdatePackingDialog({ record, children }: { record: DryingRecord
                 id="bagsPacked"
                 type="number"
                 placeholder="0"
-                value={bagsPacked}
-                onChange={(e) => setBagsPacked(e.target.value === '' ? '' : Number(e.target.value))}
+                value={formData.bagsPacked}
+                onChange={handleInputChange}
                 disabled={isBilled}
               />
             </div>
@@ -119,8 +122,8 @@ export function UpdatePackingDialog({ record, children }: { record: DryingRecord
               <Input
                 id="packingDate"
                 type="date"
-                value={packingDate}
-                onChange={(e) => setPackingDate(e.target.value)}
+                value={formData.packingDate}
+                onChange={handleInputChange}
                 disabled={isBilled}
               />
             </div>

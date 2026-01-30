@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useMemo, useEffect } from 'react';
+import { useState, useTransition, useMemo } from 'react';
 import { Loader2, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,8 +20,15 @@ import { useFirestore } from '@/firebase';
 import type { DryingRecord, HamaliCharge } from '@/lib/definitions';
 import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { format } from 'date-fns';
-import { toDate, cleanForFirestore, formatCurrency } from '@/lib/utils';
+import { cleanForFirestore, formatCurrency } from '@/lib/utils';
 import { Separator } from '../ui/separator';
+
+const INITIAL_FORM_DATA = {
+    description: '',
+    date: '',
+    customerRate: '',
+    workerRate: '',
+};
 
 export function AddDryingChargeDialog({ record, children }: { record: DryingRecord; children: React.ReactNode }) {
   const { toast } = useToast();
@@ -30,41 +37,43 @@ export function AddDryingChargeDialog({ record, children }: { record: DryingReco
   const firestore = useFirestore();
   const isBilled = record.status === 'Billed';
 
-  const [description, setDescription] = useState('');
-  const [date, setDate] = useState('');
-  const [customerRate, setCustomerRate] = useState<number | ''>('');
-  const [workerRate, setWorkerRate] = useState<number | ''>('');
+  const [formData, setFormData] = useState(INITIAL_FORM_DATA);
   const [error, setError] = useState<string | null>(null);
 
-  // This effect will reset the form's state every time it is opened.
-  useEffect(() => {
-    if (isOpen) {
-      setDescription('');
-      setDate(format(new Date(), 'yyyy-MM-dd'));
-      setCustomerRate('');
-      setWorkerRate('');
+  const handleOpenChange = (open: boolean) => {
+    if (open) {
+      setFormData({
+        ...INITIAL_FORM_DATA,
+        date: format(new Date(), 'yyyy-MM-dd'),
+      });
       setError(null);
     }
-  }, [isOpen]);
+    setIsOpen(open);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setFormData(prev => ({ ...prev, [id]: value }));
+  };
 
   const bagsForDrying = record.bagsForDrying;
-  const newCustomerAmount = useMemo(() => (Number(customerRate) || 0) * bagsForDrying, [customerRate, bagsForDrying]);
-  const newWorkerAmount = useMemo(() => (Number(workerRate) || 0) * bagsForDrying, [workerRate, bagsForDrying]);
+  const newCustomerAmount = useMemo(() => (Number(formData.customerRate) || 0) * bagsForDrying, [formData.customerRate, bagsForDrying]);
+  const newWorkerAmount = useMemo(() => (Number(formData.workerRate) || 0) * bagsForDrying, [formData.workerRate, bagsForDrying]);
 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     
-    if (!description || description.length < 3) {
+    if (!formData.description || formData.description.length < 3) {
       setError('Description must be at least 3 characters.');
       return;
     }
-    if ((Number(customerRate) || 0) < 0 || (Number(workerRate) || 0) < 0) {
+    if ((Number(formData.customerRate) || 0) < 0 || (Number(formData.workerRate) || 0) < 0) {
       setError('Rates must be non-negative.');
       return;
     }
-     if ((Number(customerRate) || 0) === 0 && (Number(workerRate) || 0) === 0) {
+     if ((Number(formData.customerRate) || 0) === 0 && (Number(formData.workerRate) || 0) === 0) {
       setError('At least one rate must be greater than zero.');
       return;
     }
@@ -82,8 +91,8 @@ export function AddDryingChargeDialog({ record, children }: { record: DryingReco
         const recordRef = doc(firestore, 'dryingRecords', record.id);
         
         const newCharge: HamaliCharge = {
-          description,
-          date: new Date(date),
+          description: formData.description,
+          date: new Date(formData.date),
           amount: newCustomerAmount,
           workerAmount: newWorkerAmount,
         };
@@ -104,7 +113,7 @@ export function AddDryingChargeDialog({ record, children }: { record: DryingReco
   };
   
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <form onSubmit={handleSubmit}>
@@ -120,20 +129,20 @@ export function AddDryingChargeDialog({ record, children }: { record: DryingReco
                 </p>
                 <div className="space-y-2">
                     <Label htmlFor="description">Charge Description</Label>
-                    <Input id="description" placeholder="e.g., Packing Charge, Drying Day 2" value={description} onChange={(e) => setDescription(e.target.value)} disabled={isBilled} />
+                    <Input id="description" placeholder="e.g., Packing Charge, Drying Day 2" value={formData.description} onChange={handleInputChange} disabled={isBilled} />
                 </div>
                  <div className="space-y-2">
                     <Label htmlFor="date">Charge Date</Label>
-                    <Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} disabled={isBilled} />
+                    <Input id="date" type="date" value={formData.date} onChange={handleInputChange} disabled={isBilled} />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <Label htmlFor="customerRate">Customer Rate/Bag</Label>
-                        <Input id="customerRate" type="number" step="0.01" placeholder="0.00" value={customerRate} onChange={(e) => setCustomerRate(e.target.value === '' ? '' : Number(e.target.value))} disabled={isBilled} />
+                        <Input id="customerRate" type="number" step="0.01" placeholder="0.00" value={formData.customerRate} onChange={handleInputChange} disabled={isBilled} />
                     </div>
                      <div className="space-y-2">
                         <Label htmlFor="workerRate">Worker Rate/Bag</Label>
-                        <Input id="workerRate" type="number" step="0.01" placeholder="0.00" value={workerRate} onChange={(e) => setWorkerRate(e.target.value === '' ? '' : Number(e.target.value))} disabled={isBilled} />
+                        <Input id="workerRate" type="number" step="0.01" placeholder="0.00" value={formData.workerRate} onChange={handleInputChange} disabled={isBilled} />
                     </div>
                 </div>
                 {error && <p className="text-sm font-medium text-destructive">{error}</p>}

@@ -28,15 +28,18 @@ import { format } from 'date-fns';
 import { formatCurrency, toDate, cleanForFirestore } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 
-const HamaliChargeSchema = z.object({
+const HamaliChargeFormSchema = z.object({
   description: z.string().min(1, 'Description is required.'),
-  amount: z.coerce.number().nonnegative('Amount must be non-negative.'),
-  workerAmount: z.coerce.number().nonnegative('Must be a positive number.').optional(),
+  amount: z.coerce.number().nonnegative(),
+  workerAmount: z.coerce.number().nonnegative().optional(),
   date: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date" }),
+  // Add per-bag rates for the form
+  amountPerBag: z.coerce.number().nonnegative('Rate must be non-negative.').optional(),
+  workerAmountPerBag: z.coerce.number().nonnegative('Rate must be non-negative.').optional(),
 });
 
 const ManageHamaliSchema = z.object({
-  charges: z.array(HamaliChargeSchema),
+  charges: z.array(HamaliChargeFormSchema),
 });
 
 type ManageHamaliFormData = z.infer<typeof ManageHamaliSchema>;
@@ -56,6 +59,8 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
         amount: charge.amount || 0,
         workerAmount: charge.workerAmount || 0,
         date: format(toDate(charge.date), 'yyyy-MM-dd'),
+        amountPerBag: record.bagsForDrying > 0 ? ((charge.amount || 0) / record.bagsForDrying) : 0,
+        workerAmountPerBag: record.bagsForDrying > 0 ? ((charge.workerAmount || 0) / record.bagsForDrying) : 0,
       })),
     },
   });
@@ -82,9 +87,12 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
 
     startTransition(async () => {
       try {
+        // We only need to store the final amounts, not the per-bag rates.
         const hamaliCharges: Partial<HamaliCharge>[] = data.charges.map(charge => ({
-          ...charge,
+          description: charge.description,
           date: new Date(charge.date),
+          amount: charge.amount,
+          workerAmount: charge.workerAmount,
         }));
         
         const totalDryingHamali = hamaliCharges.reduce((acc, charge) => acc + (charge.amount || 0), 0);
@@ -119,6 +127,8 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
       amount: 0,
       workerAmount: 0,
       date: format(new Date(), 'yyyy-MM-dd'),
+      amountPerBag: 0,
+      workerAmountPerBag: 0,
     });
   };
 
@@ -131,94 +141,107 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
             <DialogHeader>
               <DialogTitle>Manage Hamali Charges</DialogTitle>
               <DialogDescription>
-                Edit, add, or delete hamali charges for this drying process. Unloading hamali is read-only.
+                Edit, add, or delete hamali charges for this drying process. Enter a rate per bag to automatically calculate totals.
               </DialogDescription>
             </DialogHeader>
             <div className="max-h-[60vh] overflow-y-auto p-1">
                 <div className="space-y-4 py-4">
                 {fields.map((field, index) => {
                     const isUnloadingCharge = field.description.toLowerCase().includes('unloading');
-                    const bagsForDrying = record.bagsForDrying || 0;
+                    const customerTotal = watchedCharges[index]?.amount || 0;
+                    const workerTotal = watchedCharges[index]?.workerAmount || 0;
                     
                     return (
-                    <div key={field.id} className="p-3 rounded-md border space-y-2">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormField
-                                control={form.control}
-                                name={`charges.${index}.description`}
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-xs">Description</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="Description" {...field} readOnly={isUnloadingCharge || isBilled} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                             <FormField
-                                control={form.control}
-                                name={`charges.${index}.date`}
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-xs">Date</FormLabel>
-                                        <FormControl>
-                                            <Input type="date" {...field} readOnly={isUnloadingCharge || isBilled} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
-
-                        <div className='grid grid-cols-12 items-end gap-2'>
-                             <FormField
-                                control={form.control}
-                                name={`charges.${index}.amount`}
-                                render={({ field }) => (
-                                  <FormItem className="col-span-5">
-                                      <FormLabel className="text-xs">Customer Charge</FormLabel>
-                                      <FormControl>
-                                          <Input 
-                                              type="number" 
-                                              step="0.01" 
-                                              placeholder="0.00" 
-                                              {...field}
-                                              onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
-                                              readOnly={isUnloadingCharge || isBilled}
-                                          />
-                                      </FormControl>
-                                      <FormMessage />
-                                  </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name={`charges.${index}.workerAmount`}
-                                render={({ field }) => (
-                                  <FormItem className="col-span-5">
-                                      <FormLabel className="text-xs">Worker Payment</FormLabel>
-                                      <FormControl>
-                                          <Input 
-                                              type="number" 
-                                              step="0.01" 
-                                              placeholder="0.00" 
-                                              {...field}
-                                              onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
-                                              readOnly={isUnloadingCharge || isBilled}
-                                          />
-                                      </FormControl>
-                                      <FormMessage />
-                                  </FormItem>
-                                )}
-                            />
-                            <div className="col-span-2 flex items-center justify-end h-10">
-                                {!isUnloadingCharge && !isBilled && (
+                    <div key={field.id} className="p-3 rounded-md border space-y-4">
+                        <div className="flex justify-between items-start gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-grow">
+                                <FormField
+                                    control={form.control}
+                                    name={`charges.${index}.description`}
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="text-xs">Description</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="Description" {...field} readOnly={isUnloadingCharge || isBilled} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name={`charges.${index}.date`}
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="text-xs">Date</FormLabel>
+                                            <FormControl>
+                                                <Input type="date" {...field} readOnly={isUnloadingCharge || isBilled} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+                            {!isUnloadingCharge && !isBilled && (
+                                <div className="pt-5">
                                     <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
                                         <Trash2 className="h-4 w-4 text-destructive" />
                                     </Button>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                             <FormField
+                                control={form.control}
+                                name={`charges.${index}.amountPerBag`}
+                                render={({ field }) => (
+                                  <FormItem>
+                                      <FormLabel className="text-xs">Customer Rate/Bag</FormLabel>
+                                      <FormControl>
+                                          <Input 
+                                              type="number" 
+                                              step="0.01" 
+                                              placeholder="0.00" 
+                                              {...field}
+                                              onChange={e => {
+                                                  const rate = parseFloat(e.target.value) || 0;
+                                                  field.onChange(rate);
+                                                  form.setValue(`charges.${index}.amount`, rate * (record.bagsForDrying || 0));
+                                              }}
+                                              readOnly={isUnloadingCharge || isBilled}
+                                          />
+                                      </FormControl>
+                                      <div className="text-xs text-muted-foreground pt-1">Total: <span className="font-mono font-medium text-foreground">{formatCurrency(customerTotal)}</span></div>
+                                      <FormMessage />
+                                  </FormItem>
                                 )}
-                            </div>
+                            />
+                            <FormField
+                                control={form.control}
+                                name={`charges.${index}.workerAmountPerBag`}
+                                render={({ field }) => (
+                                  <FormItem>
+                                      <FormLabel className="text-xs">Worker Rate/Bag</FormLabel>
+                                      <FormControl>
+                                          <Input 
+                                              type="number" 
+                                              step="0.01" 
+                                              placeholder="0.00" 
+                                              {...field}
+                                              onChange={e => {
+                                                  const rate = parseFloat(e.target.value) || 0;
+                                                  field.onChange(rate);
+                                                  form.setValue(`charges.${index}.workerAmount`, rate * (record.bagsForDrying || 0));
+                                              }}
+                                              readOnly={isUnloadingCharge || isBilled}
+                                          />
+                                      </FormControl>
+                                       <div className="text-xs text-muted-foreground pt-1">Total: <span className="font-mono font-medium text-foreground">{formatCurrency(workerTotal)}</span></div>
+                                      <FormMessage />
+                                  </FormItem>
+                                )}
+                            />
                         </div>
                     </div>
                 )})}

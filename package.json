@@ -46,10 +46,9 @@
     "html2canvas": "^1.4.1",
     "jspdf": "^2.5.1",
     "lucide-react": "^0.475.0",
-    "next": "canary",
-    "react": "rc",
-    "react-day-picker": "^8.10.1",
-    "react-dom": "rc",
+    "next": "15.6.0-canary.60",
+    "react": "19.0.0-rc-de68d2f4-20241204",
+    "react-dom": "19.0.0-rc-de68d2f4-20241204",
     "react-hook-form": "^7.54.2",
     "recharts": "^2.15.1",
     "tailwind-merge": "^3.0.1",
@@ -66,7 +65,7 @@
     "typescript": "^5"
   },
   "overrides": {
-    "react": "rc",
-    "react-dom": "rc"
+    "react": "19.0.0-rc-de68d2f4-20241204",
+    "react-dom": "19.0.0-rc-de68d2f4-20241204"
   }
 }

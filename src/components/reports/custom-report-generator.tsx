@@ -11,6 +11,7 @@ import { PendingPaymentsTable } from '@/components/payments/pending-payments-tab
 import { HamaliReport } from './hamali-report';
 import { InflowReport } from './inflow-report';
 import { OutflowReport } from './outflow-report';
+import { LotInventoryReport } from './lot-inventory-report';
 
 const reportTypes = [
     { value: 'all-customers', label: 'All Customers List' },
@@ -34,7 +35,7 @@ type ReportGeneratorProps = {
 }
 
 export function CustomReportGenerator({ records, customers, unloadingRecords, expenses, dryingRecords }: ReportGeneratorProps) {
-    const [selectedReport, setSelectedReport] = useState<string>('inflow-register');
+    const [selectedReport, setSelectedReport] = useState<string>('lot-inventory');
 
     const renderReport = () => {
         switch (selectedReport) {
@@ -52,6 +53,8 @@ export function CustomReportGenerator({ records, customers, unloadingRecords, ex
                 return <InflowReport records={records} customers={customers} />;
             case 'outflow-register':
                 return <OutflowReport records={records} customers={customers} />;
+            case 'lot-inventory':
+                return <LotInventoryReport records={records} customers={customers} />;
             default:
                 return (
                     <Card>

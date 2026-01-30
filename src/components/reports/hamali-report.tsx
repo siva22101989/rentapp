@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef, useMemo } from 'react';
@@ -33,6 +32,7 @@ export type WorkerHamaliEvent = {
     customerId?: string;
     payable: number;
     paid: number;
+    bags?: number;
 }
 
 export function HamaliReport({ records, customers, unloadingRecords, dryingRecords, expenses }: { records: StorageRecord[], customers: Customer[], unloadingRecords: UnloadingRecord[], dryingRecords: DryingRecord[], expenses: Expense[] }) {
@@ -150,6 +150,7 @@ export function HamaliReport({ records, customers, unloadingRecords, dryingRecor
                 customerId: ur.customerId,
                 payable: ur.totalHamali, // Total hamali is payable to worker
                 paid: 0,
+                bags: ur.bagsUnloaded,
             });
         });
 
@@ -167,6 +168,7 @@ export function HamaliReport({ records, customers, unloadingRecords, dryingRecor
                         customerId: dr.customerId,
                         payable: charge.workerAmount,
                         paid: 0,
+                        bags: dr.bagsForDrying,
                     });
                 }
             });

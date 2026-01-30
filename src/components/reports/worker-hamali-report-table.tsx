@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -40,6 +39,7 @@ export function WorkerHamaliReportTable({ events, customers, title }: ReportTabl
                         <TableHead>Customer</TableHead>
                         <TableHead>Description</TableHead>
                         <TableHead>Reference ID</TableHead>
+                        <TableHead className="text-center">Bags</TableHead>
                         <TableHead className="text-right">Payable</TableHead>
                         <TableHead className="text-right">Paid</TableHead>
                     </TableRow>
@@ -51,6 +51,7 @@ export function WorkerHamaliReportTable({ events, customers, title }: ReportTabl
                             <TableCell className="font-medium">{getCustomerName(event.customerId)}</TableCell>
                             <TableCell>{event.description}</TableCell>
                             <TableCell>{event.recordId}</TableCell>
+                            <TableCell className="text-center font-mono">{event.bags || ''}</TableCell>
                             <TableCell className="text-right font-mono">
                                 {event.payable > 0 ? formatCurrency(event.payable) : ''}
                             </TableCell>
@@ -61,7 +62,7 @@ export function WorkerHamaliReportTable({ events, customers, title }: ReportTabl
                     ))}
                     {events.length === 0 && (
                         <TableRow>
-                            <TableCell colSpan={6} className="text-center text-muted-foreground">
+                            <TableCell colSpan={7} className="text-center text-muted-foreground">
                                 No worker hamali transactions found for the selected criteria.
                             </TableCell>
                         </TableRow>
@@ -69,12 +70,12 @@ export function WorkerHamaliReportTable({ events, customers, title }: ReportTabl
                 </TableBody>
                 <TableFooter>
                     <TableRow>
-                        <TableCell colSpan={4} className="text-right font-bold">Totals</TableCell>
+                        <TableCell colSpan={5} className="text-right font-bold">Totals</TableCell>
                         <TableCell className="text-right font-mono font-bold">{formatCurrency(totalPayable)}</TableCell>
                         <TableCell className="text-right font-mono font-bold text-green-600">{formatCurrency(totalPaid)}</TableCell>
                     </TableRow>
                      <TableRow>
-                        <TableCell colSpan={5} className="text-right font-bold">Pending Balance</TableCell>
+                        <TableCell colSpan={6} className="text-right font-bold">Pending Balance</TableCell>
                         <TableCell className="text-right font-mono font-bold text-destructive">{formatCurrency(balance)}</TableCell>
                     </TableRow>
                 </TableFooter>

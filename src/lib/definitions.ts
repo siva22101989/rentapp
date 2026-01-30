@@ -21,6 +21,7 @@ export type Commodity = {
 export type Lot = {
   id: string;
   name: string;
+  capacity?: number;
 };
 
 export type Payment = {

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useTransition, useState, useMemo } from 'react';
@@ -33,6 +34,7 @@ import {
 
 const AddLotSchema = z.object({
   name: z.string().min(1, 'Lot name cannot be empty.'),
+  capacity: z.coerce.number().int().nonnegative('Capacity must be non-negative').optional(),
 });
 type AddLotFormData = z.infer<typeof AddLotSchema>;
 
@@ -40,6 +42,18 @@ const BulkAddLotsSchema = z.object({
   names: z.string().min(1, 'Lot names cannot be empty.'),
 });
 type BulkAddLotsFormData = z.infer<typeof BulkAddLotsSchema>;
+
+const RangeAddLotsSchema = z.object({
+    prefix: z.string().optional(),
+    start: z.coerce.number().int(),
+    end: z.coerce.number().int(),
+    suffix: z.string().optional(),
+    capacity: z.coerce.number().int().nonnegative('Capacity must be non-negative').optional(),
+}).refine(data => data.end >= data.start, {
+    message: "End number must be greater than or equal to start number.",
+    path: ["end"],
+});
+type RangeAddLotsFormData = z.infer<typeof RangeAddLotsSchema>;
 
 
 function DeleteLotDialog({ lot, onConfirm }: { lot: Lot, onConfirm: () => void }) {
@@ -83,6 +97,8 @@ export function LotsClient() {
   
   const [isAdding, startAddingTransition] = useTransition();
   const [isBulkAdding, startBulkAddingTransition] = useTransition();
+  const [isRangeAdding, startRangeAddingTransition] = useTransition();
+
 
   const lotsQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'lots') : null),
@@ -94,13 +110,19 @@ export function LotsClient() {
 
   const addForm = useForm<AddLotFormData>({
     resolver: zodResolver(AddLotSchema),
-    defaultValues: { name: '' },
+    defaultValues: { name: '', capacity: undefined },
   });
 
   const bulkAddForm = useForm<BulkAddLotsFormData>({
     resolver: zodResolver(BulkAddLotsSchema),
     defaultValues: { names: '' },
   });
+  
+  const rangeAddForm = useForm<RangeAddLotsFormData>({
+    resolver: zodResolver(RangeAddLotsSchema),
+    defaultValues: { prefix: '', start: 1, end: undefined, suffix: '', capacity: undefined },
+  });
+
 
   const onAddSubmit = (data: AddLotFormData) => {
     if (!firestore) return;
@@ -111,7 +133,7 @@ export function LotsClient() {
     }
     startAddingTransition(async () => {
       try {
-        await addDoc(collection(firestore, 'lots'), { name: trimmedName });
+        await addDoc(collection(firestore, 'lots'), { name: trimmedName, capacity: data.capacity || null });
         toast({ title: 'Success', description: `Lot "${trimmedName}" added.` });
         addForm.reset();
       } catch (error) {
@@ -154,6 +176,52 @@ export function LotsClient() {
       }
     });
   };
+  
+    const onRangeAddSubmit = (data: RangeAddLotsFormData) => {
+    if (!firestore) return;
+    startRangeAddingTransition(async () => {
+        const { prefix = '', start, end, suffix = '', capacity } = data;
+        const lotsToAdd: { name: string; capacity: number | null }[] = [];
+        let skippedCount = 0;
+
+        for (let i = start; i <= end; i++) {
+            const name = `${prefix}${i}${suffix}`.trim();
+            if (existingLotNames.has(name.toLowerCase())) {
+                skippedCount++;
+            } else {
+                lotsToAdd.push({ name, capacity: capacity ?? null });
+                existingLotNames.add(name.toLowerCase()); // Prevent adding duplicates from the same range
+            }
+        }
+
+        if (lotsToAdd.length === 0) {
+            toast({
+                title: 'No lots to add',
+                description: `All lots in the specified range already exist (skipped ${skippedCount}).`,
+                variant: 'default',
+            });
+            return;
+        }
+
+        const batch = writeBatch(firestore);
+        lotsToAdd.forEach(lot => {
+            const docRef = doc(collection(firestore, 'lots'));
+            batch.set(docRef, lot);
+        });
+
+        try {
+            await batch.commit();
+            toast({
+                title: 'Range Add Complete',
+                description: `${lotsToAdd.length} lots added. ${skippedCount > 0 ? `${skippedCount} skipped (duplicates).` : ''}`,
+            });
+            rangeAddForm.reset();
+        } catch (error) {
+            toast({ title: 'Error', description: 'Failed to add lots from range.', variant: 'destructive' });
+        }
+    });
+  };
+
 
   const handleDeleteLot = (lotId: string) => {
     if (!firestore) return;
@@ -171,7 +239,7 @@ export function LotsClient() {
                         <CardHeader>
                             <CardTitle>Add Single Lot</CardTitle>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="space-y-4">
                              <FormField
                                 control={addForm.control}
                                 name="name"
@@ -180,6 +248,19 @@ export function LotsClient() {
                                     <FormLabel>Lot Name</FormLabel>
                                     <FormControl>
                                         <Input placeholder="e.g. A1/Top" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                             <FormField
+                                control={addForm.control}
+                                name="capacity"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Capacity (bags)</FormLabel>
+                                    <FormControl>
+                                        <Input type="number" placeholder="e.g. 1000" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)} value={field.value ?? ''} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -197,11 +278,39 @@ export function LotsClient() {
             </Card>
 
             <Card>
+              <Form {...rangeAddForm}>
+                <form onSubmit={rangeAddForm.handleSubmit(onRangeAddSubmit)}>
+                  <CardHeader>
+                    <CardTitle>Add Lots by Range</CardTitle>
+                    <CardDescription>E.g., A1 to A6 becomes A1, A2, etc.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                       <FormField control={rangeAddForm.control} name="prefix" render={({ field }) => (<FormItem><FormLabel>Prefix</FormLabel><FormControl><Input placeholder="e.g. A" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                       <FormField control={rangeAddForm.control} name="suffix" render={({ field }) => (<FormItem><FormLabel>Suffix</FormLabel><FormControl><Input placeholder="e.g. /Top" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField control={rangeAddForm.control} name="start" render={({ field }) => (<FormItem><FormLabel>Start No.</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={rangeAddForm.control} name="end" render={({ field }) => (<FormItem><FormLabel>End No.</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
+                    </div>
+                     <FormField control={rangeAddForm.control} name="capacity" render={({ field }) => (<FormItem><FormLabel>Capacity (for all)</FormLabel><FormControl><Input type="number" placeholder="e.g. 1000" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem> )} />
+                  </CardContent>
+                  <CardFooter>
+                    <Button type="submit" disabled={isRangeAdding}>
+                        {isRangeAdding && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Create Range
+                    </Button>
+                  </CardFooter>
+                </form>
+              </Form>
+            </Card>
+
+            <Card>
                 <Form {...bulkAddForm}>
                     <form onSubmit={bulkAddForm.handleSubmit(onBulkAddSubmit)}>
                         <CardHeader>
                             <CardTitle>Bulk Add Lots</CardTitle>
-                            <CardDescription>Enter one lot name per line.</CardDescription>
+                            <CardDescription>Enter one lot name per line. Does not support capacity.</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <FormField
@@ -238,19 +347,21 @@ export function LotsClient() {
                     <TableHeader>
                         <TableRow>
                             <TableHead>Lot Name</TableHead>
+                            <TableHead className="text-right">Capacity (bags)</TableHead>
                             <TableHead className="w-[50px] text-right"></TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {loadingLots ? (
                             <TableRow>
-                                <TableCell colSpan={2} className="text-center">
+                                <TableCell colSpan={3} className="text-center">
                                     <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
                                 </TableCell>
                             </TableRow>
                         ) : (lots || []).sort((a,b) => a.name.localeCompare(b.name)).map((lot) => (
                             <TableRow key={lot.id}>
                                 <TableCell className="font-medium">{lot.name}</TableCell>
+                                <TableCell className="text-right font-mono">{lot.capacity ?? 'N/A'}</TableCell>
                                 <TableCell className="text-right">
                                     <DeleteLotDialog lot={lot} onConfirm={() => handleDeleteLot(lot.id)} />
                                 </TableCell>
@@ -258,7 +369,7 @@ export function LotsClient() {
                         ))}
                          {!loadingLots && (!lots || lots.length === 0) && (
                             <TableRow>
-                                <TableCell colSpan={2} className="text-center text-muted-foreground">
+                                <TableCell colSpan={3} className="text-center text-muted-foreground">
                                     No lots have been added yet.
                                 </TableCell>
                             </TableRow>

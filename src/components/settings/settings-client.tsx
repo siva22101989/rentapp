@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useTransition, useState } from 'react';
@@ -77,7 +76,7 @@ export function SettingsClient() {
     }
 
     startClearingDbTransition(async () => {
-        const collectionsToDelete = ['customers', 'storageRecords', 'expenses', 'unloadingRecords', 'dryingRecords'];
+        const collectionsToDelete = ['customers', 'storageRecords', 'expenses', 'unloadingRecords', 'dryingRecords', 'commodities'];
         let deletedCount = 0;
 
         try {
@@ -117,6 +116,20 @@ export function SettingsClient() {
 
     startSeedingTransition(async () => {
       try {
+        // First, clear the collections that will be seeded
+        const collectionsToClear = ['customers', 'storageRecords'];
+        for (const collectionName of collectionsToClear) {
+            const collectionRef = collection(firestore, collectionName);
+            const snapshot = await getDocs(collectionRef);
+            if (!snapshot.empty) {
+                const deleteBatch = writeBatch(firestore);
+                snapshot.docs.forEach(doc => {
+                    deleteBatch.delete(doc.ref);
+                });
+                await deleteBatch.commit();
+            }
+        }
+
         const batch = writeBatch(firestore);
 
         // Seed Customers
@@ -143,7 +156,7 @@ export function SettingsClient() {
         await batch.commit();
 
         setSeedResult({
-            message: `Successfully seeded database.\n- Customers: ${customersData.length}\n- Storage Records: ${storageRecordsData.length}`,
+            message: `Cleared old data and successfully seeded database.\n- Customers: ${customersData.length}\n- Storage Records: ${storageRecordsData.length}`,
             success: true,
         });
       } catch (error: any) {
@@ -162,7 +175,7 @@ export function SettingsClient() {
             <CardHeader>
                 <CardTitle>Seed Database</CardTitle>
                 <CardDescription>
-                    Populate your Firestore database with initial dummy data. This will overwrite existing data with matching IDs.
+                    Populate your Firestore database with initial dummy data. This will clear existing customers and storage records first.
                 </CardDescription>
             </CardHeader>
             <CardContent>

@@ -24,6 +24,7 @@ const InitiateDryingSchema = z.object({
   unloadingRecordId: z.string().min(1, 'Unloading bill is required.'),
   dryingStartDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
   hamaliPerBag: z.coerce.number().nonnegative('Hamali rate must be non-negative.'),
+  workerHamaliPerBag: z.coerce.number().nonnegative('Worker hamali rate must be non-negative.'),
   bagsForDrying: z.coerce.number().int().positive('Number of bags must be positive.'),
 });
 
@@ -48,6 +49,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
           unloadingRecordId: '',
           dryingStartDate: new Date().toISOString().split('T')[0],
           hamaliPerBag: undefined,
+          workerHamaliPerBag: undefined,
           bagsForDrying: undefined,
         },
       });
@@ -68,16 +70,16 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
     const bagsRemainingOnRecord = selectedUnloadingRecord ? selectedUnloadingRecord.bagsUnloaded - (selectedUnloadingRecord.bagsSentToDrying || 0) : 0;
     
     const day1HamaliRate = form.watch('hamaliPerBag');
+    const workerDay1HamaliRate = form.watch('workerHamaliPerBag');
     const bagsForDrying = form.watch('bagsForDrying');
     const day1DryingHamali = (bagsForDrying || 0) * (day1HamaliRate || 0);
-    const unloadingHamali = selectedUnloadingRecord?.totalHamali || 0; // This is the total for the original record. This seems wrong. Hamali should be proportional.
+    const workerDay1DryingHamali = (bagsForDrying || 0) * (workerDay1HamaliRate || 0);
 
-    // Let's adjust how hamali is calculated. Hamali for unloading should be proportional to the bags being processed now.
     const proportionalUnloadingHamali = selectedUnloadingRecord 
         ? (selectedUnloadingRecord.hamaliPerBag * (bagsForDrying || 0))
         : 0;
 
-    const totalHamali = proportionalUnloadingHamali + day1DryingHamali;
+    const totalCustomerHamali = proportionalUnloadingHamali + day1DryingHamali;
 
     useEffect(() => {
       if (selectedUnloadingRecord) {
@@ -112,14 +114,16 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
             try {
                 const dryingStartDate = new Date(data.dryingStartDate);
                 const currentProportionalUnloadingHamali = selectedUnloadingRecord.hamaliPerBag * data.bagsForDrying;
-                const dryingDay1Hamali = data.bagsForDrying * data.hamaliPerBag;
+                const dryingDay1CustomerHamali = data.bagsForDrying * data.hamaliPerBag;
+                const dryingDay1WorkerHamali = data.bagsForDrying * data.workerHamaliPerBag;
                 
                 const hamaliCharges: Partial<HamaliCharge>[] = [
                   { description: "Unloading Hamali", amount: currentProportionalUnloadingHamali, date: selectedUnloadingRecord.unloadingDate },
-                  { description: "Drying Day 1", amount: dryingDay1Hamali, date: dryingStartDate },
+                  { description: "Drying Day 1", amount: dryingDay1CustomerHamali, workerAmount: dryingDay1WorkerHamali, date: dryingStartDate },
                 ];
                 
                 const totalDryingHamali = hamaliCharges.reduce((acc, charge) => acc + (charge.amount || 0), 0);
+                const totalWorkerHamali = hamaliCharges.reduce((acc, charge) => acc + (charge.workerAmount || 0), 0);
                 
                 // 1. Create new drying record
                 const newRecord = {
@@ -131,6 +135,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                     status: 'Drying' as const,
                     hamaliCharges,
                     totalDryingHamali,
+                    totalWorkerHamali,
                     packingDate: null,
                     billingDate: null,
                     bagsPacked: null,
@@ -246,17 +251,30 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                             </FormItem>
                         )}
                     />
-                     <FormField
-                        control={form.control}
-                        name="hamaliPerBag"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Drying Hamali per Bag (Day 1)</FormLabel>
-                                <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                            control={form.control}
+                            name="hamaliPerBag"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Customer Hamali per Bag (Day 1)</FormLabel>
+                                    <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name="workerHamaliPerBag"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Worker Hamali per Bag (Day 1)</FormLabel>
+                                    <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
 
                     <Separator />
 
@@ -272,8 +290,12 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                         </div>
                         <Separator />
                         <div className="flex justify-between items-center font-semibold">
-                            <span>Total Hamali (For this process)</span>
-                            <span className="font-mono">{formatCurrency(totalHamali)}</span>
+                            <span>Total Hamali (For Customer)</span>
+                            <span className="font-mono">{formatCurrency(totalCustomerHamali)}</span>
+                        </div>
+                         <div className="flex justify-between items-center text-sm">
+                            <span className="text-muted-foreground">Payable to Worker (Day 1 Drying)</span>
+                            <span className="font-mono">{formatCurrency(workerDay1DryingHamali)}</span>
                         </div>
                     </div>
                 </CardContent>

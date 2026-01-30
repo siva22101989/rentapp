@@ -31,6 +31,7 @@ import { Separator } from '../ui/separator';
 const HamaliChargeSchema = z.object({
   description: z.string().min(1, 'Description is required.'),
   amount: z.coerce.number().nonnegative('Amount must be non-negative.'),
+  workerAmount: z.coerce.number().nonnegative('Must be a positive number.').optional(),
   date: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date" }),
 });
 
@@ -53,6 +54,7 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
       charges: (record.hamaliCharges || []).map(charge => ({
         ...charge,
         amount: charge.amount || 0,
+        workerAmount: charge.workerAmount || 0,
         date: format(toDate(charge.date), 'yyyy-MM-dd'),
       })),
     },
@@ -68,7 +70,9 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
     name: 'charges'
   });
 
-  const totalHamali = watchedCharges.reduce((acc, charge) => acc + (Number(charge?.amount) || 0), 0);
+  const totalCustomerHamali = watchedCharges.reduce((acc, charge) => acc + (Number(charge?.amount) || 0), 0);
+  const totalWorkerHamali = watchedCharges.reduce((acc, charge) => acc + (Number(charge?.workerAmount) || 0), 0);
+
 
   const onSubmit = (data: ManageHamaliFormData) => {
     if (!firestore) {
@@ -84,11 +88,13 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
         }));
         
         const totalDryingHamali = hamaliCharges.reduce((acc, charge) => acc + (charge.amount || 0), 0);
+        const totalWorkerHamali = hamaliCharges.reduce((acc, charge) => acc + (charge.workerAmount || 0), 0);
 
         const recordRef = doc(firestore, 'dryingRecords', record.id);
         await updateDoc(recordRef, cleanForFirestore({
           hamaliCharges,
           totalDryingHamali,
+          totalWorkerHamali,
         }));
 
         toast({ title: 'Success', description: 'Hamali charges updated successfully.' });
@@ -111,6 +117,7 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
     append({
       description: `Drying Day ${nextDayNumber}`,
       amount: 0,
+      workerAmount: 0,
       date: format(new Date(), 'yyyy-MM-dd'),
     });
   };
@@ -135,12 +142,12 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
                     
                     return (
                     <div key={field.id} className="p-3 rounded-md border space-y-2">
-                        <div className="grid grid-cols-12 items-start gap-2">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <FormField
                                 control={form.control}
                                 name={`charges.${index}.description`}
                                 render={({ field }) => (
-                                    <FormItem className="col-span-5 sm:col-span-4">
+                                    <FormItem>
                                         <FormLabel className="text-xs">Description</FormLabel>
                                         <FormControl>
                                             <Input placeholder="Description" {...field} readOnly={isUnloadingCharge || isBilled} />
@@ -149,11 +156,11 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
                                     </FormItem>
                                 )}
                             />
-                            <FormField
+                             <FormField
                                 control={form.control}
                                 name={`charges.${index}.date`}
                                 render={({ field }) => (
-                                    <FormItem className="col-span-7 sm:col-span-3">
+                                    <FormItem>
                                         <FormLabel className="text-xs">Date</FormLabel>
                                         <FormControl>
                                             <Input type="date" {...field} readOnly={isUnloadingCharge || isBilled} />
@@ -162,12 +169,15 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
                                     </FormItem>
                                 )}
                             />
-                            <FormField
+                        </div>
+
+                        <div className='grid grid-cols-12 items-end gap-2'>
+                             <FormField
                                 control={form.control}
                                 name={`charges.${index}.amount`}
                                 render={({ field }) => (
-                                  <FormItem className="col-span-10 sm:col-span-4">
-                                      <FormLabel className="text-xs">Total Amount</FormLabel>
+                                  <FormItem className="col-span-5">
+                                      <FormLabel className="text-xs">Customer Charge</FormLabel>
                                       <FormControl>
                                           <Input 
                                               type="number" 
@@ -182,7 +192,27 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
                                   </FormItem>
                                 )}
                             />
-                            <div className="col-span-2 sm:col-span-1 flex items-end justify-end h-[52px]">
+                            <FormField
+                                control={form.control}
+                                name={`charges.${index}.workerAmount`}
+                                render={({ field }) => (
+                                  <FormItem className="col-span-5">
+                                      <FormLabel className="text-xs">Worker Payment</FormLabel>
+                                      <FormControl>
+                                          <Input 
+                                              type="number" 
+                                              step="0.01" 
+                                              placeholder="0.00" 
+                                              {...field}
+                                              onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
+                                              readOnly={isUnloadingCharge || isBilled}
+                                          />
+                                      </FormControl>
+                                      <FormMessage />
+                                  </FormItem>
+                                )}
+                            />
+                            <div className="col-span-2 flex items-center justify-end h-10">
                                 {!isUnloadingCharge && !isBilled && (
                                     <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
                                         <Trash2 className="h-4 w-4 text-destructive" />
@@ -190,39 +220,6 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
                                 )}
                             </div>
                         </div>
-
-                        {!isUnloadingCharge && !isBilled && (
-                             <div className='grid grid-cols-12 items-center gap-2'>
-                                <div className='col-span-5'>
-                                    <Label className="text-xs">Bags</Label>
-                                    <Input 
-                                        type="number" 
-                                        value={bagsForDrying}
-                                        readOnly
-                                        disabled
-                                    />
-                                </div>
-                                <div className='col-span-5'>
-                                    <Label className="text-xs">Rate per Bag</Label>
-                                    <Input 
-                                        type="number" 
-                                        step="0.01"
-                                        placeholder="Rate"
-                                        value={bagsForDrying > 0 ? ((watchedCharges[index]?.amount || 0) / bagsForDrying).toFixed(2) : '0.00'}
-                                        onChange={(e) => {
-                                            const newRate = parseFloat(e.target.value) || 0;
-                                            const newAmount = bagsForDrying * newRate;
-                                            form.setValue(`charges.${index}.amount`, newAmount, { shouldDirty: true });
-                                        }}
-                                        disabled={isBilled}
-                                     />
-                                </div>
-                                <div className="col-span-2 flex items-center justify-center h-10 pt-4">
-                                    <Equal className="h-5 w-5 text-muted-foreground" />
-                                </div>
-                             </div>
-                         )}
-
                     </div>
                 )})}
                 {!isBilled && (
@@ -231,9 +228,15 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
                     </Button>
                 )}
                 <Separator className="my-4" />
-                <div className="flex justify-end items-center font-bold text-lg">
-                    <span>Total Hamali:</span>
-                    <span className="ml-4 font-mono">{formatCurrency(totalHamali)}</span>
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1 rounded-md border p-3">
+                        <div className="text-sm text-muted-foreground">Total Customer Hamali</div>
+                        <div className="font-bold text-lg font-mono">{formatCurrency(totalCustomerHamali)}</div>
+                    </div>
+                     <div className="space-y-1 rounded-md border p-3">
+                        <div className="text-sm text-muted-foreground">Total Worker Hamali</div>
+                        <div className="font-bold text-lg font-mono">{formatCurrency(totalWorkerHamali)}</div>
+                    </div>
                 </div>
                 </div>
             </div>

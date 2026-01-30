@@ -2,21 +2,22 @@
 'use client';
 
 import { useState, useRef, useMemo } from 'react';
-import type { Customer, StorageRecord, UnloadingRecord, DryingRecord } from "@/lib/definitions";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { Customer, StorageRecord, UnloadingRecord, DryingRecord, Expense } from "@/lib/definitions";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from '@/components/ui/button';
 import { Download, Loader2, Calendar as CalendarIcon, X } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-import { HamaliReportTable } from './hamali-report-table';
+import { CustomerHamaliReportTable } from './customer-hamali-report-table';
+import { WorkerHamaliReportTable } from './worker-hamali-report-table';
 import { toDate } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { DateRange } from 'react-day-picker';
 
-export type HamaliEvent = {
+export type CustomerHamaliEvent = {
     date: Date;
     customerId: string;
     description: string;
@@ -25,27 +26,34 @@ export type HamaliEvent = {
     type: 'charge' | 'payment';
     bags?: number;
 }
+export type WorkerHamaliEvent = {
+    date: Date;
+    description: string;
+    recordId: string;
+    customerId?: string;
+    payable: number;
+    paid: number;
+}
 
-export function HamaliReport({ records, customers, unloadingRecords, dryingRecords }: { records: StorageRecord[], customers: Customer[], unloadingRecords: UnloadingRecord[], dryingRecords: DryingRecord[] }) {
+export function HamaliReport({ records, customers, unloadingRecords, dryingRecords, expenses }: { records: StorageRecord[], customers: Customer[], unloadingRecords: UnloadingRecord[], dryingRecords: DryingRecord[], expenses: Expense[] }) {
+    const [reportView, setReportView] = useState<'customer' | 'worker'>('customer');
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>('all');
     const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
     const [isGenerating, setIsGenerating] = useState(false);
     
     const reportRef = useRef<HTMLDivElement>(null);
 
-    const hamaliEvents = useMemo(() => {
-        const events: HamaliEvent[] = [];
+    const customerHamaliEvents = useMemo(() => {
+        const events: CustomerHamaliEvent[] = [];
 
         // --- CHARGES ---
-
-        // Source 1: Detailed Hamali from Drying Records (covers Plot Inflows)
         dryingRecords.forEach(dr => {
             const unloadingRecord = unloadingRecords.find(ur => ur.id === dr.unloadingRecordId);
-            const refId = unloadingRecord?.billNo || 'N/A';
+            const refId = unloadingRecord?.billNo || dr.unloadingRecordId.substring(0,5);
             (dr.hamaliCharges || []).forEach(charge => {
                 let simpleDescription = charge.description;
                 if (simpleDescription?.toLowerCase().includes('unloading')) {
-                    simpleDescription = 'Unloading';
+                    simpleDescription = 'Unloading (from Drying)';
                 }
                  events.push({
                     date: toDate(charge.date),
@@ -59,13 +67,12 @@ export function HamaliReport({ records, customers, unloadingRecords, dryingRecor
             });
         });
         
-        // Source 2: Hamali from Direct Inflows (Storage Records)
         records.forEach(sr => {
             if ((sr.inflowType === 'Direct' || !sr.inflowType) && sr.hamaliPayable > 0) {
                  events.push({
                     date: toDate(sr.storageStartDate),
                     customerId: sr.customerId,
-                    description: 'Direct',
+                    description: 'Direct Inflow Hamali',
                     recordId: sr.id,
                     amount: sr.hamaliPayable,
                     type: 'charge',
@@ -75,8 +82,6 @@ export function HamaliReport({ records, customers, unloadingRecords, dryingRecor
         });
 
         // --- PAYMENTS ---
-
-        // Source 3: Hamali Payments from Storage Records
         records.forEach(sr => {
             (sr.payments || []).filter(p => p.type === 'hamali').forEach(payment => {
                 events.push({
@@ -90,21 +95,19 @@ export function HamaliReport({ records, customers, unloadingRecords, dryingRecor
             });
         });
 
-        // Source 4: Hamali Payments from Unloading Records
         unloadingRecords.forEach(ur => {
             (ur.payments || []).forEach(payment => {
                 events.push({
                     date: toDate(payment.date),
                     customerId: ur.customerId,
                     description: 'Payment (Unloading)',
-                    recordId: ur.billNo || 'N/A',
+                    recordId: ur.billNo || ur.id.substring(0,5),
                     amount: payment.amount,
                     type: 'payment',
                 });
             });
         });
         
-        // Filter events based on UI selection
         let filteredEvents = events;
         if (selectedCustomerId && selectedCustomerId !== 'all') {
             filteredEvents = filteredEvents.filter(e => e.customerId === selectedCustomerId);
@@ -114,12 +117,58 @@ export function HamaliReport({ records, customers, unloadingRecords, dryingRecor
         }
         if (dateRange?.to) {
             const toDateObj = new Date(dateRange.to);
-            toDateObj.setHours(23, 59, 59, 999); // Include the whole day
+            toDateObj.setHours(23, 59, 59, 999);
             filteredEvents = filteredEvents.filter(e => e.date <= toDateObj);
         }
 
         return filteredEvents.sort((a,b) => a.date.getTime() - b.date.getTime());
     }, [records, unloadingRecords, dryingRecords, selectedCustomerId, dateRange]);
+
+    const workerHamaliEvents = useMemo(() => {
+        const events: WorkerHamaliEvent[] = [];
+
+        dryingRecords.forEach(dr => {
+            const unloadingRecord = unloadingRecords.find(ur => ur.id === dr.unloadingRecordId);
+            const refId = unloadingRecord?.billNo || dr.unloadingRecordId.substring(0,5);
+            (dr.hamaliCharges || []).forEach(charge => {
+                if (charge.workerAmount && charge.workerAmount > 0) {
+                     events.push({
+                        date: toDate(charge.date),
+                        description: `${charge.description} (Drying)`,
+                        recordId: refId,
+                        customerId: dr.customerId,
+                        payable: charge.workerAmount,
+                        paid: 0,
+                    });
+                }
+            });
+        });
+        
+        expenses.filter(e => e.category === 'Hamali').forEach(exp => {
+            events.push({
+                date: toDate(exp.date),
+                description: exp.description,
+                recordId: exp.id.substring(0,5),
+                payable: 0,
+                paid: exp.amount,
+            });
+        });
+
+        let filtered = events;
+        if (selectedCustomerId && selectedCustomerId !== 'all') {
+            filtered = filtered.filter(e => e.customerId === selectedCustomerId);
+        }
+        if (dateRange?.from) {
+            filtered = filtered.filter(e => e.date >= dateRange.from!);
+        }
+        if (dateRange?.to) {
+            const toDateObj = new Date(dateRange.to);
+            toDateObj.setHours(23, 59, 59, 999);
+            filtered = filtered.filter(e => e.date <= toDateObj);
+        }
+
+        return filtered.sort((a,b) => a.date.getTime() - b.date.getTime());
+    }, [dryingRecords, expenses, selectedCustomerId, dateRange]);
 
 
     const handleDownloadPdf = async () => {
@@ -145,7 +194,7 @@ export function HamaliReport({ records, customers, unloadingRecords, dryingRecor
             const y = 10;
 
             pdf.addImage(imgData, 'PNG', x, y, widthInPdf, heightInPdf);
-            pdf.save(`hamali-report-${Date.now()}.pdf`);
+            pdf.save(`hamali-report-${reportView}-${Date.now()}.pdf`);
         } catch (error) {
             console.error('Error generating PDF:', error);
         } finally {
@@ -154,14 +203,25 @@ export function HamaliReport({ records, customers, unloadingRecords, dryingRecor
     };
     
     const customer = customers.find(c => c.id === selectedCustomerId);
+    const title = `Hamali ${reportView === 'customer' ? 'Customer' : 'Worker'} Ledger ${customer ? `for ${customer.name}` : ''}`;
 
     return (
         <Card>
             <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div className="flex-1">
                     <CardTitle>Hamali Register</CardTitle>
+                    <CardDescription>View ledgers for customer charges or worker payments.</CardDescription>
                 </div>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+                    <Select onValueChange={(v) => setReportView(v as 'customer' | 'worker')} value={reportView}>
+                        <SelectTrigger className='w-full sm:w-[180px]'>
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="customer">Customer Ledger</SelectItem>
+                            <SelectItem value="worker">Worker Ledger</SelectItem>
+                        </SelectContent>
+                    </Select>
                     <Select onValueChange={setSelectedCustomerId} value={selectedCustomerId}>
                         <SelectTrigger className="w-full sm:w-[200px]">
                             <SelectValue placeholder="All Customers" />
@@ -218,11 +278,19 @@ export function HamaliReport({ records, customers, unloadingRecords, dryingRecor
             </CardHeader>
             <CardContent>
                 <div ref={reportRef}>
-                    <HamaliReportTable 
-                        events={hamaliEvents} 
-                        customers={customers}
-                        title={`Hamali Register ${customer ? `for ${customer.name}` : ''}`}
-                    />
+                    {reportView === 'customer' ? (
+                         <CustomerHamaliReportTable 
+                            events={customerHamaliEvents} 
+                            customers={customers}
+                            title={title}
+                        />
+                    ) : (
+                        <WorkerHamaliReportTable 
+                            events={workerHamaliEvents}
+                            customers={customers}
+                            title={title}
+                        />
+                    )}
                 </div>
             </CardContent>
         </Card>

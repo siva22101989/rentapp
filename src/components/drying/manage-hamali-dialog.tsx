@@ -160,7 +160,6 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
             <div className="max-h-[60vh] overflow-y-auto p-1">
                 <div className="space-y-4 py-4">
                 {fields.map((field, index) => {
-                    const isUnloadingCharge = watchedCharges?.[index]?.description?.toLowerCase().includes('unloading') ?? false;
                     const customerRate = watchedCharges?.[index]?.amountPerBag || 0;
                     const workerRate = watchedCharges?.[index]?.workerAmountPerBag || 0;
                     const customerTotal = customerRate * (record.bagsForDrying || 0);
@@ -177,7 +176,7 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
                                         <FormItem>
                                             <FormLabel className="text-xs">Description</FormLabel>
                                             <FormControl>
-                                                <Input placeholder="Description" {...field} readOnly={isUnloadingCharge || isBilled} />
+                                                <Input placeholder="Description" {...field} readOnly={isBilled} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -190,14 +189,14 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
                                         <FormItem>
                                             <FormLabel className="text-xs">Date</FormLabel>
                                             <FormControl>
-                                                <Input type="date" {...field} readOnly={isUnloadingCharge || isBilled} />
+                                                <Input type="date" {...field} readOnly={isBilled} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}
                                 />
                             </div>
-                            {!isUnloadingCharge && !isBilled && (
+                            {!isBilled && (
                                 <div className="pt-5">
                                     <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
                                         <Trash2 className="h-4 w-4 text-destructive" />
@@ -219,7 +218,7 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
                                               step="0.01" 
                                               placeholder="0.00" 
                                               {...field}
-                                              readOnly={isUnloadingCharge || isBilled}
+                                              readOnly={isBilled}
                                           />
                                       </FormControl>
                                       <div className="text-xs text-muted-foreground pt-1">Total: <span className="font-mono font-medium text-foreground">{formatCurrency(customerTotal)}</span></div>
@@ -239,7 +238,7 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
                                               step="0.01" 
                                               placeholder="0.00" 
                                               {...field}
-                                              readOnly={isUnloadingCharge || isBilled}
+                                              readOnly={isBilled}
                                           />
                                       </FormControl>
                                        <div className="text-xs text-muted-foreground pt-1">Total: <span className="font-mono font-medium text-foreground">{formatCurrency(workerTotal)}</span></div>

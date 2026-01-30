@@ -51,10 +51,6 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
 
   const [charges, setCharges] = useState<EditableCharge[]>([]);
   
-  // This effect now ONLY runs when the dialog opens.
-  // It initializes the form state from the `record` prop.
-  // By removing `record` from the dependency array, we prevent
-  // the dialog from resetting while the user is typing, which was the root cause of the bug.
   useEffect(() => {
     if (isOpen) {
         const initialCharges = (record.hamaliCharges || []).map((charge, index) => {

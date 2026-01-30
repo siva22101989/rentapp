@@ -47,26 +47,40 @@ export function HamaliReport({ records, customers, unloadingRecords, dryingRecor
         const events: CustomerHamaliEvent[] = [];
 
         // --- CHARGES ---
+        // 1. From Unloading Records
+        unloadingRecords.forEach(ur => {
+            events.push({
+                date: toDate(ur.unloadingDate),
+                customerId: ur.customerId,
+                description: 'Unloading Hamali',
+                recordId: ur.billNo || ur.id.substring(0, 5),
+                amount: ur.totalHamali,
+                type: 'charge',
+                bags: ur.bagsUnloaded
+            });
+        });
+
+        // 2. From Drying Records (for additional charges beyond unloading)
         dryingRecords.forEach(dr => {
             const unloadingRecord = unloadingRecords.find(ur => ur.id === dr.unloadingRecordId);
             const refId = unloadingRecord?.billNo || dr.unloadingRecordId.substring(0,5);
             (dr.hamaliCharges || []).forEach(charge => {
-                let simpleDescription = charge.description;
-                if (simpleDescription?.toLowerCase().includes('unloading')) {
-                    simpleDescription = 'Unloading (from Drying)';
+                // Exclude the base "Unloading Hamali" as it's already covered from the source record.
+                if (!charge.description.toLowerCase().includes('unloading')) {
+                    events.push({
+                        date: toDate(charge.date),
+                        customerId: dr.customerId,
+                        description: charge.description,
+                        recordId: refId,
+                        amount: charge.amount,
+                        type: 'charge',
+                        bags: dr.bagsForDrying,
+                    });
                 }
-                 events.push({
-                    date: toDate(charge.date),
-                    customerId: dr.customerId,
-                    description: simpleDescription,
-                    recordId: refId,
-                    amount: charge.amount,
-                    type: 'charge',
-                    bags: dr.bagsForDrying,
-                });
             });
         });
         
+        // 3. From Direct Inflow Storage Records
         records.forEach(sr => {
             if ((sr.inflowType === 'Direct' || !sr.inflowType) && sr.hamaliPayable > 0) {
                  events.push({
@@ -127,11 +141,25 @@ export function HamaliReport({ records, customers, unloadingRecords, dryingRecor
     const workerHamaliEvents = useMemo(() => {
         const events: WorkerHamaliEvent[] = [];
 
+        // 1. Payable from Unloading Records
+        unloadingRecords.forEach(ur => {
+            events.push({
+                date: toDate(ur.unloadingDate),
+                description: 'Unloading Hamali',
+                recordId: ur.billNo || ur.id.substring(0, 5),
+                customerId: ur.customerId,
+                payable: ur.totalHamali, // Total hamali is payable to worker
+                paid: 0,
+            });
+        });
+
+        // 2. Payable from Drying Records (additional work only)
         dryingRecords.forEach(dr => {
             const unloadingRecord = unloadingRecords.find(ur => ur.id === dr.unloadingRecordId);
             const refId = unloadingRecord?.billNo || dr.unloadingRecordId.substring(0,5);
             (dr.hamaliCharges || []).forEach(charge => {
-                if (charge.workerAmount && charge.workerAmount > 0) {
+                // Exclude "Unloading Hamali" from here as we've already accounted for it above.
+                if (charge.workerAmount && charge.workerAmount > 0 && !charge.description.toLowerCase().includes('unloading')) {
                      events.push({
                         date: toDate(charge.date),
                         description: `${charge.description} (Drying)`,
@@ -144,6 +172,7 @@ export function HamaliReport({ records, customers, unloadingRecords, dryingRecor
             });
         });
         
+        // 3. Paid amounts from Expenses
         expenses.filter(e => e.category === 'Hamali').forEach(exp => {
             events.push({
                 date: toDate(exp.date),
@@ -168,7 +197,7 @@ export function HamaliReport({ records, customers, unloadingRecords, dryingRecor
         }
 
         return filtered.sort((a,b) => a.date.getTime() - b.date.getTime());
-    }, [dryingRecords, expenses, selectedCustomerId, dateRange]);
+    }, [unloadingRecords, dryingRecords, expenses, selectedCustomerId, dateRange]);
 
 
     const handleDownloadPdf = async () => {

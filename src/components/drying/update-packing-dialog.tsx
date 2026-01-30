@@ -30,19 +30,22 @@ export function UpdatePackingDialog({ record, children }: { record: DryingRecord
   const firestore = useFirestore();
   const isBilled = record.status === 'Billed';
 
-  // Use local state for form fields
-  const [bagsPacked, setBagsPacked] = useState('');
+  const [bagsPacked, setBagsPacked] = useState<string>('');
   const [packingDate, setPackingDate] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  // Effect to initialize state only when dialog opens
+  // This effect now ONLY runs when the dialog opens.
+  // It initializes the form state from the `record` prop.
+  // By removing `record` from the dependency array, we prevent
+  // the dialog from resetting while the user is typing, which was the root cause of the bug.
   useEffect(() => {
     if (isOpen) {
       setBagsPacked(String(record.bagsPacked || ''));
       setPackingDate(record.packingDate ? format(toDate(record.packingDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'));
       setError(null);
     }
-  }, [isOpen, record]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

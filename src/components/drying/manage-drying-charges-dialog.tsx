@@ -51,6 +51,10 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
 
   const [charges, setCharges] = useState<EditableCharge[]>([]);
   
+  // This effect now ONLY runs when the dialog opens.
+  // It initializes the form state from the `record` prop.
+  // By removing `record` from the dependency array, we prevent
+  // the dialog from resetting while the user is typing, which was the root cause of the bug.
   useEffect(() => {
     if (isOpen) {
         const initialCharges = (record.hamaliCharges || []).map((charge, index) => {
@@ -65,7 +69,8 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
         });
       setCharges(initialCharges);
     }
-  }, [isOpen, record]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   const handleChargeChange = (index: number, field: keyof EditableCharge, value: string | number) => {
       const newCharges = [...charges];
@@ -147,7 +152,7 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
                                 <Input 
                                     value={charge.description} 
                                     onChange={e => handleChargeChange(index, 'description', e.target.value)}
-                                    disabled={isBilled || index === 0}
+                                    disabled={isBilled}
                                 />
                             </div>
                             <div className="space-y-2">
@@ -182,7 +187,7 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
                                 />
                             </div>
                         </div>
-                        {index > 0 && !isBilled && (
+                        {!isBilled && (
                              <Button 
                                 type="button" 
                                 variant="ghost" 

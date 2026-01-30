@@ -12,6 +12,7 @@ import { HamaliReport } from './hamali-report';
 import { InflowReport } from './inflow-report';
 import { OutflowReport } from './outflow-report';
 import { LotInventoryReport } from './lot-inventory-report';
+import { UnloadingReport } from './unloading-report';
 
 const reportTypes = [
     { value: 'all-customers', label: 'All Customers List' },
@@ -21,6 +22,7 @@ const reportTypes = [
     { value: 'hamali-register', label: 'Hamali Register' },
     { value: 'inflow-register', label: 'Inflow Register (Date Range)' },
     { value: 'outflow-register', label: 'Outflow Register (Date Range)' },
+    { value: 'unloading-register', label: 'Unloading Register (Date Range)' },
     { value: 'payment-register', label: 'Payment Register (Date Range)' },
     { value: 'lot-inventory', label: 'Lot Inventory (Patti mapping)' },
     { value: 'recent-transactions', label: 'Recent Transactions (Last 1000)' },
@@ -35,7 +37,7 @@ type ReportGeneratorProps = {
 }
 
 export function CustomReportGenerator({ records, customers, unloadingRecords, expenses, dryingRecords }: ReportGeneratorProps) {
-    const [selectedReport, setSelectedReport] = useState<string>('lot-inventory');
+    const [selectedReport, setSelectedReport] = useState<string>('unloading-register');
 
     const renderReport = () => {
         switch (selectedReport) {
@@ -53,6 +55,8 @@ export function CustomReportGenerator({ records, customers, unloadingRecords, ex
                 return <InflowReport records={records} customers={customers} />;
             case 'outflow-register':
                 return <OutflowReport records={records} customers={customers} />;
+            case 'unloading-register':
+                return <UnloadingReport unloadingRecords={unloadingRecords} customers={customers} />;
             case 'lot-inventory':
                 return <LotInventoryReport records={records} customers={customers} />;
             default:

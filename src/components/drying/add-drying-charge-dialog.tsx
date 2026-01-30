@@ -18,7 +18,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
 import type { DryingRecord, HamaliCharge } from '@/lib/definitions';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { toDate, cleanForFirestore, formatCurrency } from '@/lib/utils';
 import { Separator } from '../ui/separator';
@@ -77,14 +77,10 @@ export function AddDryingChargeDialog({ record, children }: { record: DryingReco
           workerAmount: newWorkerAmount,
         };
 
-        const newHamaliCharges = [...(record.hamaliCharges || []), newCharge];
-        const newTotalDryingHamali = newHamaliCharges.reduce((acc, charge) => acc + charge.amount, 0);
-        const newTotalWorkerHamali = newHamaliCharges.reduce((acc, charge) => acc + (charge.workerAmount || 0), 0);
-
         await updateDoc(recordRef, {
-          hamaliCharges: cleanForFirestore(newHamaliCharges),
-          totalDryingHamali: newTotalDryingHamali,
-          totalWorkerHamali: newTotalWorkerHamali,
+          hamaliCharges: arrayUnion(cleanForFirestore(newCharge)),
+          totalDryingHamali: record.totalDryingHamali + newCustomerAmount,
+          totalWorkerHamali: (record.totalWorkerHamali || 0) + newWorkerAmount,
         });
 
         toast({ title: 'Success', description: 'New charge added successfully.' });
@@ -128,11 +124,11 @@ export function AddDryingChargeDialog({ record, children }: { record: DryingReco
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <Label htmlFor="customerRate">Customer Rate/Bag</Label>
-                        <Input id="customerRate" type="number" step="0.01" placeholder="0.00" value={customerRate} onChange={(e) => setCustomerRate(e.target.valueAsNumber || '')} disabled={isBilled} />
+                        <Input id="customerRate" type="number" step="0.01" placeholder="0.00" value={customerRate} onChange={(e) => setCustomerRate(e.target.value === '' ? '' : Number(e.target.value))} disabled={isBilled} />
                     </div>
                      <div className="space-y-2">
                         <Label htmlFor="workerRate">Worker Rate/Bag</Label>
-                        <Input id="workerRate" type="number" step="0.01" placeholder="0.00" value={workerRate} onChange={(e) => setWorkerRate(e.target.valueAsNumber || '')} disabled={isBilled} />
+                        <Input id="workerRate" type="number" step="0.01" placeholder="0.00" value={workerRate} onChange={(e) => setWorkerRate(e.target.value === '' ? '' : Number(e.target.value))} disabled={isBilled} />
                     </div>
                 </div>
                 {error && <p className="text-sm font-medium text-destructive">{error}</p>}

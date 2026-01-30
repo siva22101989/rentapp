@@ -10,6 +10,7 @@ import { StorageTable } from '@/components/dashboard/storage-table';
 import { PendingPaymentsTable } from '@/components/payments/pending-payments-table';
 import { HamaliReport } from './hamali-report';
 import { InflowReport } from './inflow-report';
+import { OutflowReport } from './outflow-report';
 
 const reportTypes = [
     { value: 'all-customers', label: 'All Customers List' },
@@ -49,6 +50,8 @@ export function CustomReportGenerator({ records, customers, unloadingRecords, ex
                 return <HamaliReport records={records} customers={customers} unloadingRecords={unloadingRecords} dryingRecords={dryingRecords} />;
             case 'inflow-register':
                 return <InflowReport records={records} customers={customers} />;
+            case 'outflow-register':
+                return <OutflowReport records={records} customers={customers} />;
             default:
                 return (
                     <Card>

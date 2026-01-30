@@ -51,7 +51,7 @@ export function CustomReportGenerator({ records, customers, unloadingRecords, ex
             case 'pending-dues':
                 return <PendingPaymentsTable records={records} customers={customers} />;
             case 'hamali-register':
-                return <HamaliReport records={records} customers={customers} unloadingRecords={unloadingRecords} dryingRecords={dryingRecords} />;
+                return <HamaliReport records={records} customers={customers} unloadingRecords={unloadingRecords} dryingRecords={dryingRecords} expenses={expenses} />;
             case 'inflow-register':
                 return <InflowReport records={records} customers={customers} />;
             case 'outflow-register':

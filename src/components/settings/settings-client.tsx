@@ -98,8 +98,11 @@ export function SettingsClient() {
             const deletedCount = await clearAllData();
             toast({
                 title: 'Database Cleared',
-                description: `Successfully deleted all data. Total documents removed: ${deletedCount}.`,
+                description: `Successfully deleted all data. Total documents removed: ${deletedCount}. The page will now reload.`,
             });
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
         } catch (error: any) {
              toast({
                 title: 'Error',

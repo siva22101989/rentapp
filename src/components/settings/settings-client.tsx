@@ -21,7 +21,11 @@ import {
 import { cleanForFirestore } from '@/lib/utils';
 
 
-const COLLECTION_NAMES = ['customers', 'storageRecords', 'expenses', 'unloadingRecords', 'dryingRecords', 'commodities'];
+// Collections for full backup/restore
+const ALL_DATA_COLLECTIONS = ['customers', 'storageRecords', 'expenses', 'unloadingRecords', 'dryingRecords', 'commodities', 'lots'];
+// Collections to clear for testing purposes (preserving setup data)
+const TRANSACTIONAL_COLLECTIONS = ['customers', 'storageRecords', 'expenses', 'unloadingRecords', 'dryingRecords'];
+
 
 export function SettingsClient() {
   const [isClearingCache, startClearingCacheTransition] = useTransition();
@@ -72,21 +76,28 @@ export function SettingsClient() {
     });
   };
 
-  const clearAllData = async () => {
+  const clearData = async (collectionsToClear: string[]) => {
     if (!firestore) {
       throw new Error('Firestore is not initialized.');
     }
     let deletedCount = 0;
-    for (const collectionName of COLLECTION_NAMES) {
+    for (const collectionName of collectionsToClear) {
       const collectionRef = collection(firestore, collectionName);
       const snapshot = await getDocs(collectionRef);
       if (snapshot.empty) continue;
       
-      const batch = writeBatch(firestore);
-      snapshot.docs.forEach(doc => {
-          batch.delete(doc.ref);
-      });
-      await batch.commit();
+      // Firestore only allows 500 operations per batch
+      const batches = [];
+      for (let i = 0; i < snapshot.docs.length; i += 500) {
+        const batch = writeBatch(firestore);
+        const chunk = snapshot.docs.slice(i, i + 500);
+        chunk.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+        batches.push(batch.commit());
+      }
+      
+      await Promise.all(batches);
       deletedCount += snapshot.size;
     }
     return deletedCount;
@@ -95,10 +106,10 @@ export function SettingsClient() {
   const handleClearDatabase = async () => {
     startClearingDbTransition(async () => {
         try {
-            const deletedCount = await clearAllData();
+            const deletedCount = await clearData(TRANSACTIONAL_COLLECTIONS);
             toast({
-                title: 'Database Cleared',
-                description: `Successfully deleted all data. Total documents removed: ${deletedCount}. The page will now reload.`,
+                title: 'Transactional Data Cleared',
+                description: `Successfully deleted transactional data (customers, records, etc.). Commodities and lots were not affected. Total documents removed: ${deletedCount}. The page will now reload.`,
             });
             setTimeout(() => {
                 window.location.reload();
@@ -121,7 +132,7 @@ export function SettingsClient() {
     startExportingTransition(async () => {
       try {
         const data: { [key: string]: any[] } = {};
-        for (const collectionName of COLLECTION_NAMES) {
+        for (const collectionName of ALL_DATA_COLLECTIONS) {
           const collectionRef = collection(firestore, collectionName);
           const snapshot = await getDocs(collectionRef);
           data[collectionName] = snapshot.docs.map(d => ({ ...d.data(), id: d.id }));
@@ -171,10 +182,17 @@ export function SettingsClient() {
             }
             const parsedData = JSON.parse(text);
             
-            // Basic validation
-            const collectionsArePresent = COLLECTION_NAMES.every(name => Array.isArray(parsedData[name]));
-            if (!collectionsArePresent) {
-                throw new Error('Invalid backup file format. Some collections are missing or not arrays.');
+            // A more robust but simple validation
+            if (typeof parsedData !== 'object' || parsedData === null || !Array.isArray(parsedData.customers) || !Array.isArray(parsedData.storageRecords)) {
+                throw new Error('Invalid backup file format. Must be a JSON object containing at least "customers" and "storageRecords" arrays.');
+            }
+
+            // Ensure all expected collections exist on the object to prevent errors during import, 
+            // adding them if they are missing (for backwards compatibility with old backups).
+            for (const collectionName of ALL_DATA_COLLECTIONS) {
+                if (!Array.isArray(parsedData[collectionName])) {
+                    parsedData[collectionName] = [];
+                }
             }
 
             setDataToImport(parsedData);
@@ -193,11 +211,11 @@ export function SettingsClient() {
     
     startImportingTransition(async () => {
       try {
-        // 1. Clear existing data
-        await clearAllData();
+        // 1. Clear ALL existing data before import
+        await clearData(ALL_DATA_COLLECTIONS);
 
         // 2. Import new data
-        for (const collectionName of COLLECTION_NAMES) {
+        for (const collectionName of ALL_DATA_COLLECTIONS) {
           const items = dataToImport[collectionName];
           if (items && items.length > 0) {
             // Firestore batches can hold up to 500 operations.
@@ -216,7 +234,11 @@ export function SettingsClient() {
           }
         }
         
-        toast({ title: 'Import Successful', description: 'All data has been replaced with the backup file.' });
+        toast({ title: 'Import Successful', description: 'All data has been replaced with the backup file. Page will reload.' });
+        
+        setTimeout(() => {
+            window.location.reload();
+        }, 2000);
 
       } catch (error: any) {
         toast({ title: 'Import Failed', description: `An error occurred: ${error.message}`, variant: 'destructive'});
@@ -233,7 +255,7 @@ export function SettingsClient() {
             <CardHeader>
                 <CardTitle>Data Management</CardTitle>
                 <CardDescription>
-                    Export your current database as a JSON backup file, or import a backup file to restore your data.
+                    Export a full backup of all data, or import a backup file to restore your database.
                 </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
@@ -300,9 +322,9 @@ export function SettingsClient() {
             
             <Card className="w-full border-destructive/50">
                 <CardHeader>
-                    <CardTitle className="text-destructive">Clear All Database Data</CardTitle>
+                    <CardTitle className="text-destructive">Clear Transactional Data</CardTitle>
                     <CardDescription>
-                        This will permanently delete all data from the database. This action cannot be undone.
+                        This will permanently delete all transactional data (customers, records, expenses) but will keep your setup data (Commodities, Lots).
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -310,14 +332,14 @@ export function SettingsClient() {
                         <AlertDialogTrigger asChild>
                             <Button variant="destructive" size="lg">
                                 <Trash2 className="mr-2 h-4 w-4" />
-                                Clear Database
+                                Clear Transactional Data
                             </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                             <AlertDialogHeader>
                                 <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                    This action is permanent and cannot be undone. All data in the database will be deleted, including all customers, storage records, and expenses.
+                                    This action is permanent and cannot be undone. All customers, storage records, unloading/drying records, and expenses will be deleted. Your Commodities and Lots will not be affected.
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -333,7 +355,7 @@ export function SettingsClient() {
                                             Deleting...
                                         </>
                                     ) : (
-                                        'Yes, delete everything'
+                                        'Yes, delete transactional data'
                                     )}
                                 </AlertDialogAction>
                             </AlertDialogFooter>

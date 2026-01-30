@@ -1,4 +1,3 @@
-
 'use server';
 
 import { z } from 'zod';
@@ -24,7 +23,8 @@ export async function getAnomalyDetection(records: StorageRecord[]): Promise<Ano
     return { success: true, anomalies: 'No storage records found to analyze.' };
   }
   try {
-    const result = await detectStorageAnomaliesFlow({ storageRecords: JSON.stringify(records) });
+    const plainRecords = JSON.parse(JSON.stringify(records));
+    const result = await detectStorageAnomaliesFlow({ storageRecords: JSON.stringify(plainRecords) });
     return { success: true, anomalies: result.anomalies };
   } catch (error) {
     console.error("Anomaly detection failed:", error);
@@ -118,14 +118,4 @@ export async function deleteStorageRecordAction(recordId: string): Promise<FormS
   revalidatePath('/storage');
   revalidatePath('/reports');
   return { message: 'Record will be deleted on the client.', success: true };
-}
-
-
-export async function seedDatabase() {
-    // This action needs to be fully implemented on the client to use the client SDK.
-    revalidatePath('/'); // Revalidate all paths
-    return {
-        message: `Seeding will be performed client-side.`,
-        success: true,
-    };
 }

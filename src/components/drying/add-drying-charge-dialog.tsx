@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useMemo } from 'react';
+import { useState, useTransition, useMemo, useEffect } from 'react';
 import { Loader2, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -31,10 +31,21 @@ export function AddDryingChargeDialog({ record, children }: { record: DryingReco
   const isBilled = record.status === 'Billed';
 
   const [description, setDescription] = useState('');
-  const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [date, setDate] = useState('');
   const [customerRate, setCustomerRate] = useState<number | ''>('');
   const [workerRate, setWorkerRate] = useState<number | ''>('');
   const [error, setError] = useState<string | null>(null);
+
+  // This effect will reset the form's state every time it is opened.
+  useEffect(() => {
+    if (isOpen) {
+      setDescription('');
+      setDate(format(new Date(), 'yyyy-MM-dd'));
+      setCustomerRate('');
+      setWorkerRate('');
+      setError(null);
+    }
+  }, [isOpen]);
 
   const bagsForDrying = record.bagsForDrying;
   const newCustomerAmount = useMemo(() => (Number(customerRate) || 0) * bagsForDrying, [customerRate, bagsForDrying]);
@@ -79,18 +90,12 @@ export function AddDryingChargeDialog({ record, children }: { record: DryingReco
 
         await updateDoc(recordRef, {
           hamaliCharges: arrayUnion(cleanForFirestore(newCharge)),
-          totalDryingHamali: record.totalDryingHamali + newCustomerAmount,
+          totalDryingHamali: (record.totalDryingHamali || 0) + newCustomerAmount,
           totalWorkerHamali: (record.totalWorkerHamali || 0) + newWorkerAmount,
         });
 
         toast({ title: 'Success', description: 'New charge added successfully.' });
         setIsOpen(false);
-        // Reset state
-        setDescription('');
-        setDate(format(new Date(), 'yyyy-MM-dd'));
-        setCustomerRate('');
-        setWorkerRate('');
-
       } catch (error) {
         console.error(error);
         toast({ title: 'Error', description: 'Failed to add charge.', variant: 'destructive' });

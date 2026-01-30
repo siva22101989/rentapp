@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { Loader2, PackageCheck, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,12 +16,12 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore } from '@/firebase';
 import type { DryingRecord } from '@/lib/definitions';
 import { doc, updateDoc } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { toDate, cleanForFirestore } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { useFirestore } from '@/firebase';
 
 export function UpdatePackingDialog({ record, children }: { record: DryingRecord; children: React.ReactNode }) {
   const { toast } = useToast();
@@ -30,17 +30,27 @@ export function UpdatePackingDialog({ record, children }: { record: DryingRecord
   const firestore = useFirestore();
   const isBilled = record.status === 'Billed';
 
-  const [bagsPacked, setBagsPacked] = useState<number | ''>(record.bagsPacked || '');
-  const [packingDate, setPackingDate] = useState<string>(
-    record.packingDate ? format(toDate(record.packingDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd')
-  );
+  const [bagsPacked, setBagsPacked] = useState<number | ''>('');
+  const [packingDate, setPackingDate] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
+
+  // This effect will correctly reset the state every time the dialog is opened.
+  useEffect(() => {
+    if (isOpen) {
+      setBagsPacked(record.bagsPacked || '');
+      setPackingDate(
+        record.packingDate ? format(toDate(record.packingDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd')
+      );
+      setError(null);
+    }
+  }, [isOpen, record]);
+
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (!bagsPacked || Number(bagsPacked) <= 0) {
+    if (bagsPacked === '' || Number(bagsPacked) <= 0) {
       setError('Number of bags packed must be a positive number.');
       return;
     }
@@ -71,7 +81,7 @@ export function UpdatePackingDialog({ record, children }: { record: DryingRecord
     });
   };
 
-  const bagsDifference = bagsPacked ? record.bagsForDrying - Number(bagsPacked) : null;
+  const bagsDifference = bagsPacked !== '' ? record.bagsForDrying - Number(bagsPacked) : null;
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -99,7 +109,7 @@ export function UpdatePackingDialog({ record, children }: { record: DryingRecord
                 type="number"
                 placeholder="0"
                 value={bagsPacked}
-                onChange={(e) => setBagsPacked(e.target.valueAsNumber || '')}
+                onChange={(e) => setBagsPacked(e.target.value === '' ? '' : Number(e.target.value))}
                 disabled={isBilled}
               />
             </div>

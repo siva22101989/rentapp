@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useEffect, useMemo } from 'react';
@@ -75,7 +76,7 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
   });
 
   const { totalCustomerHamali, totalWorkerHamali } = useMemo(() => {
-    const totals = watchedCharges.reduce((acc, charge) => {
+    const totals = (watchedCharges || []).reduce((acc, charge) => {
         const customerRate = charge.amountPerBag || 0;
         const workerRate = charge.workerAmountPerBag || 0;
         acc.customer += customerRate * (record.bagsForDrying || 0);
@@ -155,7 +156,7 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
             <div className="max-h-[60vh] overflow-y-auto p-1">
                 <div className="space-y-4 py-4">
                 {fields.map((field, index) => {
-                    const isUnloadingCharge = field.description.toLowerCase().includes('unloading');
+                    const isUnloadingCharge = watchedCharges[index]?.description?.toLowerCase().includes('unloading') ?? false;
                     const customerRate = watchedCharges[index]?.amountPerBag || 0;
                     const workerRate = watchedCharges[index]?.workerAmountPerBag || 0;
                     const customerTotal = customerRate * (record.bagsForDrying || 0);

@@ -43,7 +43,8 @@ export function UpdatePackingDialog({ record, children }: { record: DryingRecord
       );
       setError(null);
     }
-  }, [isOpen, record]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
 
   const handleSubmit = (e: React.FormEvent) => {

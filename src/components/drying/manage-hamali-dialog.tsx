@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useEffect, useMemo } from 'react';
@@ -54,16 +53,21 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
 
   const form = useForm<ManageHamaliFormData>({
     resolver: zodResolver(ManageHamaliSchema),
-    defaultValues: {
-      charges: (record.hamaliCharges || []).map(charge => ({
-        ...charge,
-        date: format(toDate(charge.date), 'yyyy-MM-dd'),
-        // Calculate the rate from the stored amount for initial display
-        amountPerBag: record.bagsForDrying > 0 ? ((charge.amount || 0) / record.bagsForDrying) : 0,
-        workerAmountPerBag: record.bagsForDrying > 0 ? ((charge.workerAmount || 0) / record.bagsForDrying) : 0,
-      })),
-    },
   });
+
+  useEffect(() => {
+    if (isOpen) {
+      form.reset({
+        charges: (record.hamaliCharges || []).map(charge => ({
+          ...charge,
+          date: format(toDate(charge.date), 'yyyy-MM-dd'),
+          // Calculate the rate from the stored amount for initial display
+          amountPerBag: record.bagsForDrying > 0 ? ((charge.amount || 0) / record.bagsForDrying) : 0,
+          workerAmountPerBag: record.bagsForDrying > 0 ? ((charge.workerAmount || 0) / record.bagsForDrying) : 0,
+        })),
+      });
+    }
+  }, [isOpen, form, record]);
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
@@ -156,9 +160,9 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
             <div className="max-h-[60vh] overflow-y-auto p-1">
                 <div className="space-y-4 py-4">
                 {fields.map((field, index) => {
-                    const isUnloadingCharge = watchedCharges[index]?.description?.toLowerCase().includes('unloading') ?? false;
-                    const customerRate = watchedCharges[index]?.amountPerBag || 0;
-                    const workerRate = watchedCharges[index]?.workerAmountPerBag || 0;
+                    const isUnloadingCharge = watchedCharges?.[index]?.description?.toLowerCase().includes('unloading') ?? false;
+                    const customerRate = watchedCharges?.[index]?.amountPerBag || 0;
+                    const workerRate = watchedCharges?.[index]?.workerAmountPerBag || 0;
                     const customerTotal = customerRate * (record.bagsForDrying || 0);
                     const workerTotal = workerRate * (record.bagsForDrying || 0);
                     

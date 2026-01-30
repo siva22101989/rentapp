@@ -5,7 +5,7 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ArrowRight, Users, FileText, IndianRupee, ArrowDownToDot, ArrowUpFromDot, Warehouse, CreditCard, Database, ArrowDownFromLine, Wind, Settings, Wheat, ShieldAlert } from "lucide-react";
+import { ArrowRight, Users, FileText, IndianRupee, ArrowDownToDot, ArrowUpFromDot, Warehouse, CreditCard, Database, ArrowDownFromLine, Wind, Settings, Wheat, ShieldAlert, Boxes } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 type NavItem = {
@@ -24,6 +24,7 @@ const navItems: NavItem[] = [
   { href: '/payments/pending', label: 'Payments', description: 'Manage pending payments.', icon: IndianRupee },
   { href: '/customers', label: 'Customers', description: 'View and manage customers.', icon: Users },
   { href: '/commodities', label: 'Commodities', description: 'Manage commodity types and rents.', icon: Wheat },
+  { href: '/lots', label: 'Lots', description: 'Manage warehouse storage locations.', icon: Boxes },
   { href: '/reports', label: 'Reports', description: 'See all transactions.', icon: FileText },
   { href: '/expenses', label: 'Expenses', description: 'Track and manage expenses.', icon: CreditCard },
   { href: '/settings', label: 'Settings', description: 'Manage database operations.', icon: Settings },

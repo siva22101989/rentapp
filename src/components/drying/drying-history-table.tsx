@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -11,7 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns';
 import { formatCurrency, toDate } from "@/lib/utils";
-import type { Customer, DryingRecord, UnloadingRecord, DryingStatus } from "@/lib/definitions";
+import type { Customer, DryingRecord, UnloadingRecord, DryingStatus, Lot } from "@/lib/definitions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { DryingActionsMenu } from "@/components/drying/drying-actions-menu";
 
@@ -32,9 +33,10 @@ type TableProps = {
   dryingRecords: DryingRecord[];
   customers: Customer[];
   unloadingRecords: UnloadingRecord[];
+  lots: Lot[];
 }
 
-export function DryingHistoryTable({ dryingRecords, customers, unloadingRecords }: TableProps) {
+export function DryingHistoryTable({ dryingRecords, customers, unloadingRecords, lots }: TableProps) {
 
     const getCustomerName = (customerId: string) => {
         return customers.find(c => c.id === customerId)?.name ?? 'Unknown';
@@ -81,7 +83,7 @@ export function DryingHistoryTable({ dryingRecords, customers, unloadingRecords 
                             </Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                            <DryingActionsMenu record={record} unloadingRecord={unloadingRecords.find(ur => ur.id === record.unloadingRecordId)} />
+                            <DryingActionsMenu record={record} unloadingRecord={unloadingRecords.find(ur => ur.id === record.unloadingRecordId)} lots={lots} />
                         </TableCell>
                     </TableRow>
                     )

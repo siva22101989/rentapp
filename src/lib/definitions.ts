@@ -18,10 +18,15 @@ export type Commodity = {
   rate1Year: number;
 };
 
+export type Lot = {
+  id: string;
+  name: string;
+};
+
 export type Payment = {
   amount: number;
   date: Date | Timestamp;
-  type?: 'rent' | 'hamali' | 'other';
+  type?: 'rent' | 'hamali' | 'other' | 'unloading';
 };
 
 export type Outflow = {

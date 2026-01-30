@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { InflowForm } from "@/components/inflow/inflow-form";
 import { AddCustomerDialog } from "@/components/customers/add-customer-dialog";
 import { useMemo } from "react";
-import type { Customer, StorageRecord, Commodity } from "@/lib/definitions";
+import type { Customer, StorageRecord, Commodity, Lot } from "@/lib/definitions";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { collection, query } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
@@ -31,6 +31,12 @@ export default function InflowPage() {
     [firestore]
   );
   const { data: commodities, loading: loadingCommodities } = useCollection<Commodity>(commoditiesQuery);
+  
+  const lotsQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'lots') : null),
+    [firestore]
+  );
+  const { data: lots, loading: loadingLots } = useCollection<Lot>(lotsQuery);
 
 
   const nextSerialNumber = useMemo(() => {
@@ -48,7 +54,7 @@ export default function InflowPage() {
   }, [records]);
 
 
-  if (loadingCustomers || loadingRecords || loadingCommodities) {
+  if (loadingCustomers || loadingRecords || loadingCommodities || loadingLots) {
     return <AppLayout><div>Loading...</div></AppLayout>;
   }
 
@@ -63,6 +69,7 @@ export default function InflowPage() {
       <InflowForm 
         customers={customers || []} 
         commodities={commodities || []}
+        lots={lots || []}
         nextSerialNumber={nextSerialNumber} 
       />
     </AppLayout>

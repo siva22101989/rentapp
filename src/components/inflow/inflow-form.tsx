@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { Customer, Payment, Commodity } from '@/lib/definitions';
+import type { Customer, Payment, Commodity, Lot } from '@/lib/definitions';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Separator } from '../ui/separator';
@@ -33,7 +33,7 @@ function SubmitButton() {
     );
 }
 
-export function InflowForm({ customers, commodities, nextSerialNumber }: { customers: Customer[], commodities: Commodity[], nextSerialNumber: string }) {
+export function InflowForm({ customers, commodities, lots, nextSerialNumber }: { customers: Customer[], commodities: Commodity[], lots: Lot[], nextSerialNumber: string }) {
     const { toast } = useToast();
     const router = useRouter();
     const firestore = useFirestore();
@@ -47,6 +47,7 @@ export function InflowForm({ customers, commodities, nextSerialNumber }: { custo
     const [commodityDescription, setCommodityDescription] = useState('');
     const [weight, setWeight] = useState<number | ''>('');
     const [khataAmount, setKhataAmount] = useState<number | ''>('');
+    const [selectedLot, setSelectedLot] = useState('');
 
 
     useEffect(() => {
@@ -172,9 +173,20 @@ export function InflowForm({ customers, commodities, nextSerialNumber }: { custo
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="location">Lot No. <span className="text-muted-foreground text-xs">(Optional)</span></Label>
-                            <Input id="location" name="location" placeholder="e.g., E2/middle" />
+                         <div className="space-y-2">
+                            <Label htmlFor="location">Lot No.</Label>
+                            <Select name="location" required onValueChange={setSelectedLot} value={selectedLot}>
+                                <SelectTrigger id="location">
+                                    <SelectValue placeholder="Select a lot" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {lots.map(lot => (
+                                        <SelectItem key={lot.id} value={lot.name}>
+                                            {lot.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
                     </div>
                      <div className="grid grid-cols-2 gap-4">

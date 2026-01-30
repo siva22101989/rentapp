@@ -54,6 +54,18 @@
       },
       "required": ["name", "rate6Months", "rate1Year"]
     },
+    "lot": {
+      "title": "Lot",
+      "description": "Represents a specific storage location within the warehouse.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The unique identifier for the lot (e.g., A1/Top)."
+        }
+      },
+      "required": ["name"]
+    },
     "storageRecord": {
       "title": "Storage Record",
       "description": "Represents a record of items being stored by a customer.",
@@ -314,6 +326,10 @@
     "/commodities/{commodityId}": {
       "schema": "commodity",
       "description": "Stores documents for different types of commodities and their rent rates."
+    },
+    "/lots/{lotId}": {
+      "schema": "lot",
+      "description": "Stores documents for each storage lot in the warehouse."
     },
     "/storageRecords/{recordId}": {
       "schema": "storageRecord",

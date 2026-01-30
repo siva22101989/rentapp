@@ -1,14 +1,15 @@
+
 'use client';
 
 import { MoreHorizontal, DollarSign, Package, FileCheck } from "lucide-react";
 import { Button } from "../ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from "../ui/dropdown-menu";
-import type { DryingRecord, UnloadingRecord } from "@/lib/definitions";
+import type { DryingRecord, UnloadingRecord, Lot } from "@/lib/definitions";
 import { ManageHamaliDialog } from "./manage-hamali-dialog";
 import { UpdatePackingDialog } from "./update-packing-dialog";
 import { BillProcessDialog } from "./bill-process-dialog";
 
-export function DryingActionsMenu({ record, unloadingRecord }: { record: DryingRecord, unloadingRecord?: UnloadingRecord }) {
+export function DryingActionsMenu({ record, unloadingRecord, lots }: { record: DryingRecord, unloadingRecord?: UnloadingRecord, lots: Lot[] }) {
 
     const isBilled = record.status === 'Billed';
 
@@ -39,7 +40,7 @@ export function DryingActionsMenu({ record, unloadingRecord }: { record: DryingR
 
                 <DropdownMenuSeparator />
                 
-                <BillProcessDialog record={record} unloadingRecord={unloadingRecord}>
+                <BillProcessDialog record={record} unloadingRecord={unloadingRecord} lots={lots}>
                     <DropdownMenuItem onSelect={(e) => e.preventDefault()} disabled={isBilled || !record.packingDate}>
                         <FileCheck className="mr-2 h-4 w-4" />
                         Bill & Create Inflow

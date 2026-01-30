@@ -17,7 +17,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import type { Customer, StorageRecord, Commodity } from '@/lib/definitions';
+import type { Customer, StorageRecord, Commodity, Lot } from '@/lib/definitions';
 import { format } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { toDate, cleanForFirestore } from '@/lib/utils';
@@ -56,12 +56,18 @@ export function EditStorageDialog({ record, customers, children }: { record: Sto
   );
   const { data: commodities, loading: loadingCommodities } = useCollection<Commodity>(commoditiesQuery);
 
+  const lotsQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'lots') : null),
+    [firestore]
+  );
+  const { data: lots, loading: loadingLots } = useCollection<Lot>(lotsQuery);
+
   const form = useForm<StorageRecordFormData>({
     resolver: zodResolver(StorageRecordSchema),
     defaultValues: {
       customerId: record.customerId,
       commodityDescription: record.commodityDescription,
-      location: record.location,
+      location: record.location || '',
       bagsStored: record.bagsStored,
       hamaliPayable: record.hamaliPayable,
       storageStartDate: format(toDate(record.storageStartDate), 'yyyy-MM-dd'),
@@ -89,7 +95,7 @@ export function EditStorageDialog({ record, customers, children }: { record: Sto
     });
   };
   
-  if (loadingCommodities) {
+  if (loadingCommodities || loadingLots) {
       return <div>Loading...</div>
   }
 
@@ -157,7 +163,18 @@ export function EditStorageDialog({ record, customers, children }: { record: Sto
                     render={({ field }) => (
                     <FormItem>
                         <FormLabel>Location</FormLabel>
-                        <FormControl><Input {...field} /></FormControl>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                {lots?.map(lot => (
+                                    <SelectItem key={lot.id} value={lot.name}>
+                                        {lot.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                         <FormMessage />
                     </FormItem>
                     )}

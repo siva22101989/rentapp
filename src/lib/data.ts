@@ -50,3 +50,7 @@ export const updateCommodity = async (db: Firestore, id: string, data: Partial<C
 export const deleteCommodity = async (db: Firestore, id: string): Promise<void> => {
     await deleteDoc(doc(db, 'commodities', id));
 };
+
+export const deleteLot = async (db: Firestore, id: string): Promise<void> => {
+    await deleteDoc(doc(db, 'lots', id));
+};

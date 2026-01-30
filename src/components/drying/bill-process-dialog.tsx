@@ -17,19 +17,21 @@ import { Button } from '../ui/button';
 import { Loader2 } from 'lucide-react';
 import { useFirestore } from '@/firebase';
 import { doc, getDocs, collection, writeBatch } from 'firebase/firestore';
-import type { DryingRecord, UnloadingRecord, StorageRecord } from '@/lib/definitions';
+import type { DryingRecord, UnloadingRecord, StorageRecord, Lot } from '@/lib/definitions';
 import { toDate, cleanForFirestore } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Label } from '../ui/label';
-import { Input } from '../ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export function BillProcessDialog({
   record,
   unloadingRecord,
+  lots,
   children,
 }: {
   record: DryingRecord;
   unloadingRecord?: UnloadingRecord;
+  lots: Lot[];
   children: React.ReactNode;
 }) {
   const { toast } = useToast();
@@ -143,14 +145,19 @@ export function BillProcessDialog({
             <div><span className="font-medium text-foreground">Bags Packed:</span> {record.bagsPacked ?? 'N/A'}</div>
             </div>
             <div>
-            <Label htmlFor="location">Storage Location (Lot No.)</Label>
-            <Input
-                id="location"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder="e.g., A1/Top"
-                className="mt-1"
-            />
+              <Label htmlFor="location">Storage Location (Lot No.)</Label>
+              <Select onValueChange={setLocation} value={location} required>
+                  <SelectTrigger id="location" className="mt-1">
+                      <SelectValue placeholder="Select a lot" />
+                  </SelectTrigger>
+                  <SelectContent>
+                      {lots.map(lot => (
+                          <SelectItem key={lot.id} value={lot.name}>
+                              {lot.name}
+                          </SelectItem>
+                      ))}
+                  </SelectContent>
+              </Select>
             </div>
         </div>
         <AlertDialogFooter>

@@ -4,24 +4,28 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
 import { AddExpenseDialog } from "@/components/expenses/add-expense-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Scale } from "lucide-react";
+import { TrendingUp, TrendingDown, Scale, Calendar as CalendarIcon, X } from "lucide-react";
 import { formatCurrency, toDate } from "@/lib/utils";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import type { Expense, StorageRecord } from "@/lib/definitions";
+import type { Expense, StorageRecord, UnloadingRecord } from "@/lib/definitions";
 import { format } from "date-fns";
 import { ExpenseActionsMenu } from "@/components/expenses/expense-actions-menu";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { useFirestore } from "@/firebase";
 import { collection } from "firebase/firestore";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
+import { DateRange } from "react-day-picker";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 
 function ExpensesTable({ expenses }: { expenses: Expense[] }) {
   if (expenses.length === 0) {
     return (
       <Card>
         <CardContent className="p-6 text-center text-muted-foreground">
-          No expenses have been recorded yet.
+          No expenses recorded for the selected period.
         </CardContent>
       </Card>
     );
@@ -65,6 +69,7 @@ function ExpensesTable({ expenses }: { expenses: Expense[] }) {
 
 export default function ExpensesPage() {
   const firestore = useFirestore();
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
   const recordsQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'storageRecords') : null),
@@ -77,29 +82,48 @@ export default function ExpensesPage() {
     [firestore]
   );
   const { data: allExpenses, loading: loadingExpenses } = useCollection<Expense>(expensesQuery);
+  
+  const unloadingRecordsQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'unloadingRecords') : null),
+    [firestore]
+  );
+  const { data: allUnloadingRecords, loading: loadingUnloading } = useCollection<UnloadingRecord>(unloadingRecordsQuery);
 
-  const { totalIncome, totalExpenses, totalBalance } = useMemo(() => {
-    if (!allRecords || !allExpenses) {
-        return { totalIncome: 0, totalExpenses: 0, totalBalance: 0 };
+
+  const { periodIncome, periodExpenses, periodBalance, filteredExpenses } = useMemo(() => {
+    if (!allRecords || !allExpenses || !allUnloadingRecords) {
+        return { periodIncome: 0, periodExpenses: 0, periodBalance: 0, filteredExpenses: [] };
     }
-    const income = allRecords.reduce((total, record) => {
-      const rentPayments = (record.payments || [])
-        .filter(p => p.type === 'rent')
-        .reduce((acc, p) => acc + p.amount, 0);
-      return total + rentPayments;
-    }, 0);
 
-    const expenses = allExpenses.reduce((total, expense) => total + expense.amount, 0);
+    const inRange = (date: Date) => {
+        if (dateRange?.from && date < dateRange.from) return false;
+        if (dateRange?.to) {
+            const to = new Date(dateRange.to);
+            to.setHours(23, 59, 59, 999); // Include the whole "to" day
+            if (date > to) return false;
+        }
+        return true;
+    };
+    
+    const filteredStoragePayments = allRecords.flatMap(r => r.payments || []).filter(p => inRange(toDate(p.date)));
+    const filteredUnloadingPayments = allUnloadingRecords.flatMap(r => r.payments || []).filter(p => inRange(toDate(p.date)));
+
+    const income = filteredStoragePayments.reduce((acc, p) => acc + p.amount, 0) +
+                   filteredUnloadingPayments.reduce((acc, p) => acc + p.amount, 0);
+    
+    const localFilteredExpenses = allExpenses.filter(e => inRange(toDate(e.date)));
+    const expenses = localFilteredExpenses.reduce((total, expense) => total + expense.amount, 0);
 
     return {
-      totalIncome: income,
-      totalExpenses: expenses,
-      totalBalance: income - expenses,
+      periodIncome: income,
+      periodExpenses: expenses,
+      periodBalance: income - expenses,
+      filteredExpenses: localFilteredExpenses.sort((a,b) => toDate(b.date).getTime() - toDate(a.date).getTime()),
     };
-  }, [allRecords, allExpenses]);
+  }, [allRecords, allExpenses, allUnloadingRecords, dateRange]);
 
 
-  if (loadingRecords || loadingExpenses) {
+  if (loadingRecords || loadingExpenses || loadingUnloading) {
     return (
       <AppLayout>
         <PageHeader title="Expenses & Income" description="Track your warehouse operational finances." />
@@ -112,9 +136,45 @@ export default function ExpensesPage() {
     <AppLayout>
       <PageHeader
         title="Expenses & Income"
-        description="Track your warehouse operational finances."
+        description="Track your warehouse operational finances for the selected period."
       >
-        <AddExpenseDialog />
+        <div className="flex items-center gap-2">
+            <Popover>
+            <PopoverTrigger asChild>
+                <Button
+                id="date"
+                variant={"outline"}
+                className="w-[260px] justify-start text-left font-normal"
+                >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {dateRange?.from ? (
+                    dateRange.to ? (
+                    <>
+                        {format(dateRange.from, "LLL dd, y")} -{" "}
+                        {format(dateRange.to, "LLL dd, y")}
+                    </>
+                    ) : (
+                    format(dateRange.from, "LLL dd, y")
+                    )
+                ) : (
+                    <span>Pick a date range</span>
+                )}
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                initialFocus
+                mode="range"
+                defaultMonth={dateRange?.from}
+                selected={dateRange}
+                onSelect={setDateRange}
+                numberOfMonths={2}
+                />
+            </PopoverContent>
+            </Popover>
+            {dateRange && <Button variant="ghost" size="icon" onClick={() => setDateRange(undefined)}><X className="h-4 w-4" /></Button>}
+            <AddExpenseDialog />
+        </div>
       </PageHeader>
 
       <div className="grid gap-6 md:grid-cols-3">
@@ -124,9 +184,9 @@ export default function ExpensesPage() {
                 <TrendingUp className="h-4 w-4 text-muted-foreground text-green-500" />
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-bold text-green-600">{formatCurrency(totalIncome)}</div>
+                <div className="text-2xl font-bold text-green-600">{formatCurrency(periodIncome)}</div>
                 <p className="text-xs text-muted-foreground">
-                    Total amount received from all payments.
+                    Income received during the selected period.
                 </p>
             </CardContent>
         </Card>
@@ -136,27 +196,27 @@ export default function ExpensesPage() {
                  <TrendingDown className="h-4 w-4 text-muted-foreground text-red-500" />
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-bold text-destructive">{formatCurrency(totalExpenses)}</div>
+                <div className="text-2xl font-bold text-destructive">{formatCurrency(periodExpenses)}</div>
                  <p className="text-xs text-muted-foreground">
-                    Sum of all recorded operational expenses.
+                    Expenses recorded during the selected period.
                 </p>
             </CardContent>
         </Card>
         <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Balance</CardTitle>
+                <CardTitle className="text-sm font-medium">Net Balance</CardTitle>
                  <Scale className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-                <div className={`text-2xl font-bold ${totalBalance >= 0 ? 'text-primary' : 'text-destructive'}`}>{formatCurrency(totalBalance)}</div>
+                <div className={`text-2xl font-bold ${periodBalance >= 0 ? 'text-primary' : 'text-destructive'}`}>{formatCurrency(periodBalance)}</div>
                  <p className="text-xs text-muted-foreground">
-                    Net balance after all income and expenses.
+                    Net balance for the selected period.
                 </p>
             </CardContent>
         </Card>
       </div>
       <div className="mt-8">
-        <ExpensesTable expenses={allExpenses || []} />
+        <ExpensesTable expenses={filteredExpenses} />
       </div>
     </AppLayout>
   );

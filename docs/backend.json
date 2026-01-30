@@ -148,6 +148,11 @@
           "type": "string",
           "format": "date-time",
           "description": "The date the payment was made."
+        },
+        "type": {
+            "type": "string",
+            "enum": ["rent", "hamali", "other"],
+            "description": "The type of payment, which can be for rent, hamali, or other charges."
         }
       },
       "required": ["amount", "date"]

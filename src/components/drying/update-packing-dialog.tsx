@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { Loader2, PackageCheck, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -30,35 +30,30 @@ export function UpdatePackingDialog({ record, children }: { record: DryingRecord
   const firestore = useFirestore();
   const isBilled = record.status === 'Billed';
 
-  const [formData, setFormData] = useState({ bagsPacked: '', packingDate: '' });
+  // Use local state for form fields
+  const [bagsPacked, setBagsPacked] = useState('');
+  const [packingDate, setPackingDate] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  const handleOpenChange = (open: boolean) => {
-    if (open) {
-      setFormData({
-        bagsPacked: String(record.bagsPacked || ''),
-        packingDate: record.packingDate ? format(toDate(record.packingDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
-      });
+  // Effect to initialize state only when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      setBagsPacked(String(record.bagsPacked || ''));
+      setPackingDate(record.packingDate ? format(toDate(record.packingDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'));
       setError(null);
     }
-    setIsOpen(open);
-  };
-  
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target;
-    setFormData(prev => ({ ...prev, [id]: value }));
-  };
+  }, [isOpen, record]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    const bagsPackedNum = Number(formData.bagsPacked);
-    if (formData.bagsPacked === '' || bagsPackedNum <= 0) {
+    const bagsPackedNum = Number(bagsPacked);
+    if (bagsPacked === '' || bagsPackedNum <= 0) {
       setError('Number of bags packed must be a positive number.');
       return;
     }
-    if (!formData.packingDate) {
+    if (!packingDate) {
       setError('Packing date is required.');
       return;
     }
@@ -72,7 +67,7 @@ export function UpdatePackingDialog({ record, children }: { record: DryingRecord
         const recordRef = doc(firestore, 'dryingRecords', record.id);
         await updateDoc(recordRef, cleanForFirestore({
           bagsPacked: bagsPackedNum,
-          packingDate: new Date(formData.packingDate),
+          packingDate: new Date(packingDate),
           status: 'Packing',
         }));
 
@@ -85,10 +80,10 @@ export function UpdatePackingDialog({ record, children }: { record: DryingRecord
     });
   };
 
-  const bagsDifference = formData.bagsPacked !== '' ? record.bagsForDrying - Number(formData.bagsPacked) : null;
+  const bagsDifference = bagsPacked !== '' ? record.bagsForDrying - Number(bagsPacked) : null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <form onSubmit={handleSubmit}>
@@ -112,8 +107,8 @@ export function UpdatePackingDialog({ record, children }: { record: DryingRecord
                 id="bagsPacked"
                 type="number"
                 placeholder="0"
-                value={formData.bagsPacked}
-                onChange={handleInputChange}
+                value={bagsPacked}
+                onChange={(e) => setBagsPacked(e.target.value)}
                 disabled={isBilled}
               />
             </div>
@@ -122,8 +117,8 @@ export function UpdatePackingDialog({ record, children }: { record: DryingRecord
               <Input
                 id="packingDate"
                 type="date"
-                value={formData.packingDate}
-                onChange={handleInputChange}
+                value={packingDate}
+                onChange={(e) => setPackingDate(e.target.value)}
                 disabled={isBilled}
               />
             </div>

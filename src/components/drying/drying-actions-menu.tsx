@@ -6,7 +6,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import type { DryingRecord, UnloadingRecord, Lot } from "@/lib/definitions";
 import { UpdatePackingDialog } from "./update-packing-dialog";
 import { BillProcessDialog } from "./bill-process-dialog";
-import { AddDryingChargeDialog } from "./add-drying-charge-dialog";
+import { ManageDryingChargesDialog } from "./manage-drying-charges-dialog";
 
 export function DryingActionsMenu({ record, unloadingRecord, lots }: { record: DryingRecord, unloadingRecord?: UnloadingRecord, lots: Lot[] }) {
 
@@ -31,12 +31,12 @@ export function DryingActionsMenu({ record, unloadingRecord, lots }: { record: D
                     </DropdownMenuItem>
                 </UpdatePackingDialog>
 
-                <AddDryingChargeDialog record={record}>
+                <ManageDryingChargesDialog record={record}>
                     <DropdownMenuItem onSelect={(e) => e.preventDefault()} disabled={isBilled}>
                         <IndianRupee className="mr-2 h-4 w-4" />
-                        Add Extra Charge
+                        Manage Charges
                     </DropdownMenuItem>
-                </AddDryingChargeDialog>
+                </ManageDryingChargesDialog>
 
                 <DropdownMenuSeparator />
                 

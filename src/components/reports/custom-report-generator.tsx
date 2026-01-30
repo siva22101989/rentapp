@@ -9,6 +9,7 @@ import { ReportClient } from '@/components/reports/report-client';
 import { StorageTable } from '@/components/dashboard/storage-table';
 import { PendingPaymentsTable } from '@/components/payments/pending-payments-table';
 import { HamaliReport } from './hamali-report';
+import { InflowReport } from './inflow-report';
 
 const reportTypes = [
     { value: 'all-customers', label: 'All Customers List' },
@@ -32,7 +33,7 @@ type ReportGeneratorProps = {
 }
 
 export function CustomReportGenerator({ records, customers, unloadingRecords, expenses, dryingRecords }: ReportGeneratorProps) {
-    const [selectedReport, setSelectedReport] = useState<string>('hamali-register');
+    const [selectedReport, setSelectedReport] = useState<string>('inflow-register');
 
     const renderReport = () => {
         switch (selectedReport) {
@@ -46,6 +47,8 @@ export function CustomReportGenerator({ records, customers, unloadingRecords, ex
                 return <PendingPaymentsTable records={records} customers={customers} />;
             case 'hamali-register':
                 return <HamaliReport records={records} customers={customers} unloadingRecords={unloadingRecords} dryingRecords={dryingRecords} />;
+            case 'inflow-register':
+                return <InflowReport records={records} customers={customers} />;
             default:
                 return (
                     <Card>

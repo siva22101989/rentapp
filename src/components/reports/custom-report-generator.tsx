@@ -13,6 +13,7 @@ import { InflowReport } from './inflow-report';
 import { OutflowReport } from './outflow-report';
 import { LotInventoryReport } from './lot-inventory-report';
 import { UnloadingReport } from './unloading-report';
+import { PaymentReport } from './payment-report';
 
 const reportTypes = [
     { value: 'all-customers', label: 'All Customers List' },
@@ -37,7 +38,7 @@ type ReportGeneratorProps = {
 }
 
 export function CustomReportGenerator({ records, customers, unloadingRecords, expenses, dryingRecords }: ReportGeneratorProps) {
-    const [selectedReport, setSelectedReport] = useState<string>('unloading-register');
+    const [selectedReport, setSelectedReport] = useState<string>('payment-register');
 
     const renderReport = () => {
         switch (selectedReport) {
@@ -57,6 +58,8 @@ export function CustomReportGenerator({ records, customers, unloadingRecords, ex
                 return <OutflowReport records={records} customers={customers} />;
             case 'unloading-register':
                 return <UnloadingReport unloadingRecords={unloadingRecords} customers={customers} />;
+            case 'payment-register':
+                return <PaymentReport records={records} unloadingRecords={unloadingRecords} customers={customers} />;
             case 'lot-inventory':
                 return <LotInventoryReport records={records} customers={customers} />;
             default:

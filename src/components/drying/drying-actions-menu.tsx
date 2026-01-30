@@ -1,11 +1,9 @@
-
 'use client';
 
-import { MoreHorizontal, DollarSign, Package, FileCheck } from "lucide-react";
+import { MoreHorizontal, Package, FileCheck } from "lucide-react";
 import { Button } from "../ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from "../ui/dropdown-menu";
 import type { DryingRecord, UnloadingRecord, Lot } from "@/lib/definitions";
-import { ManageHamaliDialog } from "./manage-hamali-dialog";
 import { UpdatePackingDialog } from "./update-packing-dialog";
 import { BillProcessDialog } from "./bill-process-dialog";
 
@@ -24,13 +22,7 @@ export function DryingActionsMenu({ record, unloadingRecord, lots }: { record: D
             <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <ManageHamaliDialog record={record} unloadingRecord={unloadingRecord}>
-                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} disabled={isBilled}>
-                        <DollarSign className="mr-2 h-4 w-4" />
-                        Manage Hamali
-                    </DropdownMenuItem>
-                </ManageHamaliDialog>
-
+                
                 <UpdatePackingDialog record={record}>
                      <DropdownMenuItem onSelect={(e) => e.preventDefault()} disabled={isBilled}>
                         <Package className="mr-2 h-4 w-4" />

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useTransition, useState, useMemo } from 'react';
@@ -15,7 +14,6 @@ import { deleteLot } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Loader2, Trash2 } from 'lucide-react';
@@ -37,11 +35,6 @@ const AddLotSchema = z.object({
   capacity: z.coerce.number().int().nonnegative('Capacity must be non-negative').optional(),
 });
 type AddLotFormData = z.infer<typeof AddLotSchema>;
-
-const BulkAddLotsSchema = z.object({
-  names: z.string().min(1, 'Lot names cannot be empty.'),
-});
-type BulkAddLotsFormData = z.infer<typeof BulkAddLotsSchema>;
 
 const RangeAddLotsSchema = z.object({
     prefix: z.string().optional(),
@@ -96,7 +89,6 @@ export function LotsClient() {
   const { toast } = useToast();
   
   const [isAdding, startAddingTransition] = useTransition();
-  const [isBulkAdding, startBulkAddingTransition] = useTransition();
   const [isRangeAdding, startRangeAddingTransition] = useTransition();
 
 
@@ -113,11 +105,6 @@ export function LotsClient() {
     defaultValues: { name: '', capacity: undefined },
   });
 
-  const bulkAddForm = useForm<BulkAddLotsFormData>({
-    resolver: zodResolver(BulkAddLotsSchema),
-    defaultValues: { names: '' },
-  });
-  
   const rangeAddForm = useForm<RangeAddLotsFormData>({
     resolver: zodResolver(RangeAddLotsSchema),
     defaultValues: { prefix: '', start: 1, end: undefined, suffix: '', capacity: undefined },
@@ -142,42 +129,7 @@ export function LotsClient() {
     });
   };
 
-  const onBulkAddSubmit = (data: BulkAddLotsFormData) => {
-    if (!firestore) return;
-    startBulkAddingTransition(async () => {
-      const names = data.names.split('\n').map(name => name.trim()).filter(Boolean);
-      const uniqueNames = [...new Set(names)];
-      
-      let addedCount = 0;
-      let skippedCount = 0;
-      const batch = writeBatch(firestore);
-
-      uniqueNames.forEach(name => {
-        if (!existingLotNames.has(name.toLowerCase())) {
-          const docRef = doc(collection(firestore, 'lots'));
-          batch.set(docRef, { name });
-          addedCount++;
-        } else {
-          skippedCount++;
-        }
-      });
-
-      try {
-        if (addedCount > 0) {
-            await batch.commit();
-        }
-        toast({
-          title: 'Bulk Add Complete',
-          description: `${addedCount} lots added, ${skippedCount} skipped (duplicates).`,
-        });
-        bulkAddForm.reset();
-      } catch (error) {
-        toast({ title: 'Error', description: 'Failed to bulk add lots.', variant: 'destructive' });
-      }
-    });
-  };
-  
-    const onRangeAddSubmit = (data: RangeAddLotsFormData) => {
+  const onRangeAddSubmit = (data: RangeAddLotsFormData) => {
     if (!firestore) return;
     startRangeAddingTransition(async () => {
         const { prefix = '', start, end, suffix = '', capacity } = data;
@@ -303,37 +255,6 @@ export function LotsClient() {
                   </CardFooter>
                 </form>
               </Form>
-            </Card>
-
-            <Card>
-                <Form {...bulkAddForm}>
-                    <form onSubmit={bulkAddForm.handleSubmit(onBulkAddSubmit)}>
-                        <CardHeader>
-                            <CardTitle>Bulk Add Lots</CardTitle>
-                            <CardDescription>Enter one lot name per line. Does not support capacity.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <FormField
-                                control={bulkAddForm.control}
-                                name="names"
-                                render={({ field }) => (
-                                <FormItem>
-                                    <FormControl>
-                                        <Textarea placeholder="B2/Middle&#10;C3/Bottom" {...field} rows={5} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
-                        </CardContent>
-                        <CardFooter>
-                            <Button type="submit" disabled={isBulkAdding}>
-                                {isBulkAdding && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Add Multiple Lots
-                            </Button>
-                        </CardFooter>
-                    </form>
-                </Form>
             </Card>
         </div>
 

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -30,12 +29,13 @@ import { Separator } from '../ui/separator';
 
 const HamaliChargeFormSchema = z.object({
   description: z.string().min(1, 'Description is required.'),
-  amount: z.coerce.number().nonnegative(),
-  workerAmount: z.coerce.number().nonnegative().optional(),
   date: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date" }),
-  // Add per-bag rates for the form
+  // Per-bag rates are the source of truth in the form
   amountPerBag: z.coerce.number().nonnegative('Rate must be non-negative.').optional(),
   workerAmountPerBag: z.coerce.number().nonnegative('Rate must be non-negative.').optional(),
+  // These are for schema compatibility but will be calculated on submit
+  amount: z.coerce.number().nonnegative().optional(),
+  workerAmount: z.coerce.number().nonnegative().optional(),
 });
 
 const ManageHamaliSchema = z.object({
@@ -56,9 +56,8 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
     defaultValues: {
       charges: (record.hamaliCharges || []).map(charge => ({
         ...charge,
-        amount: charge.amount || 0,
-        workerAmount: charge.workerAmount || 0,
         date: format(toDate(charge.date), 'yyyy-MM-dd'),
+        // Calculate the rate from the stored amount for initial display
         amountPerBag: record.bagsForDrying > 0 ? ((charge.amount || 0) / record.bagsForDrying) : 0,
         workerAmountPerBag: record.bagsForDrying > 0 ? ((charge.workerAmount || 0) / record.bagsForDrying) : 0,
       })),
@@ -75,8 +74,16 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
     name: 'charges'
   });
 
-  const totalCustomerHamali = watchedCharges.reduce((acc, charge) => acc + (Number(charge?.amount) || 0), 0);
-  const totalWorkerHamali = watchedCharges.reduce((acc, charge) => acc + (Number(charge?.workerAmount) || 0), 0);
+  const { totalCustomerHamali, totalWorkerHamali } = useMemo(() => {
+    const totals = watchedCharges.reduce((acc, charge) => {
+        const customerRate = charge.amountPerBag || 0;
+        const workerRate = charge.workerAmountPerBag || 0;
+        acc.customer += customerRate * (record.bagsForDrying || 0);
+        acc.worker += workerRate * (record.bagsForDrying || 0);
+        return acc;
+    }, { customer: 0, worker: 0 });
+    return { totalCustomerHamali: totals.customer, totalWorkerHamali: totals.worker };
+  }, [watchedCharges, record.bagsForDrying]);
 
 
   const onSubmit = (data: ManageHamaliFormData) => {
@@ -87,12 +94,12 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
 
     startTransition(async () => {
       try {
-        // We only need to store the final amounts, not the per-bag rates.
+        // Calculate the final amounts from the per-bag rates before saving.
         const hamaliCharges: Partial<HamaliCharge>[] = data.charges.map(charge => ({
           description: charge.description,
           date: new Date(charge.date),
-          amount: charge.amount,
-          workerAmount: charge.workerAmount,
+          amount: (charge.amountPerBag || 0) * (record.bagsForDrying || 0),
+          workerAmount: (charge.workerAmountPerBag || 0) * (record.bagsForDrying || 0),
         }));
         
         const totalDryingHamali = hamaliCharges.reduce((acc, charge) => acc + (charge.amount || 0), 0);
@@ -116,7 +123,8 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
 
   const addNewCharge = () => {
     // Count how many "Drying Day" charges already exist to suggest the next number.
-    const dryingDayChargesCount = watchedCharges.filter(c =>
+    const currentCharges = form.getValues('charges');
+    const dryingDayChargesCount = currentCharges.filter(c =>
       c.description?.toLowerCase().startsWith('drying day')
     ).length;
     
@@ -124,11 +132,11 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
 
     append({
       description: `Drying Day ${nextDayNumber}`,
-      amount: 0,
-      workerAmount: 0,
       date: format(new Date(), 'yyyy-MM-dd'),
       amountPerBag: 0,
       workerAmountPerBag: 0,
+      amount: 0,
+      workerAmount: 0,
     });
   };
 
@@ -148,8 +156,10 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
                 <div className="space-y-4 py-4">
                 {fields.map((field, index) => {
                     const isUnloadingCharge = field.description.toLowerCase().includes('unloading');
-                    const customerTotal = watchedCharges[index]?.amount || 0;
-                    const workerTotal = watchedCharges[index]?.workerAmount || 0;
+                    const customerRate = watchedCharges[index]?.amountPerBag || 0;
+                    const workerRate = watchedCharges[index]?.workerAmountPerBag || 0;
+                    const customerTotal = customerRate * (record.bagsForDrying || 0);
+                    const workerTotal = workerRate * (record.bagsForDrying || 0);
                     
                     return (
                     <div key={field.id} className="p-3 rounded-md border space-y-4">
@@ -204,11 +214,6 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
                                               step="0.01" 
                                               placeholder="0.00" 
                                               {...field}
-                                              onChange={e => {
-                                                  const rate = parseFloat(e.target.value) || 0;
-                                                  field.onChange(rate);
-                                                  form.setValue(`charges.${index}.amount`, rate * (record.bagsForDrying || 0));
-                                              }}
                                               readOnly={isUnloadingCharge || isBilled}
                                           />
                                       </FormControl>
@@ -229,11 +234,6 @@ export function ManageHamaliDialog({ record, unloadingRecord, children }: { reco
                                               step="0.01" 
                                               placeholder="0.00" 
                                               {...field}
-                                              onChange={e => {
-                                                  const rate = parseFloat(e.target.value) || 0;
-                                                  field.onChange(rate);
-                                                  form.setValue(`charges.${index}.workerAmount`, rate * (record.bagsForDrying || 0));
-                                              }}
                                               readOnly={isUnloadingCharge || isBilled}
                                           />
                                       </FormControl>

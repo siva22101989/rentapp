@@ -34,18 +34,13 @@ export function UpdatePackingDialog({ record, children }: { record: DryingRecord
   const [packingDate, setPackingDate] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  // This effect now ONLY runs when the dialog opens.
-  // It initializes the form state from the `record` prop.
-  // By removing `record` from the dependency array, we prevent
-  // the dialog from resetting while the user is typing, which was the root cause of the bug.
   useEffect(() => {
     if (isOpen) {
       setBagsPacked(String(record.bagsPacked || ''));
       setPackingDate(record.packingDate ? format(toDate(record.packingDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'));
       setError(null);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
+  }, [isOpen, record.bagsPacked, record.packingDate]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,13 +84,13 @@ export function UpdatePackingDialog({ record, children }: { record: DryingRecord
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
-        <form onSubmit={handleSubmit}>
-          <DialogHeader>
-            <DialogTitle>Update Packing Information</DialogTitle>
-            <DialogDescription>
-              Record the final number of bags after packing is complete for this lot.
-            </DialogDescription>
-          </DialogHeader>
+        <DialogHeader>
+          <DialogTitle>Update Packing Information</DialogTitle>
+          <DialogDescription>
+            Record the final number of bags after packing is complete for this lot.
+          </DialogDescription>
+        </DialogHeader>
+        <form id="update-packing-form" onSubmit={handleSubmit}>
           <div className="py-4 space-y-4">
             <Alert variant="default" className="bg-secondary/50">
               <Info className="h-4 w-4" />
@@ -132,19 +127,19 @@ export function UpdatePackingDialog({ record, children }: { record: DryingRecord
               </p>
             )}
           </div>
-          <DialogFooter>
-            <DialogClose asChild><Button variant="outline" type="button">Cancel</Button></DialogClose>
-            {!isBilled && (
-              <Button type="submit" disabled={isPending}>
-                {isPending ? (
-                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
-                ) : (
-                  <><PackageCheck className="mr-2 h-4 w-4" /> Update Status to 'Packing'</>
-                )}
-              </Button>
-            )}
-          </DialogFooter>
         </form>
+        <DialogFooter>
+          <DialogClose asChild><Button variant="outline" type="button">Cancel</Button></DialogClose>
+          {!isBilled && (
+            <Button type="submit" form="update-packing-form" disabled={isPending}>
+              {isPending ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
+              ) : (
+                <><PackageCheck className="mr-2 h-4 w-4" /> Update Status to 'Packing'</>
+              )}
+            </Button>
+          )}
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

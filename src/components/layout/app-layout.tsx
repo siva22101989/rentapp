@@ -1,7 +1,6 @@
 'use client';
 
 import * as React from 'react';
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { Logo } from './logo';
@@ -12,9 +11,9 @@ import { useAuth } from '@/firebase';
 import { Loader2 } from 'lucide-react';
 
 function LiveClock() {
-  const [currentTime, setCurrentTime] = useState<Date | null>(null);
+  const [currentTime, setCurrentTime] = React.useState<Date | null>(null);
 
-  useEffect(() => {
+  React.useEffect(() => {
     // Set initial time on client-side to avoid hydration mismatch
     setCurrentTime(new Date());
 

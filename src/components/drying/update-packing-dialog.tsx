@@ -26,8 +26,9 @@ import { toDate, cleanForFirestore } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { useFirestore } from '@/firebase';
 
+// FIX 1: Allow zero as a valid number of bags.
 const PackingSchema = z.object({
-  bagsPacked: z.coerce.number().positive('Number of bags must be a positive number.'),
+  bagsPacked: z.coerce.number().nonnegative('Number of bags must be a non-negative number.'),
   packingDate: z.string().refine((val) => !isNaN(Date.parse(val)), { message: 'Packing date is required.' }),
 });
 
@@ -43,7 +44,8 @@ export function UpdatePackingDialog({ record, children }: { record: DryingRecord
   const form = useForm<PackingFormData>({
     resolver: zodResolver(PackingSchema),
     defaultValues: {
-      bagsPacked: record.bagsPacked || undefined,
+      // FIX 2: Correctly handle initial value of 0.
+      bagsPacked: record.bagsPacked ?? undefined,
       packingDate: record.packingDate ? format(toDate(record.packingDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
     },
   });
@@ -51,11 +53,13 @@ export function UpdatePackingDialog({ record, children }: { record: DryingRecord
   useEffect(() => {
     if (isOpen) {
       form.reset({
-        bagsPacked: record.bagsPacked || undefined,
+        // FIX 3: Correctly handle reset value of 0.
+        bagsPacked: record.bagsPacked ?? undefined,
         packingDate: record.packingDate ? format(toDate(record.packingDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
       });
     }
-  }, [isOpen, record, form.reset]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, record]);
 
   const onSubmit = (data: PackingFormData) => {
     if (!firestore) {
@@ -82,7 +86,7 @@ export function UpdatePackingDialog({ record, children }: { record: DryingRecord
   };
 
   const bagsPackedValue = form.watch('bagsPacked');
-  const bagsDifference = bagsPackedValue ? record.bagsForDrying - bagsPackedValue : null;
+  const bagsDifference = (bagsPackedValue !== undefined && bagsPackedValue !== null) ? record.bagsForDrying - bagsPackedValue : null;
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -118,6 +122,8 @@ export function UpdatePackingDialog({ record, children }: { record: DryingRecord
                         placeholder="0"
                         disabled={isBilled}
                         {...field}
+                        // This ensures the input is controlled and can display an empty state
+                        value={field.value ?? ''}
                       />
                     </FormControl>
                     <FormMessage />

@@ -120,7 +120,7 @@ export function UpdatePackingDialog({ record, children }: { record: DryingRecord
                           placeholder="0"
                           disabled={isBilled}
                           {...field}
-                          value={field.value ?? ''}
+                          onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)}
                         />
                       </FormControl>
                       {!isBilled && (

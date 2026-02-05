@@ -41,8 +41,8 @@ export function AddCommodityDialog() {
     resolver: zodResolver(CommoditySchema),
     defaultValues: {
       name: '',
-      rate6Months: '' as any,
-      rate1Year: '' as any,
+      rate6Months: undefined,
+      rate1Year: undefined,
     },
   });
 
@@ -103,7 +103,7 @@ export function AddCommodityDialog() {
                   <FormItem>
                     <FormLabel>6-Month Rate (per bag)</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                      <Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -116,7 +116,7 @@ export function AddCommodityDialog() {
                   <FormItem>
                     <FormLabel>1-Year Rate (per bag)</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                      <Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

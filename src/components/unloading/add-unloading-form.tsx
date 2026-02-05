@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useTransition, useState, useEffect } from 'react';
@@ -43,8 +44,8 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
           commodityDescription: '',
           lorryTractorNo: '',
           unloadingDate: new Date().toISOString().split('T')[0],
-          bagsUnloaded: '' as any,
-          hamaliPerBag: '' as any,
+          bagsUnloaded: undefined,
+          hamaliPerBag: undefined,
           billNo: nextBillNo,
         },
         values: { // Use `values` to ensure billNo is always up-to-date
@@ -52,8 +53,8 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
             commodityDescription: '',
             lorryTractorNo: '',
             unloadingDate: new Date().toISOString().split('T')[0],
-            bagsUnloaded: '' as any,
-            hamaliPerBag: '' as any,
+            bagsUnloaded: undefined,
+            hamaliPerBag: undefined,
             billNo: nextBillNo,
         }
       });
@@ -183,7 +184,7 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Bags Unloaded</FormLabel>
-                                    <FormControl><Input type="number" placeholder="0" {...field} value={field.value || ''} /></FormControl>
+                                    <FormControl><Input type="number" placeholder="0" {...field} value={field.value ?? ''} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -194,7 +195,7 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Hamali per Bag</FormLabel>
-                                    <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value || ''} /></FormControl>
+                                    <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}

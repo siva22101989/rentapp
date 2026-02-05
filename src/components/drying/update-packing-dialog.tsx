@@ -56,8 +56,8 @@ export function UpdatePackingDialog({ record, children }: { record: DryingRecord
         packingDate: record.packingDate ? format(toDate(record.packingDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
       });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, record.id, record.bagsPacked, record.packingDate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, record.id]);
 
   const onSubmit = (data: PackingFormData) => {
     if (!firestore) {

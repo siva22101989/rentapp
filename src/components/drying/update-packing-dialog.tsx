@@ -26,7 +26,6 @@ import { toDate, cleanForFirestore } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { useFirestore } from '@/firebase';
 
-// FIX 1: Allow zero as a valid number of bags.
 const PackingSchema = z.object({
   bagsPacked: z.coerce.number().nonnegative('Number of bags must be a non-negative number.'),
   packingDate: z.string().refine((val) => !isNaN(Date.parse(val)), { message: 'Packing date is required.' }),
@@ -44,7 +43,6 @@ export function UpdatePackingDialog({ record, children }: { record: DryingRecord
   const form = useForm<PackingFormData>({
     resolver: zodResolver(PackingSchema),
     defaultValues: {
-      // FIX 2: Correctly handle initial value of 0.
       bagsPacked: record.bagsPacked ?? undefined,
       packingDate: record.packingDate ? format(toDate(record.packingDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
     },
@@ -53,7 +51,6 @@ export function UpdatePackingDialog({ record, children }: { record: DryingRecord
   useEffect(() => {
     if (isOpen) {
       form.reset({
-        // FIX 3: Correctly handle reset value of 0.
         bagsPacked: record.bagsPacked ?? undefined,
         packingDate: record.packingDate ? format(toDate(record.packingDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
       });
@@ -122,7 +119,6 @@ export function UpdatePackingDialog({ record, children }: { record: DryingRecord
                         placeholder="0"
                         disabled={isBilled}
                         {...field}
-                        // This ensures the input is controlled and can display an empty state
                         value={field.value ?? ''}
                       />
                     </FormControl>

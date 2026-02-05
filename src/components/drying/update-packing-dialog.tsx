@@ -56,7 +56,7 @@ export function UpdatePackingDialog({ record, children }: { record: DryingRecord
       });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, record]);
+  }, [isOpen, record.id]);
 
   const onSubmit = (data: PackingFormData) => {
     if (!firestore) {
@@ -119,7 +119,7 @@ export function UpdatePackingDialog({ record, children }: { record: DryingRecord
                         placeholder="0"
                         disabled={isBilled}
                         {...field}
-                        onChange={(e) => field.onChange(e.target.value === '' ? undefined : +e.target.value)}
+                        value={field.value ?? ''}
                       />
                     </FormControl>
                     <FormMessage />

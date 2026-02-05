@@ -113,29 +113,15 @@ export function UpdatePackingDialog({ record, children }: { record: DryingRecord
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Number of Bags Packed</FormLabel>
-                    <div className="flex items-center gap-2">
-                      <FormControl>
-                        <Input
-                          type="number"
-                          placeholder="0"
-                          disabled={isBilled}
-                          {...field}
-                          value={field.value ?? ''}
-                          onChange={(e) => field.onChange(e.target.value === '' ? undefined : +e.target.value)}
-                        />
-                      </FormControl>
-                      {!isBilled && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="shrink-0"
-                          onClick={() => form.setValue('bagsPacked', record.bagsForDrying)}
-                        >
-                          Same as Drying
-                        </Button>
-                      )}
-                    </div>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="0"
+                        disabled={isBilled}
+                        {...field}
+                        onChange={(e) => field.onChange(e.target.value === '' ? undefined : +e.target.value)}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -44,8 +43,8 @@ export function UpdatePackingDialog({ record, children }: { record: DryingRecord
   const form = useForm<PackingFormData>({
     resolver: zodResolver(PackingSchema),
     defaultValues: {
-      bagsPacked: record.bagsPacked ?? undefined,
-      packingDate: record.packingDate ? format(toDate(record.packingDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+      bagsPacked: undefined,
+      packingDate: format(new Date(), 'yyyy-MM-dd'),
     },
   });
 
@@ -122,6 +121,7 @@ export function UpdatePackingDialog({ record, children }: { record: DryingRecord
                           disabled={isBilled}
                           {...field}
                           value={field.value ?? ''}
+                          onChange={(e) => field.onChange(e.target.value === '' ? undefined : +e.target.value)}
                         />
                       </FormControl>
                       {!isBilled && (

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -56,7 +57,7 @@ export function UpdatePackingDialog({ record, children }: { record: DryingRecord
       });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, record.id]);
+  }, [isOpen, record.id, record.bagsPacked, record.packingDate]);
 
   const onSubmit = (data: PackingFormData) => {
     if (!firestore) {

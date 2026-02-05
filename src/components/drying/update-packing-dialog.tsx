@@ -118,7 +118,6 @@ export function UpdatePackingDialog({ record, children }: { record: DryingRecord
                         placeholder="0"
                         disabled={isBilled}
                         {...field}
-                        value={field.value ?? ''}
                       />
                     </FormControl>
                     <FormMessage />

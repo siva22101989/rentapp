@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -154,6 +153,7 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
                           placeholder="0"
                           disabled={isBilled}
                           {...field}
+                          onChange={(e) => field.onChange(e.target.value === '' ? undefined : +e.target.value)}
                           value={field.value ?? ''}
                         />
                       </FormControl>
@@ -199,7 +199,8 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
                         step="0.01" 
                         placeholder="0.00" 
                         disabled={isBilled} 
-                        {...field} 
+                        {...field}
+                        onChange={(e) => field.onChange(e.target.value === '' ? undefined : +e.target.value)}
                         value={field.value ?? ''} 
                       />
                     </FormControl>

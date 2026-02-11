@@ -154,6 +154,7 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
                           placeholder="0"
                           disabled={isBilled}
                           {...field}
+                          onChange={(e) => field.onChange(e.target.value === '' ? undefined : +e.target.value)}
                           value={field.value ?? ''}
                         />
                       </FormControl>
@@ -194,7 +195,15 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
                     <FormLabel>Additional Hamali (per bag)</FormLabel>
                     <FormDescription className="text-xs">For extra drying days.</FormDescription>
                     <FormControl>
-                      <Input type="number" step="0.01" placeholder="0.00" disabled={isBilled} {...field} value={field.value ?? ''} />
+                      <Input 
+                        type="number" 
+                        step="0.01" 
+                        placeholder="0.00" 
+                        disabled={isBilled} 
+                        {...field} 
+                        onChange={(e) => field.onChange(e.target.value === '' ? undefined : +e.target.value)}
+                        value={field.value ?? ''} 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

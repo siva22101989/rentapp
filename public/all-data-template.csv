@@ -1,4 +1,4 @@
-record_id,customer_id,customer_name,customer_phone,customer_father_name,customer_village,commodity,location,bags_in,storage_start_date,hamali_payable,lorry_tractor_no,weight,khata_amount
-1,CUST-001,"John Doe","9876543210","Robert Doe","Anytown","Paddy","A1",150,"2024-01-15T12:00:00.000Z",750,"AP01AB1234",7500,100
-2,CUST-002,"Jane Smith","8765432109","","Sometown","Maize","B3",200,"2024-02-20T12:00:00.000Z",1000,"",10000,
-3,CUST-001,"John Doe","9876543210","Robert Doe","Anytown","Wheat","C2",100,"2024-03-10T12:00:00.000Z",500,"","",5000,
+customer_id,customer_name,customer_phone,customer_father_name,customer_village,record_id,commodity_description,location,bags_in,storage_start_date,hamali_payable,lorry_tractor_no,weight,khata_amount
+c1,John Doe,9876543210,Robert Doe,Anytown,r1,Paddy,A1,100,2024-01-15T00:00:00.000Z,500,AP01AB1234,5000,100
+c1,John Doe,9876543210,Robert Doe,Anytown,r2,Maize,B2,150,2024-02-20T00:00:00.000Z,750,AP01CD5678,7500,120
+c2,Jane Smith,8765432109,,Sometown,r3,Paddy,C3,200,2024-03-10T00:00:00.000Z,1000,,

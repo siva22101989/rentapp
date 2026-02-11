@@ -178,30 +178,83 @@ export function SettingsClient() {
     const reader = new FileReader();
     reader.onload = (e) => {
         try {
-            const text = e.target?.result;
-            if (typeof text !== 'string') {
-              throw new Error('Failed to read file.');
-            }
-            const parsedData = JSON.parse(text);
-            
-            // A more robust but simple validation
-            if (typeof parsedData !== 'object' || parsedData === null || !Array.isArray(parsedData.customers) || !Array.isArray(parsedData.storageRecords)) {
-                throw new Error('Invalid backup file format. Must be a JSON object containing at least "customers" and "storageRecords" arrays.');
-            }
+            const text = e.target?.result as string;
+            if (!text) throw new Error('File is empty.');
 
-            // Ensure all expected collections exist on the object to prevent errors during import, 
-            // adding them if they are missing (for backwards compatibility with old backups).
-            for (const collectionName of ALL_DATA_COLLECTIONS) {
-                if (!Array.isArray(parsedData[collectionName])) {
-                    parsedData[collectionName] = [];
+            const lines = text.trim().split(/\r?\n/);
+            const headerLine = lines.shift()?.trim();
+            if (!headerLine) throw new Error('Invalid CSV: Missing header.');
+            
+            const header = headerLine.split(',').map(h => h.trim());
+
+            const customersMap = new Map();
+            const storageRecords: any[] = [];
+
+            for (const line of lines) {
+                if (!line.trim()) continue;
+                const values = line.split(',');
+                const row = header.reduce((obj, key, index) => {
+                    obj[key] = values[index]?.trim() || '';
+                    return obj;
+                }, {} as { [key: string]: string });
+
+                // --- Customer Processing ---
+                const customerId = row.customer_id;
+                if (customerId && !customersMap.has(customerId)) {
+                    customersMap.set(customerId, {
+                        id: customerId,
+                        name: row.customer_name,
+                        phone: row.customer_phone,
+                        fatherName: row.customer_father_name,
+                        village: row.customer_village,
+                    });
+                }
+                
+                // --- Storage Record Processing ---
+                const recordId = row.record_id;
+                if (recordId) {
+                    const bagsStored = Number(row.bags_in) || 0;
+                    storageRecords.push({
+                        id: recordId,
+                        customerId: row.customer_id,
+                        commodityDescription: row.commodity_description,
+                        location: row.location,
+                        bagsIn: bagsStored,
+                        bagsOut: 0,
+                        bagsStored: bagsStored,
+                        storageStartDate: new Date(row.storage_start_date),
+                        storageEndDate: null,
+                        billingCycle: '6-Month Initial',
+                        payments: [],
+                        hamaliPayable: Number(row.hamali_payable) || 0,
+                        totalRentBilled: 0,
+                        lorryTractorNo: row.lorry_tractor_no,
+                        weight: Number(row.weight) || 0,
+                        inflowType: 'Direct',
+                        dryingRecordId: '',
+                        khataAmount: Number(row.khata_amount) || 0,
+                        outflows: [],
+                    });
                 }
             }
+            
+            const customers = Array.from(customersMap.values());
+            
+            const finalData = {
+                customers,
+                storageRecords,
+                expenses: [],
+                unloadingRecords: [],
+                dryingRecords: [],
+                commodities: [],
+                lots: [],
+            };
 
-            setDataToImport(parsedData);
+            setDataToImport(finalData);
             setIsImportAlertOpen(true);
 
         } catch (error: any) {
-            toast({ title: 'Import Error', description: `Invalid JSON file or format: ${error.message}`, variant: 'destructive'});
+            toast({ title: 'Import Error', description: `Failed to parse CSV file: ${error.message}`, variant: 'destructive'});
         }
     };
     reader.readAsText(file);
@@ -254,56 +307,41 @@ export function SettingsClient() {
             <CardHeader>
                 <CardTitle>Data Management</CardTitle>
                 <CardDescription>
-                    Follow these steps to prepare your data and perform a bulk import.
+                    Import data from a CSV file or export all current data to a JSON backup.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                  <div>
-                    <h4 className="text-sm font-medium mb-2">Step 1: Download Combined Template</h4>
+                    <h4 className="text-sm font-medium mb-2">Step 1: Download & Fill Template</h4>
                      <p className="text-xs text-muted-foreground px-2 mb-2">
-                        Use this single CSV template to fill in all your customer and storage information in Excel.
+                        Download the CSV template and fill in your customer and storage information using a spreadsheet program like Excel.
                     </p>
                     <Button asChild size="sm" variant="secondary" className="w-full justify-start">
                         <Link href="/all-data-template.csv" download="all-data-template.csv">
                             <FileText className="mr-2 h-4 w-4" />
-                            Download Combined Data Template
+                            Download Combined Data Template (.csv)
                         </Link>
                     </Button>
-                    <p className="text-xs font-bold text-destructive px-2 mt-2">Important: When adding multiple records for the same customer, use the exact same <code className="font-mono">customer_id</code> for all their records.</p>
-                </div>
-            
-                <Separator />
-
-                <div>
-                    <h4 className="text-sm font-medium mb-2">Step 2: Convert to JSON and Prepare</h4>
-                     <p className="text-xs text-muted-foreground px-2 mb-2">
-                        The app imports a structured JSON file. Use an online "CSV to JSON" converter, then paste your data into the final JSON template.
-                    </p>
-                    <Button asChild size="sm" variant="secondary" className="w-full justify-start">
-                        <Link href="/import-template.json" download="import-template.json">
-                            <FileText className="mr-2 h-4 w-4" />
-                            Download Final JSON Import Template
-                        </Link>
-                    </Button>
+                    <p className="text-xs font-bold text-destructive px-2 mt-2">Important: The CSV format must be simple. Do not use commas within any field.</p>
                 </div>
 
                 <Separator />
 
                 <div>
-                    <h4 className="text-sm font-medium mb-2">Step 3: Import & Export</h4>
+                    <h4 className="text-sm font-medium mb-2">Step 2: Import & Export</h4>
                     <div className="space-y-2">
                         <Button onClick={handleImportClick} disabled={isImporting} className="w-full justify-start" variant="outline">
                             {isImporting ? (
                                 <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Importing...</>
                             ) : (
-                                <><Upload className="mr-2 h-4 w-4" /> Import Final JSON File</>
+                                <><Upload className="mr-2 h-4 w-4" /> Import from CSV File</>
                             )}
                         </Button>
                         <Button onClick={handleExportData} disabled={isExporting} className="w-full justify-start" variant="outline">
                             {isExporting ? (
                                 <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Exporting...</>
                             ) : (
-                                <><Download className="mr-2 h-4 w-4" /> Export All Data as JSON</>
+                                <><Download className="mr-2 h-4 w-4" /> Export All Data as JSON Backup</>
                             )}
                         </Button>
                     </div>
@@ -314,7 +352,7 @@ export function SettingsClient() {
                     ref={fileInputRef}
                     onChange={handleFileChange}
                     className="hidden"
-                    accept="application/json"
+                    accept="text/csv"
                 />
             </CardContent>
         </Card>

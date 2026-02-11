@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowRight, Users, FileText, IndianRupee, ArrowDownToDot, ArrowUpFromDot, Warehouse, CreditCard, Database, ArrowDownFromLine, Wind, Settings, Wheat, ShieldAlert, Boxes } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { LiveStatus } from "@/components/dashboard/live-status";
 
 type NavItem = {
   href: string;
@@ -59,8 +58,6 @@ export default function DashboardPage() {
         <p className="mt-1 text-muted-foreground">Your central hub for managing warehouse storage and billing.</p>
       </div>
 
-      <LiveStatus />
-      
       <div className="mt-8">
         <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

@@ -20,6 +20,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { cleanForFirestore } from '@/lib/utils';
+import { Separator } from '../ui/separator';
 
 
 // Collections for full backup/restore
@@ -253,42 +254,64 @@ export function SettingsClient() {
             <CardHeader>
                 <CardTitle>Data Management</CardTitle>
                 <CardDescription>
-                    Export a full backup of all data, or import a backup file to restore your database.
+                    Use the templates to prepare your data, then import the final JSON file. You can also export a full backup.
                 </CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-                <Button asChild size="lg" variant="secondary">
-                    <Link href="/import-template.json" download="import-template.json">
-                        <FileText className="mr-2 h-4 w-4" />
-                        Download Import Template
-                    </Link>
-                </Button>
-                 <Button onClick={handleExportData} disabled={isExporting} size="lg" variant="outline">
-                    {isExporting ? (
-                        <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Exporting...
-                        </>
-                    ) : (
-                        <>
-                        <Download className="mr-2 h-4 w-4" />
-                        Export All Data
-                        </>
-                    )}
-                </Button>
-                <Button onClick={handleImportClick} disabled={isImporting} size="lg" variant="outline">
-                    {isImporting ? (
-                        <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Importing...
-                        </>
-                    ) : (
-                        <>
-                        <Upload className="mr-2 h-4 w-4" />
-                        Import from File
-                        </>
-                    )}
-                </Button>
+            <CardContent className="space-y-4">
+                <div>
+                    <h4 className="text-sm font-medium mb-2">1. Download Templates</h4>
+                    <div className="space-y-2">
+                        <Button asChild size="sm" variant="secondary" className="w-full justify-start">
+                            <Link href="/customers-template.csv" download="customers-template.csv">
+                                <FileText className="mr-2 h-4 w-4" />
+                                Customers Template (for Excel)
+                            </Link>
+                        </Button>
+                        <Button asChild size="sm" variant="secondary" className="w-full justify-start">
+                            <Link href="/storagerecords-template.csv" download="storagerecords-template.csv">
+                                <FileText className="mr-2 h-4 w-4" />
+                                Storage Records Template (for Excel)
+                            </Link>
+                        </Button>
+                        <p className="text-xs text-muted-foreground px-2">Use a CSV-to-JSON converter to prepare data for the final import template.</p>
+                    </div>
+                </div>
+            
+                <Separator />
+
+                <div>
+                    <h4 className="text-sm font-medium mb-2">2. Use Final JSON Template</h4>
+                    <Button asChild size="sm" variant="secondary" className="w-full justify-start">
+                        <Link href="/import-template.json" download="import-template.json">
+                            <FileText className="mr-2 h-4 w-4" />
+                            Download Full JSON Import Template
+                        </Link>
+                    </Button>
+                    <p className="text-xs text-muted-foreground px-2 mt-2">Paste your converted CSV data into this file before importing.</p>
+                </div>
+
+                <Separator />
+
+                <div>
+                    <h4 className="text-sm font-medium mb-2">3. Import & Export</h4>
+                    <div className="space-y-2">
+                        <Button onClick={handleImportClick} disabled={isImporting} className="w-full justify-start" variant="outline">
+                            {isImporting ? (
+                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Importing...</>
+                            ) : (
+                                <><Upload className="mr-2 h-4 w-4" /> Import from File (JSON)</>
+                            )}
+                        </Button>
+                        <Button onClick={handleExportData} disabled={isExporting} className="w-full justify-start" variant="outline">
+                            {isExporting ? (
+                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Exporting...</>
+                            ) : (
+                                <><Download className="mr-2 h-4 w-4" /> Export All Data (JSON)</>
+                            )}
+                        </Button>
+                    </div>
+                </div>
+
                 <input
                     type="file"
                     ref={fileInputRef}

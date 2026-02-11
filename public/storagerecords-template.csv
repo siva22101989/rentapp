@@ -1,0 +1,4 @@
+id,customerId,commodityDescription,location,bagsIn,bagsOut,bagsStored,storageStartDate,storageEndDate,billingCycle,hamaliPayable,totalRentBilled,lorryTractorNo,weight,inflowType,dryingRecordId,khataAmount
+rec_001,cust_001,Paddy,A1,150,0,150,"2023-01-15T12:00:00.000Z",,"6-Month Initial",750,0,AP01AB1234,7500,Direct,,150
+rec_002,cust_002,Maize,B3,200,50,150,"2023-03-20T12:00:00.000Z",,"6-Month Initial",1000,5500,,10000,Direct,,0
+rec_003,cust_001,Paddy,A2,100,100,0,"2023-05-10T12:00:00.000Z","2023-11-10T12:00:00.000Z",Completed,500,3600,,,Plot,drying_rec_01,0

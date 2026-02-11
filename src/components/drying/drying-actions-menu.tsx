@@ -1,11 +1,9 @@
 'use client';
 
-import { MoreHorizontal, Package, FileCheck, IndianRupee } from "lucide-react";
+import { MoreHorizontal, FileCheck, IndianRupee } from "lucide-react";
 import { Button } from "../ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from "../ui/dropdown-menu";
 import type { DryingRecord, UnloadingRecord, Lot } from "@/lib/definitions";
-import { UpdatePackingDialog } from "./update-packing-dialog";
-import { BillProcessDialog } from "./bill-process-dialog";
 import { ManageDryingChargesDialog } from "./manage-drying-charges-dialog";
 
 export function DryingActionsMenu({ record, unloadingRecord, lots }: { record: DryingRecord, unloadingRecord?: UnloadingRecord, lots: Lot[] }) {
@@ -24,17 +22,10 @@ export function DryingActionsMenu({ record, unloadingRecord, lots }: { record: D
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 
-                <UpdatePackingDialog record={record}>
-                     <DropdownMenuItem onSelect={(e) => e.preventDefault()} disabled={isBilled}>
-                        <Package className="mr-2 h-4 w-4" />
-                        Update Packing Info
-                    </DropdownMenuItem>
-                </UpdatePackingDialog>
-
                 <ManageDryingChargesDialog record={record}>
                     <DropdownMenuItem onSelect={(e) => e.preventDefault()} disabled={isBilled}>
                         <IndianRupee className="mr-2 h-4 w-4" />
-                        Manage Charges
+                        Update Packing & Charges
                     </DropdownMenuItem>
                 </ManageDryingChargesDialog>
 

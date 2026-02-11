@@ -1,7 +1,10 @@
 'use client';
 
-import { useState, useTransition, useEffect, useMemo } from 'react';
-import { Loader2, PlusCircle, Save, Trash2 } from 'lucide-react';
+import { useState, useTransition, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Loader2, Save, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -13,34 +16,26 @@ import {
   DialogTrigger,
   DialogClose,
 } from '@/components/ui/dialog';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore } from '@/firebase';
 import type { DryingRecord, HamaliCharge } from '@/lib/definitions';
 import { doc, updateDoc } from 'firebase/firestore';
 import { format } from 'date-fns';
-import { cleanForFirestore, formatCurrency, toDate } from '@/lib/utils';
+import { toDate, cleanForFirestore, formatCurrency } from '@/lib/utils';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { useFirestore } from '@/firebase';
 import { Separator } from '../ui/separator';
 
-type EditableCharge = {
-    key: number; // For react list key
-    description: string;
-    date: string; // yyyy-MM-dd format
-    amountPerBag: number;
-    workerAmountPerBag: number;
-};
+const UpdateSchema = z.object({
+  bagsPacked: z.coerce.number().nonnegative('Number of bags must be a non-negative number.'),
+  packingDate: z.string().refine((val) => !isNaN(Date.parse(val)), { message: 'Packing date is required.' }),
+  additionalHamaliPerBag: z.coerce.number().nonnegative().optional(),
+  extraCharge: z.coerce.number().nonnegative().optional(),
+  extraChargeDescription: z.string().optional(),
+});
 
-function calculatePerBagRates(charge: HamaliCharge, bagsForDrying: number): { amountPerBag: number; workerAmountPerBag: number } {
-    if (bagsForDrying > 0) {
-        return {
-            amountPerBag: charge.amount / bagsForDrying,
-            workerAmountPerBag: (charge.workerAmount || 0) / bagsForDrying,
-        };
-    }
-    return { amountPerBag: 0, workerAmountPerBag: 0 };
-}
-
+type UpdateFormData = z.infer<typeof UpdateSchema>;
 
 export function ManageDryingChargesDialog({ record, children }: { record: DryingRecord; children: React.ReactNode }) {
   const { toast } = useToast();
@@ -49,182 +44,228 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
   const firestore = useFirestore();
   const isBilled = record.status === 'Billed';
 
-  const [charges, setCharges] = useState<EditableCharge[]>([]);
-  
+  const form = useForm<UpdateFormData>({
+    resolver: zodResolver(UpdateSchema),
+    defaultValues: {
+      bagsPacked: undefined,
+      packingDate: format(new Date(), 'yyyy-MM-dd'),
+      additionalHamaliPerBag: undefined,
+      extraCharge: undefined,
+      extraChargeDescription: '',
+    },
+  });
+
   useEffect(() => {
     if (isOpen) {
-        const initialCharges = (record.hamaliCharges || []).map((charge, index) => {
-            const { amountPerBag, workerAmountPerBag } = calculatePerBagRates(charge, record.bagsForDrying);
-            return {
-                key: index,
-                description: charge.description,
-                date: format(toDate(charge.date), 'yyyy-MM-dd'),
-                amountPerBag: isNaN(amountPerBag) ? 0 : amountPerBag,
-                workerAmountPerBag: isNaN(workerAmountPerBag) ? 0 : workerAmountPerBag,
-            }
-        });
-      setCharges(initialCharges);
+      // Extract additional charges for form default values
+      const additionalHamali = (record.hamaliCharges || []).find(c => c.description.toLowerCase().includes('additional drying'));
+      const extraCharge = (record.hamaliCharges || []).find(c => !c.description.toLowerCase().includes('unloading') && !c.description.toLowerCase().includes('drying day') && !c.description.toLowerCase().includes('additional'));
+
+      const additionalHamaliPerBag = additionalHamali && record.bagsForDrying > 0 ? additionalHamali.amount / record.bagsForDrying : undefined;
+
+      form.reset({
+        bagsPacked: record.bagsPacked ?? undefined,
+        packingDate: record.packingDate ? format(toDate(record.packingDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+        additionalHamaliPerBag,
+        extraCharge: extraCharge?.amount,
+        extraChargeDescription: extraCharge?.description || '',
+      });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, record]);
 
-  const handleChargeChange = (index: number, field: keyof EditableCharge, value: string | number) => {
-      const newCharges = [...charges];
-      (newCharges[index] as any)[field] = value;
-      setCharges(newCharges);
-  };
-
-  const addNewCharge = () => {
-      const nextDryingDay = charges.filter(c => c.description.toLowerCase().includes('drying day')).length + 1;
-      setCharges([
-          ...charges,
-          {
-              key: Date.now(),
-              description: `Drying Day ${nextDryingDay}`,
-              date: format(new Date(), 'yyyy-MM-dd'),
-              amountPerBag: 0,
-              workerAmountPerBag: 0
-          }
-      ]);
-  };
-  
-  const deleteCharge = (indexToDelete: number) => {
-      setCharges(charges.filter((_, index) => index !== indexToDelete));
-  };
-  
-  const { totalCustomerHamali, totalWorkerHamali } = useMemo(() => {
-    return charges.reduce((acc, charge) => {
-        acc.totalCustomerHamali += (Number(charge.amountPerBag) || 0) * record.bagsForDrying;
-        acc.totalWorkerHamali += (Number(charge.workerAmountPerBag) || 0) * record.bagsForDrying;
-        return acc;
-    }, { totalCustomerHamali: 0, totalWorkerHamali: 0 });
-  }, [charges, record.bagsForDrying]);
-
-
-  const handleSaveChanges = () => {
-    if (!firestore || isBilled) return;
+  const onSubmit = (data: UpdateFormData) => {
+    if (!firestore || isBilled) {
+      toast({ title: 'Error', description: 'Cannot update a billed record.', variant: 'destructive' });
+      return;
+    }
 
     startTransition(async () => {
       try {
-        const finalHamaliCharges: HamaliCharge[] = charges.map(charge => ({
-            description: charge.description,
-            date: new Date(charge.date),
-            amount: (Number(charge.amountPerBag) || 0) * record.bagsForDrying,
-            workerAmount: (Number(charge.workerAmountPerBag) || 0) * record.bagsForDrying,
-        }));
-        
-        const recordRef = doc(firestore, 'dryingRecords', record.id);
-        await updateDoc(recordRef, {
-            hamaliCharges: cleanForFirestore(finalHamaliCharges),
-            totalDryingHamali: totalCustomerHamali,
-            totalWorkerHamali: totalWorkerHamali,
-        });
+        const packingDate = new Date(data.packingDate);
+        const bagsPacked = data.bagsPacked;
 
-        toast({ title: 'Success', description: 'Hamali charges updated successfully.' });
+        // Keep only initial charges
+        const initialCharges = (record.hamaliCharges || []).filter(
+            c => c.description.toLowerCase().includes('unloading') || c.description.toLowerCase().includes('drying day 1')
+        );
+
+        const newCharges: HamaliCharge[] = [...initialCharges];
+
+        // Add additional hamali if provided
+        if (data.additionalHamaliPerBag && data.additionalHamaliPerBag > 0) {
+            const amount = data.additionalHamaliPerBag * record.bagsForDrying;
+            newCharges.push({
+                description: 'Additional Drying Hamali',
+                amount: amount,
+                workerAmount: amount, // Assume worker gets paid for this too
+                date: packingDate,
+            });
+        }
+        
+        // Add extra charge if provided
+        if (data.extraCharge && data.extraCharge > 0) {
+            newCharges.push({
+                description: data.extraChargeDescription || 'Extra Charge',
+                amount: data.extraCharge,
+                // No workerAmount for generic extra charge
+                date: packingDate,
+            });
+        }
+
+        const totalDryingHamali = newCharges.reduce((acc, charge) => acc + (charge.amount || 0), 0);
+        const totalWorkerHamali = newCharges.reduce((acc, charge) => acc + (charge.workerAmount || 0), 0);
+
+        const recordRef = doc(firestore, 'dryingRecords', record.id);
+        await updateDoc(recordRef, cleanForFirestore({
+          bagsPacked,
+          packingDate,
+          status: 'Packing',
+          hamaliCharges: newCharges,
+          totalDryingHamali,
+          totalWorkerHamali,
+        }));
+
+        toast({ title: 'Success', description: 'Packing & charge information updated.' });
         setIsOpen(false);
       } catch (error) {
         console.error(error);
-        toast({ title: 'Error', description: 'Failed to save changes.', variant: 'destructive' });
+        toast({ title: 'Error', description: 'Failed to update record.', variant: 'destructive' });
       }
     });
   };
-  
+
+  const bagsPackedValue = form.watch('bagsPacked');
+  const bagsDifference = (bagsPackedValue !== undefined && bagsPackedValue !== null) ? record.bagsForDrying - bagsPackedValue : null;
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="sm:max-w-md">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)}>
             <DialogHeader>
-              <DialogTitle>Manage Hamali Charges</DialogTitle>
+              <DialogTitle>Update Packing & Charges</DialogTitle>
               <DialogDescription>
-                Edit, add, or delete hamali charges for this drying process ({record.bagsForDrying} bags).
+                Enter final packed bags and any additional charges for this lot.
               </DialogDescription>
             </DialogHeader>
-            <div className="py-4 space-y-4 max-h-[60vh] overflow-y-auto pr-2">
-                {charges.map((charge, index) => (
-                    <div key={charge.key} className="p-4 border rounded-lg space-y-4 relative">
-                        <div className="grid grid-cols-2 gap-4">
-                             <div className="space-y-2">
-                                <Label>Description</Label>
-                                <Input 
-                                    value={charge.description} 
-                                    onChange={e => handleChargeChange(index, 'description', e.target.value)}
-                                    disabled={isBilled}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Date</Label>
-                                <Input 
-                                    type="date" 
-                                    value={charge.date}
-                                    onChange={e => handleChargeChange(index, 'date', e.target.value)}
-                                    disabled={isBilled}
-                                />
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                             <div className="space-y-2">
-                                <Label>Customer Rate/Bag</Label>
-                                <Input 
-                                    type="number"
-                                    step="0.01"
-                                    value={charge.amountPerBag}
-                                    onChange={e => handleChargeChange(index, 'amountPerBag', e.target.value)}
-                                    disabled={isBilled}
-                                />
-                            </div>
-                             <div className="space-y-2">
-                                <Label>Worker Rate/Bag</Label>
-                                <Input 
-                                    type="number"
-                                    step="0.01"
-                                    value={charge.workerAmountPerBag}
-                                    onChange={e => handleChargeChange(index, 'workerAmountPerBag', e.target.value)}
-                                    disabled={isBilled}
-                                />
-                            </div>
-                        </div>
-                        {!isBilled && (
-                             <Button 
-                                type="button" 
-                                variant="ghost" 
-                                size="icon" 
-                                className="absolute top-1 right-1 h-7 w-7"
-                                onClick={() => deleteCharge(index)}
-                            >
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                        )}
-                    </div>
-                ))}
-                 {!isBilled && (
-                    <Button type="button" variant="outline" onClick={addNewCharge} className="w-full">
-                        <PlusCircle className="mr-2" /> Add New Charge
-                    </Button>
-                 )}
+
+            <div className="py-4 space-y-4">
+              <Alert variant="default" className="bg-secondary/50">
+                <Info className="h-4 w-4" />
+                <AlertTitle>Bags Sent for Drying</AlertTitle>
+                <AlertDescription>
+                  <span className="font-bold text-xl">{record.bagsForDrying}</span> bags
+                </AlertDescription>
+              </Alert>
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="bagsPacked"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Bags Packed</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="0"
+                          disabled={isBilled}
+                          {...field}
+                          value={field.value ?? ''}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="packingDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Packing Date</FormLabel>
+                      <FormControl>
+                        <Input type="date" disabled={isBilled} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              {bagsDifference !== null && bagsDifference !== 0 && (
+                <p className="text-sm text-center font-medium text-destructive">
+                  Note: There is a difference of {Math.abs(bagsDifference)} bag{Math.abs(bagsDifference) > 1 ? 's' : ''} ({bagsDifference > 0 ? 'less' : 'more'}) after packing.
+                </p>
+              )}
+
+              <Separator />
+
+              <h4 className="font-medium text-sm">Additional Charges</h4>
+
+              <FormField
+                control={form.control}
+                name="additionalHamaliPerBag"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Additional Hamali (per bag)</FormLabel>
+                    <FormDescription className="text-xs">For extra drying days. Paid to worker.</FormDescription>
+                    <FormControl>
+                      <Input type="number" step="0.01" placeholder="0.00" disabled={isBilled} {...field} value={field.value ?? ''} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="extraCharge"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Extra Charge (Total)</FormLabel>
+                      <FormDescription className="text-xs">Flat fee, not paid to worker.</FormDescription>
+                      <FormControl>
+                        <Input type="number" step="0.01" placeholder="0.00" disabled={isBilled} {...field} value={field.value ?? ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="extraChargeDescription"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Charge Description</FormLabel>
+                       <FormDescription className="text-xs text-transparent">.</FormDescription>
+                      <FormControl>
+                        <Input placeholder="e.g. Special Handling" disabled={isBilled} {...field} value={field.value ?? ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
             </div>
-            <Separator />
-            <div className="space-y-2 text-sm">
-                <div className="flex justify-between items-center font-semibold">
-                    <span>Total Customer Hamali:</span>
-                    <span className="font-mono">{formatCurrency(totalCustomerHamali)}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Total Worker Payable:</span>
-                    <span className="font-mono">{formatCurrency(totalWorkerHamali)}</span>
-                </div>
-            </div>
+            
             <DialogFooter>
               <DialogClose asChild><Button variant="outline" type="button">Cancel</Button></DialogClose>
               {!isBilled && (
-                <Button onClick={handleSaveChanges} disabled={isPending}>
+                <Button type="submit" disabled={isPending}>
                   {isPending ? (
-                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
                   ) : (
-                      <><Save className="mr-2 h-4 w-4" /> Save Changes</>
+                    <><Save className="mr-2 h-4 w-4" /> Save and Update</>
                   )}
                 </Button>
               )}
             </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

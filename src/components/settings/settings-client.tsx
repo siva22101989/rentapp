@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { cleanForFirestore } from '@/lib/utils';
 import { Separator } from '../ui/separator';
+import type { Customer } from '@/lib/definitions';
 
 
 // Collections for full backup/restore
@@ -187,8 +188,9 @@ export function SettingsClient() {
             
             const header = headerLine.split(',').map(h => h.trim());
 
-            const customersMap = new Map();
+            const customersMapByName = new Map<string, Customer>();
             const storageRecords: any[] = [];
+            let customerIdCounter = 0;
 
             for (const line of lines) {
                 if (!line.trim()) continue;
@@ -199,15 +201,26 @@ export function SettingsClient() {
                 }, {} as { [key: string]: string });
 
                 // --- Customer Processing ---
-                const customerId = row.customer_id;
-                if (customerId && !customersMap.has(customerId)) {
-                    customersMap.set(customerId, {
+                const customerName = row.customer_name;
+                if (!customerName) {
+                    continue; 
+                }
+
+                const customerNameKey = customerName.toLowerCase().trim();
+                let customerId: string;
+
+                if (customersMapByName.has(customerNameKey)) {
+                    customerId = customersMapByName.get(customerNameKey)!.id;
+                } else {
+                    customerId = `import_${Date.now()}_${customerIdCounter++}`;
+                    const newCustomer: Customer = {
                         id: customerId,
-                        name: row.customer_name,
-                        phone: row.customer_phone,
-                        fatherName: row.customer_father_name,
-                        village: row.customer_village,
-                    });
+                        name: customerName,
+                        phone: row.customer_phone || '',
+                        fatherName: row.customer_father_name || '',
+                        village: row.customer_village || '',
+                    };
+                    customersMapByName.set(customerNameKey, newCustomer);
                 }
                 
                 // --- Storage Record Processing ---
@@ -216,7 +229,7 @@ export function SettingsClient() {
                     const bagsStored = Number(row.bags_in) || 0;
                     storageRecords.push({
                         id: recordId,
-                        customerId: row.customer_id,
+                        customerId: customerId,
                         commodityDescription: row.commodity_description,
                         location: row.location,
                         bagsIn: bagsStored,
@@ -238,7 +251,7 @@ export function SettingsClient() {
                 }
             }
             
-            const customers = Array.from(customersMap.values());
+            const customers = Array.from(customersMapByName.values());
             
             const finalData = {
                 customers,
@@ -246,7 +259,7 @@ export function SettingsClient() {
                 expenses: [],
                 unloadingRecords: [],
                 dryingRecords: [],
-                commodities: [],
+                commodities: [], 
                 lots: [],
             };
 
@@ -307,22 +320,22 @@ export function SettingsClient() {
             <CardHeader>
                 <CardTitle>Data Management</CardTitle>
                 <CardDescription>
-                    Import data from a CSV file or export all current data to a JSON backup.
+                    Import data from an Excel file (CSV) or export all current data to a JSON backup.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                  <div>
-                    <h4 className="text-sm font-medium mb-2">Step 1: Download & Fill Template</h4>
+                    <h4 className="text-sm font-medium mb-2">Step 1: Download Sample Excel File</h4>
                      <p className="text-xs text-muted-foreground px-2 mb-2">
-                        Download the CSV template and fill in your customer and storage information using a spreadsheet program like Excel.
+                        Download the sample file and fill in your customer and storage information using a spreadsheet program.
                     </p>
                     <Button asChild size="sm" variant="secondary" className="w-full justify-start">
                         <Link href="/all-data-template.csv" download="all-data-template.csv">
                             <FileText className="mr-2 h-4 w-4" />
-                            Download Combined Data Template (.csv)
+                            Download Sample Excel File (.csv)
                         </Link>
                     </Button>
-                    <p className="text-xs font-bold text-destructive px-2 mt-2">Important: The CSV format must be simple. Do not use commas within any field.</p>
+                    <p className="text-xs font-bold text-destructive px-2 mt-2">Important: Do not use commas within any field, as it will break the import.</p>
                 </div>
 
                 <Separator />
@@ -334,7 +347,7 @@ export function SettingsClient() {
                             {isImporting ? (
                                 <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Importing...</>
                             ) : (
-                                <><Upload className="mr-2 h-4 w-4" /> Import from CSV File</>
+                                <><Upload className="mr-2 h-4 w-4" /> Import from Excel File (.csv)</>
                             )}
                         </Button>
                         <Button onClick={handleExportData} disabled={isExporting} className="w-full justify-start" variant="outline">

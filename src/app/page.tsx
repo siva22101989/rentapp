@@ -1,3 +1,4 @@
+
 'use client';
 
 import { AppLayout } from "@/components/layout/app-layout";
@@ -31,16 +32,16 @@ const navItems: NavItem[] = [
 
 function NavCard({ item }: { item: NavItem }) {
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-lg font-medium">{item.label}</CardTitle>
-        <item.icon className="h-6 w-6 text-muted-foreground" />
+    <Card className="flex flex-col">
+      <CardHeader className="flex flex-row items-center justify-between p-4 pb-2">
+        <CardTitle className="text-base font-medium leading-tight">{item.label}</CardTitle>
+        <item.icon className="h-5 w-5 text-muted-foreground" />
       </CardHeader>
-      <CardContent>
-        <p className="text-sm text-muted-foreground mb-4">{item.description}</p>
-        <Button asChild size="sm">
+      <CardContent className="flex flex-1 flex-col p-4 pt-0">
+        <p className="flex-1 text-xs text-muted-foreground mb-4">{item.description}</p>
+        <Button asChild size="sm" className="w-full mt-auto">
           <Link href={item.href}>
-            Go to {item.label}
+            Open
             <ArrowRight className="ml-2 h-4 w-4" />
           </Link>
         </Button>
@@ -53,17 +54,17 @@ function NavCard({ item }: { item: NavItem }) {
 export default function DashboardPage() {
   return (
     <AppLayout>
-      <div className="mb-6">
+      <div>
         <h1 className="text-2xl font-bold tracking-tight font-headline">Welcome to BagBill</h1>
         <p className="mt-1 text-muted-foreground">Your central hub for managing warehouse storage and billing.</p>
-      </div>
 
-      <div className="mt-8">
-        <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {navItems.map((item) => (
-            <NavCard key={item.href} item={item} />
-          ))}
+        <div className="mt-8">
+          <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {navItems.map((item) => (
+              <NavCard key={item.href} item={item} />
+            ))}
+          </div>
         </div>
       </div>
     </AppLayout>

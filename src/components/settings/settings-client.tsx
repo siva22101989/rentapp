@@ -1,7 +1,8 @@
 'use client';
 
 import { useTransition, useState, useRef } from 'react';
-import { Loader2, Trash2, Download, Upload } from 'lucide-react';
+import { Loader2, Trash2, Download, Upload, FileText } from 'lucide-react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useFirestore } from '@/firebase';
@@ -242,9 +243,6 @@ export function SettingsClient() {
 
       } catch (error: any) {
         toast({ title: 'Import Failed', description: `An error occurred: ${error.message}`, variant: 'destructive'});
-      } finally {
-        setIsImportAlertOpen(false);
-        setDataToImport(null);
       }
     });
   };
@@ -259,6 +257,12 @@ export function SettingsClient() {
                 </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
+                <Button asChild size="lg" variant="secondary">
+                    <Link href="/import-template.json" download="import-template.json">
+                        <FileText className="mr-2 h-4 w-4" />
+                        Download Import Template
+                    </Link>
+                </Button>
                  <Button onClick={handleExportData} disabled={isExporting} size="lg" variant="outline">
                     {isExporting ? (
                         <>

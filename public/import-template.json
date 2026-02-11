@@ -1,0 +1,73 @@
+{
+  "customers": [
+    {
+      "id": "cust_1",
+      "name": "John Doe",
+      "phone": "1234567890",
+      "fatherName": "Richard Doe",
+      "village": "Anytown"
+    }
+  ],
+  "commodities": [
+    {
+      "id": "comm_1",
+      "name": "Paddy",
+      "rate6Months": 36,
+      "rate1Year": 55
+    }
+  ],
+  "lots": [
+    {
+      "id": "lot_1",
+      "name": "A1/Top",
+      "capacity": 1000
+    }
+  ],
+  "storageRecords": [
+    {
+      "id": "1",
+      "customerId": "cust_1",
+      "commodityDescription": "Paddy",
+      "location": "A1/Top",
+      "bagsIn": 100,
+      "bagsOut": 0,
+      "bagsStored": 100,
+      "storageStartDate": "2023-10-26T10:00:00.000Z",
+      "storageEndDate": null,
+      "billingCycle": "6-Month Initial",
+      "payments": [],
+      "hamaliPayable": 500,
+      "totalRentBilled": 0,
+      "lorryTractorNo": "AP01AB1234",
+      "weight": 5000,
+      "inflowType": "Direct",
+      "dryingRecordId": "",
+      "khataAmount": 0
+    }
+  ],
+  "unloadingRecords": [
+    {
+      "id": "unload_1",
+      "customerId": "cust_1",
+      "commodityDescription": "Maize",
+      "unloadingDate": "2023-10-20T10:00:00.000Z",
+      "bagsUnloaded": 150,
+      "bagsSentToDrying": 0,
+      "status": "Unloading",
+      "hamaliPerBag": 5,
+      "totalHamali": 750,
+      "billNo": "U-101",
+      "payments": []
+    }
+  ],
+  "dryingRecords": [],
+  "expenses": [
+    {
+      "id": "exp_1",
+      "description": "Petrol for Generator",
+      "amount": 500,
+      "category": "Petrol",
+      "date": "2023-10-25T10:00:00.000Z"
+    }
+  ]
+}

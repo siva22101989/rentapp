@@ -31,8 +31,6 @@ const UpdateSchema = z.object({
   bagsPacked: z.coerce.number().nonnegative('Number of bags must be a non-negative number.'),
   packingDate: z.string().refine((val) => !isNaN(Date.parse(val)), { message: 'Packing date is required.' }),
   additionalHamaliPerBag: z.coerce.number().nonnegative().optional(),
-  extraCharge: z.coerce.number().nonnegative().optional(),
-  extraChargeDescription: z.string().optional(),
 });
 
 type UpdateFormData = z.infer<typeof UpdateSchema>;
@@ -50,8 +48,6 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
       bagsPacked: undefined,
       packingDate: format(new Date(), 'yyyy-MM-dd'),
       additionalHamaliPerBag: undefined,
-      extraCharge: undefined,
-      extraChargeDescription: '',
     },
   });
 
@@ -59,7 +55,6 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
     if (isOpen) {
       // Extract additional charges for form default values
       const additionalHamali = (record.hamaliCharges || []).find(c => c.description.toLowerCase().includes('additional drying'));
-      const extraCharge = (record.hamaliCharges || []).find(c => !c.description.toLowerCase().includes('unloading') && !c.description.toLowerCase().includes('drying day') && !c.description.toLowerCase().includes('additional'));
 
       const additionalHamaliPerBag = additionalHamali && record.bagsForDrying > 0 ? additionalHamali.amount / record.bagsForDrying : undefined;
 
@@ -67,8 +62,6 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
         bagsPacked: record.bagsPacked ?? undefined,
         packingDate: record.packingDate ? format(toDate(record.packingDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
         additionalHamaliPerBag,
-        extraCharge: extraCharge?.amount,
-        extraChargeDescription: extraCharge?.description || '',
       });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -99,16 +92,6 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
                 description: 'Additional Drying Hamali',
                 amount: amount,
                 workerAmount: amount, // Assume worker gets paid for this too
-                date: packingDate,
-            });
-        }
-        
-        // Add extra charge if provided
-        if (data.extraCharge && data.extraCharge > 0) {
-            newCharges.push({
-                description: data.extraChargeDescription || 'Extra Charge',
-                amount: data.extraCharge,
-                // No workerAmount for generic extra charge
                 date: packingDate,
             });
         }
@@ -219,37 +202,6 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
                   </FormItem>
                 )}
               />
-
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="extraCharge"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Extra Charge (Total)</FormLabel>
-                      <FormDescription className="text-xs">Flat fee, not paid to worker.</FormDescription>
-                      <FormControl>
-                        <Input type="number" step="0.01" placeholder="0.00" disabled={isBilled} {...field} value={field.value ?? ''} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="extraChargeDescription"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Charge Description</FormLabel>
-                       <FormDescription className="text-xs text-transparent">.</FormDescription>
-                      <FormControl>
-                        <Input placeholder="e.g. Special Handling" disabled={isBilled} {...field} value={field.value ?? ''} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
             </div>
             
             <DialogFooter>

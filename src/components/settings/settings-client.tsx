@@ -254,59 +254,56 @@ export function SettingsClient() {
             <CardHeader>
                 <CardTitle>Data Management</CardTitle>
                 <CardDescription>
-                    Use the templates to prepare your data, then import the final JSON file. You can also export a full backup.
+                    Follow these steps to prepare your data and perform a bulk import.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-                <div>
-                    <h4 className="text-sm font-medium mb-2">1. Download Templates</h4>
-                    <div className="space-y-2">
-                        <Button asChild size="sm" variant="secondary" className="w-full justify-start">
-                            <Link href="/customers-template.csv" download="customers-template.csv">
-                                <FileText className="mr-2 h-4 w-4" />
-                                Customers Template (for Excel)
-                            </Link>
-                        </Button>
-                        <Button asChild size="sm" variant="secondary" className="w-full justify-start">
-                            <Link href="/storagerecords-template.csv" download="storagerecords-template.csv">
-                                <FileText className="mr-2 h-4 w-4" />
-                                Storage Records Template (for Excel)
-                            </Link>
-                        </Button>
-                        <p className="text-xs text-muted-foreground px-2">Use a CSV-to-JSON converter to prepare data for the final import template.</p>
-                    </div>
+                 <div>
+                    <h4 className="text-sm font-medium mb-2">Step 1: Download Combined Template</h4>
+                     <p className="text-xs text-muted-foreground px-2 mb-2">
+                        Use this single CSV template to fill in all your customer and storage information in Excel.
+                    </p>
+                    <Button asChild size="sm" variant="secondary" className="w-full justify-start">
+                        <Link href="/all-data-template.csv" download="all-data-template.csv">
+                            <FileText className="mr-2 h-4 w-4" />
+                            Download Combined Data Template
+                        </Link>
+                    </Button>
+                    <p className="text-xs font-bold text-destructive px-2 mt-2">Important: When adding multiple records for the same customer, use the exact same <code className="font-mono">customer_id</code> for all their records.</p>
                 </div>
             
                 <Separator />
 
                 <div>
-                    <h4 className="text-sm font-medium mb-2">2. Use Final JSON Template</h4>
+                    <h4 className="text-sm font-medium mb-2">Step 2: Convert to JSON and Prepare</h4>
+                     <p className="text-xs text-muted-foreground px-2 mb-2">
+                        The app imports a structured JSON file. Use an online "CSV to JSON" converter, then paste your data into the final JSON template.
+                    </p>
                     <Button asChild size="sm" variant="secondary" className="w-full justify-start">
                         <Link href="/import-template.json" download="import-template.json">
                             <FileText className="mr-2 h-4 w-4" />
-                            Download Full JSON Import Template
+                            Download Final JSON Import Template
                         </Link>
                     </Button>
-                    <p className="text-xs text-muted-foreground px-2 mt-2">Paste your converted CSV data into this file before importing.</p>
                 </div>
 
                 <Separator />
 
                 <div>
-                    <h4 className="text-sm font-medium mb-2">3. Import & Export</h4>
+                    <h4 className="text-sm font-medium mb-2">Step 3: Import & Export</h4>
                     <div className="space-y-2">
                         <Button onClick={handleImportClick} disabled={isImporting} className="w-full justify-start" variant="outline">
                             {isImporting ? (
                                 <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Importing...</>
                             ) : (
-                                <><Upload className="mr-2 h-4 w-4" /> Import from File (JSON)</>
+                                <><Upload className="mr-2 h-4 w-4" /> Import Final JSON File</>
                             )}
                         </Button>
                         <Button onClick={handleExportData} disabled={isExporting} className="w-full justify-start" variant="outline">
                             {isExporting ? (
                                 <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Exporting...</>
                             ) : (
-                                <><Download className="mr-2 h-4 w-4" /> Export All Data (JSON)</>
+                                <><Download className="mr-2 h-4 w-4" /> Export All Data as JSON</>
                             )}
                         </Button>
                     </div>

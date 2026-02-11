@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useMemo } from 'react';
@@ -160,13 +161,13 @@ export function HamaliReport({ records, customers, unloadingRecords, dryingRecor
             const refId = unloadingRecord?.billNo || dr.unloadingRecordId.substring(0,5);
             (dr.hamaliCharges || []).forEach(charge => {
                 // Exclude "Unloading Hamali" from here as we've already accounted for it above.
-                if (charge.workerAmount && charge.workerAmount > 0 && !charge.description.toLowerCase().includes('unloading')) {
+                if (charge.amount > 0 && !charge.description.toLowerCase().includes('unloading')) {
                      events.push({
                         date: toDate(charge.date),
                         description: `${charge.description} (Drying)`,
                         recordId: refId,
                         customerId: dr.customerId,
-                        payable: charge.workerAmount,
+                        payable: charge.amount,
                         paid: 0,
                         bags: dr.bagsForDrying,
                     });
@@ -174,7 +175,22 @@ export function HamaliReport({ records, customers, unloadingRecords, dryingRecor
             });
         });
         
-        // 3. Paid amounts from Expenses
+        // 3. Payable from Direct Inflow Storage Records
+        records.forEach(sr => {
+            if ((sr.inflowType === 'Direct' || !sr.inflowType) && sr.hamaliPayable > 0) {
+                events.push({
+                    date: toDate(sr.storageStartDate),
+                    description: 'Direct Inflow Hamali',
+                    recordId: sr.id,
+                    customerId: sr.customerId,
+                    payable: sr.hamaliPayable,
+                    paid: 0,
+                    bags: sr.bagsIn,
+                });
+            }
+        });
+
+        // 4. Paid amounts from Expenses
         expenses.filter(e => e.category === 'Hamali').forEach(exp => {
             events.push({
                 date: toDate(exp.date),
@@ -199,7 +215,7 @@ export function HamaliReport({ records, customers, unloadingRecords, dryingRecor
         }
 
         return filtered.sort((a,b) => a.date.getTime() - b.date.getTime());
-    }, [unloadingRecords, dryingRecords, expenses, selectedCustomerId, dateRange]);
+    }, [records, unloadingRecords, dryingRecords, expenses, selectedCustomerId, dateRange]);
 
 
     const handleDownloadPdf = async () => {

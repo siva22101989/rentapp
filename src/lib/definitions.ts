@@ -95,7 +95,6 @@ export type DryingStatus = typeof dryingStatus[number];
 export type HamaliCharge = {
   description: string;
   amount: number;
-  workerAmount?: number;
   date: Date | Timestamp;
 };
 
@@ -112,5 +111,4 @@ export type DryingRecord = {
     billingDate: Date | Timestamp | null;
     hamaliCharges: HamaliCharge[];
     totalDryingHamali: number;
-    totalWorkerHamali?: number;
 };

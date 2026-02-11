@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useTransition, useState, useEffect } from 'react';
@@ -109,16 +110,14 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
             try {
                 const dryingStartDate = new Date(data.dryingStartDate);
                 const currentProportionalUnloadingHamali = selectedUnloadingRecord.hamaliPerBag * data.bagsForDrying;
-                const dryingDay1CustomerHamali = data.bagsForDrying * data.hamaliPerBag;
-                const dryingDay1WorkerHamali = data.bagsForDrying * data.hamaliPerBag; // Same rate for worker
+                const dryingDay1Hamali = data.bagsForDrying * data.hamaliPerBag;
                 
                 const hamaliCharges: Partial<HamaliCharge>[] = [
                   { description: "Unloading Hamali", amount: currentProportionalUnloadingHamali, date: selectedUnloadingRecord.unloadingDate },
-                  { description: "Drying Day 1", amount: dryingDay1CustomerHamali, workerAmount: dryingDay1WorkerHamali, date: dryingStartDate },
+                  { description: "Drying Day 1", amount: dryingDay1Hamali, date: dryingStartDate },
                 ];
                 
                 const totalDryingHamali = hamaliCharges.reduce((acc, charge) => acc + (charge.amount || 0), 0);
-                const totalWorkerHamali = hamaliCharges.reduce((acc, charge) => acc + (charge.workerAmount || 0), 0);
                 
                 // 1. Create new drying record
                 const newRecord = {
@@ -130,7 +129,6 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                     status: 'Drying' as const,
                     hamaliCharges,
                     totalDryingHamali,
-                    totalWorkerHamali,
                     packingDate: null,
                     billingDate: null,
                     bagsPacked: null,
@@ -252,7 +250,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Drying Hamali per Bag (Day 1)</FormLabel>
-                                <FormDescription>This rate is for both customer charge and worker payment.</FormDescription>
+                                <FormDescription>This single rate is for both customer charge and worker payment.</FormDescription>
                                 <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} /></FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -273,12 +271,8 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                         </div>
                         <Separator />
                         <div className="flex justify-between items-center font-semibold">
-                            <span>Total Hamali (For Customer)</span>
+                            <span>Total Hamali</span>
                             <span className="font-mono">{formatCurrency(totalCustomerHamali)}</span>
-                        </div>
-                         <div className="flex justify-between items-center text-sm">
-                            <span className="text-muted-foreground">Payable to Worker (Day 1 Drying)</span>
-                            <span className="font-mono">{formatCurrency(day1DryingHamali)}</span>
                         </div>
                     </div>
                 </CardContent>

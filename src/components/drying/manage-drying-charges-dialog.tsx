@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -91,13 +92,11 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
             newCharges.push({
                 description: 'Additional Drying Hamali',
                 amount: amount,
-                workerAmount: amount, // Assume worker gets paid for this too
                 date: packingDate,
             });
         }
 
         const totalDryingHamali = newCharges.reduce((acc, charge) => acc + (charge.amount || 0), 0);
-        const totalWorkerHamali = newCharges.reduce((acc, charge) => acc + (charge.workerAmount || 0), 0);
 
         const recordRef = doc(firestore, 'dryingRecords', record.id);
         await updateDoc(recordRef, cleanForFirestore({
@@ -106,7 +105,6 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
           status: 'Packing',
           hamaliCharges: newCharges,
           totalDryingHamali,
-          totalWorkerHamali,
         }));
 
         toast({ title: 'Success', description: 'Packing & charge information updated.' });
@@ -194,7 +192,7 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Additional Hamali (per bag)</FormLabel>
-                    <FormDescription className="text-xs">For extra drying days. Paid to worker.</FormDescription>
+                    <FormDescription className="text-xs">For extra drying days.</FormDescription>
                     <FormControl>
                       <Input type="number" step="0.01" placeholder="0.00" disabled={isBilled} {...field} value={field.value ?? ''} />
                     </FormControl>

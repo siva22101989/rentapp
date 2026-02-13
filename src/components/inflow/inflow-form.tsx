@@ -152,7 +152,7 @@ export function InflowForm({ customers, commodities, lots, nextSerialNumber }: {
                         </Select>
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="commodityDescription">Product</Label>
                             <Select 
@@ -189,7 +189,7 @@ export function InflowForm({ customers, commodities, lots, nextSerialNumber }: {
                             </Select>
                         </div>
                     </div>
-                     <div className="grid grid-cols-2 gap-4">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="lorryTractorNo">Lorry / Tractor No. <span className="text-muted-foreground text-xs">(Optional)</span></Label>
                             <Input id="lorryTractorNo" name="lorryTractorNo" placeholder="e.g., AP 21 1234" />
@@ -205,7 +205,7 @@ export function InflowForm({ customers, commodities, lots, nextSerialNumber }: {
                             />
                         </div>
                     </div>
-                     <div className="grid grid-cols-2 gap-4">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="bagsStored">No. of Bags</Label>
                             <Input 
@@ -231,7 +231,7 @@ export function InflowForm({ customers, commodities, lots, nextSerialNumber }: {
                             />
                         </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="hamaliRate">Storage Inflow Hamali Rate (per bag)</Label>
                             <Input id="hamaliRate" name="hamaliRate" type="number" placeholder="0.00" step="0.01" value={rate} onChange={e => setRate(e.target.value === '' ? '' : Number(e.target.value))}/>

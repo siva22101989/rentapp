@@ -195,7 +195,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         </div>
 
         {/* New Summary Box */}
-        <div className="grid grid-cols-2 gap-x-8 mb-6 p-4 border rounded-lg">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 mb-6 p-4 border rounded-lg">
             {/* Stock Summary */}
             <div className="space-y-1">
                 <div className="flex justify-between"><span className="font-bold">Total Bags Unloaded:</span><span>{summary.totalBagsUnloaded}</span></div>
@@ -220,11 +220,11 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                     <TableRow className="border-b-2 border-black">
                         <TableHead className="text-black font-bold">Date</TableHead>
                         <TableHead className="text-black font-bold">Description</TableHead>
-                        <TableHead className="text-black font-bold">Invoice No</TableHead>
-                        <TableHead className="text-black font-bold">Lot No</TableHead>
-                        <TableHead className="text-right text-black font-bold">Unloaded</TableHead>
-                        <TableHead className="text-right text-black font-bold">Stored</TableHead>
-                        <TableHead className="text-right text-black font-bold">Out</TableHead>
+                        <TableHead className="text-black font-bold hidden lg:table-cell">Invoice No</TableHead>
+                        <TableHead className="text-black font-bold hidden lg:table-cell">Lot No</TableHead>
+                        <TableHead className="text-right text-black font-bold hidden md:table-cell">Unloaded</TableHead>
+                        <TableHead className="text-right text-black font-bold hidden md:table-cell">Stored</TableHead>
+                        <TableHead className="text-right text-black font-bold hidden md:table-cell">Out</TableHead>
                         <TableHead className="text-right text-black font-bold">Hamali</TableHead>
                         <TableHead className="text-right text-black font-bold">Rent</TableHead>
                         <TableHead className="text-right text-black font-bold">Paid</TableHead>
@@ -236,11 +236,11 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                         <TableRow key={index} className="border-0">
                             <TableCell className="py-1">{format(item.date, 'dd/MM/yyyy')}</TableCell>
                             <TableCell className="py-1">{item.description}</TableCell>
-                            <TableCell className="py-1">{item.invoiceId}</TableCell>
-                            <TableCell className="py-1">{item.lotNo}</TableCell>
-                            <TableCell className="text-right py-1">{item.bagsUnloaded || ''}</TableCell>
-                            <TableCell className="text-right py-1">{item.bagsIn || ''}</TableCell>
-                            <TableCell className="text-right py-1">{item.bagsOut || ''}</TableCell>
+                            <TableCell className="py-1 hidden lg:table-cell">{item.invoiceId}</TableCell>
+                            <TableCell className="py-1 hidden lg:table-cell">{item.lotNo}</TableCell>
+                            <TableCell className="text-right py-1 hidden md:table-cell">{item.bagsUnloaded || ''}</TableCell>
+                            <TableCell className="text-right py-1 hidden md:table-cell">{item.bagsIn || ''}</TableCell>
+                            <TableCell className="text-right py-1 hidden md:table-cell">{item.bagsOut || ''}</TableCell>
                             <TableCell className="text-right py-1">{item.hamaliBilled > 0 ? formatCurrency(item.hamaliBilled) : ''}</TableCell>
                             <TableCell className="text-right py-1">{item.rentBilled > 0 ? formatCurrency(item.rentBilled) : ''}</TableCell>
                             <TableCell className="text-right py-1">{item.credit > 0 ? formatCurrency(item.credit) : ''}</TableCell>
@@ -250,10 +250,12 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 </TableBody>
                  <TableFooter>
                     <TableRow className="border-t-2 border-black">
-                        <TableCell colSpan={4} className="text-right font-bold">Totals:</TableCell>
-                        <TableCell className="text-right font-bold">{summary.totalBagsUnloaded}</TableCell>
-                        <TableCell className="text-right font-bold">{summary.totalBagsIn}</TableCell>
-                        <TableCell className="text-right font-bold">{summary.totalBagsOut}</TableCell>
+                        <TableCell colSpan={2} className="text-right font-bold">Totals:</TableCell>
+                        <TableCell className="hidden lg:table-cell" />
+                        <TableCell className="hidden lg:table-cell" />
+                        <TableCell className="text-right font-bold hidden md:table-cell">{summary.totalBagsUnloaded}</TableCell>
+                        <TableCell className="text-right font-bold hidden md:table-cell">{summary.totalBagsIn}</TableCell>
+                        <TableCell className="text-right font-bold hidden md:table-cell">{summary.totalBagsOut}</TableCell>
                         <TableCell className="text-right font-bold">{formatCurrency(summary.totalHamali)}</TableCell>
                         <TableCell className="text-right font-bold">{formatCurrency(summary.totalRent)}</TableCell>
                         <TableCell className="text-right font-bold">{formatCurrency(summary.totalPaid)}</TableCell>

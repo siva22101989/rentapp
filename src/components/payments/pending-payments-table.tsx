@@ -1,3 +1,4 @@
+
 'use client';
 import {
   Table,
@@ -67,10 +68,10 @@ export function PendingPaymentsTable({ records, customers }: { records: StorageR
                         <TableRow>
                             <TableHead>Record ID</TableHead>
                             <TableHead>Customer</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="text-right">Total Billed</TableHead>
-                            <TableHead className="text-right">Hamali Pending</TableHead>
-                            <TableHead className="text-right">Rent Pending</TableHead>
+                            <TableHead className="hidden sm:table-cell">Status</TableHead>
+                            <TableHead className="text-right hidden lg:table-cell">Total Billed</TableHead>
+                            <TableHead className="text-right hidden md:table-cell">Hamali Pending</TableHead>
+                            <TableHead className="text-right hidden md:table-cell">Rent Pending</TableHead>
                             <TableHead className="text-right">Total Due</TableHead>
                             <TableHead className="w-[100px] text-right"></TableHead>
                         </TableRow>
@@ -82,14 +83,14 @@ export function PendingPaymentsTable({ records, customers }: { records: StorageR
                             <TableRow key={record.id}>
                                 <TableCell className="font-medium">{record.id}</TableCell>
                                 <TableCell>{customerName}</TableCell>
-                                <TableCell>
-                                    <Badge variant={record.storageEndDate ? "secondary" : "default"} className={record.storageEndDate ? 'bg-green-100 text-green-800' : ''}>
+                                <TableCell className="hidden sm:table-cell">
+                                    <Badge variant={record.storageEndDate ? "secondary" : "default"} className={record.storageEndDate ? 'bg-zinc-100 text-zinc-800' : 'bg-green-100 text-green-800'}>
                                         {record.storageEndDate ? 'Completed' : 'Active'}
                                     </Badge>
                                 </TableCell>
-                                <TableCell className="text-right font-mono">{formatCurrency(record.totalBilled)}</TableCell>
-                                <TableCell className="text-right font-mono text-orange-600">{formatCurrency(record.hamaliPending)}</TableCell>
-                                <TableCell className="text-right font-mono text-blue-600">{formatCurrency(record.rentPending)}</TableCell>
+                                <TableCell className="text-right font-mono hidden lg:table-cell">{formatCurrency(record.totalBilled)}</TableCell>
+                                <TableCell className="text-right font-mono text-orange-600 hidden md:table-cell">{formatCurrency(record.hamaliPending)}</TableCell>
+                                <TableCell className="text-right font-mono text-blue-600 hidden md:table-cell">{formatCurrency(record.rentPending)}</TableCell>
                                 <TableCell className="text-right font-mono text-destructive">{formatCurrency(record.balanceDue)}</TableCell>
                                 <TableCell className="text-right">
                                     <AddPaymentDialog record={record} />

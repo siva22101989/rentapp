@@ -56,12 +56,12 @@ export function DryingHistoryTable({ dryingRecords, customers, unloadingRecords,
             <Table>
             <TableHeader>
                 <TableRow>
-                    <TableHead>Start Date</TableHead>
+                    <TableHead className="hidden md:table-cell">Start Date</TableHead>
                     <TableHead>Unloading Bill</TableHead>
                     <TableHead>Customer</TableHead>
-                    <TableHead>Bags for Drying</TableHead>
+                    <TableHead className="hidden lg:table-cell">Bags for Drying</TableHead>
                     <TableHead>Bags Packed</TableHead>
-                    <TableHead className="text-right">Total Hamali</TableHead>
+                    <TableHead className="text-right hidden lg:table-cell">Total Hamali</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="w-[50px] text-right"></TableHead>
                 </TableRow>
@@ -71,12 +71,12 @@ export function DryingHistoryTable({ dryingRecords, customers, unloadingRecords,
                     const dryingStartDate = toDate(record.dryingStartDate);
                     return (
                     <TableRow key={record.id}>
-                        <TableCell>{dryingStartDate ? format(dryingStartDate, 'dd MMM yyyy') : 'N/A'}</TableCell>
+                        <TableCell className="hidden md:table-cell">{dryingStartDate ? format(dryingStartDate, 'dd MMM yyyy') : 'N/A'}</TableCell>
                         <TableCell>{getUnloadingBillNo(record.unloadingRecordId)}</TableCell>
                         <TableCell className="font-medium">{getCustomerName(record.customerId)}</TableCell>
-                        <TableCell>{record.bagsForDrying}</TableCell>
+                        <TableCell className="hidden lg:table-cell">{record.bagsForDrying}</TableCell>
                         <TableCell>{record.bagsPacked ?? 'N/A'}</TableCell>
-                        <TableCell className="text-right font-mono">{formatCurrency(record.totalDryingHamali || 0)}</TableCell>
+                        <TableCell className="text-right font-mono hidden lg:table-cell">{formatCurrency(record.totalDryingHamali || 0)}</TableCell>
                         <TableCell>
                             <Badge variant="secondary" className={getStatusBadgeVariant(record.status)}>
                                 {record.status}

@@ -61,13 +61,13 @@ export function UnloadingRecordsTable({ unloadingRecords, customers }: { unloadi
             <Table>
             <TableHeader>
                 <TableRow>
-                    <TableHead>Date</TableHead>
+                    <TableHead className="hidden lg:table-cell">Date</TableHead>
                     <TableHead>Bill No.</TableHead>
                     <TableHead>Customer</TableHead>
-                    <TableHead className="text-right">Total Bags</TableHead>
-                    <TableHead className="text-right">Bags for Drying</TableHead>
+                    <TableHead className="text-right hidden xl:table-cell">Total Bags</TableHead>
+                    <TableHead className="text-right hidden xl:table-cell">Bags for Drying</TableHead>
                     <TableHead className="text-right">Bags Remaining</TableHead>
-                    <TableHead className="text-right">Total Hamali</TableHead>
+                    <TableHead className="text-right hidden lg:table-cell">Total Hamali</TableHead>
                     <TableHead className="text-right">Hamali Pending</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="w-[50px]"></TableHead>
@@ -81,13 +81,13 @@ export function UnloadingRecordsTable({ unloadingRecords, customers }: { unloadi
                     const bagsRemaining = record.bagsUnloaded - bagsSent;
                     return (
                     <TableRow key={record.id}>
-                        <TableCell>{unloadingDate ? format(unloadingDate, 'dd MMM yyyy') : 'N/A'}</TableCell>
+                        <TableCell className="hidden lg:table-cell">{unloadingDate ? format(unloadingDate, 'dd MMM yyyy') : 'N/A'}</TableCell>
                         <TableCell>{record.billNo}</TableCell>
                         <TableCell className="font-medium">{getCustomerName(record.customerId)}</TableCell>
-                        <TableCell className="text-right">{record.bagsUnloaded}</TableCell>
-                        <TableCell className="text-right">{bagsSent}</TableCell>
+                        <TableCell className="text-right hidden xl:table-cell">{record.bagsUnloaded}</TableCell>
+                        <TableCell className="text-right hidden xl:table-cell">{bagsSent}</TableCell>
                         <TableCell className="text-right font-bold">{bagsRemaining}</TableCell>
-                        <TableCell className="text-right font-mono">{formatCurrency(record.totalHamali || 0)}</TableCell>
+                        <TableCell className="text-right font-mono hidden lg:table-cell">{formatCurrency(record.totalHamali || 0)}</TableCell>
                         <TableCell className="text-right font-mono text-destructive">{formatCurrency(record.hamaliPending)}</TableCell>
                         <TableCell>
                             <Badge variant="secondary" className={statusInfo.variant}>

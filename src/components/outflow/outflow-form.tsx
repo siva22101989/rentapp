@@ -221,7 +221,7 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                              <div className="text-sm text-muted-foreground p-2 bg-secondary/50 rounded-md">
                                 Inflow Date: <span className="font-medium text-foreground">{format(toDate(selectedRecord.storageStartDate), 'dd MMM yyyy')}</span>
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="bagsToWithdraw">Bags to Withdraw</Label>
                                     <Input 

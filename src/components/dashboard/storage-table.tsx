@@ -47,11 +47,11 @@ export function StorageTable() {
         <TableRow>
           <TableHead>Customer</TableHead>
           <TableHead>Commodity</TableHead>
-          <TableHead>Location</TableHead>
+          <TableHead className="hidden lg:table-cell">Location</TableHead>
           <TableHead className="text-right">Bags</TableHead>
-          <TableHead>Start Date</TableHead>
+          <TableHead className="hidden md:table-cell">Start Date</TableHead>
           <TableHead>Status</TableHead>
-          <TableHead className="text-right">Amount Paid</TableHead>
+          <TableHead className="text-right hidden lg:table-cell">Amount Paid</TableHead>
           <TableHead className="w-[50px]"></TableHead>
         </TableRow>
       </TableHeader>
@@ -64,15 +64,15 @@ export function StorageTable() {
               <TableRow key={record.id}>
                 <TableCell className="font-medium">{customerName}</TableCell>
                 <TableCell>{record.commodityDescription}</TableCell>
-                <TableCell>{record.location}</TableCell>
+                <TableCell className="hidden lg:table-cell">{record.location}</TableCell>
                 <TableCell className="text-right">{record.bagsStored}</TableCell>
-                <TableCell>{startDate ? format(startDate, 'dd MMM yyyy') : 'N/A'}</TableCell>
+                <TableCell className="hidden md:table-cell">{startDate ? format(startDate, 'dd MMM yyyy') : 'N/A'}</TableCell>
                 <TableCell>
                   <Badge variant="secondary" className="bg-green-100 text-green-800">
                     Active
                   </Badge>
                 </TableCell>
-                <TableCell className="text-right">{formatCurrency(amountPaid)}</TableCell>
+                <TableCell className="text-right hidden lg:table-cell">{formatCurrency(amountPaid)}</TableCell>
                 <TableCell>
                     <ActionsMenu record={record} customers={allCustomers} />
                 </TableCell>

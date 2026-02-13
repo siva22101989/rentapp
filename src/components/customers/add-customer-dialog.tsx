@@ -92,12 +92,12 @@ export function AddCustomerDialog() {
                 control={form.control}
                 name="name"
                 render={({ field }) => (
-                  <FormItem className="grid grid-cols-4 items-center gap-4">
-                    <FormLabel className="text-right">Name</FormLabel>
+                  <FormItem>
+                    <FormLabel>Name</FormLabel>
                     <FormControl>
-                      <Input {...field} className="col-span-3" />
+                      <Input {...field} />
                     </FormControl>
-                    <FormMessage className="col-span-4 pl-[calc(25%+1rem)]" />
+                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -105,12 +105,12 @@ export function AddCustomerDialog() {
                 control={form.control}
                 name="fatherName"
                 render={({ field }) => (
-                   <FormItem className="grid grid-cols-4 items-center gap-4">
-                    <FormLabel className="text-right">Father's Name</FormLabel>
+                  <FormItem>
+                    <FormLabel>Father's Name</FormLabel>
                     <FormControl>
-                      <Input {...field} className="col-span-3" />
+                      <Input {...field} />
                     </FormControl>
-                    <FormMessage className="col-span-4 pl-[calc(25%+1rem)]" />
+                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -118,12 +118,12 @@ export function AddCustomerDialog() {
                 control={form.control}
                 name="village"
                 render={({ field }) => (
-                  <FormItem className="grid grid-cols-4 items-center gap-4">
-                    <FormLabel className="text-right">Village</FormLabel>
+                  <FormItem>
+                    <FormLabel>Village</FormLabel>
                     <FormControl>
-                      <Input {...field} className="col-span-3" />
+                      <Input {...field} />
                     </FormControl>
-                     <FormMessage className="col-span-4 pl-[calc(25%+1rem)]" />
+                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -131,12 +131,12 @@ export function AddCustomerDialog() {
                 control={form.control}
                 name="phone"
                 render={({ field }) => (
-                  <FormItem className="grid grid-cols-4 items-center gap-4">
-                    <FormLabel className="text-right">Phone</FormLabel>
+                  <FormItem>
+                    <FormLabel>Phone</FormLabel>
                     <FormControl>
-                      <Input {...field} className="col-span-3" />
+                      <Input {...field} />
                     </FormControl>
-                     <FormMessage className="col-span-4 pl-[calc(25%+1rem)]" />
+                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -144,12 +144,12 @@ export function AddCustomerDialog() {
                 control={form.control}
                 name="email"
                 render={({ field }) => (
-                   <FormItem className="grid grid-cols-4 items-center gap-4">
-                    <FormLabel className="text-right">Email</FormLabel>
+                  <FormItem>
+                    <FormLabel>Email (Optional)</FormLabel>
                     <FormControl>
-                      <Input {...field} className="col-span-3" />
+                      <Input {...field} />
                     </FormControl>
-                    <FormMessage className="col-span-4 pl-[calc(25%+1rem)]" />
+                    <FormMessage />
                   </FormItem>
                 )}
               />

@@ -40,7 +40,7 @@ function ExpensesTable({ expenses }: { expenses: Expense[] }) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Date</TableHead>
+              <TableHead className="hidden sm:table-cell">Date</TableHead>
               <TableHead>Category</TableHead>
               <TableHead>Description</TableHead>
               <TableHead className="text-right">Amount</TableHead>
@@ -50,7 +50,7 @@ function ExpensesTable({ expenses }: { expenses: Expense[] }) {
           <TableBody>
             {expenses.map((expense) => (
               <TableRow key={expense.id}>
-                <TableCell>{format(toDate(expense.date), 'dd MMM yyyy')}</TableCell>
+                <TableCell className="hidden sm:table-cell">{format(toDate(expense.date), 'dd MMM yyyy')}</TableCell>
                 <TableCell>{expense.category}</TableCell>
                 <TableCell className="font-medium">{expense.description}</TableCell>
                 <TableCell className="text-right font-mono">{formatCurrency(expense.amount)}</TableCell>

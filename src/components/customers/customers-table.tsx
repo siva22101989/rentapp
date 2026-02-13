@@ -30,7 +30,7 @@ export function CustomersTable({ customers }: { customers: Customer[] }) {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
+              <TableHead className="hidden sm:table-cell">Email</TableHead>
               <TableHead>Phone</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
@@ -39,7 +39,7 @@ export function CustomersTable({ customers }: { customers: Customer[] }) {
             {customers.map((customer) => (
               <TableRow key={customer.id}>
                 <TableCell className="font-medium">{customer.name}</TableCell>
-                <TableCell>{customer.email}</TableCell>
+                <TableCell className="hidden sm:table-cell">{customer.email}</TableCell>
                 <TableCell>{customer.phone}</TableCell>
                 <TableCell>
                   <CustomerActionsMenu customer={customer} />

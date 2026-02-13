@@ -1,20 +1,20 @@
 'use client';
 
 import { AppLayout } from "@/components/layout/app-layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowRight, Users, Warehouse, IndianRupee, FileText, ArrowDownToDot, ArrowUpFromDot, CreditCard, Settings, Wind, ShieldAlert, Wheat, ArrowDownFromLine } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { useUser } from "@/firebase/auth/use-user";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { useFirestore } from "@/firebase";
 import { collection } from "firebase/firestore";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
-import type { Customer, StorageRecord } from "@/lib/definitions";
+import type { StorageRecord, Expense, UnloadingRecord } from "@/lib/definitions";
 import { useMemo } from "react";
-import { calculateFinalRent } from "@/lib/billing";
-import { formatCurrency } from "@/lib/utils";
+import { format, subMonths, startOfMonth } from "date-fns";
+import { toDate } from "@/lib/utils";
+import { FinancialSummaryChart } from "@/components/dashboard/financial-summary-chart";
 
 type NavItem = {
   href: string;
@@ -61,84 +61,87 @@ function NavCard({ item }: { item: NavItem }) {
 
 
 export default function DashboardPage() {
-  const { user } = useUser();
   const firestore = useFirestore();
 
-  const customersQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'customers') : null),
-    [firestore]
-  );
-  const { data: customers, loading: loadingCustomers } = useCollection<Customer>(customersQuery);
-  
-  const recordsQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'storageRecords') : null),
-    [firestore]
-  );
+  const recordsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'storageRecords') : null), [firestore]);
   const { data: allRecords, loading: loadingRecords } = useCollection<StorageRecord>(recordsQuery);
 
-  const stats = useMemo(() => {
-    if (!allRecords || !customers) return { totalCustomers: 0, balanceStock: 0, estimatedRent: 0 };
+  const expensesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'expenses') : null), [firestore]);
+  const { data: allExpenses, loading: loadingExpenses } = useCollection<Expense>(expensesQuery);
+
+  const unloadingRecordsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'unloadingRecords') : null), [firestore]);
+  const { data: allUnloadingRecords, loading: loadingUnloading } = useCollection<UnloadingRecord>(unloadingRecordsQuery);
+
+  const financialData = useMemo(() => {
+    if (!allRecords || !allExpenses || !allUnloadingRecords) return [];
+
+    const sixMonthsAgo = startOfMonth(subMonths(new Date(), 5));
+    const monthlyData: { [key: string]: { month: string, income: number, expenses: number } } = {};
+
+    for (let i = 5; i >= 0; i--) {
+        const date = startOfMonth(subMonths(new Date(), i));
+        const monthKey = format(date, 'yyyy-MM');
+        monthlyData[monthKey] = { month: format(date, 'MMM yy'), income: 0, expenses: 0 };
+    }
+
+    allRecords.forEach(r => {
+        (r.payments || []).forEach(p => {
+            const paymentDate = toDate(p.date);
+            if (paymentDate >= sixMonthsAgo) {
+                const monthKey = format(paymentDate, 'yyyy-MM');
+                if (monthlyData[monthKey]) {
+                    monthlyData[monthKey].income += p.amount;
+                }
+            }
+        });
+    });
     
-    const balanceStock = allRecords.reduce((acc, record) => acc + record.bagsStored, 0);
+    allUnloadingRecords.forEach(ur => {
+        (ur.payments || []).forEach(p => {
+             const paymentDate = toDate(p.date);
+            if (paymentDate >= sixMonthsAgo) {
+                const monthKey = format(paymentDate, 'yyyy-MM');
+                if (monthlyData[monthKey]) {
+                    monthlyData[monthKey].income += p.amount;
+                }
+            }
+        });
+    });
 
-    const activeRecords = allRecords.filter(r => !r.storageEndDate);
-    const estimatedRent = activeRecords.reduce((total, record) => {
-      const { rent } = calculateFinalRent(record, new Date(), record.bagsStored);
-      return total + rent;
-    }, 0);
+    allExpenses.forEach(e => {
+        const expenseDate = toDate(e.date);
+        if (expenseDate >= sixMonthsAgo) {
+            const monthKey = format(expenseDate, 'yyyy-MM');
+            if (monthlyData[monthKey]) {
+                monthlyData[monthKey].expenses += e.amount;
+            }
+        }
+    });
 
-    return { totalCustomers: customers.length, balanceStock, estimatedRent };
+    return Object.values(monthlyData);
 
-  }, [allRecords, customers]);
-
-  const isLoading = loadingCustomers || loadingRecords;
+  }, [allRecords, allExpenses, allUnloadingRecords]);
+  
+  const isLoading = loadingRecords || loadingExpenses || loadingUnloading;
 
   return (
     <AppLayout>
-      <div>
-        <div className="mb-8">
-            <h1 className="text-3xl font-bold tracking-tight font-headline">Welcome back, {user?.displayName || user?.email}!</h1>
-            <p className="text-muted-foreground">Here's a snapshot of your warehouse activity.</p>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-3 mb-8">
-          <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Balance Stock</CardTitle>
-                  <Warehouse className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                  {isLoading ? <div className="h-8 w-24 bg-muted rounded-md animate-pulse" /> : <div className="text-2xl font-bold">{stats.balanceStock} bags</div> }
-                  <p className="text-xs text-muted-foreground">
-                      Total bags currently in storage.
-                  </p>
-              </CardContent>
-          </Card>
-           <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Estimated Rent Due</CardTitle>
-                  <IndianRupee className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                  {isLoading ? <div className="h-8 w-32 bg-muted rounded-md animate-pulse" /> : <div className="text-2xl font-bold">{formatCurrency(stats.estimatedRent)}</div>}
-                  <p className="text-xs text-muted-foreground">
-                      Based on current active stock.
-                  </p>
-              </CardContent>
-          </Card>
-          <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Customers</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                  {isLoading ? <div className="h-8 w-16 bg-muted rounded-md animate-pulse" /> : <div className="text-2xl font-bold">{stats.totalCustomers}</div>}
-                   <p className="text-xs text-muted-foreground">
-                      Total customers registered.
-                  </p>
-              </CardContent>
-          </Card>
-        </div>
+      <div className="space-y-8">
+        <Card>
+            <CardHeader>
+                <CardTitle>Financial Overview</CardTitle>
+                <CardDescription>Income vs. Expenses for the last 6 months.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                {isLoading ? (
+                    <div className="h-[350px] w-full flex items-center justify-center bg-muted/50 rounded-lg">
+                        <p className="text-muted-foreground animate-pulse">Loading Chart Data...</p>
+                    </div>
+                ) : (
+                     <FinancialSummaryChart data={financialData} />
+                )}
+            </CardContent>
+        </Card>
         
         <div>
           <h2 className="text-2xl font-bold tracking-tight font-headline mb-4">Management Sections</h2>

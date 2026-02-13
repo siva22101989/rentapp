@@ -34,6 +34,7 @@ export type Outflow = {
   date: Date | Timestamp;
   bagsWithdrawn: number;
   rentBilled: number;
+  discount?: number;
 };
 
 export type StorageRecord = {

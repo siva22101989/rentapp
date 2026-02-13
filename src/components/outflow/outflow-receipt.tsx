@@ -20,9 +20,10 @@ type OutflowReceiptProps = {
   withdrawnBags: number;
   finalRent: number;
   paidNow: number;
+  discount: number;
 };
 
-export function OutflowReceipt({ record, customer, withdrawnBags, finalRent, paidNow }: OutflowReceiptProps) {
+export function OutflowReceipt({ record, customer, withdrawnBags, finalRent, paidNow, discount }: OutflowReceiptProps) {
     const receiptRef = useRef<HTMLDivElement>(null);
     const [formattedStartDate, setFormattedStartDate] = useState('');
     const [formattedEndDate, setFormattedEndDate] = useState('');
@@ -65,7 +66,8 @@ export function OutflowReceipt({ record, customer, withdrawnBags, finalRent, pai
         
     }, [record, withdrawnBags]);
 
-    const totalPayable = finalRent + hamaliPending;
+    const subtotal = finalRent + hamaliPending;
+    const totalPayable = subtotal - discount;
     const balanceDue = totalPayable - paidNow;
 
     const handleDownloadPdf = async () => {
@@ -191,8 +193,19 @@ export function OutflowReceipt({ record, customer, withdrawnBags, finalRent, pai
                  {/* Totals Section */}
                 <div className="flex justify-end mb-8">
                     <div className="w-full max-w-sm space-y-2 text-sm">
-                        <div className="flex justify-between">
-                            <span className="text-muted-foreground">Total Due</span>
+                         <div className="flex justify-between">
+                            <span className="text-muted-foreground">Subtotal</span>
+                            <span>{formatCurrency(subtotal)}</span>
+                        </div>
+                        {discount > 0 && (
+                             <div className="flex justify-between text-green-600">
+                                <span className="text-muted-foreground">Discount</span>
+                                <span>- {formatCurrency(discount)}</span>
+                            </div>
+                        )}
+                        <Separator />
+                        <div className="flex justify-between font-bold text-base">
+                            <span>Total Due</span>
                             <span>{formatCurrency(totalPayable)}</span>
                         </div>
                         <div className="flex justify-between">

@@ -19,6 +19,7 @@ export default function OutflowReceiptPage() {
   const withdrawnBags = Number(searchParams.get('withdrawn')) || 0;
   const finalRent = Number(searchParams.get('rent')) || 0;
   const paidNow = Number(searchParams.get('paidNow')) || 0;
+  const discount = Number(searchParams.get('discount')) || 0;
 
   const recordRef = useMemoFirebase(
     () => (firestore && recordId ? doc(firestore, 'storageRecords', recordId) : null),
@@ -54,6 +55,7 @@ export default function OutflowReceiptPage() {
             withdrawnBags={withdrawnBags}
             finalRent={finalRent}
             paidNow={paidNow}
+            discount={discount}
         />
       </div>
     </AppLayout>

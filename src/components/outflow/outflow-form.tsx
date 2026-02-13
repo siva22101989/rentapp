@@ -43,6 +43,7 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
     const [selectedRecordId, setSelectedRecordId] = useState<string>('');
     const [bagsToWithdraw, setBagsToWithdraw] = useState<number | ''>('');
     const [amountPaidNow, setAmountPaidNow] = useState<number | ''>('');
+    const [discount, setDiscount] = useState<number | ''>('');
     const [withdrawalDate, setWithdrawalDate] = useState(new Date());
     
     const [finalRent, setFinalRent] = useState(0);
@@ -52,7 +53,7 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
 
     const filteredRecords = selectedCustomerId ? records.filter(r => r.customerId === selectedCustomerId) : [];
     const selectedRecord = records.find(r => r.id === selectedRecordId);
-    const totalPayable = finalRent + hamaliPending;
+    const totalPayable = finalRent + hamaliPending - (Number(discount) || 0);
 
     useEffect(() => {
         if (selectedRecord) {
@@ -91,6 +92,8 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
         setSelectedCustomerId(customerId);
         setSelectedRecordId('');
         setBagsToWithdraw('');
+        setAmountPaidNow('');
+        setDiscount('');
         setFinalRent(0);
         setStorageMonths(0);
         setRentPerBag({ rentPerBag: 0 });
@@ -128,11 +131,13 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                 const newBagsOut = (selectedRecord.bagsOut || 0) + bags;
                 const bagsRemaining = selectedRecord.bagsIn - newBagsOut;
                 const isFinalWithdrawal = bagsRemaining <= 0;
+                const discountAmount = Number(discount) || 0;
 
                 const newOutflow: Partial<Outflow> = {
                     date: withdrawalDate,
                     bagsWithdrawn: bags,
                     rentBilled: finalRent,
+                    discount: discountAmount,
                 };
 
                 const updateData: any = {
@@ -161,7 +166,7 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
 
                 toast({ title: 'Success', description: 'Withdrawal processed successfully.' });
 
-                router.push(`/outflow/receipt/${selectedRecord.id}?withdrawn=${bags}&rent=${finalRent}&paidNow=${paidNow}`);
+                router.push(`/outflow/receipt/${selectedRecord.id}?withdrawn=${bags}&rent=${finalRent}&paidNow=${paidNow}&discount=${discountAmount}`);
 
             } catch (error) {
                 console.error("Outflow failed:", error);
@@ -280,6 +285,18 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                                      <div className="flex justify-between items-center text-sm">
                                         <span className="text-muted-foreground">Pending Hamali Charges</span>
                                         <span className="font-mono">{formatCurrency(hamaliPending)}</span>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="discount">Discount</Label>
+                                        <Input
+                                            id="discount"
+                                            name="discount"
+                                            type="number"
+                                            placeholder="0.00"
+                                            step="0.01"
+                                            value={discount}
+                                            onChange={e => setDiscount(e.target.value === '' ? '' : Number(e.target.value))}
+                                        />
                                     </div>
                                     <Separator />
                                     <div className="flex justify-between items-center font-semibold text-lg">

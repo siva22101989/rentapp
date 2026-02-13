@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -53,10 +53,9 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer,
     },
   });
 
-  // When the dialog opens, reset the form with the current customer's data.
-  // This ensures the form is always up-to-date and fields are editable.
-  useEffect(() => {
-    if (isOpen) {
+  const handleOpenChange = (open: boolean) => {
+    if (open) {
+      // When the dialog opens, reset the form with the current customer's data.
       form.reset({
         name: customer.name || '',
         phone: customer.phone || '',
@@ -65,7 +64,8 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer,
         village: customer.village || '',
       });
     }
-  }, [isOpen, customer, form.reset]);
+    setIsOpen(open);
+  };
 
   const onSubmit = (data: CustomerFormData) => {
     if (!firestore) {
@@ -86,7 +86,7 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer,
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <Form {...form}>

@@ -103,7 +103,7 @@ export function AddCommodityDialog() {
                   <FormItem>
                     <FormLabel>6-Month Rate (per bag)</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} />
+                      <Input type="number" step="0.01" placeholder="0.00" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -116,7 +116,7 @@ export function AddCommodityDialog() {
                   <FormItem>
                     <FormLabel>1-Year Rate (per bag)</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} />
+                      <Input type="number" step="0.01" placeholder="0.00" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

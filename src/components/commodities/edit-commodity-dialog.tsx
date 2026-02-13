@@ -94,7 +94,7 @@ export function EditCommodityDialog({ commodity, children }: { commodity: Commod
                   <FormItem>
                     <FormLabel>6-Month Rate (per bag)</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" {...field} value={field.value ?? ''} />
+                      <Input type="number" step="0.01" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -107,7 +107,7 @@ export function EditCommodityDialog({ commodity, children }: { commodity: Commod
                   <FormItem>
                     <FormLabel>1-Year Rate (per bag)</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" {...field} value={field.value ?? ''} />
+                      <Input type="number" step="0.01" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

@@ -161,7 +161,7 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Lorry / Tractor No. <span className="text-muted-foreground">(Optional)</span></FormLabel>
-                                <FormControl><Input placeholder="e.g., AP 21 1234" {...field} value={field.value || ''} /></FormControl>
+                                <FormControl><Input placeholder="e.g., AP 21 1234" {...field} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -184,7 +184,7 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Bags Unloaded</FormLabel>
-                                    <FormControl><Input type="number" placeholder="0" {...field} value={field.value ?? ''} /></FormControl>
+                                    <FormControl><Input type="number" placeholder="0" {...field} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -195,7 +195,7 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Hamali per Bag</FormLabel>
-                                    <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} /></FormControl>
+                                    <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useTransition, useState, useMemo } from 'react';
@@ -212,7 +213,7 @@ export function LotsClient() {
                                 <FormItem>
                                     <FormLabel>Capacity (bags)</FormLabel>
                                     <FormControl>
-                                        <Input type="number" placeholder="e.g. 1000" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)} value={field.value ?? ''} />
+                                        <Input type="number" placeholder="e.g. 1000" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -243,9 +244,9 @@ export function LotsClient() {
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <FormField control={rangeAddForm.control} name="start" render={({ field }) => (<FormItem><FormLabel>Start No.</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={rangeAddForm.control} name="end" render={({ field }) => (<FormItem><FormLabel>End No.</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={rangeAddForm.control} name="end" render={({ field }) => (<FormItem><FormLabel>End No.</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
                     </div>
-                     <FormField control={rangeAddForm.control} name="capacity" render={({ field }) => (<FormItem><FormLabel>Capacity (for all)</FormLabel><FormControl><Input type="number" placeholder="e.g. 1000" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem> )} />
+                     <FormField control={rangeAddForm.control} name="capacity" render={({ field }) => (<FormItem><FormLabel>Capacity (for all)</FormLabel><FormControl><Input type="number" placeholder="e.g. 1000" {...field} /></FormControl><FormMessage /></FormItem> )} />
                   </CardContent>
                   <CardFooter>
                     <Button type="submit" disabled={isRangeAdding}>

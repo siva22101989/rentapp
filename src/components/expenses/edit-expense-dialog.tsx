@@ -146,7 +146,7 @@ export function EditExpenseDialog({ expense, children }: { expense: Expense, chi
                   <FormItem>
                     <FormLabel>Amount</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" {...field} value={field.value ?? ''} />
+                      <Input type="number" step="0.01" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

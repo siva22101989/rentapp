@@ -227,7 +227,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Bags for Drying</FormLabel>
-                                <FormControl><Input type="number" placeholder="0" {...field} value={field.value ?? ''} /></FormControl>
+                                <FormControl><Input type="number" placeholder="0" {...field} /></FormControl>
                                 {selectedUnloadingRecord && <FormDescription>Remaining on Bill: {bagsRemainingOnRecord} bags</FormDescription>}
                                 <FormMessage />
                             </FormItem>
@@ -251,7 +251,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                             <FormItem>
                                 <FormLabel>Drying Hamali per Bag (Day 1)</FormLabel>
                                 <FormDescription>This single rate is for both customer charge and worker payment.</FormDescription>
-                                <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} /></FormControl>
+                                <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}

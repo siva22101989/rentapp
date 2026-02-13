@@ -154,8 +154,6 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
                           placeholder="0"
                           disabled={isBilled}
                           {...field}
-                          onChange={(e) => field.onChange(e.target.value === '' ? undefined : +e.target.value)}
-                          value={field.value ?? ''}
                         />
                       </FormControl>
                       <FormMessage />
@@ -201,8 +199,6 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
                         placeholder="0.00" 
                         disabled={isBilled} 
                         {...field}
-                        onChange={(e) => field.onChange(e.target.value === '' ? undefined : +e.target.value)}
-                        value={field.value ?? ''} 
                       />
                     </FormControl>
                     <FormMessage />

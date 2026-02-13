@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { collection, writeBatch, getDocs, doc, setDoc } from 'firebase/firestore';
+import { collection, writeBatch, getDocs, doc } from 'firebase/firestore';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,18 +17,15 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { cleanForFirestore } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 import type { Customer } from '@/lib/definitions';
 
-
-// Collections for full backup/restore
-const ALL_DATA_COLLECTIONS = ['customers', 'storageRecords', 'expenses', 'unloadingRecords', 'dryingRecords', 'commodities', 'lots'];
 // Collections to clear for testing purposes (preserving setup data)
 const TRANSACTIONAL_COLLECTIONS = ['customers', 'storageRecords', 'expenses', 'unloadingRecords', 'dryingRecords'];
-
+// All collections for full backup
+const ALL_DATA_COLLECTIONS = ['customers', 'storageRecords', 'expenses', 'unloadingRecords', 'dryingRecords', 'commodities', 'lots'];
 
 export function SettingsClient() {
   const [isClearingCache, startClearingCacheTransition] = useTransition();
@@ -36,7 +33,7 @@ export function SettingsClient() {
   const [isExporting, startExportingTransition] = useTransition();
   const [isImporting, startImportingTransition] = useTransition();
   
-  const [dataToImport, setDataToImport] = useState<any>(null);
+  const [dataToImport, setDataToImport] = useState<{ customersToCreate: Omit<Customer, 'id'>[], storageRecords: any[] } | null>(null);
   const [isImportAlertOpen, setIsImportAlertOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -89,7 +86,6 @@ export function SettingsClient() {
       const snapshot = await getDocs(collectionRef);
       if (snapshot.empty) continue;
       
-      // Firestore only allows 500 operations per batch
       const batches = [];
       for (let i = 0; i < snapshot.docs.length; i += 500) {
         const batch = writeBatch(firestore);
@@ -141,7 +137,6 @@ export function SettingsClient() {
           data[collectionName] = snapshot.docs.map(d => ({ ...d.data(), id: d.id }));
         }
 
-        // Convert Timestamps to ISO strings for JSON compatibility
         const jsonString = JSON.stringify(data, (key, value) => {
           if (value && value.toDate) {
             return value.toDate().toISOString();
@@ -187,10 +182,9 @@ export function SettingsClient() {
             if (!headerLine) throw new Error('Invalid CSV: Missing header.');
             
             const header = headerLine.split(',').map(h => h.trim());
-
-            const customersMapByName = new Map<string, Customer>();
+            
+            const customersMapByName = new Map<string, Omit<Customer, 'id'>>();
             const storageRecords: any[] = [];
-            let customerIdCounter = 0;
 
             for (const line of lines) {
                 if (!line.trim()) continue;
@@ -200,70 +194,47 @@ export function SettingsClient() {
                     return obj;
                 }, {} as { [key: string]: string });
 
-                // --- Customer Processing ---
                 const customerName = row.customer_name;
                 if (!customerName) {
                     continue; 
                 }
 
                 const customerNameKey = customerName.toLowerCase().trim();
-                let customerId: string;
-
-                if (customersMapByName.has(customerNameKey)) {
-                    customerId = customersMapByName.get(customerNameKey)!.id;
-                } else {
-                    customerId = `import_${Date.now()}_${customerIdCounter++}`;
-                    const newCustomer: Customer = {
-                        id: customerId,
+                
+                if (!customersMapByName.has(customerNameKey)) {
+                    customersMapByName.set(customerNameKey, {
                         name: customerName,
                         phone: row.customer_phone || '',
                         fatherName: row.customer_father_name || '',
                         village: row.customer_village || '',
-                    };
-                    customersMapByName.set(customerNameKey, newCustomer);
+                    });
                 }
                 
-                // --- Storage Record Processing ---
                 const recordId = row.record_id;
                 if (recordId) {
                     const bagsStored = Number(row.bags_in) || 0;
                     storageRecords.push({
-                        id: recordId,
-                        customerId: customerId,
+                        recordId: recordId,
+                        customerName: customerName, // Use name for linking later
                         commodityDescription: row.commodity_description,
                         location: row.location,
                         bagsIn: bagsStored,
-                        bagsOut: 0,
                         bagsStored: bagsStored,
                         storageStartDate: new Date(row.storage_start_date),
-                        storageEndDate: null,
-                        billingCycle: '6-Month Initial',
-                        payments: [],
                         hamaliPayable: Number(row.hamali_payable) || 0,
-                        totalRentBilled: 0,
                         lorryTractorNo: row.lorry_tractor_no,
                         weight: Number(row.weight) || 0,
-                        inflowType: 'Direct',
-                        dryingRecordId: '',
                         khataAmount: Number(row.khata_amount) || 0,
-                        outflows: [],
                     });
                 }
             }
             
-            const customers = Array.from(customersMapByName.values());
+            const customersToCreate = Array.from(customersMapByName.values());
             
-            const finalData = {
-                customers,
+            setDataToImport({
+                customersToCreate,
                 storageRecords,
-                expenses: [],
-                unloadingRecords: [],
-                dryingRecords: [],
-                commodities: [], 
-                lots: [],
-            };
-
-            setDataToImport(finalData);
+            });
             setIsImportAlertOpen(true);
 
         } catch (error: any) {
@@ -279,30 +250,41 @@ export function SettingsClient() {
     
     startImportingTransition(async () => {
       try {
-        // 1. Clear ALL existing data before import
-        await clearData(ALL_DATA_COLLECTIONS);
+        await clearData(TRANSACTIONAL_COLLECTIONS);
 
-        // 2. Import new data
-        for (const collectionName of ALL_DATA_COLLECTIONS) {
-          const items = dataToImport[collectionName];
-          if (items && items.length > 0) {
-            // Firestore batches can hold up to 500 operations.
-            for (let i = 0; i < items.length; i += 500) {
-              const batch = writeBatch(firestore);
-              const chunk = items.slice(i, i + 500);
-              chunk.forEach((item: any) => {
-                const { id, ...data } = item;
-                if (id) {
-                  const docRef = doc(firestore, collectionName, id);
-                  batch.set(docRef, cleanForFirestore(data));
-                }
-              });
-              await batch.commit();
-            }
-          }
+        const batch = writeBatch(firestore);
+        const customerNameIdMap = new Map<string, string>();
+
+        for (const customerData of dataToImport.customersToCreate) {
+            const customerRef = doc(collection(firestore, 'customers'));
+            batch.set(customerRef, cleanForFirestore(customerData));
+            customerNameIdMap.set(customerData.name.toLowerCase().trim(), customerRef.id);
         }
         
-        toast({ title: 'Import Successful', description: 'All data has been replaced with the backup file. Page will reload.' });
+        for (const recordData of dataToImport.storageRecords) {
+            const customerId = customerNameIdMap.get(recordData.customerName.toLowerCase().trim());
+            if (customerId) {
+                 const { recordId, customerName, ...rest } = recordData;
+                 const recordRef = doc(firestore, 'storageRecords', recordId);
+                 const finalRecord = {
+                    ...rest,
+                    customerId: customerId,
+                    bagsOut: 0,
+                    storageEndDate: null,
+                    billingCycle: '6-Month Initial',
+                    payments: [],
+                    totalRentBilled: 0,
+                    inflowType: 'Direct',
+                    dryingRecordId: '',
+                    outflows: [],
+                 };
+                 batch.set(recordRef, cleanForFirestore(finalRecord));
+            }
+        }
+        
+        await batch.commit();
+        
+        toast({ title: 'Import Successful', description: 'Data has been imported. Page will reload.' });
         
         setTimeout(() => {
             window.location.reload();
@@ -327,21 +309,20 @@ export function SettingsClient() {
                  <div>
                     <h4 className="text-sm font-medium mb-2">Step 1: Download Sample Excel File</h4>
                      <p className="text-xs text-muted-foreground px-2 mb-2">
-                        Download the sample file and fill in your customer and storage information using a spreadsheet program.
+                        Download the sample file and fill it with your customer and storage information.
                     </p>
                     <Button asChild size="sm" variant="secondary" className="w-full justify-start">
-                        <Link href="/all-data-template.csv" download="all-data-template.csv">
+                        <Link href="/all-data-template.csv" download>
                             <FileText className="mr-2 h-4 w-4" />
                             Download Sample Excel File (.csv)
                         </Link>
                     </Button>
-                    <p className="text-xs font-bold text-destructive px-2 mt-2">Important: Do not use commas within any field, as it will break the import.</p>
                 </div>
 
                 <Separator />
 
                 <div>
-                    <h4 className="text-sm font-medium mb-2">Step 2: Import & Export</h4>
+                    <h4 className="text-sm font-medium mb-2">Step 2: Import Your File</h4>
                     <div className="space-y-2">
                         <Button onClick={handleImportClick} disabled={isImporting} className="w-full justify-start" variant="outline">
                             {isImporting ? (
@@ -350,14 +331,26 @@ export function SettingsClient() {
                                 <><Upload className="mr-2 h-4 w-4" /> Import from Excel File (.csv)</>
                             )}
                         </Button>
-                        <Button onClick={handleExportData} disabled={isExporting} className="w-full justify-start" variant="outline">
-                            {isExporting ? (
-                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Exporting...</>
-                            ) : (
-                                <><Download className="mr-2 h-4 w-4" /> Export All Data as JSON Backup</>
-                            )}
-                        </Button>
+                        <p className="text-xs text-muted-foreground px-2 mt-2">
+                            This will **overwrite all existing data** (customers, records, etc.) with the content from your file.
+                        </p>
                     </div>
+                </div>
+
+                <Separator />
+                
+                 <div>
+                    <h4 className="text-sm font-medium mb-2">Backup</h4>
+                     <p className="text-xs text-muted-foreground px-2 mb-2">
+                        Export all data from the database into a single JSON file for safekeeping.
+                    </p>
+                    <Button onClick={handleExportData} disabled={isExporting} className="w-full justify-start" variant="outline">
+                        {isExporting ? (
+                            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Exporting...</>
+                        ) : (
+                            <><Download className="mr-2 h-4 w-4" /> Export All Data as JSON</>
+                        )}
+                    </Button>
                 </div>
 
                 <input
@@ -365,7 +358,7 @@ export function SettingsClient() {
                     ref={fileInputRef}
                     onChange={handleFileChange}
                     className="hidden"
-                    accept="text/csv"
+                    accept=".csv"
                 />
             </CardContent>
         </Card>
@@ -440,13 +433,12 @@ export function SettingsClient() {
             </Card>
         </div>
         
-        {/* Import confirmation dialog */}
         <AlertDialog open={isImportAlertOpen} onOpenChange={setIsImportAlertOpen}>
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>Confirm Data Import</AlertDialogTitle>
                     <AlertDialogDescription>
-                        This will **permanently delete all current data** in your database and replace it with the data from the selected backup file. This action cannot be undone.
+                        This will **permanently delete all current data** and replace it with the data from your CSV file. This action cannot be undone. Are you sure you want to continue?
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

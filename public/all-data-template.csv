@@ -1,4 +1,1 @@
 record_id,customer_name,customer_phone,customer_father_name,customer_village,commodity_description,location,bags_in,storage_start_date,hamali_payable,lorry_tractor_no,weight,khata_amount
-1001,John Doe,9876543210,Robert Doe,Anytown,Paddy,A1,150,2024-01-15T12:00:00.000Z,750,AP01AB1234,7500,150
-1002,Jane Smith,8765432109,,Sometown,Maize,B3,200,2024-02-20T12:00:00.000Z,1000,,10000,
-1003,John Doe,9876543210,Robert Doe,Anytown,Groundnut,C2,120,2024-03-10T12:00:00.000Z,600,TS02CD5678,6000,120

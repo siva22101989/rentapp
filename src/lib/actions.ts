@@ -1,3 +1,4 @@
+
 'use server';
 
 import { z } from 'zod';
@@ -26,9 +27,17 @@ export async function getAnomalyDetection(records: StorageRecord[]): Promise<Ano
     const plainRecords = JSON.parse(JSON.stringify(records));
     const result = await detectStorageAnomaliesFlow({ storageRecords: JSON.stringify(plainRecords) });
     return { success: true, anomalies: result.anomalies };
-  } catch (error) {
+  } catch (error: any) {
     console.error("Anomaly detection failed:", error);
-    return { success: false, anomalies: 'An error occurred while analyzing records.' };
+    let errorMessage = 'An error occurred while analyzing records.';
+    if (error.message) {
+      if (error.message.includes('API key not valid')) {
+        errorMessage = 'Analysis failed: The Gemini API key is missing or invalid. Please add it to your .env file.';
+      } else {
+        errorMessage = `Analysis failed: ${error.message}`;
+      }
+    }
+    return { success: false, anomalies: errorMessage };
   }
 }
 

@@ -1,20 +1,11 @@
 'use client';
 
 import { AppLayout } from "@/components/layout/app-layout";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowRight, Users, Warehouse, IndianRupee, FileText, ArrowDownToDot, ArrowUpFromDot, CreditCard, Settings, Wind, ShieldAlert, Wheat, ArrowDownFromLine } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { useCollection } from "@/firebase/firestore/use-collection";
-import { useFirestore } from "@/firebase";
-import { collection } from "firebase/firestore";
-import { useMemoFirebase } from "@/hooks/use-memo-firebase";
-import type { StorageRecord, Expense, UnloadingRecord } from "@/lib/definitions";
-import { useMemo } from "react";
-import { format, subMonths, startOfMonth } from "date-fns";
-import { toDate } from "@/lib/utils";
-import { FinancialSummaryChart } from "@/components/dashboard/financial-summary-chart";
 
 type NavItem = {
   href: string;
@@ -61,88 +52,9 @@ function NavCard({ item }: { item: NavItem }) {
 
 
 export default function DashboardPage() {
-  const firestore = useFirestore();
-
-  const recordsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'storageRecords') : null), [firestore]);
-  const { data: allRecords, loading: loadingRecords } = useCollection<StorageRecord>(recordsQuery);
-
-  const expensesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'expenses') : null), [firestore]);
-  const { data: allExpenses, loading: loadingExpenses } = useCollection<Expense>(expensesQuery);
-
-  const unloadingRecordsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'unloadingRecords') : null), [firestore]);
-  const { data: allUnloadingRecords, loading: loadingUnloading } = useCollection<UnloadingRecord>(unloadingRecordsQuery);
-
-  const financialData = useMemo(() => {
-    if (!allRecords || !allExpenses || !allUnloadingRecords) return [];
-
-    const sixMonthsAgo = startOfMonth(subMonths(new Date(), 5));
-    const monthlyData: { [key: string]: { month: string, income: number, expenses: number } } = {};
-
-    for (let i = 5; i >= 0; i--) {
-        const date = startOfMonth(subMonths(new Date(), i));
-        const monthKey = format(date, 'yyyy-MM');
-        monthlyData[monthKey] = { month: format(date, 'MMM yy'), income: 0, expenses: 0 };
-    }
-
-    allRecords.forEach(r => {
-        (r.payments || []).forEach(p => {
-            const paymentDate = toDate(p.date);
-            if (paymentDate >= sixMonthsAgo) {
-                const monthKey = format(paymentDate, 'yyyy-MM');
-                if (monthlyData[monthKey]) {
-                    monthlyData[monthKey].income += p.amount;
-                }
-            }
-        });
-    });
-    
-    allUnloadingRecords.forEach(ur => {
-        (ur.payments || []).forEach(p => {
-             const paymentDate = toDate(p.date);
-            if (paymentDate >= sixMonthsAgo) {
-                const monthKey = format(paymentDate, 'yyyy-MM');
-                if (monthlyData[monthKey]) {
-                    monthlyData[monthKey].income += p.amount;
-                }
-            }
-        });
-    });
-
-    allExpenses.forEach(e => {
-        const expenseDate = toDate(e.date);
-        if (expenseDate >= sixMonthsAgo) {
-            const monthKey = format(expenseDate, 'yyyy-MM');
-            if (monthlyData[monthKey]) {
-                monthlyData[monthKey].expenses += e.amount;
-            }
-        }
-    });
-
-    return Object.values(monthlyData);
-
-  }, [allRecords, allExpenses, allUnloadingRecords]);
-  
-  const isLoading = loadingRecords || loadingExpenses || loadingUnloading;
-
   return (
     <AppLayout>
       <div className="space-y-8">
-        <Card>
-            <CardHeader>
-                <CardTitle>Financial Overview</CardTitle>
-                <CardDescription>Income vs. Expenses for the last 6 months.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                {isLoading ? (
-                    <div className="h-[350px] w-full flex items-center justify-center bg-muted/50 rounded-lg">
-                        <p className="text-muted-foreground animate-pulse">Loading Chart Data...</p>
-                    </div>
-                ) : (
-                     <FinancialSummaryChart data={financialData} />
-                )}
-            </CardContent>
-        </Card>
-        
         <div>
           <h2 className="text-2xl font-bold tracking-tight font-headline mb-4">Management Sections</h2>
           <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">

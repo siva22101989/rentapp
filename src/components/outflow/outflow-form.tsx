@@ -16,7 +16,7 @@ import { Loader2 } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { calculateFinalRent } from '@/lib/billing';
 import { format } from 'date-fns';
-import { toDate, cleanForFirestore } from '@/lib/utils';
+import { toDate, cleanForFirestore, formatCurrency } from '@/lib/utils';
 
 function SubmitButton({ isPending }: { isPending: boolean }) {
     return (
@@ -205,7 +205,7 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                                 <SelectContent>
                                     {filteredRecords.length > 0 ? filteredRecords.map(record => (
                                         <SelectItem key={record.id} value={record.id}>
-                                            {record.id} - ({record.commodityDescription})
+                                            Bill No: {record.id} - {record.commodityDescription} ({record.bagsStored} bags)
                                         </SelectItem>
                                     )) : (
                                         <SelectItem value="none" disabled>No active records for this customer</SelectItem>
@@ -218,24 +218,40 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
 
                     {selectedRecord && (
                         <>
-                             <div className="text-sm text-muted-foreground p-2 bg-secondary/50 rounded-md">
-                                Inflow Date: <span className="font-medium text-foreground">{format(toDate(selectedRecord.storageStartDate), 'dd MMM yyyy')}</span>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <Card className="bg-secondary/30 border-secondary">
+                                <CardHeader className="p-4 pb-2">
+                                    <CardTitle className="text-base">Record Summary</CardTitle>
+                                    <CardDescription>Bill No: {selectedRecord.id}</CardDescription>
+                                </CardHeader>
+                                <CardContent className="p-4 pt-0 text-sm">
+                                    <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                                        <div className="font-medium">Inflow Date:</div>
+                                        <div>{format(toDate(selectedRecord.storageStartDate), 'dd MMM yyyy')}</div>
+
+                                        <div className="font-medium">Total Bags In:</div>
+                                        <div>{selectedRecord.bagsIn}</div>
+
+                                        <div className="font-medium">Bags Withdrawn:</div>
+                                        <div>{selectedRecord.bagsOut || 0}</div>
+                                        
+                                        <div className="font-medium text-primary">Balance Bags:</div>
+                                        <div className="font-bold text-primary">{selectedRecord.bagsStored}</div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                 <div className="space-y-2">
                                     <Label htmlFor="bagsToWithdraw">Bags to Withdraw</Label>
                                     <Input 
                                         id="bagsToWithdraw" 
                                         name="bagsToWithdraw" 
                                         type="number" 
-                                        placeholder="0"
+                                        placeholder={`Enter amount (max ${selectedRecord.bagsStored})`}
                                         required 
                                         value={bagsToWithdraw}
                                         onChange={e => setBagsToWithdraw(e.target.value === '' ? '' : Number(e.target.value))}
                                     />
-                                    <p className="text-xs text-muted-foreground">
-                                        Max: {selectedRecord.bagsStored} bags
-                                    </p>
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="withdrawalDate">Withdrawal Date</Label>
@@ -259,16 +275,16 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                                     </div>
                                     <div className="flex justify-between items-center text-sm">
                                         <span className="text-muted-foreground">Rent Due for {Number(bagsToWithdraw) || 0} bags</span>
-                                        <span className="font-mono">₹{finalRent.toFixed(2)}</span>
+                                        <span className="font-mono">{formatCurrency(finalRent)}</span>
                                     </div>
                                      <div className="flex justify-between items-center text-sm">
                                         <span className="text-muted-foreground">Pending Hamali Charges</span>
-                                        <span className="font-mono">₹{hamaliPending.toFixed(2)}</span>
+                                        <span className="font-mono">{formatCurrency(hamaliPending)}</span>
                                     </div>
                                     <Separator />
                                     <div className="flex justify-between items-center font-semibold text-lg">
                                         <span className="text-foreground">Total Payable</span>
-                                        <span className="font-mono">₹{totalPayable.toFixed(2)}</span>
+                                        <span className="font-mono">{formatCurrency(totalPayable)}</span>
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="amountPaidNow">Total Paid Now</Label>

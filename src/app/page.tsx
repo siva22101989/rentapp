@@ -1,4 +1,3 @@
-
 'use client';
 
 import { AppLayout } from "@/components/layout/app-layout";
@@ -58,7 +57,6 @@ export default function DashboardPage() {
         <h1 className="text-2xl font-bold tracking-tight font-headline">Welcome to BagBill</h1>
 
         <div className="mt-8">
-          <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
           <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {navItems.map((item) => (
               <NavCard key={item.href} item={item} />

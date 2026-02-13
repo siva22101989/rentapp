@@ -43,7 +43,6 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer,
 
   const form = useForm<CustomerFormData>({
     resolver: zodResolver(CustomerSchema),
-    // Default values will be set by the useEffect when the dialog opens
     defaultValues: {
       name: '',
       phone: '',
@@ -54,7 +53,7 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer,
   });
 
   // When the dialog opens, reset the form with the current customer's data.
-  // This ensures the form is always up-to-date, even if the component instance is reused.
+  // This ensures the form is always up-to-date and fields are editable.
   useEffect(() => {
     if (isOpen) {
       form.reset({
@@ -65,7 +64,7 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer,
         village: customer.village || '',
       });
     }
-  }, [isOpen, customer, form]);
+  }, [isOpen, customer, form.reset]);
 
   const onSubmit = (data: CustomerFormData) => {
     if (!firestore) {
@@ -105,7 +104,7 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer,
                   <FormItem>
                     <FormLabel>Name</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input placeholder="Customer's full name" {...field} value={field.value ?? ''} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -118,7 +117,7 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer,
                   <FormItem>
                     <FormLabel>Father's Name</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input placeholder="Father's name (optional)" {...field} value={field.value ?? ''} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -131,7 +130,7 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer,
                   <FormItem>
                     <FormLabel>Village</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input placeholder="Village (optional)" {...field} value={field.value ?? ''} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -144,7 +143,7 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer,
                   <FormItem>
                     <FormLabel>Phone</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input placeholder="10-digit phone number" {...field} value={field.value ?? ''} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -157,7 +156,7 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer,
                   <FormItem>
                     <FormLabel>Email (Optional)</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input placeholder="example@email.com" {...field} value={field.value ?? ''} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

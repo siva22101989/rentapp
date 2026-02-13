@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
@@ -15,7 +14,6 @@ import {
   DialogClose,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import type { Customer } from '@/lib/definitions';
 import { useFirestore } from '@/firebase';
@@ -45,14 +43,29 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer,
 
   const form = useForm<CustomerFormData>({
     resolver: zodResolver(CustomerSchema),
+    // Default values will be set by the useEffect when the dialog opens
     defaultValues: {
-      name: customer.name || '',
-      phone: customer.phone || '',
-      email: customer.email || '',
-      fatherName: customer.fatherName || '',
-      village: customer.village || '',
+      name: '',
+      phone: '',
+      email: '',
+      fatherName: '',
+      village: '',
     },
   });
+
+  // When the dialog opens, reset the form with the current customer's data.
+  // This ensures the form is always up-to-date, even if the component instance is reused.
+  useEffect(() => {
+    if (isOpen) {
+      form.reset({
+        name: customer.name || '',
+        phone: customer.phone || '',
+        email: customer.email || '',
+        fatherName: customer.fatherName || '',
+        village: customer.village || '',
+      });
+    }
+  }, [isOpen, customer, form]);
 
   const onSubmit = (data: CustomerFormData) => {
     if (!firestore) {
@@ -105,7 +118,7 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer,
                   <FormItem>
                     <FormLabel>Father's Name</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input {...field} value={field.value ?? ''}/>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -118,7 +131,7 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer,
                   <FormItem>
                     <FormLabel>Village</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input {...field} value={field.value ?? ''}/>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -144,7 +157,7 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer,
                   <FormItem>
                     <FormLabel>Email (Optional)</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input {...field} value={field.value ?? ''} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

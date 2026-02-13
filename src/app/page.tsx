@@ -56,7 +56,6 @@ export default function DashboardPage() {
     <AppLayout>
       <div>
         <h1 className="text-2xl font-bold tracking-tight font-headline">Welcome to BagBill</h1>
-        <p className="mt-1 text-muted-foreground">Your central hub for managing warehouse storage and billing.</p>
 
         <div className="mt-8">
           <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>

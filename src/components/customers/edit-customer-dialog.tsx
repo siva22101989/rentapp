@@ -118,7 +118,7 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer,
                   <FormItem>
                     <FormLabel>Father's Name</FormLabel>
                     <FormControl>
-                      <Input {...field} value={field.value ?? ''}/>
+                      <Input {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -131,7 +131,7 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer,
                   <FormItem>
                     <FormLabel>Village</FormLabel>
                     <FormControl>
-                      <Input {...field} value={field.value ?? ''}/>
+                      <Input {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -157,7 +157,7 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer,
                   <FormItem>
                     <FormLabel>Email (Optional)</FormLabel>
                     <FormControl>
-                      <Input {...field} value={field.value ?? ''} />
+                      <Input {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

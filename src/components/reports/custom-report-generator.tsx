@@ -38,7 +38,7 @@ type ReportGeneratorProps = {
 }
 
 export function CustomReportGenerator({ records, customers, unloadingRecords, expenses, dryingRecords }: ReportGeneratorProps) {
-    const [selectedReport, setSelectedReport] = useState<string>('payment-register');
+    const [selectedReport, setSelectedReport] = useState<string>('hamali-register');
 
     const renderReport = () => {
         switch (selectedReport) {

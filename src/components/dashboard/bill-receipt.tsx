@@ -4,7 +4,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import type { Customer, StorageRecord } from '@/lib/definitions';
+import type { Customer, StorageRecord, WarehouseInfo } from '@/lib/definitions';
 import { format } from 'date-fns';
 import { getRecordStatus, type RecordStatusInfo } from '@/lib/billing';
 import { formatCurrency, toDate } from '@/lib/utils';
@@ -13,10 +13,11 @@ import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, Table
 type BillReceiptProps = {
   record: StorageRecord;
   customer: Customer;
+  warehouseInfo: WarehouseInfo | null;
 };
 
 export const BillReceipt = React.forwardRef<HTMLDivElement, BillReceiptProps>(
-  ({ record, customer }, ref) => {
+  ({ record, customer, warehouseInfo }, ref) => {
     const [statusInfo, setStatusInfo] = useState<RecordStatusInfo | null>(null);
     const [formattedBillDate, setFormattedBillDate] = useState('');
     const [paymentInfo, setPaymentInfo] = useState({ paid: 0, balance: 0 });
@@ -46,8 +47,8 @@ export const BillReceipt = React.forwardRef<HTMLDivElement, BillReceiptProps>(
         <div ref={ref} className="printable-area bg-white p-4">
             <Card className="w-full shadow-none border-0">
                 <CardHeader className="text-center">
-                    <CardTitle className="text-2xl">SRI LAKSHMI WAREHOUSE</CardTitle>
-                    <p className='text-sm text-muted-foreground'>MOBILE NO 9160606633</p>
+                    <CardTitle className="text-2xl">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</CardTitle>
+                    <p className='text-sm text-muted-foreground'>{warehouseInfo?.phone || 'MOBILE NO 9160606633'}</p>
                     <CardDescription>Billing Statement</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">

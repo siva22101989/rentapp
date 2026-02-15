@@ -5,7 +5,7 @@ import { useRef, useState, useEffect } from 'react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Separator } from '@/components/ui/separator';
-import type { Customer, StorageRecord } from '@/lib/definitions';
+import type { Customer, StorageRecord, WarehouseInfo } from '@/lib/definitions';
 import { format, differenceInDays, differenceInMonths } from 'date-fns';
 import { Button } from '../ui/button';
 import { Download, Loader2 } from 'lucide-react';
@@ -17,13 +17,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 type OutflowReceiptProps = {
   record: StorageRecord;
   customer: Customer;
+  warehouseInfo: WarehouseInfo | null;
   withdrawnBags: number;
   finalRent: number;
   paidNow: number;
   discount: number;
 };
 
-export function OutflowReceipt({ record, customer, withdrawnBags, finalRent, paidNow, discount }: OutflowReceiptProps) {
+export function OutflowReceipt({ record, customer, warehouseInfo, withdrawnBags, finalRent, paidNow, discount }: OutflowReceiptProps) {
     const receiptRef = useRef<HTMLDivElement>(null);
     const [formattedStartDate, setFormattedStartDate] = useState('');
     const [formattedEndDate, setFormattedEndDate] = useState('');
@@ -115,9 +116,9 @@ export function OutflowReceipt({ record, customer, withdrawnBags, finalRent, pai
                 {/* Header */}
                 <div className="flex justify-between items-start mb-8">
                     <div>
-                        <h1 className="text-2xl font-bold text-primary">Srilakshmi Warehouse</h1>
-                        <p className="text-sm text-muted-foreground">Your Company Address, City, State, ZIP</p>
-                        <p className="text-sm text-muted-foreground">contact@yourwarehouse.com | (123) 456-7890</p>
+                        <h1 className="text-2xl font-bold text-primary">{warehouseInfo?.name || 'Srilakshmi Warehouse'}</h1>
+                        <p className="text-sm text-muted-foreground">{warehouseInfo?.addressLine1}</p>
+                        <p className="text-sm text-muted-foreground">{warehouseInfo?.phone}</p>
                     </div>
                     <div className="text-right">
                         <h2 className="text-xl font-semibold uppercase text-muted-foreground">Outflow Bill</h2>

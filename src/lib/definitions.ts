@@ -113,3 +113,11 @@ export type DryingRecord = {
     hamaliCharges: HamaliCharge[];
     totalDryingHamali: number;
 };
+
+export type WarehouseInfo = {
+    id: string;
+    name?: string;
+    phone?: string;
+    addressLine1?: string;
+    addressLine2?: string;
+}

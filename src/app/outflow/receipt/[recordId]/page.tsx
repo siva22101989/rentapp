@@ -4,7 +4,7 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
 import { OutflowReceipt } from "@/components/outflow/outflow-receipt";
 import { notFound, useParams, useSearchParams } from "next/navigation";
-import type { Customer, StorageRecord } from "@/lib/definitions";
+import type { Customer, StorageRecord, WarehouseInfo } from "@/lib/definitions";
 import { useDoc } from "@/firebase/firestore/use-doc";
 import { useFirestore } from "@/firebase";
 import { doc } from "firebase/firestore";
@@ -33,8 +33,14 @@ export default function OutflowReceiptPage() {
   );
   const { data: customer, loading: loadingCustomer } = useDoc<Customer>(customerRef);
 
+  const warehouseInfoRef = useMemoFirebase(
+    () => (firestore ? doc(firestore, 'settings', 'main') : null),
+    [firestore]
+  );
+  const { data: warehouseInfo, loading: loadingWarehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
-  if (loadingRecord || loadingCustomer) {
+
+  if (loadingRecord || loadingCustomer || loadingWarehouseInfo) {
     return <AppLayout><div>Loading...</div></AppLayout>;
   }
 
@@ -52,6 +58,7 @@ export default function OutflowReceiptPage() {
         <OutflowReceipt 
             record={record} 
             customer={customer}
+            warehouseInfo={warehouseInfo}
             withdrawnBags={withdrawnBags}
             finalRent={finalRent}
             paidNow={paidNow}

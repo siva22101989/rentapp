@@ -6,14 +6,14 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import type { Customer, UnloadingRecord } from '@/lib/definitions';
+import type { Customer, UnloadingRecord, WarehouseInfo } from '@/lib/definitions';
 import { format } from 'date-fns';
 import { Button } from '../ui/button';
 import { Download, Loader2 } from 'lucide-react';
 import { toDate, formatCurrency } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '../ui/table';
 
-export function UnloadingReceipt({ record, customer }: { record: UnloadingRecord, customer: Customer }) {
+export function UnloadingReceipt({ record, customer, warehouseInfo }: { record: UnloadingRecord, customer: Customer, warehouseInfo: WarehouseInfo | null }) {
     const receiptRef = useRef<HTMLDivElement>(null);
     const [formattedDate, setFormattedDate] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
@@ -73,8 +73,8 @@ export function UnloadingReceipt({ record, customer }: { record: UnloadingRecord
             <div ref={receiptRef} className="printable-area bg-white p-6 border border-primary">
                 <Card className="w-full shadow-none border-0">
                     <CardHeader className="text-center">
-                        <CardTitle className="text-2xl">SRI LAKSHMI WAREHOUSE</CardTitle>
-                        <p className='text-sm text-muted-foreground'>MOBILE NO 9160606633</p>
+                        <CardTitle className="text-2xl">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</CardTitle>
+                        <p className='text-sm text-muted-foreground'>{warehouseInfo?.phone || 'MOBILE NO 9160606633'}</p>
                         <CardDescription>Unloading Bill</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">

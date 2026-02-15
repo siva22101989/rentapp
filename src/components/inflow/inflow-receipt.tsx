@@ -1,16 +1,17 @@
+
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Separator } from '@/components/ui/separator';
-import type { Customer, StorageRecord } from '@/lib/definitions';
+import type { Customer, StorageRecord, WarehouseInfo } from '@/lib/definitions';
 import { format } from 'date-fns';
 import { Button } from '../ui/button';
 import { Download, Loader2 } from 'lucide-react';
 import { toDate } from '@/lib/utils';
 
-export function InflowReceipt({ record, customer }: { record: StorageRecord, customer: Customer }) {
+export function InflowReceipt({ record, customer, warehouseInfo }: { record: StorageRecord, customer: Customer, warehouseInfo: WarehouseInfo | null }) {
     const receiptRef = useRef<HTMLDivElement>(null);
     const [formattedDate, setFormattedDate] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
@@ -77,10 +78,10 @@ export function InflowReceipt({ record, customer }: { record: StorageRecord, cus
         <div className="w-full max-w-2xl mx-auto bg-background p-4 sm:p-6">
             <div ref={receiptRef} className="printable-area bg-white p-6 border-2 border-blue-800 font-sans text-sm" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
                 <div className="text-center mb-4">
-                    <div className="text-xs">Cell: 9703503423, 9160606633</div>
-                    <h1 className="text-2xl font-bold text-blue-900">SRI LAKSHMI WAREHOUSE</h1>
-                    <p className="text-xs">Survey No. 165,237/2, Owk - Koilakuntla Road, OWK - 518 122,</p>
-                    <p className="text-xs">Owk (M), Kurnool (Dt.), A.P.</p>
+                    <div className="text-xs">Cell: {warehouseInfo?.phone || '9703503423, 9160606633'}</div>
+                    <h1 className="text-2xl font-bold text-blue-900">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</h1>
+                    <p className="text-xs">{warehouseInfo?.addressLine1 || 'Survey No. 165,237/2, Owk - Koilakuntla Road, OWK - 518 122,'}</p>
+                    <p className="text-xs">{warehouseInfo?.addressLine2 || 'Owk (M), Kurnool (Dt.), A.P.'}</p>
                 </div>
                 
                 <div className="flex justify-between items-center mb-2">

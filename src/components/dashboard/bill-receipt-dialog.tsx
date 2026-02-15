@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useMemo } from 'react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import {
@@ -15,7 +15,11 @@ import {
 import { Button } from '../ui/button';
 import { Download, Loader2 } from 'lucide-react';
 import { BillReceipt } from './bill-receipt';
-import type { Customer, StorageRecord } from '@/lib/definitions';
+import type { Customer, StorageRecord, WarehouseInfo } from '@/lib/definitions';
+import { useDoc } from '@/firebase/firestore/use-doc';
+import { useFirestore } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 
 export function BillReceiptDialog({
   record,
@@ -29,6 +33,14 @@ export function BillReceiptDialog({
   const [isOpen, setIsOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const receiptRef = useRef<HTMLDivElement>(null);
+  const firestore = useFirestore();
+
+  const warehouseInfoRef = useMemoFirebase(
+    () => (firestore ? doc(firestore, 'settings', 'main') : null),
+    [firestore]
+  );
+  const { data: warehouseInfo, loading: loadingWarehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
+
 
   const handleDownloadPdf = async () => {
     const element = receiptRef.current;
@@ -78,7 +90,9 @@ export function BillReceiptDialog({
           <DialogTitle>Billing Statement</DialogTitle>
         </DialogHeader>
         <div className="max-h-[70vh] overflow-y-auto p-2">
-            <BillReceipt ref={receiptRef} record={record} customer={customer} />
+            {loadingWarehouseInfo ? <div>Loading...</div> : (
+              <BillReceipt ref={receiptRef} record={record} customer={customer} warehouseInfo={warehouseInfo} />
+            )}
         </div>
         <DialogFooter className="sm:justify-end">
           <Button onClick={handleDownloadPdf} disabled={isGenerating}>

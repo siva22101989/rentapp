@@ -2,7 +2,7 @@
 'use client';
 
 import { useMemo, forwardRef } from 'react';
-import type { Customer, StorageRecord, UnloadingRecord } from '@/lib/definitions';
+import type { Customer, StorageRecord, UnloadingRecord, WarehouseInfo } from '@/lib/definitions';
 import { formatCurrency, toDate } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '../ui/table';
 import { format } from 'date-fns';
@@ -11,9 +11,10 @@ type CustomerStatementProps = {
   customer: Customer;
   records: StorageRecord[];
   unloadingRecords: UnloadingRecord[];
+  warehouseInfo: WarehouseInfo | null;
 };
 
-export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementProps>(({ customer, records, unloadingRecords }, ref) => {
+export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementProps>(({ customer, records, unloadingRecords, warehouseInfo }, ref) => {
 
   const { lineItems, summary } = useMemo(() => {
     const events: any[] = [];
@@ -166,15 +167,15 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         {/* Header */}
         <header className="flex justify-between items-start mb-8">
             <div className="flex flex-col">
-                <h1 className="text-2xl font-bold">SRI LAKSHMI WAREHOUSE</h1>
+                <h1 className="text-2xl font-bold">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</h1>
                 <p>Accounting Software</p>
             </div>
             <div className="text-right">
-                <p>PO BOX 123</p>
-                <p>OWK, KURNOOL, ANDHRA PRADESH</p>
+                <p>{warehouseInfo?.addressLine1}</p>
+                <p>{warehouseInfo?.addressLine2}</p>
                 <p>accounts@slwarehouse.com</p>
                 <p>www.slwarehouse.com</p>
-                <p>Phone: 9160606633</p>
+                <p>Phone: {warehouseInfo?.phone}</p>
             </div>
         </header>
 

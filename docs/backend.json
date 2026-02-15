@@ -317,6 +317,30 @@
         "hamaliPerBag",
         "totalDryingHamali"
       ]
+    },
+    "warehouseInfo": {
+      "title": "Warehouse Info",
+      "description": "General information about the warehouse.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the warehouse."
+        },
+        "phone": {
+          "type": "string",
+          "description": "Primary contact phone number."
+        },
+        "addressLine1": {
+          "type": "string",
+          "description": "Address Line 1."
+        },
+        "addressLine2": {
+          "type": "string",
+          "description": "Address Line 2 (e.g., City, State, ZIP)."
+        }
+      },
+      "required": ["name"]
     }
   },
   "auth": {
@@ -350,6 +374,10 @@
     "/dryingRecords/{dryingId}": {
       "schema": "dryingRecord",
       "description": "Stores records of the drying process."
+    },
+    "/settings/{settingId}": {
+      "schema": "warehouseInfo",
+      "description": "Stores application settings, like warehouse details."
     }
   }
 }

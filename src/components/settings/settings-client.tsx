@@ -18,11 +18,11 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { cleanForFirestore } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 import type { Customer } from '@/lib/definitions';
+import { WarehouseInfoForm } from './warehouse-info-form';
 
 // Collections to clear for testing purposes (preserving setup data)
 const TRANSACTIONAL_COLLECTIONS = ['customers', 'storageRecords', 'expenses', 'unloadingRecords', 'dryingRecords'];
@@ -300,72 +300,74 @@ export function SettingsClient() {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-        <Card className="w-full max-w-md mx-auto">
-            <CardHeader>
-                <CardTitle>Data Management</CardTitle>
-                <CardDescription>
-                    Import data from an Excel file (CSV) or export all current data to a JSON backup.
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                 <div>
-                    <h4 className="text-sm font-medium mb-2">Step 1: Download Sample Excel File</h4>
-                     <p className="text-xs text-muted-foreground px-2 mb-2">
-                        Download the sample file and fill it with your customer and storage information.
-                    </p>
-                    <Button asChild size="sm" variant="secondary" className="w-full justify-start">
-                        <Link href="/all-data-template.csv" download>
-                            <FileText className="mr-2 h-4 w-4" />
-                            Download Sample Excel File (.csv)
-                        </Link>
-                    </Button>
-                </div>
-
-                <Separator />
-
-                <div>
-                    <h4 className="text-sm font-medium mb-2">Step 2: Import Your File</h4>
-                    <div className="space-y-2">
-                        <Button onClick={handleImportClick} disabled={isImporting} className="w-full justify-start" variant="outline">
-                            {isImporting ? (
-                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Importing...</>
-                            ) : (
-                                <><Upload className="mr-2 h-4 w-4" /> Import from Excel File (.csv)</>
-                            )}
-                        </Button>
-                        <p className="text-xs text-muted-foreground px-2 mt-2">
-                            This will **overwrite all existing data** (customers, records, etc.) with the content from your file.
-                        </p>
-                    </div>
-                </div>
-
-                <Separator />
-                
-                 <div>
-                    <h4 className="text-sm font-medium mb-2">Backup</h4>
-                     <p className="text-xs text-muted-foreground px-2 mb-2">
-                        Export all data from the database into a single JSON file for safekeeping.
-                    </p>
-                    <Button onClick={handleExportData} disabled={isExporting} className="w-full justify-start" variant="outline">
-                        {isExporting ? (
-                            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Exporting...</>
-                        ) : (
-                            <><Download className="mr-2 h-4 w-4" /> Export All Data as JSON</>
-                        )}
-                    </Button>
-                </div>
-
-                <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileChange}
-                    className="hidden"
-                    accept=".csv"
-                />
-            </CardContent>
-        </Card>
+        <WarehouseInfoForm />
         
         <div className="space-y-8 w-full max-w-md mx-auto">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Data Management</CardTitle>
+                    <CardDescription>
+                        Import data from an Excel file (CSV) or export all current data to a JSON backup.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div>
+                        <h4 className="text-sm font-medium mb-2">Step 1: Download Sample Excel File</h4>
+                        <p className="text-xs text-muted-foreground px-2 mb-2">
+                            Download the sample file and fill it with your customer and storage information.
+                        </p>
+                        <Button asChild size="sm" variant="secondary" className="w-full justify-start">
+                            <Link href="/all-data-template.csv" download>
+                                <FileText className="mr-2 h-4 w-4" />
+                                Download Sample Excel File (.csv)
+                            </Link>
+                        </Button>
+                    </div>
+
+                    <Separator />
+
+                    <div>
+                        <h4 className="text-sm font-medium mb-2">Step 2: Import Your File</h4>
+                        <div className="space-y-2">
+                            <Button onClick={handleImportClick} disabled={isImporting} className="w-full justify-start" variant="outline">
+                                {isImporting ? (
+                                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Importing...</>
+                                ) : (
+                                    <><Upload className="mr-2 h-4 w-4" /> Import from Excel File (.csv)</>
+                                )}
+                            </Button>
+                            <p className="text-xs text-muted-foreground px-2 mt-2">
+                                This will **overwrite all existing data** (customers, records, etc.) with the content from your file.
+                            </p>
+                        </div>
+                    </div>
+
+                    <Separator />
+                    
+                    <div>
+                        <h4 className="text-sm font-medium mb-2">Backup</h4>
+                        <p className="text-xs text-muted-foreground px-2 mb-2">
+                            Export all data from the database into a single JSON file for safekeeping.
+                        </p>
+                        <Button onClick={handleExportData} disabled={isExporting} className="w-full justify-start" variant="outline">
+                            {isExporting ? (
+                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Exporting...</>
+                            ) : (
+                                <><Download className="mr-2 h-4 w-4" /> Export All Data as JSON</>
+                            )}
+                        </Button>
+                    </div>
+
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileChange}
+                        className="hidden"
+                        accept=".csv"
+                    />
+                </CardContent>
+            </Card>
+
             <Card className="w-full border-orange-500/50">
                 <CardHeader>
                     <CardTitle className="text-orange-600">Clear Local Data</CardTitle>

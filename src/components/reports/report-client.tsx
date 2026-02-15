@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import type { Customer, StorageRecord, UnloadingRecord } from "@/lib/definitions";
+import type { Customer, StorageRecord, UnloadingRecord, WarehouseInfo } from "@/lib/definitions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from '@/components/ui/button';
@@ -10,16 +10,27 @@ import { Download, Loader2, UserSearch } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { CustomerStatement } from './customer-statement';
+import { useDoc } from '@/firebase/firestore/use-doc';
+import { useFirestore } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 
 export function ReportClient({ records, customers, unloadingRecords }: { records: StorageRecord[], customers: Customer[], unloadingRecords: UnloadingRecord[] }) {
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
     const [isGenerating, setIsGenerating] = useState(false);
+    const firestore = useFirestore();
     
     const statementReportRef = useRef<HTMLDivElement>(null);
 
     const statementCustomer = customers.find(c => c.id === selectedCustomerId);
     const statementRecords = records.filter(r => r.customerId === selectedCustomerId);
     const statementUnloadingRecords = unloadingRecords.filter(r => r.customerId === selectedCustomerId);
+
+    const warehouseInfoRef = useMemoFirebase(
+      () => (firestore ? doc(firestore, 'settings', 'main') : null),
+      [firestore]
+    );
+    const { data: warehouseInfo, loading: loadingWarehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
     const handleDownloadPdf = async () => {
         const element = statementReportRef.current;
@@ -92,9 +103,15 @@ export function ReportClient({ records, customers, unloadingRecords }: { records
                 </div>
             </CardHeader>
             <CardContent>
-                {statementCustomer ? (
+                {loadingWarehouseInfo && <p>Loading statement...</p>}
+                {!loadingWarehouseInfo && statementCustomer ? (
                     <div ref={statementReportRef}>
-                        <CustomerStatement customer={statementCustomer} records={statementRecords} unloadingRecords={statementUnloadingRecords} />
+                        <CustomerStatement 
+                          customer={statementCustomer} 
+                          records={statementRecords} 
+                          unloadingRecords={statementUnloadingRecords} 
+                          warehouseInfo={warehouseInfo}
+                        />
                     </div>
                 ) : (
                     <div className="text-center text-muted-foreground py-16">

@@ -4,7 +4,7 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
 import { UnloadingReceipt } from "@/components/unloading/unloading-receipt";
 import { notFound, useParams } from "next/navigation";
-import type { Customer, UnloadingRecord } from "@/lib/definitions";
+import type { Customer, UnloadingRecord, WarehouseInfo } from "@/lib/definitions";
 import { useDoc } from "@/firebase/firestore/use-doc";
 import { useFirestore } from "@/firebase";
 import { doc } from "firebase/firestore";
@@ -27,7 +27,14 @@ export default function UnloadingReceiptPage() {
   );
   const { data: customer, loading: loadingCustomer } = useDoc<Customer>(customerRef);
 
-  if (loadingRecord || loadingCustomer) {
+  const warehouseInfoRef = useMemoFirebase(
+    () => (firestore ? doc(firestore, 'settings', 'main') : null),
+    [firestore]
+  );
+  const { data: warehouseInfo, loading: loadingWarehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
+
+
+  if (loadingRecord || loadingCustomer || loadingWarehouseInfo) {
     return <AppLayout><div>Loading...</div></AppLayout>;
   }
 
@@ -42,7 +49,7 @@ export default function UnloadingReceiptPage() {
         description={`Details for Unloading Bill No. ${record.billNo}`}
       />
       <div className="flex justify-center">
-        <UnloadingReceipt record={record} customer={customer} />
+        <UnloadingReceipt record={record} customer={customer} warehouseInfo={warehouseInfo} />
       </div>
     </AppLayout>
   );

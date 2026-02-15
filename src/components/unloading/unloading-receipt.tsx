@@ -74,6 +74,7 @@ export function UnloadingReceipt({ record, customer, warehouseInfo }: { record: 
                 <Card className="w-full shadow-none border-0">
                     <CardHeader className="text-center">
                         <CardTitle className="text-2xl">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</CardTitle>
+                        {warehouseInfo?.ownerName && <p className="text-sm text-muted-foreground">Prop: {warehouseInfo.ownerName}</p>}
                         <p className='text-sm text-muted-foreground'>{warehouseInfo?.phone || 'MOBILE NO 9160606633'}</p>
                         <CardDescription>Unloading Bill</CardDescription>
                     </CardHeader>

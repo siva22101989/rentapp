@@ -48,6 +48,7 @@ export const BillReceipt = React.forwardRef<HTMLDivElement, BillReceiptProps>(
             <Card className="w-full shadow-none border-0">
                 <CardHeader className="text-center">
                     <CardTitle className="text-2xl">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</CardTitle>
+                    {warehouseInfo?.ownerName && <p className="text-sm text-muted-foreground">Prop: {warehouseInfo.ownerName}</p>}
                     <p className='text-sm text-muted-foreground'>{warehouseInfo?.phone || 'MOBILE NO 9160606633'}</p>
                     <CardDescription>Billing Statement</CardDescription>
                 </CardHeader>
@@ -135,6 +136,12 @@ export const BillReceipt = React.forwardRef<HTMLDivElement, BillReceiptProps>(
                     </div>
 
                     <div className="text-xs text-muted-foreground space-y-2 pt-6">
+                        {warehouseInfo?.bankDetails && (
+                            <p className="mb-4">
+                                <strong>Bank Details for Payment:</strong><br />
+                                <span className="whitespace-pre-wrap">{warehouseInfo.bankDetails}</span>
+                            </p>
+                        )}
                        <p>
                             <strong>Note:</strong>
                             This statement reflects the current status of the active storage record. For withdrawals, final rent will be calculated based on the withdrawal date.

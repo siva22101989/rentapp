@@ -120,4 +120,6 @@ export type WarehouseInfo = {
     phone?: string;
     addressLine1?: string;
     addressLine2?: string;
+    ownerName?: string;
+    bankDetails?: string;
 }

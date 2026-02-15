@@ -168,6 +168,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         <header className="flex justify-between items-start mb-8">
             <div className="flex flex-col">
                 <h1 className="text-2xl font-bold">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</h1>
+                {warehouseInfo?.ownerName && <p className="text-sm">Prop: {warehouseInfo.ownerName}</p>}
                 <p>Accounting Software</p>
             </div>
             <div className="text-right">
@@ -271,7 +272,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             <div className="flex justify-between items-end">
                 <div className="text-left w-1/2">
                     <p className="font-bold">Please pay direct into our bank account</p>
-                    <p>SL WAREHOUSE XX-XXXX-XXXXXX-XX</p>
+                    <p className="whitespace-pre-wrap">{warehouseInfo?.bankDetails || 'Bank details not provided.'}</p>
                 </div>
                 <div className="text-right w-1/2 max-w-sm">
                     <div className="flex justify-between"><span className="font-bold">Customer</span><span>{customer.name}</span></div>

@@ -117,6 +117,7 @@ export function OutflowReceipt({ record, customer, warehouseInfo, withdrawnBags,
                 <div className="flex justify-between items-start mb-8">
                     <div>
                         <h1 className="text-2xl font-bold text-primary">{warehouseInfo?.name || 'Srilakshmi Warehouse'}</h1>
+                        {warehouseInfo?.ownerName && <p className="text-sm text-muted-foreground">Prop: {warehouseInfo.ownerName}</p>}
                         <p className="text-sm text-muted-foreground">{warehouseInfo?.addressLine1}</p>
                         <p className="text-sm text-muted-foreground">{warehouseInfo?.phone}</p>
                     </div>
@@ -226,6 +227,12 @@ export function OutflowReceipt({ record, customer, warehouseInfo, withdrawnBags,
                 {/* Footer */}
                 <div className="text-xs text-muted-foreground">
                     <h4 className="font-semibold mb-2">Notes & Terms</h4>
+                    {warehouseInfo?.bankDetails && (
+                        <p className="mb-4">
+                            <strong>Bank Details for Payment:</strong><br />
+                            <span className="whitespace-pre-wrap">{warehouseInfo.bankDetails}</span>
+                        </p>
+                    )}
                     <p>
                         This bill reflects the final settlement for the withdrawal of goods.
                     </p>

@@ -18,12 +18,15 @@ import { useDoc } from '@/firebase/firestore/use-doc';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 import { cleanForFirestore } from '@/lib/utils';
 import { Skeleton } from '../ui/skeleton';
+import { Textarea } from '../ui/textarea';
 
 const WarehouseInfoSchema = z.object({
   name: z.string().min(3, 'Warehouse name is required.'),
   phone: z.string().optional(),
   addressLine1: z.string().optional(),
   addressLine2: z.string().optional(),
+  ownerName: z.string().optional(),
+  bankDetails: z.string().optional(),
 });
 
 type WarehouseInfoFormData = z.infer<typeof WarehouseInfoSchema>;
@@ -46,6 +49,8 @@ export function WarehouseInfoForm() {
             phone: '',
             addressLine1: '',
             addressLine2: '',
+            ownerName: '',
+            bankDetails: '',
         }
     });
 
@@ -56,6 +61,8 @@ export function WarehouseInfoForm() {
                 phone: warehouseInfo.phone || '',
                 addressLine1: warehouseInfo.addressLine1 || '',
                 addressLine2: warehouseInfo.addressLine2 || '',
+                ownerName: warehouseInfo.ownerName || '',
+                bankDetails: warehouseInfo.bankDetails || '',
             });
         }
     }, [warehouseInfo, form]);
@@ -90,6 +97,8 @@ export function WarehouseInfoForm() {
                     <Skeleton className="h-10 w-full" />
                     <Skeleton className="h-10 w-full" />
                     <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-20 w-full" />
                 </CardContent>
                 <CardFooter>
                     <Skeleton className="h-10 w-24" />
@@ -114,6 +123,17 @@ export function WarehouseInfoForm() {
                             <FormItem>
                                 <FormLabel>Warehouse Name</FormLabel>
                                 <FormControl><Input placeholder="e.g., Sri Lakshmi Warehouse" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                     <FormField
+                        control={form.control}
+                        name="ownerName"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Owner Name (Proprietor)</FormLabel>
+                                <FormControl><Input placeholder="e.g., John Doe" {...field} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -147,6 +167,18 @@ export function WarehouseInfoForm() {
                             <FormItem>
                                 <FormLabel>Address Line 2</FormLabel>
                                 <FormControl><Input placeholder="e.g., Owk (M), Kurnool (Dt.), A.P." {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="bankDetails"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Bank Details</FormLabel>
+                                <FormControl><Textarea placeholder="Bank Name, Account Number, IFSC Code" {...field} /></FormControl>
+                                <FormDescription>This will be displayed on customer statements for payment.</FormDescription>
                                 <FormMessage />
                             </FormItem>
                         )}

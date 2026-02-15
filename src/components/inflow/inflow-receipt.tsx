@@ -80,6 +80,7 @@ export function InflowReceipt({ record, customer, warehouseInfo }: { record: Sto
                 <div className="text-center mb-4">
                     <div className="text-xs">Cell: {warehouseInfo?.phone || '9703503423, 9160606633'}</div>
                     <h1 className="text-2xl font-bold text-blue-900">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</h1>
+                    {warehouseInfo?.ownerName && <p className="text-xs">Prop: {warehouseInfo.ownerName}</p>}
                     <p className="text-xs">{warehouseInfo?.addressLine1 || 'Survey No. 165,237/2, Owk - Koilakuntla Road, OWK - 518 122,'}</p>
                     <p className="text-xs">{warehouseInfo?.addressLine2 || 'Owk (M), Kurnool (Dt.), A.P.'}</p>
                 </div>

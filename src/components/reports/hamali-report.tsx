@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useMemo } from 'react';
@@ -158,20 +159,36 @@ export function HamaliReport({ records, customers, unloadingRecords, dryingRecor
         dryingRecords.forEach(dr => {
             const unloadingRecord = unloadingRecords.find(ur => ur.id === dr.unloadingRecordId);
             const refId = unloadingRecord?.billNo || dr.unloadingRecordId.substring(0,5);
-            (dr.hamaliCharges || []).forEach(charge => {
-                // Exclude "Unloading Hamali" from here as we've already accounted for it above.
-                if (charge.amount > 0 && !charge.description.toLowerCase().includes('unloading')) {
+
+            // New logic: Use totalDryingWorkerHamali if available
+            if (dr.totalDryingWorkerHamali !== undefined) {
+                if (dr.totalDryingWorkerHamali > 0) {
                      events.push({
-                        date: toDate(charge.date),
-                        description: `${charge.description} (Drying)`,
+                        date: toDate(dr.packingDate || dr.dryingStartDate),
+                        description: 'Drying Process Hamali (Worker)',
                         recordId: refId,
                         customerId: dr.customerId,
-                        payable: charge.amount,
+                        payable: dr.totalDryingWorkerHamali,
                         paid: 0,
                         bags: dr.bagsForDrying,
                     });
                 }
-            });
+            } else {
+                // Fallback for old data where customer charge equals worker payable for drying
+                (dr.hamaliCharges || []).forEach(charge => {
+                    if (charge.amount > 0 && !charge.description.toLowerCase().includes('unloading')) {
+                         events.push({
+                            date: toDate(charge.date),
+                            description: `${charge.description} (Drying)`,
+                            recordId: refId,
+                            customerId: dr.customerId,
+                            payable: charge.amount,
+                            paid: 0,
+                            bags: dr.bagsForDrying,
+                        });
+                    }
+                });
+            }
         });
         
         // 3. Payable from Direct Inflow Storage Records

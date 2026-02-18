@@ -23,7 +23,8 @@ const InitiateDryingSchema = z.object({
   customerId: z.string().min(1, 'Customer is required.'),
   unloadingRecordId: z.string().min(1, 'Unloading bill is required.'),
   dryingStartDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
-  hamaliPerBag: z.coerce.number().nonnegative('Hamali rate must be non-negative.'),
+  customerHamaliPerBag: z.coerce.number().nonnegative('Customer hamali rate must be non-negative.'),
+  workerHamaliPerBag: z.coerce.number().nonnegative('Worker hamali rate must be non-negative.'),
   bagsForDrying: z.coerce.number().int().positive('Number of bags must be positive.'),
 });
 
@@ -47,7 +48,8 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
           customerId: '',
           unloadingRecordId: '',
           dryingStartDate: new Date().toISOString().split('T')[0],
-          hamaliPerBag: undefined,
+          customerHamaliPerBag: undefined,
+          workerHamaliPerBag: undefined,
           bagsForDrying: undefined,
         },
       });
@@ -67,9 +69,9 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
     const selectedUnloadingRecord = unloadingRecords.find(ur => ur.id === selectedUnloadingRecordId);
     const bagsRemainingOnRecord = selectedUnloadingRecord ? selectedUnloadingRecord.bagsUnloaded - (selectedUnloadingRecord.bagsSentToDrying || 0) : 0;
     
-    const day1HamaliRate = form.watch('hamaliPerBag');
+    const customerDay1HamaliRate = form.watch('customerHamaliPerBag');
     const bagsForDrying = form.watch('bagsForDrying');
-    const day1DryingHamali = (bagsForDrying || 0) * (day1HamaliRate || 0);
+    const day1DryingHamali = (bagsForDrying || 0) * (customerDay1HamaliRate || 0);
 
     const proportionalUnloadingHamali = selectedUnloadingRecord 
         ? (selectedUnloadingRecord.hamaliPerBag * (bagsForDrying || 0))
@@ -110,14 +112,17 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
             try {
                 const dryingStartDate = new Date(data.dryingStartDate);
                 const currentProportionalUnloadingHamali = selectedUnloadingRecord.hamaliPerBag * data.bagsForDrying;
-                const dryingDay1Hamali = data.bagsForDrying * data.hamaliPerBag;
+                const dryingDay1CustomerHamali = data.bagsForDrying * data.customerHamaliPerBag;
+                const dryingDay1WorkerHamali = data.bagsForDrying * data.workerHamaliPerBag;
                 
                 const hamaliCharges: Partial<HamaliCharge>[] = [
                   { description: "Unloading Hamali", amount: currentProportionalUnloadingHamali, date: selectedUnloadingRecord.unloadingDate },
-                  { description: "Drying Day 1", amount: dryingDay1Hamali, date: dryingStartDate },
+                  { description: "Drying Day 1", amount: dryingDay1CustomerHamali, date: dryingStartDate },
                 ];
                 
                 const totalDryingHamali = hamaliCharges.reduce((acc, charge) => acc + (charge.amount || 0), 0);
+                
+                const totalDryingWorkerHamali = dryingDay1WorkerHamali;
                 
                 // 1. Create new drying record
                 const newRecord = {
@@ -129,6 +134,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                     status: 'Drying' as const,
                     hamaliCharges,
                     totalDryingHamali,
+                    totalDryingWorkerHamali,
                     packingDate: null,
                     billingDate: null,
                     bagsPacked: null,
@@ -244,18 +250,32 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                             </FormItem>
                         )}
                     />
-                    <FormField
-                        control={form.control}
-                        name="hamaliPerBag"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Drying Hamali per Bag (Day 1)</FormLabel>
-                                <FormDescription>This single rate is for both customer charge and worker payment.</FormDescription>
-                                <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                            control={form.control}
+                            name="customerHamaliPerBag"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Customer Hamali Rate</FormLabel>
+                                    <FormDescription className="text-xs h-8">Charge per bag for drying (Day 1).</FormDescription>
+                                    <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name="workerHamaliPerBag"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Worker Hamali Rate</FormLabel>
+                                    <FormDescription className="text-xs h-8">Payment per bag for drying (Day 1).</FormDescription>
+                                    <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
 
                     <Separator />
 

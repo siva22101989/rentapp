@@ -112,6 +112,7 @@ export type DryingRecord = {
     billingDate: Date | Timestamp | null;
     hamaliCharges: HamaliCharge[];
     totalDryingHamali: number;
+    totalDryingWorkerHamali?: number;
 };
 
 export type WarehouseInfo = {

@@ -26,7 +26,6 @@ import { format } from 'date-fns';
 import { toDate, cleanForFirestore, formatCurrency } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { useFirestore } from '@/firebase';
-import { Separator } from '../ui/separator';
 
 const UpdateSchema = z.object({
   bagsPacked: z.coerce.number().nonnegative('Number of bags must be a non-negative number.'),
@@ -154,6 +153,7 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
                           placeholder="0"
                           disabled={isBilled}
                           {...field}
+                          value={field.value ?? ''}
                         />
                       </FormControl>
                       <FormMessage />
@@ -181,10 +181,6 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
                 </p>
               )}
 
-              <Separator />
-
-              <h4 className="font-medium text-sm">Additional Charges</h4>
-
               <FormField
                 control={form.control}
                 name="additionalHamaliPerBag"
@@ -199,6 +195,7 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
                         placeholder="0.00" 
                         disabled={isBilled} 
                         {...field}
+                        value={field.value ?? ''}
                       />
                     </FormControl>
                     <FormMessage />

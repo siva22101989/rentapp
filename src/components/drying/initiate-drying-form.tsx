@@ -73,6 +73,9 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
     const bagsForDrying = form.watch('bagsForDrying');
     const day1DryingHamali = (bagsForDrying || 0) * (customerDay1HamaliRate || 0);
 
+    const workerHamaliPerBag = form.watch('workerHamaliPerBag');
+    const day1DryingWorkerHamali = (bagsForDrying || 0) * (workerHamaliPerBag || 0);
+
     const proportionalUnloadingHamali = selectedUnloadingRecord 
         ? (selectedUnloadingRecord.hamaliPerBag * (bagsForDrying || 0))
         : 0;
@@ -291,8 +294,12 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                         </div>
                         <Separator />
                         <div className="flex justify-between items-center font-semibold">
-                            <span>Total Hamali</span>
+                            <span>Total Customer Charge</span>
                             <span className="font-mono">{formatCurrency(totalCustomerHamali)}</span>
+                        </div>
+                        <div className="flex justify-between items-center font-semibold pt-2 text-green-700">
+                            <span>Additional Worker Payment</span>
+                            <span className="font-mono">{formatCurrency(day1DryingWorkerHamali)}</span>
                         </div>
                     </div>
                 </CardContent>

@@ -236,7 +236,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Bags for Drying</FormLabel>
-                                <FormControl><Input type="number" placeholder="0" {...field} /></FormControl>
+                                <FormControl><Input type="number" placeholder="0" {...field} value={field.value ?? ''} /></FormControl>
                                 {selectedUnloadingRecord && <FormDescription>Remaining on Bill: {bagsRemainingOnRecord} bags</FormDescription>}
                                 <FormMessage />
                             </FormItem>
@@ -261,7 +261,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                                 <FormItem>
                                     <FormLabel>Customer Hamali Rate</FormLabel>
                                     <FormDescription className="text-xs h-8">Charge per bag for drying (Day 1).</FormDescription>
-                                    <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} /></FormControl>
+                                    <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -273,7 +273,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                                 <FormItem>
                                     <FormLabel>Worker Hamali Rate</FormLabel>
                                     <FormDescription className="text-xs h-8">Payment per bag for drying (Day 1).</FormDescription>
-                                    <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} /></FormControl>
+                                    <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -298,7 +298,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                             <span className="font-mono">{formatCurrency(totalCustomerHamali)}</span>
                         </div>
                         <div className="flex justify-between items-center font-semibold pt-2 text-green-700">
-                            <span>Additional Worker Payment</span>
+                            <span>Worker Hamali Payable</span>
                             <span className="font-mono">{formatCurrency(day1DryingWorkerHamali)}</span>
                         </div>
                     </div>

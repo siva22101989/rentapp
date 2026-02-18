@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
@@ -210,7 +209,7 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                                 <SelectContent>
                                     {filteredRecords.length > 0 ? filteredRecords.map(record => (
                                         <SelectItem key={record.id} value={record.id}>
-                                            Bill No: {record.id} - {record.commodityDescription} ({record.bagsStored} bags)
+                                            Bill No: {record.id} / Lot: {record.location || 'N/A'} - {record.commodityDescription} ({record.bagsStored} bags)
                                         </SelectItem>
                                     )) : (
                                         <SelectItem value="none" disabled>No active records for this customer</SelectItem>

@@ -78,32 +78,40 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
         const packingDate = new Date(data.packingDate);
         const bagsPacked = data.bagsPacked;
 
-        // Keep only initial charges
-        const initialCharges = (record.hamaliCharges || []).filter(
+        // --- Customer Charges ---
+        // Keep only initial charges from the original record
+        const initialCustomerCharges = (record.hamaliCharges || []).filter(
             c => c.description.toLowerCase().includes('unloading') || c.description.toLowerCase().includes('drying day 1')
         );
 
-        const newCharges: HamaliCharge[] = [...initialCharges];
+        const newCustomerCharges: HamaliCharge[] = [...initialCustomerCharges];
 
-        // Add additional hamali if provided
+        let additionalHamaliAmount = 0;
         if (data.additionalHamaliPerBag && data.additionalHamaliPerBag > 0) {
-            const amount = data.additionalHamaliPerBag * record.bagsForDrying;
-            newCharges.push({
+            additionalHamaliAmount = data.additionalHamaliPerBag * record.bagsForDrying;
+            newCustomerCharges.push({
                 description: 'Additional Drying Hamali',
-                amount: amount,
+                amount: additionalHamaliAmount,
                 date: packingDate,
             });
         }
+        
+        const totalDryingHamali = newCustomerCharges.reduce((acc, charge) => acc + (charge.amount || 0), 0);
+        
+        // --- Worker Charges ---
+        // Since the additional rate is the same, we add the same amount to the worker total.
+        const initialWorkerHamali = record.totalDryingWorkerHamali || 0;
+        const totalDryingWorkerHamali = initialWorkerHamali + additionalHamaliAmount;
 
-        const totalDryingHamali = newCharges.reduce((acc, charge) => acc + (charge.amount || 0), 0);
 
         const recordRef = doc(firestore, 'dryingRecords', record.id);
         await updateDoc(recordRef, cleanForFirestore({
           bagsPacked,
           packingDate,
           status: 'Packing',
-          hamaliCharges: newCharges,
+          hamaliCharges: newCustomerCharges,
           totalDryingHamali,
+          totalDryingWorkerHamali, // Update worker total as well
         }));
 
         toast({ title: 'Success', description: 'Packing & charge information updated.' });

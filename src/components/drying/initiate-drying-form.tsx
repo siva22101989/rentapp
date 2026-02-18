@@ -81,6 +81,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
         : 0;
 
     const totalCustomerCharge = proportionalUnloadingHamali + day1DryingHamali;
+    const totalHamaliCharge = proportionalUnloadingHamali + day1DryingWorkerHamali;
 
     useEffect(() => {
       if (selectedUnloadingRecord) {
@@ -125,7 +126,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                 
                 const totalDryingHamali = hamaliCharges.reduce((acc, charge) => acc + (charge.amount || 0), 0);
                 
-                const totalDryingWorkerHamali = dryingDay1WorkerHamali;
+                const totalDryingWorkerHamali = currentProportionalUnloadingHamali + dryingDay1WorkerHamali;
                 
                 // 1. Create new drying record
                 const newRecord = {
@@ -298,8 +299,8 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                             <span className="font-mono">{formatCurrency(totalCustomerCharge)}</span>
                         </div>
                         <div className="flex justify-between items-center font-semibold pt-2">
-                            <span>Worker Hamali Charge</span>
-                            <span className="font-mono">{formatCurrency(day1DryingWorkerHamali)}</span>
+                            <span>Total Hamali Charge</span>
+                            <span className="font-mono">{formatCurrency(totalHamaliCharge)}</span>
                         </div>
                     </div>
                 </CardContent>

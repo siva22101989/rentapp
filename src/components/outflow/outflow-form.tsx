@@ -236,10 +236,10 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                                         <div>{selectedRecord.bagsIn}</div>
 
                                         <div className="font-medium">Bags Withdrawn:</div>
-                                        <div>{selectedRecord.bagsOut || 0}</div>
+                                        <div>{(selectedRecord.bagsOut || 0) + (Number(bagsToWithdraw) || 0)}</div>
                                         
                                         <div className="font-medium text-primary">Balance Bags:</div>
-                                        <div className="font-bold text-primary">{selectedRecord.bagsStored}</div>
+                                        <div className="font-bold text-primary">{selectedRecord.bagsStored - (Number(bagsToWithdraw) || 0)}</div>
                                     </div>
                                 </CardContent>
                             </Card>

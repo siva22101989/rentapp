@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -42,6 +41,11 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
   const firestore = useFirestore();
   const isBilled = record.status === 'Billed';
 
+  // New local state to directly control the inputs
+  const [bagsPackedLocal, setBagsPackedLocal] = useState<string | number>('');
+  const [additionalHamaliLocal, setAdditionalHamaliLocal] = useState<string | number>('');
+
+
   const form = useForm<UpdateFormData>({
     resolver: zodResolver(UpdateSchema),
     defaultValues: {
@@ -53,15 +57,18 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
 
   useEffect(() => {
     if (isOpen) {
-      // Extract additional charges for form default values
       const additionalHamali = (record.hamaliCharges || []).find(c => c.description.toLowerCase().includes('additional drying'));
-
       const additionalHamaliPerBag = additionalHamali && record.bagsForDrying > 0 ? additionalHamali.amount / record.bagsForDrying : null;
 
+      // Set local state for inputs
+      setBagsPackedLocal(record.bagsPacked ?? '');
+      setAdditionalHamaliLocal(additionalHamaliPerBag ?? '');
+      
+      // Reset react-hook-form state
       form.reset({
         bagsPacked: record.bagsPacked ?? null,
         packingDate: record.packingDate ? format(toDate(record.packingDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
-        additionalHamaliPerBag,
+        additionalHamaliPerBag: additionalHamaliPerBag ?? null,
       });
     }
   }, [isOpen, record, form]);
@@ -77,8 +84,6 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
         const packingDate = new Date(data.packingDate);
         const bagsPacked = data.bagsPacked ?? 0;
 
-        // --- Customer Charges ---
-        // Keep only initial charges from the original record
         const initialCustomerCharges = (record.hamaliCharges || []).filter(
             c => c.description.toLowerCase().includes('unloading') || c.description.toLowerCase().includes('drying day 1')
         );
@@ -99,11 +104,8 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
         
         const totalDryingHamali = newCustomerCharges.reduce((acc, charge) => acc + (charge.amount || 0), 0);
         
-        // --- Worker Charges ---
-        // totalDryingWorkerHamali = initial unloading portion + initial drying portion + additional portion
         const initialUnloadingHamaliPortion = (record.hamaliCharges || []).find(c => c.description.toLowerCase().includes('unloading'))?.amount || 0;
         
-        // Find the original Day 1 worker hamali (since it's not stored separately, we infer it)
         const initialDay1CustomerHamali = (record.hamaliCharges || []).find(c => c.description.toLowerCase().includes('drying day 1'))?.amount || 0;
         const initialWorkerHamali = (record.totalDryingWorkerHamali || 0) > initialUnloadingHamaliPortion 
             ? (record.totalDryingWorkerHamali || 0) - initialUnloadingHamaliPortion
@@ -118,7 +120,7 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
           status: 'Packing',
           hamaliCharges: newCustomerCharges,
           totalDryingHamali,
-          totalDryingWorkerHamali, // Update worker total as well
+          totalDryingWorkerHamali,
         }));
 
         toast({ title: 'Success', description: 'Packing & charge information updated.' });
@@ -130,8 +132,7 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
     });
   };
 
-  const bagsPackedValue = form.watch('bagsPacked');
-  const bagsDifference = bagsPackedValue !== null ? record.bagsForDrying - bagsPackedValue : null;
+  const bagsDifference = bagsPackedLocal !== '' ? record.bagsForDrying - Number(bagsPackedLocal) : null;
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -167,8 +168,12 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
                           type="number"
                           placeholder="0"
                           disabled={isBilled}
-                          {...field}
-                          value={field.value ?? ''}
+                          value={bagsPackedLocal}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setBagsPackedLocal(val);
+                            field.onChange(val === '' ? null : Number(val));
+                          }}
                         />
                       </FormControl>
                       <FormMessage />
@@ -209,8 +214,12 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
                         step="0.01" 
                         placeholder="0.00" 
                         disabled={isBilled} 
-                        {...field}
-                        value={field.value ?? ''}
+                        value={additionalHamaliLocal}
+                        onChange={(e) => {
+                            const val = e.target.value;
+                            setAdditionalHamaliLocal(val);
+                            field.onChange(val === '' ? null : Number(val));
+                        }}
                       />
                     </FormControl>
                     <FormMessage />

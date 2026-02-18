@@ -297,7 +297,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                             <span>Total Customer Charge</span>
                             <span className="font-mono">{formatCurrency(totalCustomerCharge)}</span>
                         </div>
-                        <div className="flex justify-between items-center font-semibold pt-2 text-green-700">
+                        <div className="flex justify-between items-center font-semibold pt-2">
                             <span>Worker Hamali Charge</span>
                             <span className="font-mono">{formatCurrency(day1DryingWorkerHamali)}</span>
                         </div>

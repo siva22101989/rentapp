@@ -123,8 +123,7 @@ export function OutflowReceipt({ record, customer, warehouseInfo, withdrawnBags,
                     </div>
                     <div className="text-right">
                         <h2 className="text-xl font-semibold uppercase text-muted-foreground">Outflow Bill</h2>
-                        <p className="text-sm"><span className="font-medium">Bill #</span>: {record.id}</p>
-                        <p className="text-sm"><span className="font-medium">Serial No:</span> {record.id}</p>
+                        <p className="text-sm"><span className="font-medium">Bill No:</span> {record.id}</p>
                         <p className="text-sm"><span className="font-medium">Date:</span> {formattedEndDate}</p>
                     </div>
                 </div>
@@ -140,6 +139,7 @@ export function OutflowReceipt({ record, customer, warehouseInfo, withdrawnBags,
                      <div>
                         <h3 className="text-sm font-semibold mb-2 text-muted-foreground">WITHDRAWAL DETAILS</h3>
                         <p><span className="font-medium">Commodity:</span> {record.commodityDescription}</p>
+                        <p><span className="font-medium">Lot No:</span> {record.location}</p>
                         <p><span className="font-medium">Date In:</span> {formattedStartDate}</p>
                         <p><span className="font-medium">Storage Duration:</span> {duration.months} months ({duration.days} days)</p>
                     </div>

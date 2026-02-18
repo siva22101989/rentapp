@@ -80,7 +80,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
         ? (selectedUnloadingRecord.hamaliPerBag * (bagsForDrying || 0))
         : 0;
 
-    const totalCustomerHamali = proportionalUnloadingHamali + day1DryingHamali;
+    const totalCustomerCharge = proportionalUnloadingHamali + day1DryingHamali;
 
     useEffect(() => {
       if (selectedUnloadingRecord) {
@@ -295,10 +295,10 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                         <Separator />
                         <div className="flex justify-between items-center font-semibold">
                             <span>Total Customer Charge</span>
-                            <span className="font-mono">{formatCurrency(totalCustomerHamali)}</span>
+                            <span className="font-mono">{formatCurrency(totalCustomerCharge)}</span>
                         </div>
                         <div className="flex justify-between items-center font-semibold pt-2 text-green-700">
-                            <span>Worker Hamali Payable</span>
+                            <span>Worker Hamali Charge</span>
                             <span className="font-mono">{formatCurrency(day1DryingWorkerHamali)}</span>
                         </div>
                     </div>

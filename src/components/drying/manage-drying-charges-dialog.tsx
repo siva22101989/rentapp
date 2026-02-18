@@ -28,9 +28,9 @@ import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { useFirestore } from '@/firebase';
 
 const UpdateSchema = z.object({
-  bagsPacked: z.coerce.number().nonnegative('Number of bags must be a non-negative number.'),
+  bagsPacked: z.coerce.number().nonnegative('Number of bags must be a non-negative number.').nullable(),
   packingDate: z.string().refine((val) => !isNaN(Date.parse(val)), { message: 'Packing date is required.' }),
-  additionalHamaliPerBag: z.coerce.number().nonnegative().optional(),
+  additionalHamaliPerBag: z.coerce.number().nonnegative().optional().nullable(),
 });
 
 type UpdateFormData = z.infer<typeof UpdateSchema>;
@@ -45,9 +45,9 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
   const form = useForm<UpdateFormData>({
     resolver: zodResolver(UpdateSchema),
     defaultValues: {
-      bagsPacked: undefined,
+      bagsPacked: null,
       packingDate: format(new Date(), 'yyyy-MM-dd'),
-      additionalHamaliPerBag: undefined,
+      additionalHamaliPerBag: null,
     },
   });
 
@@ -56,16 +56,15 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
       // Extract additional charges for form default values
       const additionalHamali = (record.hamaliCharges || []).find(c => c.description.toLowerCase().includes('additional drying'));
 
-      const additionalHamaliPerBag = additionalHamali && record.bagsForDrying > 0 ? additionalHamali.amount / record.bagsForDrying : undefined;
+      const additionalHamaliPerBag = additionalHamali && record.bagsForDrying > 0 ? additionalHamali.amount / record.bagsForDrying : null;
 
       form.reset({
-        bagsPacked: record.bagsPacked ?? undefined,
+        bagsPacked: record.bagsPacked ?? null,
         packingDate: record.packingDate ? format(toDate(record.packingDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
         additionalHamaliPerBag,
       });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, record]);
+  }, [isOpen, record, form]);
 
   const onSubmit = (data: UpdateFormData) => {
     if (!firestore || isBilled) {
@@ -76,7 +75,7 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
     startTransition(async () => {
       try {
         const packingDate = new Date(data.packingDate);
-        const bagsPacked = data.bagsPacked;
+        const bagsPacked = data.bagsPacked ?? 0;
 
         // --- Customer Charges ---
         // Keep only initial charges from the original record
@@ -85,10 +84,12 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
         );
 
         const newCustomerCharges: HamaliCharge[] = [...initialCustomerCharges];
-
+        
         let additionalHamaliAmount = 0;
-        if (data.additionalHamaliPerBag && data.additionalHamaliPerBag > 0) {
-            additionalHamaliAmount = data.additionalHamaliPerBag * record.bagsForDrying;
+        const additionalHamaliRate = data.additionalHamaliPerBag ?? 0;
+        
+        if (additionalHamaliRate > 0) {
+            additionalHamaliAmount = additionalHamaliRate * record.bagsForDrying;
             newCustomerCharges.push({
                 description: 'Additional Drying Hamali',
                 amount: additionalHamaliAmount,
@@ -99,10 +100,16 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
         const totalDryingHamali = newCustomerCharges.reduce((acc, charge) => acc + (charge.amount || 0), 0);
         
         // --- Worker Charges ---
-        // Since the additional rate is the same, we add the same amount to the worker total.
-        const initialWorkerHamali = record.totalDryingWorkerHamali || 0;
-        const totalDryingWorkerHamali = initialWorkerHamali + additionalHamaliAmount;
-
+        // totalDryingWorkerHamali = initial unloading portion + initial drying portion + additional portion
+        const initialUnloadingHamaliPortion = (record.hamaliCharges || []).find(c => c.description.toLowerCase().includes('unloading'))?.amount || 0;
+        
+        // Find the original Day 1 worker hamali (since it's not stored separately, we infer it)
+        const initialDay1CustomerHamali = (record.hamaliCharges || []).find(c => c.description.toLowerCase().includes('drying day 1'))?.amount || 0;
+        const initialWorkerHamali = (record.totalDryingWorkerHamali || 0) > initialUnloadingHamaliPortion 
+            ? (record.totalDryingWorkerHamali || 0) - initialUnloadingHamaliPortion
+            : initialDay1CustomerHamali;
+        
+        const totalDryingWorkerHamali = initialUnloadingHamaliPortion + initialWorkerHamali + additionalHamaliAmount;
 
         const recordRef = doc(firestore, 'dryingRecords', record.id);
         await updateDoc(recordRef, cleanForFirestore({
@@ -124,7 +131,7 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
   };
 
   const bagsPackedValue = form.watch('bagsPacked');
-  const bagsDifference = (bagsPackedValue !== undefined && bagsPackedValue !== null) ? record.bagsForDrying - bagsPackedValue : null;
+  const bagsDifference = bagsPackedValue !== null ? record.bagsForDrying - bagsPackedValue : null;
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>

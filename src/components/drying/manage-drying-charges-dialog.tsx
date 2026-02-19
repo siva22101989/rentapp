@@ -41,6 +41,9 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
   const firestore = useFirestore();
   const isBilled = record.status === 'Billed';
 
+  // State to manually control the "Bags Packed" input
+  const [bagsPackedInput, setBagsPackedInput] = useState<string>('');
+
   const form = useForm<UpdateFormData>({
     resolver: zodResolver(UpdateSchema),
     defaultValues: {
@@ -55,13 +58,26 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
       const additionalHamali = (record.hamaliCharges || []).find(c => c.description.toLowerCase().includes('additional drying'));
       const additionalHamaliPerBag = additionalHamali && record.bagsForDrying > 0 ? additionalHamali.amount / record.bagsForDrying : null;
       
+      const initialBagsPacked = record.bagsPacked ?? null;
+
+      // Set the manual state for the input
+      setBagsPackedInput(initialBagsPacked?.toString() ?? '');
+
+      // Reset the form with all values
       form.reset({
-        bagsPacked: record.bagsPacked ?? null,
+        bagsPacked: initialBagsPacked,
         packingDate: record.packingDate ? format(toDate(record.packingDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
         additionalHamaliPerBag: additionalHamaliPerBag ?? null,
       });
     }
   }, [isOpen, record, form]);
+
+  const handleBagsPackedChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setBagsPackedInput(value); // Update the local state for the input
+    // Manually set the form value for validation and submission
+    form.setValue('bagsPacked', value === '' ? null : Number(value), { shouldValidate: true });
+  };
 
   const onSubmit = (data: UpdateFormData) => {
     if (!firestore || isBilled) {
@@ -122,8 +138,8 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
     });
   };
 
-  const bagsPackedValue = form.watch('bagsPacked');
-  const bagsDifference = bagsPackedValue !== null && bagsPackedValue !== undefined ? record.bagsForDrying - Number(bagsPackedValue) : null;
+  const bagsPackedForDisplay = form.watch('bagsPacked');
+  const bagsDifference = bagsPackedForDisplay !== null && bagsPackedForDisplay !== undefined ? record.bagsForDrying - Number(bagsPackedForDisplay) : null;
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -148,26 +164,19 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
               </Alert>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="bagsPacked"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Bags Packed</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          placeholder="0"
-                          disabled={isBilled}
-                          {...field}
-                          value={field.value ?? ''}
-                          onChange={(e) => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <FormItem>
+                  <FormLabel>Bags Packed</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="0"
+                      disabled={isBilled}
+                      value={bagsPackedInput}
+                      onChange={handleBagsPackedChange}
+                    />
+                  </FormControl>
+                  <FormMessage>{form.formState.errors.bagsPacked?.message}</FormMessage>
+                </FormItem>
                 <FormField
                   control={form.control}
                   name="packingDate"

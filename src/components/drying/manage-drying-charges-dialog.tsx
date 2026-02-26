@@ -38,16 +38,18 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
   const [bagsDifference, setBagsDifference] = useState<number | null>(null);
 
   useEffect(() => {
+    // This effect runs ONLY when the dialog opens.
+    // It sets the initial state from the record prop.
+    // It will NOT run on subsequent re-renders, preventing user input from being overwritten.
     if (isOpen) {
-      // Initialize state when the dialog opens
-      const additionalHamali = (record.hamaliCharges || []).find(c => c.description.toLowerCase().includes('additional drying'));
-      const initialAdditionalHamali = additionalHamali && record.bagsForDrying > 0 ? (additionalHamali.amount / record.bagsForDrying).toString() : '';
-
       setBagsPacked(record.bagsPacked?.toString() ?? '');
       setPackingDate(record.packingDate ? format(toDate(record.packingDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'));
+      const additionalHamali = (record.hamaliCharges || []).find(c => c.description.toLowerCase().includes('additional drying'));
+      const initialAdditionalHamali = additionalHamali && record.bagsForDrying > 0 ? (additionalHamali.amount / record.bagsForDrying).toString() : '';
       setAdditionalHamaliPerBag(initialAdditionalHamali);
     }
-  }, [isOpen, record]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]); // Dependency is ONLY `isOpen`. This is the key fix.
 
   useEffect(() => {
     // Calculate difference when bagsPacked changes
@@ -84,7 +86,7 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
         const finalPackingDate = new Date(packingDate);
         
         const initialCustomerCharges = (record.hamaliCharges || []).filter(
-            c => c.description.toLowerCase().includes('unloading') || c.description.toLowerCase().includes('drying day 1')
+            c => !c.description.toLowerCase().includes('additional drying')
         );
 
         const newCustomerCharges: HamaliCharge[] = [...initialCustomerCharges];

@@ -14,18 +14,20 @@ import { OutflowReport } from './outflow-report';
 import { LotInventoryReport } from './lot-inventory-report';
 import { UnloadingReport } from './unloading-report';
 import { PaymentReport } from './payment-report';
+import { DailySummaryReport } from './daily-summary-report';
 
 const reportTypes = [
-    { value: 'all-customers', label: 'All Customers List' },
+    { value: 'daily-summary', label: 'Daily Summary Report' },
     { value: 'customer-statement', label: 'Customer Dues Statement (Detailed)' },
-    { value: 'active-inventory', label: 'Active Inventory (Stock)' },
-    { value: 'pending-dues', label: 'Pending Dues List' },
     { value: 'hamali-register', label: 'Hamali Register' },
     { value: 'inflow-register', label: 'Inflow Register (Date Range)' },
     { value: 'outflow-register', label: 'Outflow Register (Date Range)' },
     { value: 'unloading-register', label: 'Unloading Register (Date Range)' },
     { value: 'payment-register', label: 'Payment Register (Date Range)' },
     { value: 'lot-inventory', label: 'Lot Inventory (Patti mapping)' },
+    { value: 'active-inventory', label: 'Active Inventory (Stock)' },
+    { value: 'pending-dues', label: 'Pending Dues List' },
+    { value: 'all-customers', label: 'All Customers List' },
     { value: 'recent-transactions', label: 'Recent Transactions (Last 1000)' },
 ];
 
@@ -38,10 +40,12 @@ type ReportGeneratorProps = {
 }
 
 export function CustomReportGenerator({ records, customers, unloadingRecords, expenses, dryingRecords }: ReportGeneratorProps) {
-    const [selectedReport, setSelectedReport] = useState<string>('hamali-register');
+    const [selectedReport, setSelectedReport] = useState<string>('daily-summary');
 
     const renderReport = () => {
         switch (selectedReport) {
+            case 'daily-summary':
+                return <DailySummaryReport records={records} customers={customers} unloadingRecords={unloadingRecords} expenses={expenses} dryingRecords={dryingRecords} />;
             case 'all-customers':
                 return <CustomersTable customers={customers} />;
             case 'customer-statement':

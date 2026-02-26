@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Separator } from '@/components/ui/separator';
@@ -15,9 +15,9 @@ export function InflowReceipt({ record, customer, warehouseInfo }: { record: Sto
     const receiptRef = useRef<HTMLDivElement>(null);
     const [formattedDate, setFormattedDate] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
-    const hasDownloaded = useRef(false);
+    const downloadAttempted = useRef(false);
 
-    const handleDownloadPdf = async () => {
+    const handleDownloadPdf = useCallback(async () => {
         const element = receiptRef.current;
         if (!element || isGenerating) return;
 
@@ -50,20 +50,26 @@ export function InflowReceipt({ record, customer, warehouseInfo }: { record: Sto
         } finally {
             setIsGenerating(false);
         }
-    };
+    }, [isGenerating, record]);
     
     useEffect(() => {
+        // This effect's only job is to set the formatted date string.
         if (record && record.storageStartDate) {
             const startDate = toDate(record.storageStartDate);
             setFormattedDate(format(startDate, 'dd/MM/yy'));
-            // Automatically download on first load
-            if (!hasDownloaded.current) {
-                handleDownloadPdf();
-                hasDownloaded.current = true;
-            }
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [record]);
+
+    useEffect(() => {
+        // This effect's only job is to trigger the download ONCE after the date has been set.
+        if (formattedDate && !downloadAttempted.current) {
+            downloadAttempted.current = true;
+            // Delay slightly to ensure the DOM has updated with the date
+            setTimeout(() => {
+                handleDownloadPdf();
+            }, 100);
+        }
+    }, [formattedDate, handleDownloadPdf]);
 
 
     if (!record || !customer) {

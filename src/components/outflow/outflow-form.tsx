@@ -263,7 +263,7 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                                         id="withdrawalDate" 
                                         name="withdrawalDate" 
                                         type="date"
-                                        defaultValue={new Date().toISOString().split('T')[0]}
+                                        value={format(withdrawalDate, 'yyyy-MM-dd')}
                                         required
                                         onChange={handleDateChange}
                                      />

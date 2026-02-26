@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useTransition, useState, useEffect } from 'react';
@@ -180,7 +179,9 @@ export function InflowForm({ customers, commodities, lots, nextSerialNumber }: {
                                     <SelectValue placeholder="Select a lot" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {lots.map(lot => (
+                                    {lots
+                                        .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
+                                        .map(lot => (
                                         <SelectItem key={lot.id} value={lot.name}>
                                             {lot.name}
                                         </SelectItem>

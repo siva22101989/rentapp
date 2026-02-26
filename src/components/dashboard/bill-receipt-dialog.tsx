@@ -53,6 +53,8 @@ export function BillReceiptDialog({
         scale: 2,
         useCORS: true,
         backgroundColor: '#ffffff',
+        windowWidth: element.scrollWidth,
+        windowHeight: element.scrollHeight,
       });
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF('p', 'mm', 'a4');

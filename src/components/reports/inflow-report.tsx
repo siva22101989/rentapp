@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useMemo } from 'react';
@@ -51,7 +52,12 @@ export function InflowReport({ records, customers }: InflowReportProps) {
         if (!element) return;
         setIsGenerating(true);
         try {
-            const canvas = await html2canvas(element, { scale: 2, useCORS: true });
+            const canvas = await html2canvas(element, { 
+                scale: 2, 
+                useCORS: true,
+                windowWidth: element.scrollWidth,
+                windowHeight: element.scrollHeight
+            });
             const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF('l', 'mm', 'a4'); // Landscape
             const pdfWidth = pdf.internal.pageSize.getWidth();

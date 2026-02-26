@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useRef, useMemo } from 'react';
@@ -224,7 +225,12 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
         if (!element) return;
         setIsGenerating(true);
         try {
-            const canvas = await html2canvas(element, { scale: 2, useCORS: true });
+            const canvas = await html2canvas(element, { 
+                scale: 2, 
+                useCORS: true,
+                windowWidth: element.scrollWidth,
+                windowHeight: element.scrollHeight
+            });
             const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF('p', 'mm', 'a4'); // Portrait
             const pdfWidth = pdf.internal.pageSize.getWidth();

@@ -38,9 +38,9 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
   const [bagsDifference, setBagsDifference] = useState<number | null>(null);
 
   useEffect(() => {
-    // This effect runs ONLY when the dialog opens.
-    // It sets the initial state from the record prop.
-    // It will NOT run on subsequent re-renders, preventing user input from being overwritten.
+    // This effect runs ONLY when the dialog opens to initialize the state.
+    // It does NOT depend on the `record` prop, so it will not re-run and
+    // overwrite user input during re-renders.
     if (isOpen) {
       setBagsPacked(record.bagsPacked?.toString() ?? '');
       setPackingDate(record.packingDate ? format(toDate(record.packingDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'));
@@ -49,7 +49,7 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
       setAdditionalHamaliPerBag(initialAdditionalHamali);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]); // Dependency is ONLY `isOpen`. This is the key fix.
+  }, [isOpen]);
 
   useEffect(() => {
     // Calculate difference when bagsPacked changes
@@ -107,6 +107,7 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
         const initialUnloadingHamaliPortion = (record.hamaliCharges || []).find(c => c.description.toLowerCase().includes('unloading'))?.amount || 0;
         
         const initialDay1CustomerHamali = (record.hamaliCharges || []).find(c => c.description.toLowerCase().includes('drying day 1'))?.amount || 0;
+        
         const initialWorkerHamali = (record.totalDryingWorkerHamali || 0) > initialUnloadingHamaliPortion 
             ? (record.totalDryingWorkerHamali || 0) - initialUnloadingHamaliPortion
             : initialDay1CustomerHamali;

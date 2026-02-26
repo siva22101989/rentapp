@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useTransition, useState, useMemo } from 'react';
@@ -103,12 +102,12 @@ export function LotsClient() {
 
   const addForm = useForm<AddLotFormData>({
     resolver: zodResolver(AddLotSchema),
-    defaultValues: { name: '', capacity: undefined },
+    defaultValues: { name: '', capacity: '' as any },
   });
 
   const rangeAddForm = useForm<RangeAddLotsFormData>({
     resolver: zodResolver(RangeAddLotsSchema),
-    defaultValues: { prefix: '', start: 1, end: undefined, suffix: '', capacity: undefined },
+    defaultValues: { prefix: '', start: 1, end: '' as any, suffix: '', capacity: '' as any },
   });
 
 

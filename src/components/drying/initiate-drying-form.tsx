@@ -17,6 +17,7 @@ import { addDoc, collection, doc, updateDoc, increment } from 'firebase/firestor
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { formatCurrency, cleanForFirestore } from '@/lib/utils';
 import { Separator } from '../ui/separator';
+import { Combobox } from '../ui/combobox';
 
 const InitiateDryingSchema = z.object({
   customerId: z.string().min(1, 'Customer is required.'),
@@ -39,7 +40,6 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
     const firestore = useFirestore();
-    const [customerSearch, setCustomerSearch] = useState('');
 
     const form = useForm<DryingFormData>({
         resolver: zodResolver(InitiateDryingSchema),
@@ -53,9 +53,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
         },
       });
     
-    const filteredCustomers = customerSearch
-        ? customers.filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()))
-        : customers;
+    const customerOptions = customers.map(c => ({ value: c.id, label: c.name }));
 
     const selectedCustomerId = form.watch('customerId');
     const customerUnloadingRecords = unloadingRecords.filter(ur => ur.customerId === selectedCustomerId);
@@ -158,7 +156,6 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
 
                 toast({ title: 'Success', description: 'Drying process initiated.' });
                 form.reset();
-                setCustomerSearch('');
                 onCustomerChange(null);
             } catch (error) {
                 console.error(error);
@@ -176,38 +173,22 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                     <CardDescription>Select a customer and an unloading bill to start drying.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                     <div className="space-y-2">
-                        <Label htmlFor="customer-search">Search Customer</Label>
-                        <Input 
-                            id="customer-search"
-                            placeholder="Type to search..."
-                            value={customerSearch}
-                            onChange={e => {
-                                setCustomerSearch(e.target.value);
-                                form.setValue('customerId', '');
-                                onCustomerChange(null);
-                            }}
-                        />
-                    </div>
                     <FormField
                         control={form.control}
                         name="customerId"
                         render={({ field }) => (
-                            <FormItem>
+                            <FormItem className="flex flex-col">
                                 <FormLabel>Customer</FormLabel>
-                                <Select onValueChange={(value) => {
-                                    field.onChange(value);
-                                }} value={field.value}>
-                                    <FormControl>
-                                        <SelectTrigger><SelectValue placeholder="Select a customer" /></SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        {filteredCustomers.map(customer => (
-                                            <SelectItem key={customer.id} value={customer.id}>{customer.name}</SelectItem>
-                                        ))}
-                                        {filteredCustomers.length === 0 && <div className="p-4 text-center text-sm text-muted-foreground">No customers found.</div>}
-                                    </SelectContent>
-                                </Select>
+                                <Combobox
+                                    options={customerOptions}
+                                    value={field.value}
+                                    onChange={(value) => {
+                                        field.onChange(value);
+                                    }}
+                                    placeholder="Select a customer..."
+                                    searchPlaceholder="Search customers..."
+                                    emptyPlaceholder="No customer found."
+                                />
                                 <FormMessage />
                             </FormItem>
                         )}

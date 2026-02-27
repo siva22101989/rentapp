@@ -14,6 +14,7 @@ import { Separator } from '../ui/separator';
 import { formatCurrency, cleanForFirestore } from '@/lib/utils';
 import { useFirestore } from '@/firebase';
 import { setDoc, doc } from 'firebase/firestore';
+import { Combobox } from '../ui/combobox';
 
 function SubmitButton() {
     const [pending, setPending] = useState(false);
@@ -42,17 +43,13 @@ export function InflowForm({ customers, commodities, lots, nextSerialNumber }: {
     const [rate, setRate] = useState<number | ''>('');
     const [hamali, setHamali] = useState(0);
     const [hamaliPaid, setHamaliPaid] = useState<number | ''>('');
-    const [customerSearch, setCustomerSearch] = useState('');
     const [selectedCustomerId, setSelectedCustomerId] = useState('');
     const [commodityDescription, setCommodityDescription] = useState('');
     const [weight, setWeight] = useState<number | ''>('');
     const [khataAmount, setKhataAmount] = useState<number | ''>('');
     const [selectedLot, setSelectedLot] = useState('');
 
-    const filteredCustomers = customerSearch
-        ? customers.filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()))
-        : customers;
-
+    const customerOptions = customers.map(c => ({ value: c.id, label: c.name }));
 
     useEffect(() => {
         const bagsValue = bags || 0;
@@ -141,32 +138,16 @@ export function InflowForm({ customers, commodities, lots, nextSerialNumber }: {
                 </CardHeader>
                 <CardContent className="space-y-4">
                      <div className="space-y-2">
-                        <Label htmlFor="customer-search">Search Customer</Label>
-                        <Input 
-                            id="customer-search"
-                            placeholder="Type to search..."
-                            value={customerSearch}
-                            onChange={e => {
-                                setCustomerSearch(e.target.value);
-                                setSelectedCustomerId(''); // Reset selection when searching
-                            }}
-                        />
-                    </div>
-                     <div className="space-y-2">
                         <Label htmlFor="customerId">Customer</Label>
-                        <Select name="customerId" required onValueChange={setSelectedCustomerId} value={selectedCustomerId}>
-                            <SelectTrigger id="customerId">
-                                <SelectValue placeholder="Select a customer" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {filteredCustomers.map(customer => (
-                                    <SelectItem key={customer.id} value={customer.id}>
-                                        {customer.name}
-                                    </SelectItem>
-                                ))}
-                                {filteredCustomers.length === 0 && <div className="p-4 text-center text-sm text-muted-foreground">No customers found.</div>}
-                            </SelectContent>
-                        </Select>
+                        <Combobox
+                            options={customerOptions}
+                            value={selectedCustomerId}
+                            onChange={setSelectedCustomerId}
+                            placeholder="Select a customer..."
+                            searchPlaceholder="Search customers..."
+                            emptyPlaceholder="No customer found."
+                        />
+                        <input type="hidden" name="customerId" value={selectedCustomerId} />
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

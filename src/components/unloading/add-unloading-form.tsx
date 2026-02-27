@@ -17,6 +17,7 @@ import { addDoc, collection, Timestamp } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { formatCurrency, cleanForFirestore } from '@/lib/utils';
 import { Separator } from '../ui/separator';
+import { Combobox } from '../ui/combobox';
 
 const UnloadingRecordSchema = z.object({
   customerId: z.string().min(1, 'Customer is required.'),
@@ -35,7 +36,6 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
     const [isPending, startTransition] = useTransition();
     const firestore = useFirestore();
     const router = useRouter();
-    const [customerSearch, setCustomerSearch] = useState('');
 
     const form = useForm<UnloadingFormData>({
         resolver: zodResolver(UnloadingRecordSchema),
@@ -59,9 +59,7 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
         }
       });
     
-    const filteredCustomers = customerSearch
-        ? customers.filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()))
-        : customers;
+    const customerOptions = customers.map(c => ({ value: c.id, label: c.name }));
       
     const bagsUnloaded = form.watch('bagsUnloaded');
     const hamaliPerBag = form.watch('hamaliPerBag');
@@ -115,35 +113,20 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
                             </FormItem>
                         )}
                     />
-                    <div className="space-y-2">
-                        <Label htmlFor="customer-search">Search Customer</Label>
-                        <Input 
-                            id="customer-search"
-                            placeholder="Type to search..."
-                            value={customerSearch}
-                            onChange={e => {
-                                setCustomerSearch(e.target.value);
-                                form.setValue('customerId', '');
-                            }}
-                        />
-                    </div>
                     <FormField
                         control={form.control}
                         name="customerId"
                         render={({ field }) => (
-                            <FormItem>
+                            <FormItem className="flex flex-col">
                                 <FormLabel>Customer</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value}>
-                                    <FormControl>
-                                        <SelectTrigger><SelectValue placeholder="Select a customer" /></SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        {filteredCustomers.map(customer => (
-                                            <SelectItem key={customer.id} value={customer.id}>{customer.name}</SelectItem>
-                                        ))}
-                                        {filteredCustomers.length === 0 && <div className="p-4 text-center text-sm text-muted-foreground">No customers found.</div>}
-                                    </SelectContent>
-                                </Select>
+                                <Combobox
+                                    options={customerOptions}
+                                    value={field.value}
+                                    onChange={field.onChange}
+                                    placeholder="Select a customer..."
+                                    searchPlaceholder="Search customers..."
+                                    emptyPlaceholder="No customer found."
+                                />
                                 <FormMessage />
                             </FormItem>
                         )}

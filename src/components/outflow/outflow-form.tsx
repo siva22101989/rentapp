@@ -38,6 +38,7 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
     const firestore = useFirestore();
     const [isPending, startTransition] = useTransition();
     
+    const [customerSearch, setCustomerSearch] = useState('');
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
     const [selectedRecordId, setSelectedRecordId] = useState<string>('');
     const [bagsToWithdraw, setBagsToWithdraw] = useState<number | ''>('');
@@ -49,6 +50,10 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
     const [storageMonths, setStorageMonths] = useState(0);
     const [rentPerBag, setRentPerBag] = useState({ rentPerBag: 0 });
     const [hamaliPending, setHamaliPending] = useState(0);
+
+    const filteredCustomers = customerSearch
+        ? customers.filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()))
+        : customers;
 
     const filteredRecords = selectedCustomerId ? records.filter(r => r.customerId === selectedCustomerId) : [];
     const selectedRecord = records.find(r => r.id === selectedRecordId);
@@ -183,18 +188,31 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                 <CardDescription>Select a customer, then choose a record and enter withdrawal information.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                     <div className="space-y-2">
+                        <Label htmlFor="customer-search">Search Customer</Label>
+                        <Input 
+                            id="customer-search"
+                            placeholder="Type to search..."
+                            value={customerSearch}
+                            onChange={e => {
+                                setCustomerSearch(e.target.value);
+                                handleCustomerChange(''); // Reset selection when searching
+                            }}
+                        />
+                    </div>
                     <div className="space-y-2">
                         <Label htmlFor="customerId">Customer</Label>
-                        <Select onValueChange={handleCustomerChange} required>
+                        <Select onValueChange={handleCustomerChange} required value={selectedCustomerId}>
                             <SelectTrigger id="customerId">
                                 <SelectValue placeholder="Select a customer..." />
                             </SelectTrigger>
                             <SelectContent>
-                                {customers.map(customer => (
+                                {filteredCustomers.map(customer => (
                                     <SelectItem key={customer.id} value={customer.id}>
                                         {customer.name}
                                     </SelectItem>
                                 ))}
+                                {filteredCustomers.length === 0 && <div className="p-4 text-center text-sm text-muted-foreground">No customers found.</div>}
                             </SelectContent>
                         </Select>
                     </div>

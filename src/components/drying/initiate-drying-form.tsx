@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useTransition, useState, useEffect } from 'react';
@@ -40,7 +39,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
     const firestore = useFirestore();
-    const [selectedCustomerId, setSelectedCustomerId] = useState('');
+    const [customerSearch, setCustomerSearch] = useState('');
 
     const form = useForm<DryingFormData>({
         resolver: zodResolver(InitiateDryingSchema),
@@ -53,17 +52,23 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
           bagsForDrying: undefined,
         },
       });
+    
+    const filteredCustomers = customerSearch
+        ? customers.filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()))
+        : customers;
 
+    const selectedCustomerId = form.watch('customerId');
     const customerUnloadingRecords = unloadingRecords.filter(ur => ur.customerId === selectedCustomerId);
 
     useEffect(() => {
         form.reset({
             ...form.getValues(),
+            customerId: selectedCustomerId,
             unloadingRecordId: '',
         });
         onCustomerChange(selectedCustomerId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedCustomerId, form]);
+    }, [selectedCustomerId]);
 
     const selectedUnloadingRecordId = form.watch('unloadingRecordId');
     const selectedUnloadingRecord = unloadingRecords.find(ur => ur.id === selectedUnloadingRecordId);
@@ -91,7 +96,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
         form.setValue('bagsForDrying', undefined);
       }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedUnloadingRecord, form]);
+    }, [selectedUnloadingRecord]);
 
 
     const onSubmit = (data: DryingFormData) => {
@@ -153,7 +158,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
 
                 toast({ title: 'Success', description: 'Drying process initiated.' });
                 form.reset();
-                setSelectedCustomerId('');
+                setCustomerSearch('');
                 onCustomerChange(null);
             } catch (error) {
                 console.error(error);
@@ -171,6 +176,19 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                     <CardDescription>Select a customer and an unloading bill to start drying.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                     <div className="space-y-2">
+                        <Label htmlFor="customer-search">Search Customer</Label>
+                        <Input 
+                            id="customer-search"
+                            placeholder="Type to search..."
+                            value={customerSearch}
+                            onChange={e => {
+                                setCustomerSearch(e.target.value);
+                                form.setValue('customerId', '');
+                                onCustomerChange(null);
+                            }}
+                        />
+                    </div>
                     <FormField
                         control={form.control}
                         name="customerId"
@@ -179,15 +197,15 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                                 <FormLabel>Customer</FormLabel>
                                 <Select onValueChange={(value) => {
                                     field.onChange(value);
-                                    setSelectedCustomerId(value);
                                 }} value={field.value}>
                                     <FormControl>
                                         <SelectTrigger><SelectValue placeholder="Select a customer" /></SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        {customers.map(customer => (
+                                        {filteredCustomers.map(customer => (
                                             <SelectItem key={customer.id} value={customer.id}>{customer.name}</SelectItem>
                                         ))}
+                                        {filteredCustomers.length === 0 && <div className="p-4 text-center text-sm text-muted-foreground">No customers found.</div>}
                                     </SelectContent>
                                 </Select>
                                 <FormMessage />

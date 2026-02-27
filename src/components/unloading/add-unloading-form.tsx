@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useTransition, useState, useEffect } from 'react';
@@ -36,6 +35,7 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
     const [isPending, startTransition] = useTransition();
     const firestore = useFirestore();
     const router = useRouter();
+    const [customerSearch, setCustomerSearch] = useState('');
 
     const form = useForm<UnloadingFormData>({
         resolver: zodResolver(UnloadingRecordSchema),
@@ -58,6 +58,10 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
             billNo: nextBillNo,
         }
       });
+    
+    const filteredCustomers = customerSearch
+        ? customers.filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()))
+        : customers;
       
     const bagsUnloaded = form.watch('bagsUnloaded');
     const hamaliPerBag = form.watch('hamaliPerBag');
@@ -111,20 +115,33 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
                             </FormItem>
                         )}
                     />
+                    <div className="space-y-2">
+                        <Label htmlFor="customer-search">Search Customer</Label>
+                        <Input 
+                            id="customer-search"
+                            placeholder="Type to search..."
+                            value={customerSearch}
+                            onChange={e => {
+                                setCustomerSearch(e.target.value);
+                                form.setValue('customerId', '');
+                            }}
+                        />
+                    </div>
                     <FormField
                         control={form.control}
                         name="customerId"
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Customer</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <Select onValueChange={field.onChange} value={field.value}>
                                     <FormControl>
                                         <SelectTrigger><SelectValue placeholder="Select a customer" /></SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        {customers.map(customer => (
+                                        {filteredCustomers.map(customer => (
                                             <SelectItem key={customer.id} value={customer.id}>{customer.name}</SelectItem>
                                         ))}
+                                        {filteredCustomers.length === 0 && <div className="p-4 text-center text-sm text-muted-foreground">No customers found.</div>}
                                     </SelectContent>
                                 </Select>
                                 <FormMessage />

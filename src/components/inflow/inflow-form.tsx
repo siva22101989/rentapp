@@ -42,11 +42,16 @@ export function InflowForm({ customers, commodities, lots, nextSerialNumber }: {
     const [rate, setRate] = useState<number | ''>('');
     const [hamali, setHamali] = useState(0);
     const [hamaliPaid, setHamaliPaid] = useState<number | ''>('');
+    const [customerSearch, setCustomerSearch] = useState('');
     const [selectedCustomerId, setSelectedCustomerId] = useState('');
     const [commodityDescription, setCommodityDescription] = useState('');
     const [weight, setWeight] = useState<number | ''>('');
     const [khataAmount, setKhataAmount] = useState<number | ''>('');
     const [selectedLot, setSelectedLot] = useState('');
+
+    const filteredCustomers = customerSearch
+        ? customers.filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()))
+        : customers;
 
 
     useEffect(() => {
@@ -136,17 +141,30 @@ export function InflowForm({ customers, commodities, lots, nextSerialNumber }: {
                 </CardHeader>
                 <CardContent className="space-y-4">
                      <div className="space-y-2">
+                        <Label htmlFor="customer-search">Search Customer</Label>
+                        <Input 
+                            id="customer-search"
+                            placeholder="Type to search..."
+                            value={customerSearch}
+                            onChange={e => {
+                                setCustomerSearch(e.target.value);
+                                setSelectedCustomerId(''); // Reset selection when searching
+                            }}
+                        />
+                    </div>
+                     <div className="space-y-2">
                         <Label htmlFor="customerId">Customer</Label>
                         <Select name="customerId" required onValueChange={setSelectedCustomerId} value={selectedCustomerId}>
                             <SelectTrigger id="customerId">
                                 <SelectValue placeholder="Select a customer" />
                             </SelectTrigger>
                             <SelectContent>
-                                {customers.map(customer => (
+                                {filteredCustomers.map(customer => (
                                     <SelectItem key={customer.id} value={customer.id}>
                                         {customer.name}
                                     </SelectItem>
                                 ))}
+                                {filteredCustomers.length === 0 && <div className="p-4 text-center text-sm text-muted-foreground">No customers found.</div>}
                             </SelectContent>
                         </Select>
                     </div>

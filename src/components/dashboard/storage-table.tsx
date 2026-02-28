@@ -17,15 +17,21 @@ import { useCollection } from "@/firebase/firestore/use-collection";
 import { collection, query, where } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
+import { useMemo } from "react";
 
 export function StorageTable() {
   const firestore = useFirestore();
 
-  const activeRecordsQuery = useMemoFirebase(
-    () => (firestore ? query(collection(firestore, 'storageRecords'), where('storageEndDate', '==', null)) : null),
+  const allRecordsQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'storageRecords') : null),
     [firestore]
   );
-  const { data: activeRecords, loading: loadingRecords } = useCollection<StorageRecord>(activeRecordsQuery);
+  const { data: allRecords, loading: loadingRecords } = useCollection<StorageRecord>(allRecordsQuery);
+
+  const activeRecords = useMemo(() => {
+    if (!allRecords) return [];
+    return allRecords.filter(r => !r.storageEndDate);
+  }, [allRecords]);
 
   const customersQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'customers') : null),
@@ -56,7 +62,7 @@ export function StorageTable() {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {activeRecords && allCustomers && activeRecords.map((record) => {
+        {activeRecords && allCustomers && allRecords && activeRecords.map((record) => {
             const customerName = getCustomerName(record.customerId);
             const amountPaid = (record.payments || []).reduce((acc, p) => acc + p.amount, 0);
             const startDate = toDate(record.storageStartDate);
@@ -74,7 +80,7 @@ export function StorageTable() {
                 </TableCell>
                 <TableCell className="text-right hidden lg:table-cell">{formatCurrency(amountPaid)}</TableCell>
                 <TableCell>
-                    <ActionsMenu record={record} customers={allCustomers} />
+                    <ActionsMenu record={record} customers={allCustomers} allRecords={allRecords} />
                 </TableCell>
               </TableRow>
             )

@@ -1,13 +1,14 @@
+
 'use client';
 
-import { useTransition, useState, useEffect } from 'react';
+import { useTransition, useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { Customer, Payment, Commodity, Lot } from '@/lib/definitions';
+import type { Customer, Payment, Commodity, Lot, StorageRecord } from '@/lib/definitions';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Separator } from '../ui/separator';
@@ -33,7 +34,7 @@ function SubmitButton() {
     );
 }
 
-export function InflowForm({ customers, commodities, lots, nextSerialNumber }: { customers: Customer[], commodities: Commodity[], lots: Lot[], nextSerialNumber: string }) {
+export function InflowForm({ customers, commodities, lots, records, nextSerialNumber }: { customers: Customer[], commodities: Commodity[], lots: Lot[], records: StorageRecord[], nextSerialNumber: string }) {
     const { toast } = useToast();
     const router = useRouter();
     const firestore = useFirestore();
@@ -50,6 +51,16 @@ export function InflowForm({ customers, commodities, lots, nextSerialNumber }: {
     const [selectedLot, setSelectedLot] = useState('');
 
     const customerOptions = customers.map(c => ({ value: c.id, label: c.name }));
+
+    const lotOccupancy = useMemo(() => {
+        const occupancy: { [lotName: string]: number } = {};
+        records.forEach(record => {
+            if (record.location && record.bagsStored > 0) {
+                occupancy[record.location] = (occupancy[record.location] || 0) + record.bagsStored;
+            }
+        });
+        return occupancy;
+    }, [records]);
 
     useEffect(() => {
         const bagsValue = bags || 0;
@@ -180,11 +191,15 @@ export function InflowForm({ customers, commodities, lots, nextSerialNumber }: {
                                 <SelectContent>
                                     {lots
                                         .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
-                                        .map(lot => (
-                                        <SelectItem key={lot.id} value={lot.name}>
-                                            {lot.name}
-                                        </SelectItem>
-                                    ))}
+                                        .map(lot => {
+                                            const occupied = lotOccupancy[lot.name] || 0;
+                                            const capacity = lot.capacity ? ` / ${lot.capacity}` : '';
+                                            return (
+                                                <SelectItem key={lot.id} value={lot.name}>
+                                                    {lot.name} ({occupied}{capacity} bags)
+                                                </SelectItem>
+                                            )
+                                    })}
                                 </SelectContent>
                             </Select>
                         </div>

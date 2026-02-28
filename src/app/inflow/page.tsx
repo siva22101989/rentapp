@@ -70,6 +70,7 @@ export default function InflowPage() {
         customers={customers || []} 
         commodities={commodities || []}
         lots={lots || []}
+        records={records || []}
         nextSerialNumber={nextSerialNumber} 
       />
     </AppLayout>

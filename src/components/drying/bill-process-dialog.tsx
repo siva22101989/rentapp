@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useMemo } from 'react';
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -27,11 +27,13 @@ export function BillProcessDialog({
   record,
   unloadingRecord,
   lots,
+  storageRecords,
   children,
 }: {
   record: DryingRecord;
   unloadingRecord?: UnloadingRecord;
   lots: Lot[];
+  storageRecords: StorageRecord[];
   children: React.ReactNode;
 }) {
   const { toast } = useToast();
@@ -39,6 +41,16 @@ export function BillProcessDialog({
   const [isPending, startTransition] = useTransition();
   const firestore = useFirestore();
   const [location, setLocation] = useState('');
+
+  const lotOccupancy = useMemo(() => {
+    const occupancy: { [lotName: string]: number } = {};
+    (storageRecords || []).forEach(record => {
+      if (record.location && record.bagsStored > 0) {
+        occupancy[record.location] = (occupancy[record.location] || 0) + record.bagsStored;
+      }
+    });
+    return occupancy;
+  }, [storageRecords]);
 
   const handleBilling = async () => {
     if (!firestore) {
@@ -153,11 +165,15 @@ export function BillProcessDialog({
                   <SelectContent>
                       {lots
                         .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
-                        .map(lot => (
-                          <SelectItem key={lot.id} value={lot.name}>
-                              {lot.name}
-                          </SelectItem>
-                      ))}
+                        .map(lot => {
+                            const occupied = lotOccupancy[lot.name] || 0;
+                            const capacity = lot.capacity ? ` / ${lot.capacity}` : '';
+                            return (
+                                <SelectItem key={lot.id} value={lot.name}>
+                                    {lot.name} ({occupied}{capacity} bags)
+                                </SelectItem>
+                            )
+                      })}
                   </SelectContent>
               </Select>
             </div>

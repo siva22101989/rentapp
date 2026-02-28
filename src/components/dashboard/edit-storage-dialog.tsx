@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useState, useTransition, useMemo } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -44,7 +44,7 @@ const StorageRecordSchema = z.object({
 type StorageRecordFormData = z.infer<typeof StorageRecordSchema>;
 
 
-export function EditStorageDialog({ record, customers, children }: { record: StorageRecord, customers: Customer[], children: React.ReactNode }) {
+export function EditStorageDialog({ record, customers, allRecords, children }: { record: StorageRecord, customers: Customer[], allRecords: StorageRecord[], children: React.ReactNode }) {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -61,6 +61,16 @@ export function EditStorageDialog({ record, customers, children }: { record: Sto
     [firestore]
   );
   const { data: lots, loading: loadingLots } = useCollection<Lot>(lotsQuery);
+
+  const lotOccupancy = useMemo(() => {
+    const occupancy: { [lotName: string]: number } = {};
+    (allRecords || []).forEach(r => {
+        if (r.location && r.bagsStored > 0) {
+            occupancy[r.location] = (occupancy[r.location] || 0) + r.bagsStored;
+        }
+    });
+    return occupancy;
+  }, [allRecords]);
 
   const form = useForm<StorageRecordFormData>({
     resolver: zodResolver(StorageRecordSchema),
@@ -170,11 +180,15 @@ export function EditStorageDialog({ record, customers, children }: { record: Sto
                             <SelectContent>
                                 {lots
                                     ?.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
-                                    .map(lot => (
-                                    <SelectItem key={lot.id} value={lot.name}>
-                                        {lot.name}
-                                    </SelectItem>
-                                ))}
+                                    .map(lot => {
+                                        const occupied = lotOccupancy[lot.name] || 0;
+                                        const capacity = lot.capacity ? ` / ${lot.capacity}` : '';
+                                        return (
+                                            <SelectItem key={lot.id} value={lot.name}>
+                                                {lot.name} ({occupied}{capacity} bags)
+                                            </SelectItem>
+                                        )
+                                })}
                             </SelectContent>
                         </Select>
                         <FormMessage />

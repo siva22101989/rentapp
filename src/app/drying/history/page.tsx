@@ -6,7 +6,7 @@ import { useCollection } from "@/firebase/firestore/use-collection";
 import { collection, query, orderBy } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
-import type { Customer, DryingRecord, UnloadingRecord, Lot } from "@/lib/definitions";
+import type { Customer, DryingRecord, UnloadingRecord, Lot, StorageRecord } from "@/lib/definitions";
 import { DryingHistoryTable } from "@/components/drying/drying-history-table";
 
 export default function DryingHistoryPage() {
@@ -36,7 +36,13 @@ export default function DryingHistoryPage() {
   );
   const { data: lots, loading: loadingLots } = useCollection<Lot>(lotsQuery);
 
-  if (loadingCustomers || loadingDryingRecords || loadingUnloadingRecords || loadingLots) {
+  const storageRecordsQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'storageRecords') : null),
+    [firestore]
+  );
+  const { data: storageRecords, loading: loadingStorageRecords } = useCollection<StorageRecord>(storageRecordsQuery);
+
+  if (loadingCustomers || loadingDryingRecords || loadingUnloadingRecords || loadingLots || loadingStorageRecords) {
     return <AppLayout><div>Loading...</div></AppLayout>;
   }
 
@@ -51,6 +57,7 @@ export default function DryingHistoryPage() {
         customers={customers || []}
         unloadingRecords={unloadingRecords || []}
         lots={lots || []}
+        storageRecords={storageRecords || []}
       />
     </AppLayout>
   );

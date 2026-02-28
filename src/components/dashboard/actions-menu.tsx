@@ -10,7 +10,7 @@ import { BillReceiptDialog } from "./bill-receipt-dialog";
 import { toDate } from "@/lib/utils";
 import { DeleteRecordDialog } from "./delete-record-dialog";
 
-export function ActionsMenu({ record, customers }: { record: StorageRecord, customers: Customer[] }) {
+export function ActionsMenu({ record, customers, allRecords }: { record: StorageRecord, customers: Customer[], allRecords: StorageRecord[] }) {
     const customer = customers.find(c => c.id === record.customerId);
 
     // Ensure record dates are Date objects before passing to children
@@ -30,7 +30,7 @@ export function ActionsMenu({ record, customers }: { record: StorageRecord, cust
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-                <EditStorageDialog record={safeRecord} customers={customers}>
+                <EditStorageDialog record={safeRecord} customers={customers} allRecords={allRecords}>
                     <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                         Edit
                     </DropdownMenuItem>

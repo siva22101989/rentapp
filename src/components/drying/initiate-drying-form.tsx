@@ -33,9 +33,14 @@ const InitiateDryingSchema = z.object({
   bagsForDrying: z.coerce.number().int().positive('Number of bags must be positive.'),
   bagsPacked: z.coerce.number().int().positive("Bags packed must be a positive number."),
   lotNo: z.string().min(1, 'Storage location (Lot No.) is required.'),
-}).refine(data => new Date(data.dryingEndDate) >= new Date(data.dryingStartDate), {
+})
+.refine(data => new Date(data.dryingEndDate) >= new Date(data.dryingStartDate), {
     message: "End date must be on or after start date.",
     path: ["dryingEndDate"],
+})
+.refine(data => data.bagsPacked <= data.bagsForDrying, {
+    message: "Bags packed cannot be more than the bags sent for drying.",
+    path: ["bagsPacked"],
 });
 
 type DryingFormData = z.infer<typeof InitiateDryingSchema>;
@@ -305,9 +310,9 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                         name="bagsForDrying"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Bags for Drying (Hamali Quantity)</FormLabel>
+                                <FormLabel>Bags Sent to Plot for Drying</FormLabel>
                                 <FormControl><Input type="number" placeholder="0" {...field} value={field.value ?? ''} disabled={!selectedUnloadingRecord} /></FormControl>
-                                {selectedUnloadingRecord && <FormDescription>Enter the quantity for hamali calculation. Remaining on Bill: {bagsRemainingOnRecord} bags</FormDescription>}
+                                {selectedUnloadingRecord && <FormDescription>This is the starting quantity for the drying process. Hamali is calculated on this amount. Remaining on Bill: {bagsRemainingOnRecord} bags</FormDescription>}
                                 <FormMessage />
                             </FormItem>
                         )}

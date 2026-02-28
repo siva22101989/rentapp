@@ -19,7 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { expenseCategories } from '@/lib/definitions';
 import { Textarea } from '../ui/textarea';
-import { useFirestore } from '@/firebase';
+import { useFirestore } from '@/firebase/provider';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';

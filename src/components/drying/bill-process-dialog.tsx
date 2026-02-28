@@ -14,7 +14,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '../ui/button';
 import { Loader2 } from 'lucide-react';
-import { useFirestore } from '@/firebase';
+import { useFirestore } from '@/firebase/provider';
 import { doc, getDocs, collection, writeBatch } from 'firebase/firestore';
 import type { DryingRecord, UnloadingRecord, StorageRecord, Lot } from '@/lib/definitions';
 import { toDate, cleanForFirestore } from '@/lib/utils';

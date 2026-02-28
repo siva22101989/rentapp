@@ -6,7 +6,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import type { UnloadingRecord, UnloadingStatus } from "@/lib/definitions";
 import { unloadingStatus } from "@/lib/definitions";
 import { useTransition } from "react";
-import { useFirestore } from "@/firebase";
+import { useFirestore } from "@/firebase/provider";
 import { useToast } from "@/hooks/use-toast";
 import { doc, updateDoc } from "firebase/firestore";
 

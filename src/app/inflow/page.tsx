@@ -8,7 +8,7 @@ import { useMemo } from "react";
 import type { Customer, StorageRecord, Commodity, Lot } from "@/lib/definitions";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { collection, query } from "firebase/firestore";
-import { useFirestore } from "@/firebase";
+import { useFirestore } from "@/firebase/provider";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 
 export default function InflowPage() {

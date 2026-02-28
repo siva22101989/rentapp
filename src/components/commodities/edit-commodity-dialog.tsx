@@ -15,7 +15,7 @@ import {
   DialogClose,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore } from '@/firebase';
+import { useFirestore } from '@/firebase/provider';
 import { updateCommodity } from '@/lib/data';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';

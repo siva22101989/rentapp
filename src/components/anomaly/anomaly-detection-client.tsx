@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { collection } from "firebase/firestore";
-import { useFirestore } from "@/firebase";
+import { useFirestore } from "@/firebase/provider";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 import type { StorageRecord } from "@/lib/definitions";
 import { useToast } from '@/hooks/use-toast';

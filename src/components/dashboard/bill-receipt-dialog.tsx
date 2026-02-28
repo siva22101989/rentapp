@@ -17,7 +17,7 @@ import { Download, Loader2 } from 'lucide-react';
 import { BillReceipt } from './bill-receipt';
 import type { Customer, StorageRecord, WarehouseInfo } from '@/lib/definitions';
 import { useDoc } from '@/firebase/firestore/use-doc';
-import { useFirestore } from '@/firebase';
+import { useFirestore } from '@/firebase/provider';
 import { doc } from 'firebase/firestore';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 

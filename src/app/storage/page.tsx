@@ -10,7 +10,7 @@ import { formatCurrency } from "@/lib/utils";
 import { useMemo } from "react";
 import type { StorageRecord } from "@/lib/definitions";
 import { useCollection } from "@/firebase/firestore/use-collection";
-import { useFirestore } from "@/firebase";
+import { useFirestore } from "@/firebase/provider";
 import { collection } from "firebase/firestore";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 import { StorageTable } from "@/components/dashboard/storage-table";

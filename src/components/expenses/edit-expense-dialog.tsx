@@ -22,7 +22,7 @@ import { expenseCategories } from '@/lib/definitions';
 import { Textarea } from '../ui/textarea';
 import { format } from 'date-fns';
 import { toDate, cleanForFirestore } from '@/lib/utils';
-import { useFirestore } from '@/firebase';
+import { useFirestore } from '@/firebase/provider';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';

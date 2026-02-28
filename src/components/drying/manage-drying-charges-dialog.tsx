@@ -24,7 +24,7 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { format, differenceInDays } from 'date-fns';
 import { toDate, cleanForFirestore } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { useFirestore } from '@/firebase';
+import { useFirestore } from '@/firebase/provider';
 
 const PackingSchema = z.object({
   bagsPacked: z.coerce.number().nonnegative('Bags packed must be a non-negative number.').optional(),

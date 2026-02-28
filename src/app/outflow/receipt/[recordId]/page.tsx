@@ -6,7 +6,7 @@ import { OutflowReceipt } from "@/components/outflow/outflow-receipt";
 import { notFound, useParams, useSearchParams } from "next/navigation";
 import type { Customer, StorageRecord, WarehouseInfo } from "@/lib/definitions";
 import { useDoc } from "@/firebase/firestore/use-doc";
-import { useFirestore } from "@/firebase";
+import { useFirestore } from "@/firebase/provider";
 import { doc } from "firebase/firestore";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 

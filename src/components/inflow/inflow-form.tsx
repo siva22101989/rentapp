@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { formatCurrency, cleanForFirestore } from '@/lib/utils';
-import { useFirestore } from '@/firebase';
+import { useFirestore } from '@/firebase/provider';
 import { setDoc, doc, getDoc } from 'firebase/firestore';
 import { Combobox } from '../ui/combobox';
 

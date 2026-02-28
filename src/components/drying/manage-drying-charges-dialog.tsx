@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useEffect, useMemo } from 'react';
@@ -44,9 +45,9 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
   const form = useForm<PackingFormData>({
     resolver: zodResolver(PackingSchema),
     defaultValues: {
-        bagsPacked: '',
+        bagsPacked: undefined,
         packingDate: format(new Date(), 'yyyy-MM-dd'),
-        additionalHamaliPerBagPerDay: '',
+        additionalHamaliPerBagPerDay: undefined,
     }
   });
 
@@ -55,7 +56,7 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
   
   const bagsDifference = useMemo(() => {
     const packed = Number(bagsPacked);
-    if (!isNaN(packed) && bagsPacked !== undefined && bagsPacked !== '') {
+    if (!isNaN(packed) && bagsPacked !== undefined && bagsPacked !== null && bagsPacked !== '') {
       return record.bagsForDrying - packed;
     }
     return null;
@@ -74,7 +75,7 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
 
   useEffect(() => {
     if (isOpen) {
-      let savedRate = '';
+      let savedRate: number | string = '';
       const pkDate = record.packingDate ? format(toDate(record.packingDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd');
       const additionalHamaliCharge = (record.hamaliCharges || []).find(c => c.description.toLowerCase().includes('additional drying'));
 
@@ -86,14 +87,14 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
         
         if (record.bagsForDrying > 0 && extraDays > 0) {
             const rate = additionalHamaliCharge.amount / record.bagsForDrying / extraDays;
-            savedRate = rate.toFixed(2);
+            savedRate = Number(rate.toFixed(2));
         }
       }
       
       form.reset({
-        bagsPacked: record.bagsPacked ?? '',
+        bagsPacked: record.bagsPacked ?? undefined,
         packingDate: pkDate,
-        additionalHamaliPerBagPerDay: savedRate ? Number(savedRate) : '',
+        additionalHamaliPerBagPerDay: savedRate || undefined,
       });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -189,7 +190,6 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
                                 placeholder="0"
                                 disabled={isBilled}
                                 {...field}
-                                value={field.value ?? ''}
                                 />
                             </FormControl>
                             <FormMessage />
@@ -238,7 +238,6 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
                                   placeholder="0.00" 
                                   disabled={isBilled} 
                                   {...field}
-                                  value={field.value ?? ''}
                               />
                           </FormControl>
                           <FormMessage />

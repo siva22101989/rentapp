@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useEffect, useMemo } from 'react';
@@ -45,9 +44,9 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
   const form = useForm<PackingFormData>({
     resolver: zodResolver(PackingSchema),
     defaultValues: {
-        bagsPacked: undefined,
+        bagsPacked: '',
         packingDate: format(new Date(), 'yyyy-MM-dd'),
-        additionalHamaliPerBagPerDay: undefined,
+        additionalHamaliPerBagPerDay: '',
     }
   });
 
@@ -92,9 +91,9 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
       }
       
       form.reset({
-        bagsPacked: record.bagsPacked ?? undefined,
+        bagsPacked: record.bagsPacked ?? '',
         packingDate: pkDate,
-        additionalHamaliPerBagPerDay: savedRate || undefined,
+        additionalHamaliPerBagPerDay: savedRate || '',
       });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -190,6 +189,7 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
                                 placeholder="0"
                                 disabled={isBilled}
                                 {...field}
+                                value={field.value ?? ''}
                                 />
                             </FormControl>
                             <FormMessage />
@@ -238,6 +238,7 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
                                   placeholder="0.00" 
                                   disabled={isBilled} 
                                   {...field}
+                                  value={field.value ?? ''}
                               />
                           </FormControl>
                           <FormMessage />

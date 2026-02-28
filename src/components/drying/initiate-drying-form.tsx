@@ -59,12 +59,12 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
           unloadingRecordId: '',
           dryingStartDate: new Date().toISOString().split('T')[0],
           dryingEndDate: new Date().toISOString().split('T')[0],
-          customerHamaliPerBag: undefined,
-          workerHamaliPerBag: undefined,
-          pavHamaliPerBag: undefined,
-          cuppaHamaliPerBag: undefined,
-          bagsForDrying: undefined,
-          bagsPacked: undefined,
+          customerHamaliPerBag: '',
+          workerHamaliPerBag: '',
+          pavHamaliPerBag: '',
+          cuppaHamaliPerBag: '',
+          bagsForDrying: '',
+          bagsPacked: '',
           lotNo: '',
         },
       });
@@ -102,21 +102,21 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
     
     const bagsForDrying = form.watch('bagsForDrying');
     const customerDay1HamaliRate = form.watch('customerHamaliPerBag');
-    const day1DryingHamali = (bagsForDrying || 0) * (customerDay1HamaliRate || 0);
+    const day1DryingHamali = (Number(bagsForDrying) || 0) * (Number(customerDay1HamaliRate) || 0);
 
     const pavHamaliPerBag = form.watch('pavHamaliPerBag');
-    const pavHamali = (bagsForDrying || 0) * (pavHamaliPerBag || 0);
+    const pavHamali = (Number(bagsForDrying) || 0) * (Number(pavHamaliPerBag) || 0);
 
     const cuppaHamaliPerBag = form.watch('cuppaHamaliPerBag');
-    const cuppaHamali = (bagsForDrying || 0) * (cuppaHamaliPerBag || 0);
+    const cuppaHamali = (Number(bagsForDrying) || 0) * (Number(cuppaHamaliPerBag) || 0);
 
     const proportionalUnloadingHamali = selectedUnloadingRecord 
-        ? (selectedUnloadingRecord.hamaliPerBag * (bagsForDrying || 0))
+        ? (selectedUnloadingRecord.hamaliPerBag * (Number(bagsForDrying) || 0))
         : 0;
 
     const totalCustomerCharge = proportionalUnloadingHamali + day1DryingHamali + pavHamali + cuppaHamali;
     
-    const workerHamaliDay1 = (bagsForDrying || 0) * (form.watch('workerHamaliPerBag') || 0);
+    const workerHamaliDay1 = (Number(bagsForDrying) || 0) * (Number(form.watch('workerHamaliPerBag')) || 0);
     const totalWorkerPayable = proportionalUnloadingHamali + workerHamaliDay1 + pavHamali + cuppaHamali;
     
     const startDate = form.watch('dryingStartDate');
@@ -152,8 +152,8 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
         form.setValue('bagsForDrying', bagsRemainingOnRecord);
         form.setValue('bagsPacked', bagsRemainingOnRecord); 
       } else {
-        form.setValue('bagsForDrying', undefined);
-        form.setValue('bagsPacked', undefined);
+        form.setValue('bagsForDrying', '');
+        form.setValue('bagsPacked', '');
       }
       form.trigger('bagsForDrying'); 
     // eslint-disable-next-line react-hooks/exhaustive-deps

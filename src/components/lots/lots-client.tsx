@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useTransition, useState, useMemo } from 'react';
@@ -103,12 +102,12 @@ export function LotsClient() {
 
   const addForm = useForm<AddLotFormData>({
     resolver: zodResolver(AddLotSchema),
-    defaultValues: { name: '', capacity: '' as any },
+    defaultValues: { name: '', capacity: '' },
   });
 
   const rangeAddForm = useForm<RangeAddLotsFormData>({
     resolver: zodResolver(RangeAddLotsSchema),
-    defaultValues: { prefix: '', start: 1, end: '' as any, suffix: '', capacity: '' as any },
+    defaultValues: { prefix: '', start: 1, end: '', suffix: '', capacity: '' },
   });
 
 
@@ -213,7 +212,7 @@ export function LotsClient() {
                                 <FormItem>
                                     <FormLabel>Capacity (bags)</FormLabel>
                                     <FormControl>
-                                        <Input type="number" placeholder="e.g. 1000" {...field} />
+                                        <Input type="number" placeholder="e.g. 1000" {...field} value={field.value ?? ''} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -243,10 +242,10 @@ export function LotsClient() {
                        <FormField control={rangeAddForm.control} name="suffix" render={({ field }) => (<FormItem><FormLabel>Suffix</FormLabel><FormControl><Input placeholder="e.g. /Top" {...field} /></FormControl><FormMessage /></FormItem>)} />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
-                        <FormField control={rangeAddForm.control} name="start" render={({ field }) => (<FormItem><FormLabel>Start No.</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={rangeAddForm.control} name="end" render={({ field }) => (<FormItem><FormLabel>End No.</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={rangeAddForm.control} name="start" render={({ field }) => (<FormItem><FormLabel>Start No.</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={rangeAddForm.control} name="end" render={({ field }) => (<FormItem><FormLabel>End No.</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
                     </div>
-                     <FormField control={rangeAddForm.control} name="capacity" render={({ field }) => (<FormItem><FormLabel>Capacity (for all)</FormLabel><FormControl><Input type="number" placeholder="e.g. 1000" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                     <FormField control={rangeAddForm.control} name="capacity" render={({ field }) => (<FormItem><FormLabel>Capacity (for all)</FormLabel><FormControl><Input type="number" placeholder="e.g. 1000" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem> )} />
                   </CardContent>
                   <CardFooter>
                     <Button type="submit" disabled={isRangeAdding}>

@@ -44,8 +44,8 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
           commodityDescription: '',
           lorryTractorNo: '',
           unloadingDate: new Date().toISOString().split('T')[0],
-          bagsUnloaded: undefined,
-          hamaliPerBag: undefined,
+          bagsUnloaded: '',
+          hamaliPerBag: '',
           billNo: nextBillNo,
         },
         values: { // Use `values` to ensure billNo is always up-to-date
@@ -53,8 +53,8 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
             commodityDescription: '',
             lorryTractorNo: '',
             unloadingDate: new Date().toISOString().split('T')[0],
-            bagsUnloaded: undefined,
-            hamaliPerBag: undefined,
+            bagsUnloaded: '',
+            hamaliPerBag: '',
             billNo: nextBillNo,
         }
       });
@@ -63,7 +63,7 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
       
     const bagsUnloaded = form.watch('bagsUnloaded');
     const hamaliPerBag = form.watch('hamaliPerBag');
-    const totalHamali = (bagsUnloaded || 0) * (hamaliPerBag || 0);
+    const totalHamali = (Number(bagsUnloaded) || 0) * (Number(hamaliPerBag) || 0);
 
     const onSubmit = (data: UnloadingFormData) => {
         if (!firestore) {
@@ -184,7 +184,7 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Bags Unloaded</FormLabel>
-                                    <FormControl><Input type="number" placeholder="0" {...field} /></FormControl>
+                                    <FormControl><Input type="number" placeholder="0" {...field} value={field.value ?? ''} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -195,7 +195,7 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Hamali per Bag</FormLabel>
-                                    <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} /></FormControl>
+                                    <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}

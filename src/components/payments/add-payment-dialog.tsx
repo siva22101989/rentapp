@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -55,8 +54,8 @@ export function AddPaymentDialog({ record }: AddPaymentDialogProps) {
     resolver: zodResolver(PaymentSchema),
     defaultValues: {
         paymentDate: new Date().toISOString().split('T')[0],
-        payForHamali: undefined,
-        payForRent: undefined,
+        payForHamali: '',
+        payForRent: '',
     },
   });
 

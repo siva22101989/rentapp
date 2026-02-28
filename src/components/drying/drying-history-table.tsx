@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -50,8 +49,8 @@ export function DryingHistoryTable({ dryingRecords, customers, unloadingRecords,
     return (
       <Card>
         <CardHeader>
-            <CardTitle>Drying Records</CardTitle>
-            <CardDescription>A log of all drying activities and their current status.</CardDescription>
+            <CardTitle>Active Drying Processes</CardTitle>
+            <CardDescription>A log of all ongoing drying and packing activities that need action.</CardDescription>
         </CardHeader>
         <CardContent>
             <Table>
@@ -92,7 +91,7 @@ export function DryingHistoryTable({ dryingRecords, customers, unloadingRecords,
                  {dryingRecords.length === 0 && (
                     <TableRow>
                         <TableCell colSpan={8} className="text-center text-muted-foreground">
-                            No drying records found.
+                            No active drying processes found.
                         </TableCell>
                     </TableRow>
                 )}

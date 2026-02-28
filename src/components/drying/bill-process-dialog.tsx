@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useMemo } from 'react';
@@ -19,7 +18,7 @@ import { useFirestore } from '@/firebase';
 import { doc, getDocs, collection, writeBatch } from 'firebase/firestore';
 import type { DryingRecord, UnloadingRecord, StorageRecord, Lot } from '@/lib/definitions';
 import { toDate, cleanForFirestore } from '@/lib/utils';
-import { format } from 'date-fns';
+import { format, differenceInDays } from 'date-fns';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -51,6 +50,17 @@ export function BillProcessDialog({
     });
     return occupancy;
   }, [storageRecords]);
+
+  const dryingDays = useMemo(() => {
+    if (record.dryingStartDate && record.packingDate) {
+        const start = toDate(record.dryingStartDate);
+        const end = toDate(record.packingDate);
+        if (end >= start) {
+            return differenceInDays(end, start) + 1;
+        }
+    }
+    return null;
+  }, [record.dryingStartDate, record.packingDate]);
 
   const handleBilling = async () => {
     if (!firestore) {
@@ -154,6 +164,9 @@ export function BillProcessDialog({
         <div className="space-y-4">
             <div className="text-sm space-y-1">
             <div><span className="font-medium text-foreground">Packing Date:</span> {record.packingDate ? format(toDate(record.packingDate), 'dd MMM yyyy') : 'N/A'}</div>
+            {dryingDays !== null && (
+              <div><span className="font-medium text-foreground">Total Drying Days:</span> {dryingDays}</div>
+            )}
             <div><span className="font-medium text-foreground">Bags Packed:</span> {record.bagsPacked ?? 'N/A'}</div>
             </div>
             <div>

@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useTransition, useState, useEffect } from 'react';
+import { useTransition, useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -19,15 +18,20 @@ import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { formatCurrency, cleanForFirestore } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 import { Combobox } from '../ui/combobox';
+import { differenceInDays } from 'date-fns';
 
 const InitiateDryingSchema = z.object({
   customerId: z.string().min(1, 'Customer is required.'),
   unloadingRecordId: z.string().min(1, 'Unloading bill is required.'),
   dryingStartDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
+  dryingEndDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
   customerHamaliPerBag: z.coerce.number().nonnegative('Customer hamali rate must be non-negative.'),
   workerHamaliPerBag: z.coerce.number().nonnegative('Worker hamali rate must be non-negative.'),
   bagsForDrying: z.coerce.number().int().positive('Number of bags must be positive.'),
   bagsPacked: z.coerce.number().int().nonnegative("Bags packed must be a non-negative number."),
+}).refine(data => new Date(data.dryingEndDate) >= new Date(data.dryingStartDate), {
+    message: "End date must be on or after start date.",
+    path: ["dryingEndDate"],
 });
 
 type DryingFormData = z.infer<typeof InitiateDryingSchema>;
@@ -49,6 +53,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
           customerId: '',
           unloadingRecordId: '',
           dryingStartDate: new Date().toISOString().split('T')[0],
+          dryingEndDate: new Date().toISOString().split('T')[0],
           customerHamaliPerBag: undefined,
           workerHamaliPerBag: undefined,
           bagsForDrying: undefined,
@@ -88,6 +93,22 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
 
     const totalCustomerCharge = proportionalUnloadingHamali + day1DryingHamali;
     const totalHamaliCharge = proportionalUnloadingHamali + day1DryingWorkerHamali;
+    
+    const startDate = form.watch('dryingStartDate');
+    const endDate = form.watch('dryingEndDate');
+    
+    const dryingDays = useMemo(() => {
+        try {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            if (!isNaN(start.getTime()) && !isNaN(end.getTime()) && end >= start) {
+                const days = differenceInDays(end, start) + 1;
+                return days;
+            }
+        } catch (e) { /* ignore parse errors */ }
+        return null;
+    }, [startDate, endDate]);
+
 
     useEffect(() => {
       if (selectedUnloadingRecord) {
@@ -121,6 +142,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
         startTransition(async () => {
             try {
                 const dryingStartDate = new Date(data.dryingStartDate);
+                const dryingEndDate = new Date(data.dryingEndDate);
                 const currentProportionalUnloadingHamali = selectedUnloadingRecord.hamaliPerBag * data.bagsForDrying;
                 const dryingDay1CustomerHamali = data.bagsForDrying * data.customerHamaliPerBag;
                 const dryingDay1WorkerHamali = data.bagsForDrying * data.workerHamaliPerBag;
@@ -134,8 +156,6 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                 
                 const totalDryingWorkerHamali = currentProportionalUnloadingHamali + dryingDay1WorkerHamali;
                 
-                const hasPackedBags = data.bagsPacked !== undefined && data.bagsPacked !== null;
-
                 // 1. Create new drying record
                 const newRecord = {
                     unloadingRecordId: data.unloadingRecordId,
@@ -143,13 +163,13 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                     commodityDescription: selectedUnloadingRecord.commodityDescription,
                     bagsForDrying: data.bagsForDrying,
                     dryingStartDate: dryingStartDate,
-                    status: hasPackedBags ? 'Packing' : 'Drying' as const,
+                    status: 'Packing' as const,
                     hamaliCharges,
                     totalDryingHamali,
                     totalDryingWorkerHamali,
-                    packingDate: hasPackedBags ? dryingStartDate : null,
+                    packingDate: dryingEndDate,
                     billingDate: null,
-                    bagsPacked: hasPackedBags ? data.bagsPacked : null,
+                    bagsPacked: data.bagsPacked,
                 };
                 await addDoc(collection(firestore, 'dryingRecords'), cleanForFirestore(newRecord));
 
@@ -159,12 +179,12 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                     bagsSentToDrying: increment(data.bagsForDrying)
                 });
 
-                toast({ title: 'Success', description: 'Drying process initiated.' });
+                toast({ title: 'Success', description: 'Drying process finalized.' });
                 form.reset();
                 onCustomerChange(null);
             } catch (error) {
                 console.error(error);
-                toast({ title: 'Error', description: 'Failed to initiate drying process.', variant: 'destructive' });
+                toast({ title: 'Error', description: 'Failed to finalize drying process.', variant: 'destructive' });
             }
         });
     };
@@ -174,8 +194,8 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
                 <CardHeader>
-                    <CardTitle>Initiate Drying Process</CardTitle>
-                    <CardDescription>Select a customer and an unloading bill to start drying.</CardDescription>
+                    <CardTitle>Finalize Drying Process</CardTitle>
+                    <CardDescription>Select a customer and an unloading bill to start.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <FormField
@@ -252,23 +272,41 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                         name="bagsPacked"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Bags Packed</FormLabel>
+                                <FormLabel>Bags Packed (Final)</FormLabel>
                                 <FormControl><Input type="number" placeholder="0" {...field} value={field.value ?? ''} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
                     />
-                     <FormField
-                        control={form.control}
-                        name="dryingStartDate"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Drying Start Date</FormLabel>
-                                <FormControl><Input type="date" {...field} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
+                     <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                            control={form.control}
+                            name="dryingStartDate"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Drying Start Date</FormLabel>
+                                    <FormControl><Input type="date" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name="dryingEndDate"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Drying End Date</FormLabel>
+                                    <FormControl><Input type="date" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
+                     {dryingDays !== null && (
+                        <div className="text-sm text-center text-muted-foreground p-2 bg-secondary rounded-md">
+                           Total Drying Days: <span className="font-bold text-foreground">{dryingDays}</span>
+                        </div>
+                    )}
                     <div className="grid grid-cols-2 gap-4">
                         <FormField
                             control={form.control}
@@ -322,9 +360,9 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                 <CardFooter>
                     <Button type="submit" disabled={isPending || !selectedCustomerId || !selectedUnloadingRecordId} className="w-full">
                         {isPending ? (
-                            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Starting Process...</>
+                            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Finalizing Process...</>
                         ) : (
-                            'Initiate Drying Process'
+                            'Finalize Drying Process'
                         )}
                     </Button>
                 </CardFooter>

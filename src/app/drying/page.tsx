@@ -65,8 +65,8 @@ export default function DryingPage() {
   return (
     <AppLayout>
       <PageHeader
-        title="Drying Process"
-        description="Initiate and manage the process of drying goods."
+        title="Finalize Drying"
+        description="Finalize the drying process and prepare goods for storage."
       >
         <AddCustomerDialog />
       </PageHeader>

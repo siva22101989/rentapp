@@ -12,7 +12,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
-import type { Customer, UnloadingRecord, Lot, StorageRecord } from '@/lib/definitions';
+import type { Customer, UnloadingRecord, Lot, StorageRecord, HamaliChargeItem } from '@/lib/definitions';
 import { doc, updateDoc, increment, setDoc } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { formatCurrency, cleanForFirestore, toDate } from '@/lib/utils';
@@ -30,7 +30,7 @@ const InitiateDryingSchema = z.object({
   workerHamaliPerBag: z.coerce.number().nonnegative('Worker hamali rate must be non-negative.'),
   pavHamaliPerBag: z.coerce.number().nonnegative('Pav hamali rate must be non-negative.').optional(),
   cuppaHamaliPerBag: z.coerce.number().nonnegative('Cuppa hamali rate must be non-negative.').optional(),
-  bagsForDrying: z.coerce.number().int().positive('Number of bags must be positive.'),
+  bagsForDrying: z.coerce.number().int().positive('Bags sent to plot for drying must be positive.'),
   bagsPacked: z.coerce.number().int().positive("Bags packed must be a positive number."),
   lotNo: z.string().min(1, 'Storage location (Lot No.) is required.'),
 })
@@ -190,12 +190,50 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                 const finalStorageDate = new Date(data.dryingEndDate);
                 const bagsStored = data.bagsPacked;
 
-                // Customer Hamali Calculation
+                // --- Hamali Calculations and Details ---
+                const hamaliDetails: HamaliChargeItem[] = [];
+
                 const currentProportionalUnloadingHamali = selectedRecordOnSubmit.hamaliPerBag * data.bagsForDrying;
+                if (currentProportionalUnloadingHamali > 0) {
+                    hamaliDetails.push({
+                        description: 'Unloading Hamali',
+                        bags: data.bagsForDrying,
+                        rate: selectedRecordOnSubmit.hamaliPerBag,
+                        amount: currentProportionalUnloadingHamali
+                    });
+                }
+                
                 const dryingDay1CustomerHamali = data.bagsForDrying * data.customerHamaliPerBag;
+                if (dryingDay1CustomerHamali > 0) {
+                    hamaliDetails.push({
+                        description: 'Drying Hamali (Day 1)',
+                        bags: data.bagsForDrying,
+                        rate: data.customerHamaliPerBag,
+                        amount: dryingDay1CustomerHamali
+                    });
+                }
+
                 const pavHamaliAmount = data.bagsForDrying * (data.pavHamaliPerBag || 0);
+                if (pavHamaliAmount > 0) {
+                    hamaliDetails.push({
+                        description: 'Pav Hamali',
+                        bags: data.bagsForDrying,
+                        rate: data.pavHamaliPerBag || 0,
+                        amount: pavHamaliAmount
+                    });
+                }
+
                 const cuppaHamaliAmount = data.bagsForDrying * (data.cuppaHamaliPerBag || 0);
-                const totalHamali = currentProportionalUnloadingHamali + dryingDay1CustomerHamali + pavHamaliAmount + cuppaHamaliAmount;
+                if (cuppaHamaliAmount > 0) {
+                    hamaliDetails.push({
+                        description: 'Cuppa Hamali',
+                        bags: data.bagsForDrying,
+                        rate: data.cuppaHamaliPerBag || 0,
+                        amount: cuppaHamaliAmount
+                    });
+                }
+
+                const totalHamali = hamaliDetails.reduce((sum, item) => sum + item.amount, 0);
 
                 // Worker Hamali Calculation
                 const dryingDay1WorkerHamali = data.bagsForDrying * data.workerHamaliPerBag;
@@ -224,6 +262,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                     khataAmount: 0,
                     dryingStartDate: new Date(data.dryingStartDate),
                     dryingEndDate: new Date(data.dryingEndDate),
+                    hamaliDetails: hamaliDetails,
                 };
 
                 const newStorageRecordRef = doc(firestore, 'storageRecords', nextSerialNumber);
@@ -312,7 +351,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                             <FormItem>
                                 <FormLabel>Bags Sent to Plot for Drying</FormLabel>
                                 <FormControl><Input type="number" placeholder="0" {...field} value={field.value ?? ''} disabled={!selectedUnloadingRecord} /></FormControl>
-                                {selectedUnloadingRecord && <FormDescription>This is the starting quantity for the drying process. Hamali is calculated on this amount. Remaining on Bill: {bagsRemainingOnRecord} bags</FormDescription>}
+                                <FormDescription>This is the starting quantity for the drying process. Hamali is calculated on this amount. Remaining on Bill: {bagsRemainingOnRecord} bags</FormDescription>
                                 <FormMessage />
                             </FormItem>
                         )}

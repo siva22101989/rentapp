@@ -140,6 +140,19 @@
         "khataAmount": {
             "type": "number",
             "description": "The amount for vehicle weightbridge (Khata)."
+        },
+        "hamaliDetails": {
+            "type": "array",
+            "description": "A detailed breakdown of hamali charges.",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "description": { "type": "string" },
+                    "bags": { "type": "number" },
+                    "rate": { "type": "number" },
+                    "amount": { "type": "number" }
+                }
+            }
         }
       },
       "required": [

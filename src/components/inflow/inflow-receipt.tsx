@@ -147,22 +147,34 @@ export function InflowReceipt({ record, customer, warehouseInfo }: { record: Sto
                         <TableHeader>
                             <TableRow>
                                 <TableHead className="text-black">Description</TableHead>
+                                <TableHead className="text-center text-black">Calculation</TableHead>
                                 <TableHead className="text-right text-black">Amount</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            <TableRow>
-                                <TableCell>Total Hamali Charges (Unloading + Drying)</TableCell>
-                                <TableCell className="text-right font-mono">{formatCurrency(record.hamaliPayable)}</TableCell>
-                            </TableRow>
+                            {record.hamaliDetails && record.hamaliDetails.length > 0 ? (
+                                record.hamaliDetails.map((item, index) => (
+                                    <TableRow key={index}>
+                                        <TableCell>{item.description}</TableCell>
+                                        <TableCell className="text-center font-mono text-xs">{`${item.bags} bags x ${formatCurrency(item.rate)}`}</TableCell>
+                                        <TableCell className="text-right font-mono">{formatCurrency(item.amount)}</TableCell>
+                                    </TableRow>
+                                ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={2}>Total Hamali Charges</TableCell>
+                                    <TableCell className="text-right font-mono">{formatCurrency(record.hamaliPayable)}</TableCell>
+                                </TableRow>
+                            )}
                         </TableBody>
                         <TableFooter>
                             <TableRow>
-                                <TableCell className="text-right font-bold">Total Payable</TableCell>
+                                <TableCell colSpan={2} className="text-right font-bold">Total Hamali</TableCell>
                                 <TableCell className="text-right font-bold font-mono">{formatCurrency(record.hamaliPayable)}</TableCell>
                             </TableRow>
                         </TableFooter>
                     </Table>
+
 
                      <div className="mt-20 pt-10 flex justify-between text-center">
                         <div className="w-1/2">

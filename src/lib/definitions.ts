@@ -37,6 +37,13 @@ export type Outflow = {
   discount?: number;
 };
 
+export type HamaliChargeItem = {
+  description: string;
+  bags: number;
+  rate: number;
+  amount: number;
+};
+
 export type StorageRecord = {
   id: string;
   customerId: string;
@@ -61,6 +68,7 @@ export type StorageRecord = {
   dryingRecordId?: string;
   dryingStartDate?: Date | Timestamp | null;
   dryingEndDate?: Date | Timestamp | null;
+  hamaliDetails?: HamaliChargeItem[];
 };
 
 export const expenseCategories = ["Worker Salary", "Petrol", "Maintenance", "Utilities", "Hamali", "Other"] as const;

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useTransition, useState, useEffect, useMemo } from 'react';
@@ -64,12 +65,12 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
           unloadingRecordId: '',
           dryingStartDate: new Date().toISOString().split('T')[0],
           dryingEndDate: new Date().toISOString().split('T')[0],
-          customerHamaliPerBag: '',
-          workerHamaliPerBag: '',
-          pavHamaliPerBag: '',
-          cuppaHamaliPerBag: '',
-          bagsForDrying: '',
-          bagsPacked: '',
+          customerHamaliPerBag: 0,
+          workerHamaliPerBag: 0,
+          pavHamaliPerBag: 0,
+          cuppaHamaliPerBag: 0,
+          bagsForDrying: 0,
+          bagsPacked: 0,
           lotNo: '',
         },
       });
@@ -154,17 +155,44 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
 
 
     useEffect(() => {
-      if (selectedUnloadingRecord) {
-        form.setValue('bagsForDrying', bagsRemainingOnRecord);
-        form.setValue('bagsPacked', bagsRemainingOnRecord); 
-      } else {
-        form.setValue('bagsForDrying', '');
-        form.setValue('bagsPacked', '');
-      }
-      form.trigger('bagsForDrying'); 
-      form.trigger('bagsPacked'); 
+        // This effect handles auto-filling and resetting the form when the selected record changes.
+        if (selectedUnloadingRecord) {
+            form.setValue('bagsForDrying', bagsRemainingOnRecord);
+            form.setValue('bagsPacked', bagsRemainingOnRecord); 
+        } else {
+            // If no record is selected (e.g., deselected), clear the dependent fields.
+            form.reset({
+                ...form.getValues(),
+                bagsForDrying: 0,
+                bagsPacked: 0,
+            });
+        }
+        form.trigger('bagsForDrying'); 
+        form.trigger('bagsPacked'); 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedUnloadingRecordId]);
+    }, [selectedUnloadingRecordId, form]);
+
+    useEffect(() => {
+        // This effect handles the case where the underlying data (unloadingRecords) changes,
+        // for example, if a record is deleted.
+        const selectedRecordExists = unloadingRecords.some(ur => ur.id === selectedUnloadingRecordId);
+        if (selectedUnloadingRecordId && !selectedRecordExists) {
+            // The selected record is no longer in the list, so reset the form.
+            form.reset({
+                unloadingRecordId: '',
+                dryingStartDate: new Date().toISOString().split('T')[0],
+                dryingEndDate: new Date().toISOString().split('T')[0],
+                customerHamaliPerBag: 0,
+                workerHamaliPerBag: 0,
+                pavHamaliPerBag: 0,
+                cuppaHamaliPerBag: 0,
+                bagsForDrying: 0,
+                bagsPacked: 0,
+                lotNo: '',
+            });
+            toast({ title: "Record List Updated", description: "The selected unloading record was modified. Please select another." });
+        }
+    }, [unloadingRecords, selectedUnloadingRecordId, form, toast]);
 
 
     const onSubmit = (data: DryingFormData) => {

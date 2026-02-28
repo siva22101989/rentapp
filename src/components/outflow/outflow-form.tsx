@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
@@ -56,6 +57,24 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
     const filteredRecords = selectedCustomerId ? records.filter(r => r.customerId === selectedCustomerId) : [];
     const selectedRecord = records.find(r => r.id === selectedRecordId);
     const totalPayable = finalRent + hamaliPending - (Number(discount) || 0);
+
+    useEffect(() => {
+        // This effect runs when the list of records changes.
+        // If the currently selected record is no longer in the list (i.e., it was deleted),
+        // we reset the form to prevent errors and stale data.
+        if (selectedRecordId && !records.some(r => r.id === selectedRecordId)) {
+            setSelectedRecordId('');
+            setBagsToWithdraw('');
+            setAmountPaidNow('');
+            setDiscount('');
+            setFinalRent(0);
+            setStorageMonths(0);
+            setRentPerBag({ rentPerBag: 0 });
+            setHamaliPending(0);
+            toast({ title: 'Record Updated', description: 'The selected record was modified. Please select it again.' });
+        }
+    }, [records, selectedRecordId, toast]);
+
 
     useEffect(() => {
         if (selectedRecord) {

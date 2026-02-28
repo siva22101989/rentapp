@@ -18,7 +18,6 @@ export function InflowReceipt({ record, customer, warehouseInfo }: { record: Sto
     const receiptRef = useRef<HTMLDivElement>(null);
     const [formattedDate, setFormattedDate] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
-    const downloadAttempted = useRef(false);
     const [dryingDays, setDryingDays] = useState<number | null>(null);
 
     const handleDownloadPdf = useCallback(async () => {
@@ -75,15 +74,6 @@ export function InflowReceipt({ record, customer, warehouseInfo }: { record: Sto
             }
         }
     }, [record]);
-
-    useEffect(() => {
-        if (formattedDate && !downloadAttempted.current) {
-            downloadAttempted.current = true;
-            setTimeout(() => {
-                handleDownloadPdf();
-            }, 100);
-        }
-    }, [formattedDate, handleDownloadPdf]);
 
 
     if (!record || !customer) {

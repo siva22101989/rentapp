@@ -1,10 +1,11 @@
 'use client';
 
 import { useTransition, useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Loader2, Info, User, Package, Clock, CheckCircle, FileText, PlusCircle } from 'lucide-react';
+import { Loader2, Info, User, Package, Clock } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -12,13 +13,12 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
 import type { Customer, UnloadingRecord, Lot, StorageRecord, HamaliChargeItem } from '@/lib/definitions';
-import { doc, updateDoc, increment, setDoc } from 'firebase/firestore';
+import { doc, writeBatch, increment, getDoc } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { formatCurrency, cleanForFirestore, toDate } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 import { Combobox } from '../ui/combobox';
 import { differenceInDays, format } from 'date-fns';
-import Link from 'next/link';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 const InitiateDryingSchema = z.object({
@@ -52,33 +52,11 @@ interface InitiateDryingFormProps {
     nextSerialNumber: string;
 }
 
-const SuccessDisplay = ({ recordId, onReset }: { recordId: string, onReset: () => void }) => (
-    <div className="flex justify-center">
-        <Card className="w-full max-w-lg text-center">
-            <CardHeader className="items-center">
-                <CheckCircle className="h-16 w-16 text-green-500 mb-2" />
-                <CardTitle className="text-2xl">Success!</CardTitle>
-                <CardDescription>Storage record <span className="font-bold">{recordId}</span> has been created from the plot.</CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-                <Button asChild size="lg">
-                    <Link href={`/inflow/receipt/${recordId}`} target="_blank">
-                        <FileText className="mr-2" /> View & Print Receipt
-                    </Link>
-                </Button>
-                <Button variant="outline" onClick={onReset}>
-                    <PlusCircle className="mr-2" /> Create Another From Plot
-                </Button>
-            </CardContent>
-        </Card>
-    </div>
-);
-
 export function InitiateDryingForm({ customers, unloadingRecords, lots, storageRecords, nextSerialNumber }: InitiateDryingFormProps) {
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
     const firestore = useFirestore();
-    const [lastCreatedId, setLastCreatedId] = useState<string | null>(null);
+    const router = useRouter();
 
     const form = useForm<DryingFormData>({
         resolver: zodResolver(InitiateDryingSchema),
@@ -287,18 +265,39 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                     dryingEndDate: new Date(data.dryingEndDate),
                     hamaliDetails: hamaliDetails,
                 };
-
+                
                 const newStorageRecordRef = doc(firestore, 'storageRecords', nextSerialNumber);
-                await setDoc(newStorageRecordRef, cleanForFirestore(newStorageRecord));
-
-                // Update the original unloading record
                 const unloadingRecordRef = doc(firestore, 'unloadingRecords', data.unloadingRecordId);
-                await updateDoc(unloadingRecordRef, { 
+                
+                const batch = writeBatch(firestore);
+
+                batch.set(newStorageRecordRef, cleanForFirestore(newStorageRecord));
+                batch.update(unloadingRecordRef, {
                     bagsSentToDrying: increment(data.bagsForDrying)
                 });
+                
+                await batch.commit();
+
+                // Poll to confirm data is written before redirecting
+                let docIsReady = false;
+                for (let i = 0; i < 10; i++) { // Poll for up to 3 seconds
+                    const docSnap = await getDoc(newStorageRecordRef);
+                    if (docSnap.exists()) {
+                        docIsReady = true;
+                        break;
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                }
 
                 toast({ title: 'Success', description: `Storage record ${nextSerialNumber} created from plot.` });
-                setLastCreatedId(nextSerialNumber);
+
+                if (docIsReady) {
+                    router.push(`/inflow/receipt/${nextSerialNumber}`);
+                } else {
+                    setTimeout(() => {
+                        router.push(`/inflow/receipt/${nextSerialNumber}`);
+                    }, 500);
+                }
                 
             } catch (error) {
                 console.error(error);
@@ -306,13 +305,6 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
             }
         });
     };
-
-    if (lastCreatedId) {
-        return <SuccessDisplay recordId={lastCreatedId} onReset={() => {
-            form.reset();
-            setLastCreatedId(null);
-        }} />;
-    }
 
   return (
     <Card>

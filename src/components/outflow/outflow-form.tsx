@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useFirestore } from '@/firebase';
-import { doc, updateDoc, arrayUnion, type Firestore, Timestamp } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, type Firestore, Timestamp, getDoc } from 'firebase/firestore';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -166,9 +166,31 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
 
                 await updateDoc(recordRef, updateData);
 
+                // Poll to confirm data is written before redirecting
+                let docIsReady = false;
+                for (let i = 0; i < 10; i++) { // Poll for up to 3 seconds
+                    const docSnap = await getDoc(recordRef);
+                    if (docSnap.exists()) {
+                        const data = docSnap.data() as StorageRecord;
+                        // Check if the update is reflected
+                        if (data.bagsStored === bagsRemaining && (!isFinalWithdrawal || data.storageEndDate)) {
+                            docIsReady = true;
+                            break;
+                        }
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                }
+
                 toast({ title: 'Success', description: 'Withdrawal processed successfully.' });
 
-                router.push(`/outflow/receipt/${selectedRecord.id}?withdrawn=${bags}&rent=${finalRent}&paidNow=${paidNow}&discount=${discountAmount}`);
+                if (docIsReady) {
+                    router.push(`/outflow/receipt/${selectedRecord.id}?withdrawn=${bags}&rent=${finalRent}&paidNow=${paidNow}&discount=${discountAmount}`);
+                } else {
+                    // Fallback if polling fails, redirect after a short delay
+                    setTimeout(() => {
+                        router.push(`/outflow/receipt/${selectedRecord.id}?withdrawn=${bags}&rent=${finalRent}&paidNow=${paidNow}&discount=${discountAmount}`);
+                    }, 500);
+                }
 
             } catch (error) {
                 console.error("Outflow failed:", error);

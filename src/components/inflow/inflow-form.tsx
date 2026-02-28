@@ -1,7 +1,7 @@
 'use client';
 
 import { useTransition, useState, useEffect, useMemo } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,11 +9,11 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Customer, Payment, Commodity, Lot, StorageRecord } from '@/lib/definitions';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, CheckCircle, FileText, PlusCircle } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { formatCurrency, cleanForFirestore } from '@/lib/utils';
 import { useFirestore } from '@/firebase';
-import { setDoc, doc } from 'firebase/firestore';
+import { setDoc, doc, getDoc } from 'firebase/firestore';
 import { Combobox } from '../ui/combobox';
 
 function SubmitButton({ isPending }: { isPending: boolean }) {
@@ -31,31 +31,10 @@ function SubmitButton({ isPending }: { isPending: boolean }) {
     );
 }
 
-const SuccessDisplay = ({ recordId, onReset }: { recordId: string, onReset: () => void }) => (
-    <div className="flex justify-center">
-        <Card className="w-full max-w-lg text-center">
-            <CardHeader className="items-center">
-                <CheckCircle className="h-16 w-16 text-green-500 mb-2" />
-                <CardTitle className="text-2xl">Success!</CardTitle>
-                <CardDescription>Storage record <span className="font-bold">{recordId}</span> has been created.</CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-                <Button asChild size="lg">
-                    <Link href={`/inflow/receipt/${recordId}`} target="_blank">
-                        <FileText className="mr-2" /> View & Print Receipt
-                    </Link>
-                </Button>
-                <Button variant="outline" onClick={onReset}>
-                    <PlusCircle className="mr-2" /> Create Another Inflow
-                </Button>
-            </CardContent>
-        </Card>
-    </div>
-);
-
 export function InflowForm({ customers, commodities, lots, records, nextSerialNumber }: { customers: Customer[], commodities: Commodity[], lots: Lot[], records: StorageRecord[], nextSerialNumber: string }) {
     const { toast } = useToast();
     const firestore = useFirestore();
+    const router = useRouter();
     const [isPending, startTransition] = useTransition();
 
     const [bags, setBags] = useState<number | ''>('');
@@ -67,7 +46,6 @@ export function InflowForm({ customers, commodities, lots, records, nextSerialNu
     const [weight, setWeight] = useState<number | ''>('');
     const [khataAmount, setKhataAmount] = useState<number | ''>('');
     const [selectedLot, setSelectedLot] = useState('');
-    const [lastCreatedId, setLastCreatedId] = useState<string | null>(null);
 
     const customerOptions = customers.map(c => ({ value: c.id, label: c.name }));
 
@@ -89,19 +67,6 @@ export function InflowForm({ customers, commodities, lots, records, nextSerialNu
         setHamali(currentHamali);
 
     }, [bags, rate]);
-
-    const resetForm = () => {
-        setBags('');
-        setRate('');
-        setHamali(0);
-        setHamaliPaid('');
-        setSelectedCustomerId('');
-        setCommodityDescription('');
-        setWeight('');
-        setKhataAmount('');
-        setSelectedLot('');
-        setLastCreatedId(null);
-    }
     
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -158,10 +123,29 @@ export function InflowForm({ customers, commodities, lots, records, nextSerialNu
                     khataAmount: Number(data.khataAmount) || 0
                 };
 
-                await setDoc(doc(firestore, "storageRecords", nextSerialNumber), cleanForFirestore(rawRecord));
+                const newRecordRef = doc(firestore, "storageRecords", nextSerialNumber);
+                await setDoc(newRecordRef, cleanForFirestore(rawRecord));
+
+                // Poll to confirm data is written before redirecting
+                let docIsReady = false;
+                for (let i = 0; i < 10; i++) { // Poll for up to 3 seconds
+                    const docSnap = await getDoc(newRecordRef);
+                    if (docSnap.exists()) {
+                        docIsReady = true;
+                        break;
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                }
 
                 toast({ title: 'Success', description: 'Inflow record created successfully.' });
-                setLastCreatedId(nextSerialNumber);
+
+                if (docIsReady) {
+                    router.push(`/inflow/receipt/${nextSerialNumber}`);
+                } else {
+                     setTimeout(() => {
+                        router.push(`/inflow/receipt/${nextSerialNumber}`);
+                     }, 500);
+                }
                 
             } catch (error) {
                 console.error(error);
@@ -169,10 +153,6 @@ export function InflowForm({ customers, commodities, lots, records, nextSerialNu
             }
         });
     }
-
-  if (lastCreatedId) {
-    return <SuccessDisplay recordId={lastCreatedId} onReset={resetForm} />;
-  }
 
   return (
     <div className="flex justify-center">

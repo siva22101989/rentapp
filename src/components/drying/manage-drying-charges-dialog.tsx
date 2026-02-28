@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -18,7 +19,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import type { DryingRecord, HamaliCharge } from '@/lib/definitions';
 import { doc, updateDoc } from 'firebase/firestore';
-import { format } from 'date-fns';
+import { format, differenceInDays } from 'date-fns';
 import { toDate, cleanForFirestore, formatCurrency } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { useFirestore } from '@/firebase';
@@ -34,23 +35,52 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
   // Local state for direct control of inputs
   const [bagsPacked, setBagsPacked] = useState<string>('');
   const [packingDate, setPackingDate] = useState<string>('');
-  const [additionalHamaliPerBag, setAdditionalHamaliPerBag] = useState<string>('');
+  const [additionalHamaliPerBagPerDay, setAdditionalHamaliPerBagPerDay] = useState<string>('');
   const [bagsDifference, setBagsDifference] = useState<number | null>(null);
+  const [dryingDaysInfo, setDryingDaysInfo] = useState({ total: 0, extra: 0 });
 
   useEffect(() => {
     // This effect runs ONLY when the dialog opens to initialize the state.
     if (isOpen) {
       setBagsPacked(record.bagsPacked?.toString() ?? '');
-      setPackingDate(record.packingDate ? format(toDate(record.packingDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'));
+      
+      const pkDate = record.packingDate ? format(toDate(record.packingDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd');
+      setPackingDate(pkDate);
       
       const additionalHamaliCharge = (record.hamaliCharges || []).find(c => c.description.toLowerCase().includes('additional drying'));
-      const initialAdditionalRate = additionalHamaliCharge && record.bagsForDrying > 0 
-        ? (additionalHamaliCharge.amount / record.bagsForDrying).toString() 
-        : '';
-      setAdditionalHamaliPerBag(initialAdditionalRate);
+      
+      if (additionalHamaliCharge) {
+          const start = toDate(record.dryingStartDate);
+          const end = toDate(record.packingDate || pkDate);
+          const totalDays = differenceInDays(end, start) + 1;
+          const extraDays = totalDays > 1 ? totalDays - 1 : 0;
+          
+          if (record.bagsForDrying > 0 && extraDays > 0) {
+              const savedRate = additionalHamaliCharge.amount / record.bagsForDrying / extraDays;
+              setAdditionalHamaliPerBagPerDay(savedRate.toFixed(2));
+          } else {
+              setAdditionalHamaliPerBagPerDay('');
+          }
+      } else {
+          setAdditionalHamaliPerBagPerDay('');
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
+
+  useEffect(() => {
+    // Recalculate drying days whenever the packing date changes.
+    if (packingDate && record.dryingStartDate) {
+        const start = toDate(record.dryingStartDate);
+        const end = new Date(packingDate);
+        // Add 1 to include start and end days
+        const totalDays = differenceInDays(end, start) + 1; 
+        const extraDays = totalDays > 1 ? totalDays - 1 : 0;
+        setDryingDaysInfo({ total: totalDays > 0 ? totalDays : 0, extra: extraDays });
+    } else {
+        setDryingDaysInfo({ total: 0, extra: 0 });
+    }
+}, [packingDate, record.dryingStartDate]);
 
   useEffect(() => {
     // Calculate difference when bagsPacked changes
@@ -76,7 +106,7 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
         return;
     }
 
-    const additionalHamaliRateValue = additionalHamaliPerBag === '' ? 0 : Number(additionalHamaliPerBag);
+    const additionalHamaliRateValue = additionalHamaliPerBagPerDay === '' ? 0 : Number(additionalHamaliPerBagPerDay);
      if (isNaN(additionalHamaliRateValue) || additionalHamaliRateValue < 0) {
         toast({ title: 'Invalid Input', description: 'Additional Hamali must be a valid non-negative number.', variant: 'destructive'});
         return;
@@ -92,11 +122,11 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
         );
 
         const newCustomerCharges: HamaliCharge[] = [...initialCustomerCharges];
-        const newAdditionalHamaliAmount = additionalHamaliRateValue * record.bagsForDrying;
+        const newAdditionalHamaliAmount = additionalHamaliRateValue * record.bagsForDrying * dryingDaysInfo.extra;
         
         if (newAdditionalHamaliAmount > 0) {
             newCustomerCharges.push({
-                description: 'Additional Drying Hamali',
+                description: `Additional Drying Hamali (${dryingDaysInfo.extra} extra days)`,
                 amount: newAdditionalHamaliAmount,
                 date: finalPackingDate,
             });
@@ -104,10 +134,9 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
         
         const newTotalDryingHamali = newCustomerCharges.reduce((acc, charge) => acc + (charge.amount || 0), 0);
         
-        // --- Worker Payable Calculation (Corrected) ---
+        // --- Worker Payable Calculation ---
         const previousAdditionalHamali = (record.hamaliCharges || []).find(c => c.description.toLowerCase().includes('additional drying'))?.amount || 0;
         
-        // If totalDryingWorkerHamali is missing, fall back to the customer's total hamali as a best guess for old records.
         const baseWorkerHamali = (record.totalDryingWorkerHamali || record.totalDryingHamali) - previousAdditionalHamali;
 
         const newTotalDryingWorkerHamali = baseWorkerHamali + newAdditionalHamaliAmount;
@@ -177,6 +206,10 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
             </div>
           </div>
           
+          <div className="text-sm text-center text-muted-foreground">
+            Total Drying Days: <span className="font-bold text-foreground">{dryingDaysInfo.total}</span> | Extra Days (after Day 1): <span className="font-bold text-foreground">{dryingDaysInfo.extra}</span>
+          </div>
+          
           {bagsDifference !== null && bagsDifference !== 0 && (
             <p className="text-sm text-center font-medium text-destructive">
               Note: There is a difference of {Math.abs(bagsDifference)} bag{Math.abs(bagsDifference) > 1 ? 's' : ''} ({bagsDifference > 0 ? 'less' : 'more'}) after packing.
@@ -184,16 +217,15 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="additionalHamaliPerBag">Additional Hamali (per bag)</Label>
-            <p className="text-xs text-muted-foreground">For extra drying days. This is added to both customer charge and worker payment.</p>
+            <Label htmlFor="additionalHamaliPerBagPerDay">Additional Hamali (per bag, per extra day)</Label>
             <Input 
-              id="additionalHamaliPerBag"
+              id="additionalHamaliPerBagPerDay"
               type="number" 
               step="0.01" 
               placeholder="0.00" 
               disabled={isBilled} 
-              value={additionalHamaliPerBag}
-              onChange={(e) => setAdditionalHamaliPerBag(e.target.value)}
+              value={additionalHamaliPerBagPerDay}
+              onChange={(e) => setAdditionalHamaliPerBagPerDay(e.target.value)}
             />
           </div>
         </div>

@@ -168,7 +168,9 @@ export function EditStorageDialog({ record, customers, children }: { record: Sto
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                                {lots?.map(lot => (
+                                {lots
+                                    ?.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
+                                    .map(lot => (
                                     <SelectItem key={lot.id} value={lot.name}>
                                         {lot.name}
                                     </SelectItem>

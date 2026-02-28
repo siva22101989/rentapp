@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useTransition, useState, useMemo } from 'react';
@@ -279,7 +280,7 @@ export function LotsClient() {
                                     <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
                                 </TableCell>
                             </TableRow>
-                        ) : (lots || []).sort((a,b) => a.name.localeCompare(b.name)).map((lot) => (
+                        ) : (lots || []).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true })).map((lot) => (
                             <TableRow key={lot.id}>
                                 <TableCell className="font-medium">{lot.name}</TableCell>
                                 <TableCell className="text-right font-mono">{lot.capacity ?? 'N/A'}</TableCell>

@@ -4,7 +4,7 @@ import { useTransition, useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Loader2 } from 'lucide-react';
+import { Loader2, CheckCircle, FileText, PlusCircle } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -14,7 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
 import type { Customer, Commodity } from '@/lib/definitions';
 import { addDoc, collection, Timestamp } from 'firebase/firestore';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { formatCurrency, cleanForFirestore } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 import { Combobox } from '../ui/combobox';
@@ -40,12 +40,32 @@ const getLocalDateTimeForInput = () => {
     return localDate.toISOString().slice(0, 16);
 };
 
+const SuccessDisplay = ({ recordId, onReset, billNo }: { recordId: string, onReset: () => void, billNo: string }) => (
+    <Card>
+        <CardHeader className="items-center text-center">
+            <CheckCircle className="h-16 w-16 text-green-500 mb-2" />
+            <CardTitle className="text-2xl">Success!</CardTitle>
+            <CardDescription>Unloading record <span className="font-bold">#{billNo}</span> has been created.</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+            <Button asChild size="lg">
+                <Link href={`/unloading/receipt/${recordId}`} target="_blank">
+                    <FileText className="mr-2" /> View & Print Bill
+                </Link>
+            </Button>
+            <Button variant="outline" onClick={onReset}>
+                <PlusCircle className="mr-2" /> Add Another Unloading Record
+            </Button>
+        </CardContent>
+    </Card>
+);
 
 export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: { customers: Customer[], commodities: Commodity[], nextBillNo: string }) {
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
     const firestore = useFirestore();
-    const router = useRouter();
+    const [lastCreatedId, setLastCreatedId] = useState<string | null>(null);
+    const [lastBillNo, setLastBillNo] = useState<string>('');
 
     const form = useForm<UnloadingFormData>({
         resolver: zodResolver(UnloadingRecordSchema),
@@ -94,14 +114,28 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
                 };
                 const docRef = await addDoc(collection(firestore, 'unloadingRecords'), cleanForFirestore(rawRecord));
                 toast({ title: 'Success', description: 'Unloading record added.' });
-                form.reset();
-                router.push(`/unloading/receipt/${docRef.id}`);
+                setLastBillNo(nextBillNo);
+                setLastCreatedId(docRef.id);
             } catch (error) {
                 console.error(error);
                 toast({ title: 'Error', description: 'Failed to add unloading record.', variant: 'destructive' });
             }
         });
     };
+
+    if (lastCreatedId) {
+        return (
+            <SuccessDisplay 
+                recordId={lastCreatedId}
+                billNo={lastBillNo}
+                onReset={() => {
+                    form.reset();
+                    setLastCreatedId(null);
+                    setLastBillNo('');
+                }} 
+            />
+        );
+    }
 
   return (
     <Card>

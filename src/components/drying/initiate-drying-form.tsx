@@ -4,7 +4,7 @@ import { useTransition, useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Loader2, Info, User, Package, Clock } from 'lucide-react';
+import { Loader2, Info, User, Package, Clock, CheckCircle, FileText, PlusCircle } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -18,7 +18,7 @@ import { formatCurrency, cleanForFirestore, toDate } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 import { Combobox } from '../ui/combobox';
 import { differenceInDays, format } from 'date-fns';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 const InitiateDryingSchema = z.object({
@@ -37,9 +37,9 @@ const InitiateDryingSchema = z.object({
     message: "End date must be on or after start date.",
     path: ["dryingEndDate"],
 })
-.refine(data => data.bagsForDrying <= data.bagsPacked, {
-    message: "Bags sent for drying cannot be more than bags packed.",
-    path: ["bagsForDrying"],
+.refine(data => data.bagsForDrying >= data.bagsPacked, {
+    message: "Bags packed cannot be more than bags plotted.",
+    path: ["bagsPacked"],
 });
 
 type DryingFormData = z.infer<typeof InitiateDryingSchema>;
@@ -52,11 +52,33 @@ interface InitiateDryingFormProps {
     nextSerialNumber: string;
 }
 
+const SuccessDisplay = ({ recordId, onReset }: { recordId: string, onReset: () => void }) => (
+    <div className="flex justify-center">
+        <Card className="w-full max-w-lg text-center">
+            <CardHeader className="items-center">
+                <CheckCircle className="h-16 w-16 text-green-500 mb-2" />
+                <CardTitle className="text-2xl">Success!</CardTitle>
+                <CardDescription>Storage record <span className="font-bold">{recordId}</span> has been created from the plot.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+                <Button asChild size="lg">
+                    <Link href={`/inflow/receipt/${recordId}`} target="_blank">
+                        <FileText className="mr-2" /> View & Print Receipt
+                    </Link>
+                </Button>
+                <Button variant="outline" onClick={onReset}>
+                    <PlusCircle className="mr-2" /> Create Another From Plot
+                </Button>
+            </CardContent>
+        </Card>
+    </div>
+);
+
 export function InitiateDryingForm({ customers, unloadingRecords, lots, storageRecords, nextSerialNumber }: InitiateDryingFormProps) {
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
     const firestore = useFirestore();
-    const router = useRouter();
+    const [lastCreatedId, setLastCreatedId] = useState<string | null>(null);
 
     const form = useForm<DryingFormData>({
         resolver: zodResolver(InitiateDryingSchema),
@@ -107,22 +129,9 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
     
     const bagsForDrying = form.watch('bagsForDrying');
     const customerDay1HamaliRate = form.watch('customerHamaliPerBag');
-    const day1DryingHamali = (Number(bagsForDrying) || 0) * (Number(customerDay1HamaliRate) || 0);
 
-    const pavHamaliPerBag = form.watch('pavHamaliPerBag');
-    const pavHamali = (Number(bagsForDrying) || 0) * (Number(pavHamaliPerBag) || 0);
-
-    const cuppaHamaliPerBag = form.watch('cuppaHamaliPerBag');
-    const cuppaHamali = (Number(bagsForDrying) || 0) * (Number(cuppaHamaliPerBag) || 0);
-
-    const proportionalUnloadingHamali = selectedUnloadingRecord 
-        ? (selectedUnloadingRecord.hamaliPerBag * (Number(bagsForDrying) || 0))
-        : 0;
-
-    const totalCustomerCharge = proportionalUnloadingHamali + day1DryingHamali + pavHamali + cuppaHamali;
-    
-    const workerHamaliDay1 = (Number(bagsForDrying) || 0) * (Number(form.watch('workerHamaliPerBag')) || 0);
-    const totalWorkerPayable = proportionalUnloadingHamali + workerHamaliDay1 + pavHamali + cuppaHamali;
+    const pavHamaliPerBag = form.watch('pavHamaliPerBag') || 0;
+    const cuppaHamaliPerBag = form.watch('cuppaHamaliPerBag') || 0;
     
     const startDate = form.watch('dryingStartDate');
     const endDate = form.watch('dryingEndDate');
@@ -133,12 +142,26 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
             const end = new Date(endDate);
             if (!isNaN(start.getTime()) && !isNaN(end.getTime()) && end >= start) {
                 const days = differenceInDays(end, start) + 1;
-                return days;
+                return days > 0 ? days : 1;
             }
         } catch (e) { /* ignore parse errors */ }
-        return null;
+        return 1;
     }, [startDate, endDate]);
 
+    const pavHamali = (Number(bagsForDrying) || 0) * (Number(pavHamaliPerBag) || 0) * dryingDays;
+    const cuppaHamali = (Number(bagsForDrying) || 0) * (Number(cuppaHamaliPerBag) || 0) * dryingDays;
+    
+    const day1DryingHamali = (Number(bagsForDrying) || 0) * (Number(customerDay1HamaliRate) || 0);
+
+    const proportionalUnloadingHamali = selectedUnloadingRecord 
+        ? ((selectedUnloadingRecord.hamaliPerBag || 0) * (Number(bagsForDrying) || 0))
+        : 0;
+
+    const totalCustomerCharge = proportionalUnloadingHamali + day1DryingHamali + pavHamali + cuppaHamali;
+    
+    const workerHamaliDay1 = (Number(bagsForDrying) || 0) * (Number(form.watch('workerHamaliPerBag')) || 0);
+    const totalWorkerPayable = proportionalUnloadingHamali + workerHamaliDay1 + pavHamali + cuppaHamali;
+    
     const daysUntilDrying = useMemo(() => {
         if (!selectedUnloadingRecord || !startDate) return null;
         try {
@@ -161,6 +184,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
         form.setValue('bagsPacked', '');
       }
       form.trigger('bagsForDrying'); 
+      form.trigger('bagsPacked'); 
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedUnloadingRecordId]);
 
@@ -192,12 +216,12 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                 // --- Hamali Calculations and Details ---
                 const hamaliDetails: HamaliChargeItem[] = [];
 
-                const currentProportionalUnloadingHamali = selectedRecordOnSubmit.hamaliPerBag * data.bagsForDrying;
+                const currentProportionalUnloadingHamali = (selectedRecordOnSubmit.hamaliPerBag || 0) * data.bagsForDrying;
                 if (currentProportionalUnloadingHamali > 0) {
                     hamaliDetails.push({
                         description: 'Unloading Hamali',
                         bags: data.bagsForDrying,
-                        rate: selectedRecordOnSubmit.hamaliPerBag,
+                        rate: selectedRecordOnSubmit.hamaliPerBag || 0,
                         amount: currentProportionalUnloadingHamali
                     });
                 }
@@ -212,20 +236,20 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                     });
                 }
 
-                const pavHamaliAmount = data.bagsForDrying * (data.pavHamaliPerBag || 0);
+                const pavHamaliAmount = data.bagsForDrying * (data.pavHamaliPerBag || 0) * dryingDays;
                 if (pavHamaliAmount > 0) {
-                    hamaliDetails.push({
-                        description: 'Pav Hamali',
+                     hamaliDetails.push({
+                        description: `Pav Hamali (${dryingDays} Days)`,
                         bags: data.bagsForDrying,
                         rate: data.pavHamaliPerBag || 0,
                         amount: pavHamaliAmount
                     });
                 }
 
-                const cuppaHamaliAmount = data.bagsForDrying * (data.cuppaHamaliPerBag || 0);
+                const cuppaHamaliAmount = data.bagsForDrying * (data.cuppaHamaliPerBag || 0) * dryingDays;
                 if (cuppaHamaliAmount > 0) {
                     hamaliDetails.push({
-                        description: 'Cuppa Hamali',
+                        description: `Cuppa Hamali (${dryingDays} Days)`,
                         bags: data.bagsForDrying,
                         rate: data.cuppaHamaliPerBag || 0,
                         amount: cuppaHamaliAmount
@@ -274,8 +298,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                 });
 
                 toast({ title: 'Success', description: `Storage record ${nextSerialNumber} created from plot.` });
-                form.reset();
-                router.push(`/inflow/receipt/${nextSerialNumber}`);
+                setLastCreatedId(nextSerialNumber);
                 
             } catch (error) {
                 console.error(error);
@@ -283,6 +306,13 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
             }
         });
     };
+
+    if (lastCreatedId) {
+        return <SuccessDisplay recordId={lastCreatedId} onReset={() => {
+            form.reset();
+            setLastCreatedId(null);
+        }} />;
+    }
 
   return (
     <Card>
@@ -338,7 +368,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                             <Info className="h-4 w-4" />
                             <AlertTitle>Unloading Hamali</AlertTitle>
                             <AlertDescription>
-                                Unloading hamali was {formatCurrency(selectedUnloadingRecord.hamaliPerBag)} per bag. This will be pro-rated and added to the total.
+                                Unloading hamali was {formatCurrency(selectedUnloadingRecord.hamaliPerBag || 0)} per bag. This will be pro-rated and added to the total.
                             </AlertDescription>
                         </Alert>
                         </>
@@ -348,7 +378,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                         name="bagsForDrying"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Bags Sent to Plot for Drying</FormLabel>
+                                <FormLabel>Bags Plotted for Drying</FormLabel>
                                 <FormControl><Input type="number" placeholder="0" {...field} value={field.value ?? ''} disabled={!selectedUnloadingRecord} /></FormControl>
                                 <FormDescription>This is the starting quantity for the drying process. Hamali is calculated on this amount. Remaining on Bill: {bagsRemainingOnRecord} bags</FormDescription>
                                 <FormMessage />
@@ -463,8 +493,8 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                             name="pavHamaliPerBag"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Pav Hamali Rate</FormLabel>
-                                    <FormDescription className="text-xs h-8">Extra charge per bag.</FormDescription>
+                                    <FormLabel>Pav Hamali Rate (per day)</FormLabel>
+                                    <FormDescription className="text-xs h-8">Extra charge per bag per day.</FormDescription>
                                     <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} disabled={!selectedUnloadingRecord} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -475,8 +505,8 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                             name="cuppaHamaliPerBag"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Cuppa Hamali Rate</FormLabel>
-                                    <FormDescription className="text-xs h-8">Extra charge per bag.</FormDescription>
+                                    <FormLabel>Cuppa Hamali Rate (per day)</FormLabel>
+                                    <FormDescription className="text-xs h-8">Extra charge per bag per day.</FormDescription>
                                     <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} disabled={!selectedUnloadingRecord} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -497,11 +527,11 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                             <span className="font-mono">{formatCurrency(day1DryingHamali)}</span>
                         </div>
                         <div className="flex justify-between items-center text-sm">
-                            <span className="text-muted-foreground">Pav Hamali</span>
+                            <span className="text-muted-foreground">Pav Hamali ({dryingDays} Days)</span>
                             <span className="font-mono">{formatCurrency(pavHamali)}</span>
                         </div>
                         <div className="flex justify-between items-center text-sm">
-                            <span className="text-muted-foreground">Cuppa Hamali</span>
+                            <span className="text-muted-foreground">Cuppa Hamali ({dryingDays} Days)</span>
                             <span className="font-mono">{formatCurrency(cuppaHamali)}</span>
                         </div>
                         <Separator />
@@ -522,11 +552,11 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                             <span className="font-mono">{formatCurrency(workerHamaliDay1)}</span>
                         </div>
                         <div className="flex justify-between items-center text-sm">
-                            <span className="text-muted-foreground">Pav Hamali</span>
+                            <span className="text-muted-foreground">Pav Hamali ({dryingDays} Days)</span>
                             <span className="font-mono">{formatCurrency(pavHamali)}</span>
                         </div>
                         <div className="flex justify-between items-center text-sm">
-                            <span className="text-muted-foreground">Cuppa Hamali</span>
+                            <span className="text-muted-foreground">Cuppa Hamali ({dryingDays} Days)</span>
                             <span className="font-mono">{formatCurrency(cuppaHamali)}</span>
                         </div>
                         <Separator />

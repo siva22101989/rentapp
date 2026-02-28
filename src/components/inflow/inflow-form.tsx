@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useTransition, useState, useEffect, useMemo } from 'react';
@@ -117,6 +116,7 @@ export function InflowForm({ customers, commodities, lots, records, nextSerialNu
                     billingCycle: '6-Month Initial' as const,
                     payments,
                     hamaliPayable,
+                    workerHamaliPayable: hamaliPayable,
                     totalRentBilled: 0,
                     lorryTractorNo: data.lorryTractorNo,
                     weight: weightValue,

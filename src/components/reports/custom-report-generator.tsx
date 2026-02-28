@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import type { Customer, StorageRecord, UnloadingRecord, Expense, DryingRecord } from "@/lib/definitions";
+import type { Customer, StorageRecord, UnloadingRecord, Expense } from "@/lib/definitions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CustomersTable } from '@/components/customers/customers-table';
@@ -37,16 +37,15 @@ type ReportGeneratorProps = {
     customers: Customer[];
     unloadingRecords: UnloadingRecord[];
     expenses: Expense[];
-    dryingRecords: DryingRecord[];
 }
 
-export function CustomReportGenerator({ records, customers, unloadingRecords, expenses, dryingRecords }: ReportGeneratorProps) {
+export function CustomReportGenerator({ records, customers, unloadingRecords, expenses }: ReportGeneratorProps) {
     const [selectedReport, setSelectedReport] = useState<string>('daily-summary');
 
     const renderReport = () => {
         switch (selectedReport) {
             case 'daily-summary':
-                return <DailySummaryReport records={records} customers={customers} unloadingRecords={unloadingRecords} expenses={expenses} dryingRecords={dryingRecords} />;
+                return <DailySummaryReport records={records} customers={customers} unloadingRecords={unloadingRecords} expenses={expenses} />;
             case 'all-customers':
                 return <CustomersTable customers={customers} />;
             case 'customer-statement':
@@ -56,7 +55,7 @@ export function CustomReportGenerator({ records, customers, unloadingRecords, ex
             case 'pending-dues':
                 return <PendingPaymentsTable records={records} customers={customers} />;
             case 'hamali-register':
-                return <HamaliReport records={records} customers={customers} unloadingRecords={unloadingRecords} dryingRecords={dryingRecords} expenses={expenses} />;
+                return <HamaliReport records={records} customers={customers} unloadingRecords={unloadingRecords} expenses={expenses} />;
             case 'inflow-register':
                 return <InflowReport records={records} customers={customers} />;
             case 'outflow-register':

@@ -1,8 +1,7 @@
-
 'use client';
 
 import React, { useState, useRef, useMemo } from 'react';
-import type { Customer, StorageRecord, UnloadingRecord, Expense, DryingRecord, Payment } from "@/lib/definitions";
+import type { Customer, StorageRecord, UnloadingRecord, Expense, Payment } from "@/lib/definitions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { Download, Loader2, Calendar as CalendarIcon, TrendingUp, TrendingDown, Scale, ArrowDownToDot, ArrowUpFromDot } from 'lucide-react';
@@ -19,7 +18,6 @@ type DailyReportProps = {
     customers: Customer[];
     unloadingRecords: UnloadingRecord[];
     expenses: Expense[];
-    dryingRecords: DryingRecord[];
 }
 
 type DailyData = {
@@ -148,7 +146,7 @@ const DailySummaryContent = React.forwardRef<HTMLDivElement, { dailyData: DailyD
 DailySummaryContent.displayName = 'DailySummaryContent';
 
 
-export function DailySummaryReport({ records, customers, unloadingRecords, expenses, dryingRecords }: DailyReportProps) {
+export function DailySummaryReport({ records, customers, unloadingRecords, expenses }: DailyReportProps) {
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     const [isGenerating, setIsGenerating] = useState(false);
     

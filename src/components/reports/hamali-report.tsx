@@ -1,8 +1,7 @@
-
 'use client';
 
 import { useState, useRef, useMemo } from 'react';
-import type { Customer, StorageRecord, UnloadingRecord, DryingRecord, Expense } from "@/lib/definitions";
+import type { Customer, StorageRecord, UnloadingRecord, Expense } from "@/lib/definitions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from '@/components/ui/button';
@@ -36,7 +35,7 @@ export type WorkerHamaliEvent = {
     bags?: number;
 }
 
-export function HamaliReport({ records, customers, unloadingRecords, dryingRecords, expenses }: { records: StorageRecord[], customers: Customer[], unloadingRecords: UnloadingRecord[], dryingRecords: DryingRecord[], expenses: Expense[] }) {
+export function HamaliReport({ records, customers, unloadingRecords, expenses }: { records: StorageRecord[], customers: Customer[], unloadingRecords: UnloadingRecord[], expenses: Expense[] }) {
     const [reportView, setReportView] = useState<'customer' | 'worker'>('customer');
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>('all');
     const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
@@ -48,51 +47,37 @@ export function HamaliReport({ records, customers, unloadingRecords, dryingRecor
         const events: CustomerHamaliEvent[] = [];
 
         // --- CHARGES ---
-        // 1. From Unloading Records
-        unloadingRecords.forEach(ur => {
-            events.push({
-                date: toDate(ur.unloadingDate),
-                customerId: ur.customerId,
-                description: 'Unloading Hamali',
-                recordId: ur.billNo || ur.id.substring(0, 5),
-                amount: ur.totalHamali,
-                type: 'charge',
-                bags: ur.bagsUnloaded
-            });
-        });
-
-        // 2. From Drying Records (for additional charges beyond unloading)
-        dryingRecords.forEach(dr => {
-            const unloadingRecord = unloadingRecords.find(ur => ur.id === dr.unloadingRecordId);
-            const refId = unloadingRecord?.billNo || dr.unloadingRecordId.substring(0,5);
-            (dr.hamaliCharges || []).forEach(charge => {
-                // Exclude the base "Unloading Hamali" as it's already covered from the source record.
-                if (!charge.description.toLowerCase().includes('unloading')) {
-                    events.push({
-                        date: toDate(charge.date),
-                        customerId: dr.customerId,
-                        description: charge.description,
-                        recordId: refId,
-                        amount: charge.amount,
-                        type: 'charge',
-                        bags: dr.bagsForDrying,
-                    });
-                }
-            });
-        });
-        
-        // 3. From Direct Inflow Storage Records
+        // From all storage records
         records.forEach(sr => {
-            if ((sr.inflowType === 'Direct' || !sr.inflowType) && sr.hamaliPayable > 0) {
+            if (sr.hamaliPayable > 0) {
                  events.push({
                     date: toDate(sr.storageStartDate),
                     customerId: sr.customerId,
-                    description: 'Direct Inflow Hamali',
+                    description: sr.inflowType === 'Plot' ? 'Plot to Storage Hamali' : 'Direct Inflow Hamali',
                     recordId: sr.id,
                     amount: sr.hamaliPayable,
                     type: 'charge',
                     bags: sr.bagsIn,
                 });
+            }
+        });
+        
+        // From unloading records that have not been fully processed
+        unloadingRecords.forEach(ur => {
+            const bagsRemaining = ur.bagsUnloaded - (ur.bagsSentToDrying || 0);
+            if (bagsRemaining > 0) {
+                const remainingHamali = bagsRemaining * ur.hamaliPerBag;
+                 if (remainingHamali > 0) {
+                    events.push({
+                        date: toDate(ur.unloadingDate),
+                        customerId: ur.customerId,
+                        description: 'Unloading Hamali (pending finalize)',
+                        recordId: ur.billNo || ur.id.substring(0, 5),
+                        amount: remainingHamali,
+                        type: 'charge',
+                        bags: bagsRemaining
+                    });
+                }
             }
         });
 
@@ -137,41 +122,43 @@ export function HamaliReport({ records, customers, unloadingRecords, dryingRecor
         }
 
         return filteredEvents.sort((a,b) => a.date.getTime() - b.date.getTime());
-    }, [records, unloadingRecords, dryingRecords, selectedCustomerId, dateRange]);
+    }, [records, unloadingRecords, selectedCustomerId, dateRange]);
 
     const workerHamaliEvents = useMemo(() => {
         const events: WorkerHamaliEvent[] = [];
 
-        // 1. Payable from Drying Records (includes pro-rated unloading + drying worker hamali)
-        dryingRecords.forEach(dr => {
-            const unloadingRecord = unloadingRecords.find(ur => ur.id === dr.unloadingRecordId);
-            const refId = unloadingRecord?.billNo || dr.unloadingRecordId.substring(0,5);
-
-            if (dr.totalDryingWorkerHamali !== undefined && dr.totalDryingWorkerHamali > 0) {
-                 events.push({
-                    date: toDate(dr.packingDate || dr.dryingStartDate),
-                    description: 'Drying Process Hamali',
-                    recordId: refId,
-                    customerId: dr.customerId,
-                    payable: dr.totalDryingWorkerHamali,
-                    paid: 0,
-                    bags: dr.bagsForDrying,
-                });
-            }
-        });
-        
-        // 2. Payable from Direct Inflow Storage Records
+        // 1. Payable from Storage Records
         records.forEach(sr => {
-            if ((sr.inflowType === 'Direct' || !sr.inflowType) && sr.hamaliPayable > 0) {
+            if (sr.workerHamaliPayable && sr.workerHamaliPayable > 0) {
                 events.push({
                     date: toDate(sr.storageStartDate),
-                    description: 'Direct Inflow Hamali',
+                    description: sr.inflowType === 'Plot' ? 'Plot to Storage Hamali' : 'Direct Inflow Hamali',
                     recordId: sr.id,
                     customerId: sr.customerId,
-                    payable: sr.hamaliPayable,
+                    payable: sr.workerHamaliPayable,
                     paid: 0,
                     bags: sr.bagsIn,
                 });
+            }
+        });
+
+        // 2. Payable from Unloading Records (for bags not yet finalized into storage)
+        unloadingRecords.forEach(ur => {
+            const bagsRemaining = ur.bagsUnloaded - (ur.bagsSentToDrying || 0);
+            if (bagsRemaining > 0 && ur.workerHamaliPayable) {
+                const hamaliPerBag = ur.hamaliPerBag || 0; // or calculate from total
+                const remainingPayable = bagsRemaining * hamaliPerBag;
+                if (remainingPayable > 0) {
+                    events.push({
+                        date: toDate(ur.unloadingDate),
+                        description: 'Unloading Hamali (Pending Finalize)',
+                        recordId: ur.billNo || ur.id.substring(0, 5),
+                        customerId: ur.customerId,
+                        payable: remainingPayable,
+                        paid: 0,
+                        bags: bagsRemaining,
+                    });
+                }
             }
         });
 
@@ -200,7 +187,7 @@ export function HamaliReport({ records, customers, unloadingRecords, dryingRecor
         }
 
         return filtered.sort((a,b) => a.date.getTime() - b.date.getTime());
-    }, [records, unloadingRecords, dryingRecords, expenses, selectedCustomerId, dateRange]);
+    }, [records, unloadingRecords, expenses, selectedCustomerId, dateRange]);
 
 
     const handleDownloadPdf = async () => {

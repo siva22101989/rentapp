@@ -79,8 +79,8 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
                     billNo: nextBillNo, // Ensure the latest bill number is used
                     unloadingDate: Timestamp.fromDate(new Date(data.unloadingDate)),
                     bagsSentToDrying: 0,
-                    status: 'Unloading' as const,
                     totalHamali,
+                    workerHamaliPayable: totalHamali,
                 };
                 const docRef = await addDoc(collection(firestore, 'unloadingRecords'), cleanForFirestore(rawRecord));
                 toast({ title: 'Success', description: 'Unloading record added.' });
@@ -208,6 +208,7 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
                             <span>Total Unloading Hamali</span>
                             <span className="font-mono">{formatCurrency(totalHamali)}</span>
                         </div>
+                         <p className="text-xs text-muted-foreground">This amount will be charged to the customer and is payable to the worker.</p>
                     </div>
 
                 </CardContent>

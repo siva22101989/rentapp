@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useTransition, useState, useEffect, useMemo } from 'react';
@@ -115,6 +114,9 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
 
     const totalCustomerCharge = proportionalUnloadingHamali + day1DryingHamali + pavHamali + cuppaHamali;
     
+    const workerHamaliDay1 = (bagsForDrying || 0) * (form.watch('workerHamaliPerBag') || 0);
+    const totalWorkerPayable = proportionalUnloadingHamali + workerHamaliDay1 + pavHamali + cuppaHamali;
+    
     const startDate = form.watch('dryingStartDate');
     const endDate = form.watch('dryingEndDate');
     
@@ -180,11 +182,16 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                 const finalStorageDate = new Date(data.dryingEndDate);
                 const bagsStored = data.bagsPacked;
 
+                // Customer Hamali Calculation
                 const currentProportionalUnloadingHamali = selectedRecordOnSubmit.hamaliPerBag * data.bagsForDrying;
                 const dryingDay1CustomerHamali = data.bagsForDrying * data.customerHamaliPerBag;
                 const pavHamaliAmount = data.bagsForDrying * (data.pavHamaliPerBag || 0);
                 const cuppaHamaliAmount = data.bagsForDrying * (data.cuppaHamaliPerBag || 0);
                 const totalHamali = currentProportionalUnloadingHamali + dryingDay1CustomerHamali + pavHamaliAmount + cuppaHamaliAmount;
+
+                // Worker Hamali Calculation
+                const dryingDay1WorkerHamali = data.bagsForDrying * data.workerHamaliPerBag;
+                const totalWorkerHamali = currentProportionalUnloadingHamali + dryingDay1WorkerHamali + pavHamaliAmount + cuppaHamaliAmount;
 
                 const newStorageRecord: Omit<StorageRecord, 'id'> & { id: string } = {
                     id: nextSerialNumber,
@@ -199,10 +206,12 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                     billingCycle: '6-Month Initial' as const,
                     payments: [],
                     hamaliPayable: totalHamali,
+                    workerHamaliPayable: totalWorkerHamali,
                     totalRentBilled: 0,
                     lorryTractorNo: selectedRecordOnSubmit?.lorryTractorNo || '',
                     weight: 0,
                     inflowType: 'Plot' as const,
+                    dryingRecordId: data.unloadingRecordId,
                     khataAmount: 0,
                     dryingStartDate: new Date(data.dryingStartDate),
                     dryingEndDate: new Date(data.dryingEndDate),
@@ -431,7 +440,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                     <Separator />
 
                     <div className="space-y-2">
-                        <h4 className="font-medium">Total Hamali to be Added to Storage Record</h4>
+                        <h4 className="font-medium">Total Hamali for Customer</h4>
                         <div className="flex justify-between items-center text-sm">
                             <span className="text-muted-foreground">Pro-rated Unloading Hamali</span>
                             <span className="font-mono">{formatCurrency(proportionalUnloadingHamali)}</span>
@@ -450,8 +459,33 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                         </div>
                         <Separator />
                         <div className="flex justify-between items-center font-semibold">
-                            <span>Total Hamali Payable</span>
+                            <span>Total Hamali Payable (Customer)</span>
                             <span className="font-mono">{formatCurrency(totalCustomerCharge)}</span>
+                        </div>
+                    </div>
+                     <Separator className="my-4"/>
+                    <div className="space-y-2">
+                        <h4 className="font-medium">Total Hamali for Worker</h4>
+                        <div className="flex justify-between items-center text-sm">
+                            <span className="text-muted-foreground">Pro-rated Unloading Hamali</span>
+                            <span className="font-mono">{formatCurrency(proportionalUnloadingHamali)}</span>
+                        </div>
+                         <div className="flex justify-between items-center text-sm">
+                            <span className="text-muted-foreground">Drying Hamali (Day 1)</span>
+                            <span className="font-mono">{formatCurrency(workerHamaliDay1)}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-sm">
+                            <span className="text-muted-foreground">Pav Hamali</span>
+                            <span className="font-mono">{formatCurrency(pavHamali)}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-sm">
+                            <span className="text-muted-foreground">Cuppa Hamali</span>
+                            <span className="font-mono">{formatCurrency(cuppaHamali)}</span>
+                        </div>
+                        <Separator />
+                        <div className="flex justify-between items-center font-semibold">
+                            <span>Total Hamali Payable (Worker)</span>
+                            <span className="font-mono">{formatCurrency(totalWorkerPayable)}</span>
                         </div>
                     </div>
                 </CardContent>

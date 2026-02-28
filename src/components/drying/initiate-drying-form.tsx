@@ -81,10 +81,12 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
 
     const unloadingQueueOptions = useMemo(() => {
         const customerMap = new Map(customers.map(c => [c.id, c.name]));
-        return unloadingRecords.map(ur => ({
-            value: ur.id,
-            label: `Bill #${ur.billNo} - ${customerMap.get(ur.customerId) || 'Unknown'} - ${ur.bagsUnloaded - (ur.bagsSentToDrying || 0)} bags - ${format(toDate(ur.unloadingDate), 'dd/MM, h:mm a')}`
-        }));
+        return unloadingRecords
+            .sort((a, b) => toDate(a.unloadingDate).getTime() - toDate(b.unloadingDate).getTime())
+            .map(ur => ({
+                value: ur.id,
+                label: `Bill #${ur.billNo} - ${customerMap.get(ur.customerId) || 'Unknown'} - ${ur.bagsUnloaded - (ur.bagsSentToDrying || 0)} bags - ${format(toDate(ur.unloadingDate), 'dd/MM, h:mm a')}`
+            }));
     }, [unloadingRecords, customers]);
 
     const selectedUnloadingRecordId = form.watch('unloadingRecordId');

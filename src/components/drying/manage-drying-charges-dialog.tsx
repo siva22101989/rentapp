@@ -44,9 +44,9 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
   const form = useForm<PackingFormData>({
     resolver: zodResolver(PackingSchema),
     defaultValues: {
-        bagsPacked: undefined,
+        bagsPacked: '',
         packingDate: format(new Date(), 'yyyy-MM-dd'),
-        additionalHamaliPerBagPerDay: undefined,
+        additionalHamaliPerBagPerDay: '',
     }
   });
 
@@ -55,7 +55,7 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
   
   const bagsDifference = useMemo(() => {
     const packed = Number(bagsPacked);
-    if (!isNaN(packed) && bagsPacked !== undefined) {
+    if (!isNaN(packed) && bagsPacked !== undefined && bagsPacked !== '') {
       return record.bagsForDrying - packed;
     }
     return null;
@@ -189,6 +189,7 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
                                 placeholder="0"
                                 disabled={isBilled}
                                 {...field}
+                                value={field.value ?? ''}
                                 />
                             </FormControl>
                             <FormMessage />
@@ -237,6 +238,7 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
                                   placeholder="0.00" 
                                   disabled={isBilled} 
                                   {...field}
+                                  value={field.value ?? ''}
                               />
                           </FormControl>
                           <FormMessage />

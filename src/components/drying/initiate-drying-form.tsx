@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useTransition, useState, useEffect } from 'react';
@@ -26,6 +27,10 @@ const InitiateDryingSchema = z.object({
   customerHamaliPerBag: z.coerce.number().nonnegative('Customer hamali rate must be non-negative.'),
   workerHamaliPerBag: z.coerce.number().nonnegative('Worker hamali rate must be non-negative.'),
   bagsForDrying: z.coerce.number().int().positive('Number of bags must be positive.'),
+  bagsPacked: z.preprocess(
+    (val) => (val === "" ? undefined : val),
+    z.coerce.number().int().nonnegative("Bags packed must be non-negative.").optional()
+  ),
 });
 
 type DryingFormData = z.infer<typeof InitiateDryingSchema>;
@@ -50,6 +55,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
           customerHamaliPerBag: undefined,
           workerHamaliPerBag: undefined,
           bagsForDrying: undefined,
+          bagsPacked: undefined,
         },
       });
     
@@ -131,6 +137,8 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                 
                 const totalDryingWorkerHamali = currentProportionalUnloadingHamali + dryingDay1WorkerHamali;
                 
+                const hasPackedBags = data.bagsPacked !== undefined;
+
                 // 1. Create new drying record
                 const newRecord = {
                     unloadingRecordId: data.unloadingRecordId,
@@ -138,13 +146,13 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                     commodityDescription: selectedUnloadingRecord.commodityDescription,
                     bagsForDrying: data.bagsForDrying,
                     dryingStartDate: dryingStartDate,
-                    status: 'Drying' as const,
+                    status: hasPackedBags ? 'Packing' : 'Drying' as const,
                     hamaliCharges,
                     totalDryingHamali,
                     totalDryingWorkerHamali,
-                    packingDate: null,
+                    packingDate: hasPackedBags ? dryingStartDate : null,
                     billingDate: null,
-                    bagsPacked: null,
+                    bagsPacked: hasPackedBags ? data.bagsPacked : null,
                 };
                 await addDoc(collection(firestore, 'dryingRecords'), cleanForFirestore(newRecord));
 
@@ -238,6 +246,18 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                                 <FormLabel>Bags for Drying</FormLabel>
                                 <FormControl><Input type="number" placeholder="0" {...field} value={field.value ?? ''} /></FormControl>
                                 {selectedUnloadingRecord && <FormDescription>Remaining on Bill: {bagsRemainingOnRecord} bags</FormDescription>}
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="bagsPacked"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Bags Packed (Optional)</FormLabel>
+                                <FormControl><Input type="number" placeholder="0" {...field} value={field.value ?? ''} /></FormControl>
+                                <FormDescription>Enter if packing is already complete.</FormDescription>
                                 <FormMessage />
                             </FormItem>
                         )}

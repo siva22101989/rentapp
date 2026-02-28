@@ -8,12 +8,11 @@ import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 import type { Customer, UnloadingRecord } from "@/lib/definitions";
 import { AddCustomerDialog } from "@/components/customers/add-customer-dialog";
 import { InitiateDryingForm } from "@/components/drying/initiate-drying-form";
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { toDate } from "@/lib/utils";
 
 export default function DryingPage() {
   const firestore = useFirestore();
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
 
   const customersQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'customers') : null),
@@ -44,7 +43,7 @@ export default function DryingPage() {
     <AppLayout>
       <PageHeader
         title="Finalize Drying"
-        description="Finalize the drying process and prepare goods for storage."
+        description="Select an item from the unloading queue to finalize the drying process."
       >
         <AddCustomerDialog />
       </PageHeader>
@@ -54,7 +53,6 @@ export default function DryingPage() {
             <InitiateDryingForm 
                 customers={customers || []} 
                 unloadingRecords={availableForDryingRecords || []}
-                onCustomerChange={setSelectedCustomerId}
             />
         </div>
       </div>

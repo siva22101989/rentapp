@@ -4,12 +4,11 @@ import { useTransition, useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Loader2, Info } from 'lucide-react';
+import { Loader2, Info, User, Package } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
 import type { Customer, UnloadingRecord, HamaliCharge } from '@/lib/definitions';
@@ -21,8 +20,7 @@ import { Combobox } from '../ui/combobox';
 import { differenceInDays } from 'date-fns';
 
 const InitiateDryingSchema = z.object({
-  customerId: z.string().min(1, 'Customer is required.'),
-  unloadingRecordId: z.string().min(1, 'Unloading bill is required.'),
+  unloadingRecordId: z.string().min(1, 'An unloading bill is required.'),
   dryingStartDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
   dryingEndDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
   customerHamaliPerBag: z.coerce.number().nonnegative('Customer hamali rate must be non-negative.'),
@@ -41,10 +39,9 @@ type DryingFormData = z.infer<typeof InitiateDryingSchema>;
 interface InitiateDryingFormProps {
     customers: Customer[];
     unloadingRecords: UnloadingRecord[];
-    onCustomerChange: (customerId: string | null) => void;
 }
 
-export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChange }: InitiateDryingFormProps) {
+export function InitiateDryingForm({ customers, unloadingRecords }: InitiateDryingFormProps) {
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
     const firestore = useFirestore();
@@ -52,7 +49,6 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
     const form = useForm<DryingFormData>({
         resolver: zodResolver(InitiateDryingSchema),
         defaultValues: {
-          customerId: '',
           unloadingRecordId: '',
           dryingStartDate: new Date().toISOString().split('T')[0],
           dryingEndDate: new Date().toISOString().split('T')[0],
@@ -65,23 +61,23 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
         },
       });
     
-    const customerOptions = customers.map(c => ({ value: c.id, label: c.name }));
-
-    const selectedCustomerId = form.watch('customerId');
-    const customerUnloadingRecords = unloadingRecords.filter(ur => ur.customerId === selectedCustomerId);
-
-    useEffect(() => {
-        form.reset({
-            ...form.getValues(),
-            customerId: selectedCustomerId,
-            unloadingRecordId: '',
-        });
-        onCustomerChange(selectedCustomerId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedCustomerId]);
+    const unloadingQueueOptions = useMemo(() => {
+        const customerMap = new Map(customers.map(c => [c.id, c.name]));
+        return unloadingRecords.map(ur => ({
+            value: ur.id,
+            label: `Bill #${ur.billNo} - ${customerMap.get(ur.customerId) || 'Unknown'} - ${ur.bagsUnloaded - (ur.bagsSentToDrying || 0)} bags`
+        }));
+    }, [unloadingRecords, customers]);
 
     const selectedUnloadingRecordId = form.watch('unloadingRecordId');
-    const selectedUnloadingRecord = unloadingRecords.find(ur => ur.id === selectedUnloadingRecordId);
+    const selectedUnloadingRecord = useMemo(() => 
+        unloadingRecords.find(ur => ur.id === selectedUnloadingRecordId)
+    , [unloadingRecords, selectedUnloadingRecordId]);
+    
+    const selectedCustomer = useMemo(() =>
+        selectedUnloadingRecord ? customers.find(c => c.id === selectedUnloadingRecord.customerId) : null
+    , [customers, selectedUnloadingRecord]);
+
     const bagsRemainingOnRecord = selectedUnloadingRecord ? selectedUnloadingRecord.bagsUnloaded - (selectedUnloadingRecord.bagsSentToDrying || 0) : 0;
     
     const bagsForDrying = form.watch('bagsForDrying');
@@ -122,13 +118,15 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
 
     useEffect(() => {
       if (selectedUnloadingRecord) {
-        // Default to drying the remaining bags
         form.setValue('bagsForDrying', bagsRemainingOnRecord);
+        form.setValue('bagsPacked', bagsRemainingOnRecord); 
       } else {
         form.setValue('bagsForDrying', undefined);
+        form.setValue('bagsPacked', undefined);
       }
+      form.trigger('bagsForDrying'); 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedUnloadingRecord]);
+    }, [selectedUnloadingRecordId]);
 
 
     const onSubmit = (data: DryingFormData) => {
@@ -137,13 +135,13 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
             return;
         }
 
-        const selectedUnloadingRecord = unloadingRecords.find(ur => ur.id === data.unloadingRecordId);
-        if (!selectedUnloadingRecord) {
+        const selectedRecordOnSubmit = unloadingRecords.find(ur => ur.id === data.unloadingRecordId);
+        if (!selectedRecordOnSubmit) {
             toast({ title: 'Error', description: 'Selected unloading record not found.', variant: 'destructive' });
             return;
         }
         
-        const bagsStillAvailable = selectedUnloadingRecord.bagsUnloaded - (selectedUnloadingRecord.bagsSentToDrying || 0);
+        const bagsStillAvailable = selectedRecordOnSubmit.bagsUnloaded - (selectedRecordOnSubmit.bagsSentToDrying || 0);
         if (data.bagsForDrying > bagsStillAvailable) {
           form.setError('bagsForDrying', { message: `Cannot exceed available bags (${bagsStillAvailable}).`});
           return;
@@ -153,7 +151,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
             try {
                 const dryingStartDate = new Date(data.dryingStartDate);
                 const dryingEndDate = new Date(data.dryingEndDate);
-                const currentProportionalUnloadingHamali = selectedUnloadingRecord.hamaliPerBag * data.bagsForDrying;
+                const currentProportionalUnloadingHamali = selectedRecordOnSubmit.hamaliPerBag * data.bagsForDrying;
                 const dryingDay1CustomerHamali = data.bagsForDrying * data.customerHamaliPerBag;
                 const dryingDay1WorkerHamali = data.bagsForDrying * data.workerHamaliPerBag;
                 
@@ -161,7 +159,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                 const cuppaHamaliAmount = data.bagsForDrying * (data.cuppaHamaliPerBag || 0);
 
                 const hamaliCharges: Partial<HamaliCharge>[] = [
-                  { description: "Unloading Hamali", amount: currentProportionalUnloadingHamali, date: selectedUnloadingRecord.unloadingDate },
+                  { description: "Unloading Hamali", amount: currentProportionalUnloadingHamali, date: selectedRecordOnSubmit.unloadingDate },
                   { description: "Drying Day 1", amount: dryingDay1CustomerHamali, date: dryingStartDate },
                 ];
                 
@@ -176,11 +174,10 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                 
                 const totalDryingWorkerHamali = currentProportionalUnloadingHamali + dryingDay1WorkerHamali + pavHamaliAmount + cuppaHamaliAmount;
                 
-                // 1. Create new drying record
                 const newRecord = {
                     unloadingRecordId: data.unloadingRecordId,
-                    customerId: selectedUnloadingRecord.customerId,
-                    commodityDescription: selectedUnloadingRecord.commodityDescription,
+                    customerId: selectedRecordOnSubmit.customerId,
+                    commodityDescription: selectedRecordOnSubmit.commodityDescription,
                     bagsForDrying: data.bagsForDrying,
                     dryingStartDate: dryingStartDate,
                     status: 'Packing' as const,
@@ -193,7 +190,6 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                 };
                 await addDoc(collection(firestore, 'dryingRecords'), cleanForFirestore(newRecord));
 
-                // 2. Update bagsSentToDrying on unloading record
                 const unloadingRecordRef = doc(firestore, 'unloadingRecords', data.unloadingRecordId);
                 await updateDoc(unloadingRecordRef, { 
                     bagsSentToDrying: increment(data.bagsForDrying)
@@ -201,7 +197,6 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
 
                 toast({ title: 'Success', description: 'Drying process finalized.' });
                 form.reset();
-                onCustomerChange(null);
             } catch (error) {
                 console.error(error);
                 toast({ title: 'Error', description: 'Failed to finalize drying process.', variant: 'destructive' });
@@ -215,64 +210,50 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
             <form onSubmit={form.handleSubmit(onSubmit)}>
                 <CardHeader>
                     <CardTitle>Finalize Drying Process</CardTitle>
-                    <CardDescription>Select a customer and an unloading bill to start.</CardDescription>
+                    <CardDescription>Select an item from the unloading queue to begin.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <FormField
                         control={form.control}
-                        name="customerId"
+                        name="unloadingRecordId"
                         render={({ field }) => (
                             <FormItem className="flex flex-col">
-                                <FormLabel>Customer</FormLabel>
+                                <FormLabel>Unloading Queue (Oldest First)</FormLabel>
                                 <Combobox
-                                    options={customerOptions}
+                                    options={unloadingQueueOptions}
                                     value={field.value}
                                     onChange={(value) => {
-                                        field.onChange(value);
+                                        form.setValue('unloadingRecordId', value, { shouldValidate: true });
                                     }}
-                                    placeholder="Select a customer..."
-                                    searchPlaceholder="Search customers..."
-                                    emptyPlaceholder="No customer found."
+                                    placeholder="Select an unloading bill..."
+                                    searchPlaceholder="Search by bill, customer..."
+                                    emptyPlaceholder="No items in queue."
                                 />
                                 <FormMessage />
                             </FormItem>
                         )}
                     />
-                    {selectedCustomerId && (
+                    
+                    {selectedUnloadingRecord && (
                         <>
-                            <FormField
-                                control={form.control}
-                                name="unloadingRecordId"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Unloading Bill No.</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value}>
-                                            <FormControl>
-                                                <SelectTrigger><SelectValue placeholder="Select a bill" /></SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                {customerUnloadingRecords.length > 0 ? customerUnloadingRecords.map(ur => (
-                                                    <SelectItem key={ur.id} value={ur.id}>
-                                                        Bill #{ur.billNo} - {ur.commodityDescription} ({ur.bagsUnloaded - (ur.bagsSentToDrying || 0)} bags remaining)
-                                                    </SelectItem>
-                                                )) : (
-                                                    <SelectItem value="none" disabled>No records with remaining bags</SelectItem>
-                                                )}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            {selectedUnloadingRecord && (
-                                <Alert variant="destructive" className="bg-secondary/30 border-secondary">
-                                    <Info className="h-4 w-4" />
-                                    <AlertTitle>Unloading Summary</AlertTitle>
-                                    <AlertDescription>
-                                        Total hamali for unloading was <strong>{formatCurrency(selectedUnloadingRecord.totalHamali)}</strong> for <strong>{selectedUnloadingRecord.bagsUnloaded}</strong> bags. The cost will be pro-rated for the bags you send to drying.
-                                    </AlertDescription>
-                                </Alert>
-                            )}
+                        <div className="grid grid-cols-2 gap-4 text-sm pt-2">
+                            <div className="flex items-center gap-2">
+                                <User className="h-4 w-4 text-muted-foreground" />
+                                <span>{selectedCustomer?.name || '...'}</span>
+                            </div>
+                             <div className="flex items-center gap-2">
+                                <Package className="h-4 w-4 text-muted-foreground" />
+                                <span>{selectedUnloadingRecord.commodityDescription}</span>
+                            </div>
+                        </div>
+
+                        <Alert variant="destructive" className="bg-secondary/30 border-secondary">
+                            <Info className="h-4 w-4" />
+                            <AlertTitle>Unloading Hamali</AlertTitle>
+                            <AlertDescription>
+                                Unloading hamali was {formatCurrency(selectedUnloadingRecord.hamaliPerBag)} per bag. This will be pro-rated and added to the total.
+                            </AlertDescription>
+                        </Alert>
                         </>
                     )}
                      <FormField
@@ -281,7 +262,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Bags for Drying</FormLabel>
-                                <FormControl><Input type="number" placeholder="0" {...field} value={field.value ?? ''} /></FormControl>
+                                <FormControl><Input type="number" placeholder="0" {...field} value={field.value ?? ''} disabled={!selectedUnloadingRecord} /></FormControl>
                                 {selectedUnloadingRecord && <FormDescription>Remaining on Bill: {bagsRemainingOnRecord} bags</FormDescription>}
                                 <FormMessage />
                             </FormItem>
@@ -293,7 +274,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Bags Packed (Final)</FormLabel>
-                                <FormControl><Input type="number" placeholder="0" {...field} value={field.value ?? ''} /></FormControl>
+                                <FormControl><Input type="number" placeholder="0" {...field} value={field.value ?? ''} disabled={!selectedUnloadingRecord}/></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -305,7 +286,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Drying Start Date</FormLabel>
-                                    <FormControl><Input type="date" {...field} /></FormControl>
+                                    <FormControl><Input type="date" {...field} disabled={!selectedUnloadingRecord} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -316,7 +297,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Drying End Date</FormLabel>
-                                    <FormControl><Input type="date" {...field} /></FormControl>
+                                    <FormControl><Input type="date" {...field} disabled={!selectedUnloadingRecord} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -335,7 +316,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                                 <FormItem>
                                     <FormLabel>Customer Drying Rate</FormLabel>
                                     <FormDescription className="text-xs h-8">Charge per bag (Day 1).</FormDescription>
-                                    <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} /></FormControl>
+                                    <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} disabled={!selectedUnloadingRecord} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -347,7 +328,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                                 <FormItem>
                                     <FormLabel>Worker Drying Rate</FormLabel>
                                     <FormDescription className="text-xs h-8">Payment per bag (Day 1).</FormDescription>
-                                    <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} /></FormControl>
+                                    <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} disabled={!selectedUnloadingRecord} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -359,7 +340,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                                 <FormItem>
                                     <FormLabel>Pav Hamali Rate</FormLabel>
                                     <FormDescription className="text-xs h-8">Extra charge per bag.</FormDescription>
-                                    <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} /></FormControl>
+                                    <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} disabled={!selectedUnloadingRecord} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -371,7 +352,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                                 <FormItem>
                                     <FormLabel>Cuppa Hamali Rate</FormLabel>
                                     <FormDescription className="text-xs h-8">Extra charge per bag.</FormDescription>
-                                    <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} /></FormControl>
+                                    <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} disabled={!selectedUnloadingRecord} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -410,7 +391,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                     </div>
                 </CardContent>
                 <CardFooter>
-                    <Button type="submit" disabled={isPending || !selectedCustomerId || !selectedUnloadingRecordId} className="w-full">
+                    <Button type="submit" disabled={isPending || !selectedUnloadingRecord} className="w-full">
                         {isPending ? (
                             <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Finalizing Process...</>
                         ) : (

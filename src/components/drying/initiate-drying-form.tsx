@@ -4,7 +4,7 @@ import { useTransition, useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Loader2, Info, User, Package } from 'lucide-react';
+import { Loader2, Info, User, Package, Clock } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -14,10 +14,10 @@ import { useFirestore } from '@/firebase';
 import type { Customer, UnloadingRecord, HamaliCharge } from '@/lib/definitions';
 import { addDoc, collection, doc, updateDoc, increment } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { formatCurrency, cleanForFirestore } from '@/lib/utils';
+import { formatCurrency, cleanForFirestore, toDate } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 import { Combobox } from '../ui/combobox';
-import { differenceInDays } from 'date-fns';
+import { differenceInDays, format } from 'date-fns';
 
 const InitiateDryingSchema = z.object({
   unloadingRecordId: z.string().min(1, 'An unloading bill is required.'),
@@ -65,7 +65,7 @@ export function InitiateDryingForm({ customers, unloadingRecords }: InitiateDryi
         const customerMap = new Map(customers.map(c => [c.id, c.name]));
         return unloadingRecords.map(ur => ({
             value: ur.id,
-            label: `Bill #${ur.billNo} - ${customerMap.get(ur.customerId) || 'Unknown'} - ${ur.bagsUnloaded - (ur.bagsSentToDrying || 0)} bags`
+            label: `Bill #${ur.billNo} - ${customerMap.get(ur.customerId) || 'Unknown'} - ${ur.bagsUnloaded - (ur.bagsSentToDrying || 0)} bags - ${format(toDate(ur.unloadingDate), 'dd/MM, h:mm a')}`
         }));
     }, [unloadingRecords, customers]);
 
@@ -236,12 +236,16 @@ export function InitiateDryingForm({ customers, unloadingRecords }: InitiateDryi
                     
                     {selectedUnloadingRecord && (
                         <>
-                        <div className="grid grid-cols-2 gap-4 text-sm pt-2">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2 text-sm pt-2">
                             <div className="flex items-center gap-2">
                                 <User className="h-4 w-4 text-muted-foreground" />
                                 <span>{selectedCustomer?.name || '...'}</span>
                             </div>
-                             <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2">
+                                <Clock className="h-4 w-4 text-muted-foreground" />
+                                <span>{format(toDate(selectedUnloadingRecord.unloadingDate), 'dd MMM yyyy, hh:mm a')}</span>
+                            </div>
+                             <div className="flex items-center gap-2 col-span-2">
                                 <Package className="h-4 w-4 text-muted-foreground" />
                                 <span>{selectedUnloadingRecord.commodityDescription}</span>
                             </div>

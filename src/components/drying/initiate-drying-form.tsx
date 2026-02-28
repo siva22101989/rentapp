@@ -27,10 +27,7 @@ const InitiateDryingSchema = z.object({
   customerHamaliPerBag: z.coerce.number().nonnegative('Customer hamali rate must be non-negative.'),
   workerHamaliPerBag: z.coerce.number().nonnegative('Worker hamali rate must be non-negative.'),
   bagsForDrying: z.coerce.number().int().positive('Number of bags must be positive.'),
-  bagsPacked: z.preprocess(
-    (val) => (val === "" ? undefined : val),
-    z.coerce.number().int().nonnegative("Bags packed must be non-negative.").optional()
-  ),
+  bagsPacked: z.coerce.number().int().nonnegative("Bags packed must be a non-negative number."),
 });
 
 type DryingFormData = z.infer<typeof InitiateDryingSchema>;
@@ -137,7 +134,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                 
                 const totalDryingWorkerHamali = currentProportionalUnloadingHamali + dryingDay1WorkerHamali;
                 
-                const hasPackedBags = data.bagsPacked !== undefined;
+                const hasPackedBags = data.bagsPacked !== undefined && data.bagsPacked !== null;
 
                 // 1. Create new drying record
                 const newRecord = {
@@ -255,9 +252,8 @@ export function InitiateDryingForm({ customers, unloadingRecords, onCustomerChan
                         name="bagsPacked"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Bags Packed (Optional)</FormLabel>
+                                <FormLabel>Bags Packed</FormLabel>
                                 <FormControl><Input type="number" placeholder="0" {...field} value={field.value ?? ''} /></FormControl>
-                                <FormDescription>Enter if packing is already complete.</FormDescription>
                                 <FormMessage />
                             </FormItem>
                         )}

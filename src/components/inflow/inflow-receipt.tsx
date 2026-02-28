@@ -10,7 +10,6 @@ import { format, differenceInDays } from 'date-fns';
 import { Button } from '../ui/button';
 import { Download, Loader2 } from 'lucide-react';
 import { toDate, formatCurrency } from '@/lib/utils';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '../ui/table';
 
 
@@ -105,64 +104,62 @@ export function InflowReceipt({ record, customer, warehouseInfo }: { record: Sto
     if (record.inflowType === 'Plot') {
         return (
              <div className="w-full max-w-2xl mx-auto bg-background p-4 sm:p-6">
-                <div ref={receiptRef} className="printable-area bg-white p-6 border border-primary">
-                    <Card className="w-full shadow-none border-0">
-                        <CardHeader className="text-center">
-                            <CardTitle className="text-2xl">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</CardTitle>
-                             {warehouseInfo?.ownerName && <p className="text-sm text-muted-foreground">Prop: {warehouseInfo.ownerName}</p>}
-                            <p className='text-sm text-muted-foreground'>{warehouseInfo?.phone || 'MOBILE NO 9160606633'}</p>
-                            <CardDescription>Inflow Bill (from Plot)</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            <div className="grid grid-cols-2 gap-4 text-sm">
-                                <div>
-                                    <h3 className="font-semibold mb-2">Customer Details</h3>
-                                    <p>{customer.name}</p>
-                                    {customer.fatherName && <p>S/o {customer.fatherName}</p>}
-                                    <p>{customer.village || customer.address}</p>
-                                    <p>Phone: {customer.phone}</p>
-                                </div>
-                                <div>
-                                    <h3 className="font-semibold mb-2">Billing Details</h3>
-                                    <p><span className="font-medium">Serial No:</span> {record.id}</p>
-                                    <p><span className="font-medium">Storage Date:</span> {formattedDate}</p>
-                                    <p><span className="font-medium">Commodity:</span> {record.commodityDescription}</p>
-                                    {dryingDays !== null && <p><span className="font-medium">Total Drying Days:</span> {dryingDays}</p>}
-                                </div>
-                            </div>
-                            <Separator />
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Description</TableHead>
-                                        <TableHead className="text-center">Bags</TableHead>
-                                        <TableHead className="text-right">Amount</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    <TableRow>
-                                        <TableCell>Total Hamali Charges (Unloading + Drying)</TableCell>
-                                        <TableCell className="text-center">{record.bagsIn}</TableCell>
-                                        <TableCell className="text-right font-mono">{formatCurrency(record.hamaliPayable)}</TableCell>
-                                    </TableRow>
-                                </TableBody>
-                                <TableFooter>
-                                    <TableRow>
-                                        <TableCell colSpan={2} className="text-right font-bold">Total Payable</TableCell>
-                                        <TableCell className="text-right font-bold font-mono">{formatCurrency(record.hamaliPayable)}</TableCell>
-                                    </TableRow>
-                                </TableFooter>
-                            </Table>
-                             <div className="mt-20 pt-10 flex justify-between text-center text-sm">
-                                <div className="w-1/2">
-                                    <div className="border-t border-gray-400 mx-4 pt-2">Manager Signature</div>
-                                </div>
-                                <div className="w-1/2">
-                                    <div className="border-t border-gray-400 mx-4 pt-2">Customer Signature</div>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+                <div ref={receiptRef} className="printable-area bg-white p-6 border-2 border-blue-800 font-sans text-sm" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                    <div className="text-center mb-4">
+                        <div className="text-xs">Cell: {warehouseInfo?.phone || '9703503423, 9160606633'}</div>
+                        <h1 className="text-2xl font-bold text-blue-900">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</h1>
+                        {warehouseInfo?.ownerName && <p className="text-xs">Prop: {warehouseInfo.ownerName}</p>}
+                        <p className="text-xs">{warehouseInfo?.addressLine1 || 'Survey No. 165,237/2, Owk - Koilakuntla Road, OWK - 518 122,'}</p>
+                        <p className="text-xs">{warehouseInfo?.addressLine2 || 'Owk (M), Kurnool (Dt.), A.P.'}</p>
+                    </div>
+
+                    <h2 className="font-bold underline text-center">INFLOW BILL (FROM PLOT)</h2>
+                    
+                    <div className="flex justify-between items-baseline my-4">
+                        <div><span className="font-bold">Serial No.</span> {record.id}</div>
+                        <div><span className="font-bold">Date:</span> {formattedDate}</div>
+                    </div>
+
+                    <div className="space-y-2 mb-4">
+                        <div className="flex"><span className="w-1/3 font-bold">CUSTOMER</span><span>: {customer.name}</span></div>
+                        {customer.fatherName && <div className="flex"><span className="w-1/3 font-bold">FATHER'S NAME</span><span>: {customer.fatherName}</span></div>}
+                        <div className="flex"><span className="w-1/3 font-bold">VILLAGE</span><span>: {customer.village || 'N/A'}</span></div>
+                        <div className="flex"><span className="w-1/3 font-bold">PRODUCT</span><span>: {record.commodityDescription}</span></div>
+                        <div className="flex"><span className="w-1/3 font-bold">DRYING DAYS</span><span>: {dryingDays ?? 'N/A'} days</span></div>
+                        <div className="flex"><span className="w-1/3 font-bold">LOT No.</span><span>: {record.location}</span></div>
+                    </div>
+
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="text-black">Description</TableHead>
+                                <TableHead className="text-center text-black">Bags</TableHead>
+                                <TableHead className="text-right text-black">Amount</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            <TableRow>
+                                <TableCell>Total Hamali Charges (Unloading + Drying)</TableCell>
+                                <TableCell className="text-center">{record.bagsIn}</TableCell>
+                                <TableCell className="text-right font-mono">{formatCurrency(record.hamaliPayable)}</TableCell>
+                            </TableRow>
+                        </TableBody>
+                        <TableFooter>
+                            <TableRow>
+                                <TableCell colSpan={2} className="text-right font-bold">Total Payable</TableCell>
+                                <TableCell className="text-right font-bold font-mono">{formatCurrency(record.hamaliPayable)}</TableCell>
+                            </TableRow>
+                        </TableFooter>
+                    </Table>
+
+                     <div className="mt-20 pt-10 flex justify-between text-center">
+                        <div className="w-1/2">
+                            <div className="mt-16 border-t border-gray-400 mx-4 pt-2">Manager Signature</div>
+                        </div>
+                        <div className="w-1/2">
+                            <div className="mt-16 border-t border-gray-400 mx-4 pt-2">Customer Signature</div>
+                        </div>
+                    </div>
                 </div>
                 {downloadButton}
             </div>

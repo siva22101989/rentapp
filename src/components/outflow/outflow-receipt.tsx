@@ -55,8 +55,6 @@ export function OutflowReceipt({ record, customer, warehouseInfo, withdrawnBags,
         const { rentPerBag } = calculateFinalRent(safeRecord, endDate, withdrawnBags);
         setRentBreakdown({ rentPerBag });
 
-        // Calculate hamali pending.
-        // This is the total hamali payable on the record minus all payments specifically for hamali.
         const originalHamaliPayable = record.hamaliPayable || 0;
         const hamaliPaid = (record.payments || [])
             .filter(p => p.type === 'hamali')
@@ -117,132 +115,115 @@ export function OutflowReceipt({ record, customer, warehouseInfo, withdrawnBags,
     }
 
     return (
-        <div className="max-w-3xl mx-auto bg-background p-4 sm:p-6 rounded-lg">
-            <div ref={receiptRef} className="printable-area bg-white p-6 sm:p-8">
-                {/* Header */}
-                <div className="flex justify-between items-start mb-8">
-                    <div>
-                        <h1 className="text-2xl font-bold text-primary">{warehouseInfo?.name || 'Srilakshmi Warehouse'}</h1>
-                        {warehouseInfo?.ownerName && <p className="text-sm text-muted-foreground">Prop: {warehouseInfo.ownerName}</p>}
-                        <p className="text-sm text-muted-foreground">{warehouseInfo?.addressLine1}</p>
-                        <p className="text-sm text-muted-foreground">{warehouseInfo?.phone}</p>
-                    </div>
-                    <div className="text-right">
-                        <h2 className="text-xl font-semibold uppercase text-muted-foreground">Outflow Bill</h2>
-                        <p className="text-sm"><span className="font-medium">Bill No:</span> {record.id}</p>
-                        <p className="text-sm"><span className="font-medium">Date:</span> {formattedEndDate}</p>
-                    </div>
+        <div className="w-full max-w-2xl mx-auto bg-background p-4 sm:p-6">
+             <div ref={receiptRef} className="printable-area bg-white p-6 border-2 border-blue-800 font-sans text-sm" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                <div className="text-center mb-4">
+                    <div className="text-xs">Cell: {warehouseInfo?.phone || '9703503423, 9160606633'}</div>
+                    <h1 className="text-2xl font-bold text-blue-900">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</h1>
+                    {warehouseInfo?.ownerName && <p className="text-xs">Prop: {warehouseInfo.ownerName}</p>}
+                    <p className="text-xs">{warehouseInfo?.addressLine1 || 'Survey No. 165,237/2, Owk - Koilakuntla Road, OWK - 518 122,'}</p>
+                    <p className="text-xs">{warehouseInfo?.addressLine2 || 'Owk (M), Kurnool (Dt.), A.P.'}</p>
+                </div>
+                
+                <h2 className="font-bold underline text-center">OUTFLOW BILL</h2>
+
+                <div className="flex justify-between items-baseline my-4">
+                    <div><span className="font-bold">Bill No.</span> {record.id}</div>
+                    <div><span className="font-bold">Date:</span> {formattedEndDate}</div>
                 </div>
 
-                {/* Customer Info */}
-                <div className="grid grid-cols-2 gap-4 mb-8">
-                    <div>
-                        <h3 className="text-sm font-semibold mb-2 text-muted-foreground">BILL TO</h3>
-                        <p className="font-medium text-lg">{customer.name}</p>
-                        {customer.village && <p>{customer.village}</p>}
-                        <p>Phone: {customer.phone}</p>
-                    </div>
-                     <div>
-                        <h3 className="text-sm font-semibold mb-2 text-muted-foreground">WITHDRAWAL DETAILS</h3>
-                        <p><span className="font-medium">Commodity:</span> {record.commodityDescription}</p>
-                        <p><span className="font-medium">Lot No:</span> {record.location}</p>
-                        <p><span className="font-medium">Date In:</span> {formattedStartDate}</p>
-                        <p><span className="font-medium">Storage Duration:</span> {duration.months} months ({duration.days} days)</p>
-                    </div>
+                <div className="space-y-2 mb-4">
+                    <div className="flex"><span className="w-1/3 font-bold">CUSTOMER</span><span>: {customer.name}</span></div>
+                    {customer.fatherName && <div className="flex"><span className="w-1/3 font-bold">FATHER'S NAME</span><span>: {customer.fatherName}</span></div>}
+                    <div className="flex"><span className="w-1/3 font-bold">VILLAGE</span><span>: {customer.village || 'N/A'}</span></div>
+                    <div className="flex"><span className="w-1/3 font-bold">PRODUCT</span><span>: {record.commodityDescription}</span></div>
+                    <div className="flex"><span className="w-1/3 font-bold">LOT No.</span><span>: {record.location}</span></div>
+                    <div className="flex"><span className="w-1/3 font-bold">STORAGE DURATION</span><span>: {duration.months} months ({duration.days} days)</span></div>
                 </div>
 
-                {/* Storage Summary */}
-                <div className="mb-8 p-4 bg-secondary/30 rounded-lg">
-                    <h3 className="text-sm font-semibold mb-2 text-muted-foreground">STORAGE SUMMARY</h3>
+                <div className="mb-4 p-4 bg-gray-100 rounded-lg text-black">
+                    <h3 className="text-xs font-bold mb-2">STORAGE SUMMARY</h3>
                     <div className="grid grid-cols-3 gap-4 text-center">
                         <div>
-                            <p className="text-xs text-muted-foreground">Bags Before</p>
-                            <p className="text-lg font-bold">{(record.bagsStored || 0) + withdrawnBags}</p>
+                            <p className="text-xs">Bags Before</p>
+                            <p className="font-bold">{(record.bagsStored || 0) + withdrawnBags}</p>
                         </div>
                         <div>
-                            <p className="text-xs text-muted-foreground">Bags Withdrawn</p>
-                            <p className="text-lg font-bold text-destructive">-{withdrawnBags}</p>
+                            <p className="text-xs">Bags Withdrawn</p>
+                            <p className="font-bold">-{withdrawnBags}</p>
                         </div>
                         <div>
-                            <p className="text-xs text-muted-foreground">Bags Remaining</p>
-                            <p className="text-lg font-bold text-green-600">{record.bagsStored}</p>
+                            <p className="text-xs">Bags Remaining</p>
+                            <p className="font-bold">{record.bagsStored}</p>
                         </div>
                     </div>
                 </div>
 
-                {/* Items Table */}
-                <div className="mb-8">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="w-[50%]">Description</TableHead>
-                                <TableHead>Quantity</TableHead>
-                                <TableHead>Rate</TableHead>
-                                <TableHead className="text-right">Amount</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            <TableRow>
-                                <TableCell>Rent</TableCell>
-                                <TableCell>{withdrawnBags} bags</TableCell>
-                                <TableCell>{formatCurrency(rentBreakdown.rentPerBag)} / bag</TableCell>
-                                <TableCell className="text-right">{formatCurrency(finalRent)}</TableCell>
-                            </TableRow>
-                             <TableRow>
-                                <TableCell>Pending Hamali Charges</TableCell>
-                                <TableCell> - </TableCell>
-                                <TableCell> - </TableCell>
-                                <TableCell className="text-right">{formatCurrency(hamaliPending)}</TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
-                </div>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead className="w-[50%] text-black">Description</TableHead>
+                            <TableHead className="text-black">Quantity</TableHead>
+                            <TableHead className="text-black">Rate</TableHead>
+                            <TableHead className="text-right text-black">Amount</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        <TableRow>
+                            <TableCell>Rent</TableCell>
+                            <TableCell>{withdrawnBags} bags</TableCell>
+                            <TableCell>{formatCurrency(rentBreakdown.rentPerBag)} / bag</TableCell>
+                            <TableCell className="text-right">{formatCurrency(finalRent)}</TableCell>
+                        </TableRow>
+                         <TableRow>
+                            <TableCell>Pending Hamali Charges</TableCell>
+                            <TableCell> - </TableCell>
+                            <TableCell> - </TableCell>
+                            <TableCell className="text-right">{formatCurrency(hamaliPending)}</TableCell>
+                        </TableRow>
+                    </TableBody>
+                </Table>
 
-                 {/* Totals Section */}
-                <div className="flex justify-end mb-8">
-                    <div className="w-full max-w-sm space-y-2 text-sm">
+                <div className="flex justify-end mt-4">
+                    <div className="w-full max-w-xs space-y-1">
                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Subtotal</span>
-                            <span>{formatCurrency(subtotal)}</span>
+                            <span>Subtotal</span>
+                            <span className="font-mono">{formatCurrency(subtotal)}</span>
                         </div>
                         {discount > 0 && (
-                             <div className="flex justify-between text-green-600">
-                                <span className="text-muted-foreground">Discount</span>
-                                <span>- {formatCurrency(discount)}</span>
+                             <div className="flex justify-between">
+                                <span>Discount</span>
+                                <span className="font-mono text-green-600">- {formatCurrency(discount)}</span>
                             </div>
                         )}
-                        <Separator />
-                        <div className="flex justify-between font-bold text-base">
+                        <Separator className="bg-gray-400" />
+                        <div className="flex justify-between font-bold">
                             <span>Total Due</span>
-                            <span>{formatCurrency(totalPayable)}</span>
+                            <span className="font-mono">{formatCurrency(totalPayable)}</span>
                         </div>
                         <div className="flex justify-between">
-                            <span className="text-muted-foreground">Amount Paid Now</span>
-                            <span>{formatCurrency(paidNow)}</span>
+                            <span>Amount Paid</span>
+                            <span className="font-mono">{formatCurrency(paidNow)}</span>
                         </div>
-                        <Separator />
-                        <div className="flex justify-between font-bold text-lg text-destructive">
+                        <Separator className="bg-gray-400" />
+                        <div className="flex justify-between font-bold text-lg">
                             <span>Balance Due</span>
-                            <span>{formatCurrency(balanceDue)}</span>
+                            <span className="font-mono">{formatCurrency(balanceDue)}</span>
                         </div>
                     </div>
                 </div>
 
-                <Separator className="my-8"/>
-
-                {/* Footer */}
-                <div className="text-xs text-muted-foreground">
-                    <h4 className="font-semibold mb-2">Notes & Terms</h4>
-                    {warehouseInfo?.bankDetails && (
-                        <p className="mb-4">
-                            <strong>Bank Details for Payment:</strong><br />
-                            <span className="whitespace-pre-wrap">{warehouseInfo.bankDetails}</span>
-                        </p>
-                    )}
-                    <p>
-                        This bill reflects the final settlement for the withdrawal of goods.
-                    </p>
-                    <p className="mt-4 text-center font-semibold">Thank you for your business!</p>
+                <div className="mt-20 pt-10 flex justify-between text-center">
+                    <div className="w-1/2">
+                        <div className="mt-16 border-t border-gray-400 mx-4 pt-2">Manager Signature</div>
+                    </div>
+                    <div className="w-1/2">
+                        <div className="mt-16 border-t border-gray-400 mx-4 pt-2">Customer Signature</div>
+                    </div>
+                </div>
+                 <div className="text-xs mt-4 pt-4 text-center">
+                    <p>This bill reflects the final settlement for the withdrawal of goods.</p>
+                    <p className="mt-2 font-semibold">Thank you for your business!</p>
                 </div>
             </div>
             <div className="mt-6 flex justify-center print-hide">

@@ -39,14 +39,15 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
 
   useEffect(() => {
     // This effect runs ONLY when the dialog opens to initialize the state.
-    // It does NOT depend on the `record` prop, so it will not re-run and
-    // overwrite user input during re-renders.
     if (isOpen) {
       setBagsPacked(record.bagsPacked?.toString() ?? '');
       setPackingDate(record.packingDate ? format(toDate(record.packingDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'));
-      const additionalHamali = (record.hamaliCharges || []).find(c => c.description.toLowerCase().includes('additional drying'));
-      const initialAdditionalHamali = additionalHamali && record.bagsForDrying > 0 ? (additionalHamali.amount / record.bagsForDrying).toString() : '';
-      setAdditionalHamaliPerBag(initialAdditionalHamali);
+      
+      const additionalHamaliCharge = (record.hamaliCharges || []).find(c => c.description.toLowerCase().includes('additional drying'));
+      const initialAdditionalRate = additionalHamaliCharge && record.bagsForDrying > 0 
+        ? (additionalHamaliCharge.amount / record.bagsForDrying).toString() 
+        : '';
+      setAdditionalHamaliPerBag(initialAdditionalRate);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
@@ -69,14 +70,14 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
     }
     
     // Manual Validation
-    const packedBagsValue = bagsPacked === '' ? 0 : Number(bagsPacked);
+    const packedBagsValue = bagsPacked === '' ? (record.bagsPacked || 0) : Number(bagsPacked);
     if (isNaN(packedBagsValue) || packedBagsValue < 0) {
         toast({ title: 'Invalid Input', description: 'Bags Packed must be a valid non-negative number.', variant: 'destructive'});
         return;
     }
 
-    const additionalHamaliValue = additionalHamaliPerBag === '' ? 0 : Number(additionalHamaliPerBag);
-     if (isNaN(additionalHamaliValue) || additionalHamaliValue < 0) {
+    const additionalHamaliRateValue = additionalHamaliPerBag === '' ? 0 : Number(additionalHamaliPerBag);
+     if (isNaN(additionalHamaliRateValue) || additionalHamaliRateValue < 0) {
         toast({ title: 'Invalid Input', description: 'Additional Hamali must be a valid non-negative number.', variant: 'destructive'});
         return;
     }
@@ -85,43 +86,41 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
       try {
         const finalPackingDate = new Date(packingDate);
         
+        // --- Customer Charges Calculation ---
         const initialCustomerCharges = (record.hamaliCharges || []).filter(
             c => !c.description.toLowerCase().includes('additional drying')
         );
 
         const newCustomerCharges: HamaliCharge[] = [...initialCustomerCharges];
+        const newAdditionalHamaliAmount = additionalHamaliRateValue * record.bagsForDrying;
         
-        let additionalHamaliAmount = 0;
-        
-        if (additionalHamaliValue > 0) {
-            additionalHamaliAmount = additionalHamaliValue * record.bagsForDrying;
+        if (newAdditionalHamaliAmount > 0) {
             newCustomerCharges.push({
                 description: 'Additional Drying Hamali',
-                amount: additionalHamaliAmount,
+                amount: newAdditionalHamaliAmount,
                 date: finalPackingDate,
             });
         }
         
-        const totalDryingHamali = newCustomerCharges.reduce((acc, charge) => acc + (charge.amount || 0), 0);
+        const newTotalDryingHamali = newCustomerCharges.reduce((acc, charge) => acc + (charge.amount || 0), 0);
         
-        const initialUnloadingHamaliPortion = (record.hamaliCharges || []).find(c => c.description.toLowerCase().includes('unloading'))?.amount || 0;
+        // --- Worker Payable Calculation (Corrected) ---
+        const previousAdditionalHamali = (record.hamaliCharges || []).find(c => c.description.toLowerCase().includes('additional drying'))?.amount || 0;
         
-        const initialDay1CustomerHamali = (record.hamaliCharges || []).find(c => c.description.toLowerCase().includes('drying day 1'))?.amount || 0;
-        
-        const initialWorkerHamali = (record.totalDryingWorkerHamali || 0) > initialUnloadingHamaliPortion 
-            ? (record.totalDryingWorkerHamali || 0) - initialUnloadingHamaliPortion
-            : initialDay1CustomerHamali;
-        
-        const totalDryingWorkerHamali = initialUnloadingHamaliPortion + initialWorkerHamali + additionalHamaliAmount;
+        // If totalDryingWorkerHamali is missing, fall back to the customer's total hamali as a best guess for old records.
+        const baseWorkerHamali = (record.totalDryingWorkerHamali || record.totalDryingHamali) - previousAdditionalHamali;
 
+        const newTotalDryingWorkerHamali = baseWorkerHamali + newAdditionalHamaliAmount;
+
+        // --- Update Firestore ---
         const recordRef = doc(firestore, 'dryingRecords', record.id);
         await updateDoc(recordRef, cleanForFirestore({
           bagsPacked: packedBagsValue,
           packingDate: finalPackingDate,
           status: 'Packing',
           hamaliCharges: newCustomerCharges,
-          totalDryingHamali,
-          totalDryingWorkerHamali,
+          totalDryingHamali: newTotalDryingHamali,
+          totalDryingWorkerHamali: newTotalDryingWorkerHamali,
         }));
 
         toast({ title: 'Success', description: 'Packing & charge information updated.' });
@@ -186,7 +185,7 @@ export function ManageDryingChargesDialog({ record, children }: { record: Drying
 
           <div className="space-y-2">
             <Label htmlFor="additionalHamaliPerBag">Additional Hamali (per bag)</Label>
-            <p className="text-xs text-muted-foreground">For extra drying days.</p>
+            <p className="text-xs text-muted-foreground">For extra drying days. This is added to both customer charge and worker payment.</p>
             <Input 
               id="additionalHamaliPerBag"
               type="number" 

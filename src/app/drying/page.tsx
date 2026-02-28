@@ -1,3 +1,4 @@
+
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
@@ -5,7 +6,7 @@ import { useCollection } from "@/firebase/firestore/use-collection";
 import { collection } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
-import type { Customer, UnloadingRecord } from "@/lib/definitions";
+import type { Customer, UnloadingRecord, Lot, StorageRecord } from "@/lib/definitions";
 import { AddCustomerDialog } from "@/components/customers/add-customer-dialog";
 import { InitiateDryingForm } from "@/components/drying/initiate-drying-form";
 import { useMemo } from "react";
@@ -26,6 +27,18 @@ export default function DryingPage() {
   );
   const { data: unloadingRecords, loading: loadingUnloadingRecords } = useCollection<UnloadingRecord>(unloadingRecordsQuery);
 
+  const lotsQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'lots') : null),
+    [firestore]
+  );
+  const { data: lots, loading: loadingLots } = useCollection<Lot>(lotsQuery);
+  
+  const storageRecordsQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'storageRecords') : null),
+    [firestore]
+  );
+  const { data: storageRecords, loading: loadingStorageRecords } = useCollection<StorageRecord>(storageRecordsQuery);
+
 
   const availableForDryingRecords = useMemo(() => {
     if (!unloadingRecords) return [];
@@ -33,17 +46,31 @@ export default function DryingPage() {
     // Sort by unloading date, oldest first, to show the earliest records at the top of the list.
     return filtered.sort((a, b) => toDate(a.unloadingDate).getTime() - toDate(b.unloadingDate).getTime());
   }, [unloadingRecords]);
+  
+  const nextSerialNumber = useMemo(() => {
+    if (!storageRecords || storageRecords.length === 0) {
+      return '1';
+    }
+    const maxId = storageRecords.reduce((max, record) => {
+      let idNum = parseInt(record.id, 10);
+      if (isNaN(idNum)) {
+        idNum = parseInt(record.id.replace(/[^0-9]/g, ''), 10);
+      }
+      return isNaN(idNum) ? max : Math.max(max, idNum);
+    }, 0);
+    return `${maxId + 1}`;
+  }, [storageRecords]);
 
 
-  if (loadingCustomers || loadingUnloadingRecords) {
+  if (loadingCustomers || loadingUnloadingRecords || loadingLots || loadingStorageRecords) {
     return <AppLayout><div>Loading...</div></AppLayout>;
   }
 
   return (
     <AppLayout>
       <PageHeader
-        title="Finalize Drying"
-        description="Select an item from the unloading queue to finalize the drying process."
+        title="Create Storage from Plot"
+        description="Select an item from the unloading queue to finalize and move to storage."
       >
         <AddCustomerDialog />
       </PageHeader>
@@ -53,6 +80,9 @@ export default function DryingPage() {
             <InitiateDryingForm 
                 customers={customers || []} 
                 unloadingRecords={availableForDryingRecords || []}
+                lots={lots || []}
+                storageRecords={storageRecords || []}
+                nextSerialNumber={nextSerialNumber}
             />
         </div>
       </div>

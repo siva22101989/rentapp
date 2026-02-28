@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useTransition, useState, useEffect, useMemo } from 'react';
@@ -11,13 +12,15 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
-import type { Customer, UnloadingRecord, HamaliCharge } from '@/lib/definitions';
-import { addDoc, collection, doc, updateDoc, increment } from 'firebase/firestore';
+import type { Customer, UnloadingRecord, Lot, StorageRecord } from '@/lib/definitions';
+import { doc, updateDoc, increment, setDoc } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { formatCurrency, cleanForFirestore, toDate } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 import { Combobox } from '../ui/combobox';
 import { differenceInDays, format } from 'date-fns';
+import { useRouter } from 'next/navigation';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 const InitiateDryingSchema = z.object({
   unloadingRecordId: z.string().min(1, 'An unloading bill is required.'),
@@ -28,7 +31,8 @@ const InitiateDryingSchema = z.object({
   pavHamaliPerBag: z.coerce.number().nonnegative('Pav hamali rate must be non-negative.').optional(),
   cuppaHamaliPerBag: z.coerce.number().nonnegative('Cuppa hamali rate must be non-negative.').optional(),
   bagsForDrying: z.coerce.number().int().positive('Number of bags must be positive.'),
-  bagsPacked: z.coerce.number().int().nonnegative("Bags packed must be a non-negative number."),
+  bagsPacked: z.coerce.number().int().positive("Bags packed must be a positive number."),
+  lotNo: z.string().min(1, 'Storage location (Lot No.) is required.'),
 }).refine(data => new Date(data.dryingEndDate) >= new Date(data.dryingStartDate), {
     message: "End date must be on or after start date.",
     path: ["dryingEndDate"],
@@ -39,12 +43,16 @@ type DryingFormData = z.infer<typeof InitiateDryingSchema>;
 interface InitiateDryingFormProps {
     customers: Customer[];
     unloadingRecords: UnloadingRecord[];
+    lots: Lot[];
+    storageRecords: StorageRecord[];
+    nextSerialNumber: string;
 }
 
-export function InitiateDryingForm({ customers, unloadingRecords }: InitiateDryingFormProps) {
+export function InitiateDryingForm({ customers, unloadingRecords, lots, storageRecords, nextSerialNumber }: InitiateDryingFormProps) {
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
     const firestore = useFirestore();
+    const router = useRouter();
 
     const form = useForm<DryingFormData>({
         resolver: zodResolver(InitiateDryingSchema),
@@ -58,9 +66,20 @@ export function InitiateDryingForm({ customers, unloadingRecords }: InitiateDryi
           cuppaHamaliPerBag: undefined,
           bagsForDrying: undefined,
           bagsPacked: undefined,
+          lotNo: '',
         },
       });
     
+    const lotOccupancy = useMemo(() => {
+        const occupancy: { [lotName: string]: number } = {};
+        storageRecords.forEach(record => {
+            if (record.location && record.bagsStored > 0) {
+                occupancy[record.location] = (occupancy[record.location] || 0) + record.bagsStored;
+            }
+        });
+        return occupancy;
+    }, [storageRecords]);
+
     const unloadingQueueOptions = useMemo(() => {
         const customerMap = new Map(customers.map(c => [c.id, c.name]));
         return unloadingRecords.map(ur => ({
@@ -84,9 +103,6 @@ export function InitiateDryingForm({ customers, unloadingRecords }: InitiateDryi
     const customerDay1HamaliRate = form.watch('customerHamaliPerBag');
     const day1DryingHamali = (bagsForDrying || 0) * (customerDay1HamaliRate || 0);
 
-    const workerHamaliPerBag = form.watch('workerHamaliPerBag');
-    const day1DryingWorkerHamali = (bagsForDrying || 0) * (workerHamaliPerBag || 0);
-
     const pavHamaliPerBag = form.watch('pavHamaliPerBag');
     const pavHamali = (bagsForDrying || 0) * (pavHamaliPerBag || 0);
 
@@ -98,7 +114,6 @@ export function InitiateDryingForm({ customers, unloadingRecords }: InitiateDryi
         : 0;
 
     const totalCustomerCharge = proportionalUnloadingHamali + day1DryingHamali + pavHamali + cuppaHamali;
-    const totalHamaliCharge = proportionalUnloadingHamali + day1DryingWorkerHamali + pavHamali + cuppaHamali;
     
     const startDate = form.watch('dryingStartDate');
     const endDate = form.watch('dryingEndDate');
@@ -114,6 +129,18 @@ export function InitiateDryingForm({ customers, unloadingRecords }: InitiateDryi
         } catch (e) { /* ignore parse errors */ }
         return null;
     }, [startDate, endDate]);
+
+    const daysUntilDrying = useMemo(() => {
+        if (!selectedUnloadingRecord || !startDate) return null;
+        try {
+            const unloadDate = toDate(selectedUnloadingRecord.unloadingDate);
+            const dryStartDate = new Date(startDate);
+             if (!isNaN(unloadDate.getTime()) && !isNaN(dryStartDate.getTime()) && dryStartDate >= unloadDate) {
+                return differenceInDays(dryStartDate, unloadDate);
+            }
+        } catch(e) {/* ignore */}
+        return null;
+    }, [selectedUnloadingRecord, startDate]);
 
 
     useEffect(() => {
@@ -149,57 +176,53 @@ export function InitiateDryingForm({ customers, unloadingRecords }: InitiateDryi
 
         startTransition(async () => {
             try {
-                const dryingStartDate = new Date(data.dryingStartDate);
-                const dryingEndDate = new Date(data.dryingEndDate);
+                // Prepare new storage record
+                const finalStorageDate = new Date(data.dryingEndDate);
+                const bagsStored = data.bagsPacked;
+
                 const currentProportionalUnloadingHamali = selectedRecordOnSubmit.hamaliPerBag * data.bagsForDrying;
                 const dryingDay1CustomerHamali = data.bagsForDrying * data.customerHamaliPerBag;
-                const dryingDay1WorkerHamali = data.bagsForDrying * data.workerHamaliPerBag;
-                
                 const pavHamaliAmount = data.bagsForDrying * (data.pavHamaliPerBag || 0);
                 const cuppaHamaliAmount = data.bagsForDrying * (data.cuppaHamaliPerBag || 0);
+                const totalHamali = currentProportionalUnloadingHamali + dryingDay1CustomerHamali + pavHamaliAmount + cuppaHamaliAmount;
 
-                const hamaliCharges: Partial<HamaliCharge>[] = [
-                  { description: "Unloading Hamali", amount: currentProportionalUnloadingHamali, date: selectedRecordOnSubmit.unloadingDate },
-                  { description: "Drying Day 1", amount: dryingDay1CustomerHamali, date: dryingStartDate },
-                ];
-                
-                if (pavHamaliAmount > 0) {
-                    hamaliCharges.push({ description: "Pav Hamali", amount: pavHamaliAmount, date: dryingStartDate });
-                }
-                if (cuppaHamaliAmount > 0) {
-                    hamaliCharges.push({ description: "Cuppa Hamali", amount: cuppaHamaliAmount, date: dryingStartDate });
-                }
-
-                const totalDryingHamali = hamaliCharges.reduce((acc, charge) => acc + (charge.amount || 0), 0);
-                
-                const totalDryingWorkerHamali = currentProportionalUnloadingHamali + dryingDay1WorkerHamali + pavHamaliAmount + cuppaHamaliAmount;
-                
-                const newRecord = {
-                    unloadingRecordId: data.unloadingRecordId,
+                const newStorageRecord: Omit<StorageRecord, 'id'> & { id: string } = {
+                    id: nextSerialNumber,
                     customerId: selectedRecordOnSubmit.customerId,
                     commodityDescription: selectedRecordOnSubmit.commodityDescription,
-                    bagsForDrying: data.bagsForDrying,
-                    dryingStartDate: dryingStartDate,
-                    status: 'Packing' as const,
-                    hamaliCharges,
-                    totalDryingHamali,
-                    totalDryingWorkerHamali,
-                    packingDate: dryingEndDate,
-                    billingDate: null,
-                    bagsPacked: data.bagsPacked,
+                    location: data.lotNo,
+                    bagsIn: bagsStored,
+                    bagsOut: 0,
+                    bagsStored: bagsStored,
+                    storageStartDate: finalStorageDate,
+                    storageEndDate: null,
+                    billingCycle: '6-Month Initial' as const,
+                    payments: [],
+                    hamaliPayable: totalHamali,
+                    totalRentBilled: 0,
+                    lorryTractorNo: selectedRecordOnSubmit?.lorryTractorNo || '',
+                    weight: 0,
+                    inflowType: 'Plot' as const,
+                    dryingRecordId: '',
+                    khataAmount: 0,
                 };
-                await addDoc(collection(firestore, 'dryingRecords'), cleanForFirestore(newRecord));
 
+                const newStorageRecordRef = doc(firestore, 'storageRecords', nextSerialNumber);
+                await setDoc(newStorageRecordRef, cleanForFirestore(newStorageRecord));
+
+                // Update the original unloading record
                 const unloadingRecordRef = doc(firestore, 'unloadingRecords', data.unloadingRecordId);
                 await updateDoc(unloadingRecordRef, { 
                     bagsSentToDrying: increment(data.bagsForDrying)
                 });
 
-                toast({ title: 'Success', description: 'Drying process finalized.' });
+                toast({ title: 'Success', description: `Storage record ${nextSerialNumber} created from plot.` });
                 form.reset();
+                router.push(`/inflow/receipt/${nextSerialNumber}`);
+                
             } catch (error) {
                 console.error(error);
-                toast({ title: 'Error', description: 'Failed to finalize drying process.', variant: 'destructive' });
+                toast({ title: 'Error', description: 'Failed to create storage record.', variant: 'destructive' });
             }
         });
     };
@@ -209,8 +232,11 @@ export function InitiateDryingForm({ customers, unloadingRecords }: InitiateDryi
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
                 <CardHeader>
-                    <CardTitle>Finalize Drying Process</CardTitle>
-                    <CardDescription>Select an item from the unloading queue to begin.</CardDescription>
+                    <CardTitle>Finalize Drying & Create Storage Record</CardTitle>
+                    <CardDescription>
+                        Select an item from the unloading queue. This will create a new storage record.
+                        <br/>Next Serial No: <span className="font-bold text-primary">{nextSerialNumber}</span>
+                    </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <FormField
@@ -265,20 +291,9 @@ export function InitiateDryingForm({ customers, unloadingRecords }: InitiateDryi
                         name="bagsForDrying"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Bags for Drying</FormLabel>
+                                <FormLabel>Bags Sent for Drying (for Hamali calculation)</FormLabel>
                                 <FormControl><Input type="number" placeholder="0" {...field} value={field.value ?? ''} disabled={!selectedUnloadingRecord} /></FormControl>
                                 {selectedUnloadingRecord && <FormDescription>Remaining on Bill: {bagsRemainingOnRecord} bags</FormDescription>}
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="bagsPacked"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Bags Packed (Final)</FormLabel>
-                                <FormControl><Input type="number" placeholder="0" {...field} value={field.value ?? ''} disabled={!selectedUnloadingRecord}/></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -300,25 +315,74 @@ export function InitiateDryingForm({ customers, unloadingRecords }: InitiateDryi
                             name="dryingEndDate"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Drying End Date</FormLabel>
+                                    <FormLabel>Drying End Date (Storage Date)</FormLabel>
                                     <FormControl><Input type="date" {...field} disabled={!selectedUnloadingRecord} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
                         />
                     </div>
-                     {dryingDays !== null && (
-                        <div className="text-sm text-center text-muted-foreground p-2 bg-secondary rounded-md">
-                           Total Drying Days: <span className="font-bold text-foreground">{dryingDays}</span>
+                     {(dryingDays !== null || daysUntilDrying !== null) && (
+                        <div className="text-sm text-center text-muted-foreground p-2 bg-secondary rounded-md grid grid-cols-2 divide-x divide-border">
+                           <div className="flex flex-col items-center">
+                                <span className="font-bold text-foreground">{daysUntilDrying ?? '-'} days</span>
+                                <span className="text-xs">Wait before drying</span>
+                           </div>
+                           <div className="flex flex-col items-center">
+                               <span className="font-bold text-foreground">{dryingDays ?? '-'}</span>
+                               <span className="text-xs">Total drying days</span>
+                           </div>
                         </div>
                     )}
+                     <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                            control={form.control}
+                            name="bagsPacked"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Bags Packed (Final)</FormLabel>
+                                    <FormControl><Input type="number" placeholder="0" {...field} value={field.value ?? ''} disabled={!selectedUnloadingRecord}/></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="lotNo"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Storage Location (Lot No.)</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!selectedUnloadingRecord}>
+                                    <FormControl>
+                                        <SelectTrigger><SelectValue placeholder="Select a lot" /></SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        {lots
+                                            ?.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
+                                            .map(lot => {
+                                                const occupied = lotOccupancy[lot.name] || 0;
+                                                const capacity = lot.capacity ? ` / ${lot.capacity}` : '';
+                                                return (
+                                                    <SelectItem key={lot.id} value={lot.name}>
+                                                        {lot.name} ({occupied}{capacity} bags)
+                                                    </SelectItem>
+                                                )
+                                        })}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                    </div>
+
                     <div className="grid grid-cols-2 gap-4">
                         <FormField
                             control={form.control}
                             name="customerHamaliPerBag"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Customer Drying Rate</FormLabel>
+                                    <FormLabel>Drying Hamali Rate</FormLabel>
                                     <FormDescription className="text-xs h-8">Charge per bag (Day 1).</FormDescription>
                                     <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} disabled={!selectedUnloadingRecord} /></FormControl>
                                     <FormMessage />
@@ -366,7 +430,7 @@ export function InitiateDryingForm({ customers, unloadingRecords }: InitiateDryi
                     <Separator />
 
                     <div className="space-y-2">
-                        <h4 className="font-medium">Cost Summary for this Drying Process</h4>
+                        <h4 className="font-medium">Total Hamali to be Added to Storage Record</h4>
                         <div className="flex justify-between items-center text-sm">
                             <span className="text-muted-foreground">Pro-rated Unloading Hamali</span>
                             <span className="font-mono">{formatCurrency(proportionalUnloadingHamali)}</span>
@@ -385,21 +449,17 @@ export function InitiateDryingForm({ customers, unloadingRecords }: InitiateDryi
                         </div>
                         <Separator />
                         <div className="flex justify-between items-center font-semibold">
-                            <span>Total Customer Charge</span>
+                            <span>Total Hamali Payable</span>
                             <span className="font-mono">{formatCurrency(totalCustomerCharge)}</span>
-                        </div>
-                        <div className="flex justify-between items-center font-semibold pt-2">
-                            <span>Total Hamali Charge</span>
-                            <span className="font-mono">{formatCurrency(totalHamaliCharge)}</span>
                         </div>
                     </div>
                 </CardContent>
                 <CardFooter>
                     <Button type="submit" disabled={isPending || !selectedUnloadingRecord} className="w-full">
                         {isPending ? (
-                            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Finalizing Process...</>
+                            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating Record...</>
                         ) : (
-                            'Finalize Drying Process'
+                            'Create Storage Record'
                         )}
                     </Button>
                 </CardFooter>

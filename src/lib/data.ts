@@ -37,6 +37,10 @@ export const updateStorageRecord = async (db: Firestore, id: string, data: Parti
     await updateDoc(recordRef, cleanForFirestore(data));
 };
 
+export const deleteStorageRecord = async (db: Firestore, id: string): Promise<void> => {
+    await deleteDoc(doc(db, 'storageRecords', id));
+};
+
 export const saveCommodity = async (db: Firestore, commodity: Omit<Commodity, 'id'>): Promise<string> => {
   const docRef = await addDoc(collection(db, 'commodities'), cleanForFirestore(commodity));
   return docRef.id;

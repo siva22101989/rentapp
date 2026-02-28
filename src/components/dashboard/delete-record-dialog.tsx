@@ -1,10 +1,9 @@
 
 'use client';
 
-import { useActionState, useEffect, useState, useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -13,10 +12,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { deleteStorageRecordAction, type FormState } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '../ui/button';
 import { Loader2 } from 'lucide-react';
+import { useFirestore } from '@/firebase';
+import { deleteStorageRecord } from '@/lib/data';
 
 export function DeleteRecordDialog({
   recordId,
@@ -28,19 +28,25 @@ export function DeleteRecordDialog({
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const firestore = useFirestore();
 
   const handleDelete = async () => {
+    if (!firestore) {
+      toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
+      return;
+    }
     startTransition(async () => {
-      const result = await deleteStorageRecordAction(recordId);
-      if (result.success) {
-        toast({ title: 'Success', description: result.message });
+      try {
+        await deleteStorageRecord(firestore, recordId);
+        toast({ title: 'Success', description: 'Storage record deleted successfully.' });
         setIsOpen(false);
-      } else {
+      } catch (error) {
         toast({
           title: 'Error',
-          description: result.message,
+          description: 'Failed to delete storage record.',
           variant: 'destructive',
         });
+        console.error("Failed to delete record:", error);
       }
     });
   };

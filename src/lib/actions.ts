@@ -121,10 +121,3 @@ export async function addExpense(prevState: FormState, formData: FormData) {
     revalidatePath('/expenses');
     return { message: 'Expense will be added client-side.', success: true };
 }
-
-export async function deleteStorageRecordAction(recordId: string): Promise<FormState> {
-  // This is now a placeholder. The client will handle the delete.
-  revalidatePath('/storage');
-  revalidatePath('/reports');
-  return { message: 'Record will be deleted on the client.', success: true };
-}

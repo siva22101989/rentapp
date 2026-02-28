@@ -31,6 +31,16 @@ const UnloadingRecordSchema = z.object({
 
 type UnloadingFormData = z.infer<typeof UnloadingRecordSchema>;
 
+const getLocalDateTimeForInput = () => {
+    const now = new Date();
+    // Adjust for timezone offset to get local time in ISO-like format
+    const timezoneOffsetInMs = now.getTimezoneOffset() * 60000;
+    const localDate = new Date(now.getTime() - timezoneOffsetInMs);
+    // Return formatted string for datetime-local input
+    return localDate.toISOString().slice(0, 16);
+};
+
+
 export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: { customers: Customer[], commodities: Commodity[], nextBillNo: string }) {
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
@@ -43,7 +53,7 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
           customerId: '',
           commodityDescription: '',
           lorryTractorNo: '',
-          unloadingDate: new Date().toISOString().split('T')[0],
+          unloadingDate: getLocalDateTimeForInput(),
           bagsUnloaded: '',
           hamaliPerBag: '',
           billNo: nextBillNo,
@@ -52,7 +62,7 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
             customerId: '',
             commodityDescription: '',
             lorryTractorNo: '',
-            unloadingDate: new Date().toISOString().split('T')[0],
+            unloadingDate: getLocalDateTimeForInput(),
             bagsUnloaded: '',
             hamaliPerBag: '',
             billNo: nextBillNo,
@@ -171,8 +181,8 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
                         name="unloadingDate"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Unloading Date</FormLabel>
-                                <FormControl><Input type="date" {...field} /></FormControl>
+                                <FormLabel>Unloading Date & Time</FormLabel>
+                                <FormControl><Input type="datetime-local" {...field} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}

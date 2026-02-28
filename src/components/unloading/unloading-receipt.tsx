@@ -19,7 +19,7 @@ export function UnloadingReceipt({ record, customer, warehouseInfo }: { record: 
     useEffect(() => {
         if (record && record.unloadingDate) {
             const unloadingDate = toDate(record.unloadingDate);
-            setFormattedDate(format(unloadingDate, 'dd/MM/yy'));
+            setFormattedDate(format(unloadingDate, 'dd/MM/yy, hh:mm a'));
         }
     }, [record]);
 

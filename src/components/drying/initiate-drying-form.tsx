@@ -203,8 +203,9 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                     lorryTractorNo: selectedRecordOnSubmit?.lorryTractorNo || '',
                     weight: 0,
                     inflowType: 'Plot' as const,
-                    dryingRecordId: '',
                     khataAmount: 0,
+                    dryingStartDate: new Date(data.dryingStartDate),
+                    dryingEndDate: new Date(data.dryingEndDate),
                 };
 
                 const newStorageRecordRef = doc(firestore, 'storageRecords', nextSerialNumber);

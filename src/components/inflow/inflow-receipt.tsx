@@ -6,16 +6,20 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Separator } from '@/components/ui/separator';
 import type { Customer, StorageRecord, WarehouseInfo } from '@/lib/definitions';
-import { format } from 'date-fns';
+import { format, differenceInDays } from 'date-fns';
 import { Button } from '../ui/button';
 import { Download, Loader2 } from 'lucide-react';
-import { toDate } from '@/lib/utils';
+import { toDate, formatCurrency } from '@/lib/utils';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '../ui/table';
+
 
 export function InflowReceipt({ record, customer, warehouseInfo }: { record: StorageRecord, customer: Customer, warehouseInfo: WarehouseInfo | null }) {
     const receiptRef = useRef<HTMLDivElement>(null);
     const [formattedDate, setFormattedDate] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
     const downloadAttempted = useRef(false);
+    const [dryingDays, setDryingDays] = useState<number | null>(null);
 
     const handleDownloadPdf = useCallback(async () => {
         const element = receiptRef.current;
@@ -59,18 +63,22 @@ export function InflowReceipt({ record, customer, warehouseInfo }: { record: Sto
     }, [isGenerating, record]);
     
     useEffect(() => {
-        // This effect's only job is to set the formatted date string.
         if (record && record.storageStartDate) {
             const startDate = toDate(record.storageStartDate);
             setFormattedDate(format(startDate, 'dd/MM/yy'));
         }
+        if (record?.inflowType === 'Plot' && record.dryingStartDate && record.dryingEndDate) {
+            const start = toDate(record.dryingStartDate);
+            const end = toDate(record.dryingEndDate);
+            if (end >= start) {
+                setDryingDays(differenceInDays(end, start) + 1);
+            }
+        }
     }, [record]);
 
     useEffect(() => {
-        // This effect's only job is to trigger the download ONCE after the date has been set.
         if (formattedDate && !downloadAttempted.current) {
             downloadAttempted.current = true;
-            // Delay slightly to ensure the DOM has updated with the date
             setTimeout(() => {
                 handleDownloadPdf();
             }, 100);
@@ -86,6 +94,92 @@ export function InflowReceipt({ record, customer, warehouseInfo }: { record: Sto
         );
     }
     
+    const downloadButton = (
+        <div className="mt-6 flex justify-center print-hide">
+            <Button onClick={handleDownloadPdf} disabled={isGenerating}>
+                {isGenerating ? (
+                    <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Downloading...
+                    </>
+                ) : (
+                    <>
+                        <Download className="mr-2 h-4 w-4" />
+                        Download PDF
+                    </>
+                )}
+            </Button>
+        </div>
+    );
+
+    if (record.inflowType === 'Plot') {
+        return (
+             <div className="w-full max-w-2xl mx-auto bg-background p-4 sm:p-6">
+                <div ref={receiptRef} className="printable-area bg-white p-6 border border-primary">
+                    <Card className="w-full shadow-none border-0">
+                        <CardHeader className="text-center">
+                            <CardTitle className="text-2xl">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</CardTitle>
+                             {warehouseInfo?.ownerName && <p className="text-sm text-muted-foreground">Prop: {warehouseInfo.ownerName}</p>}
+                            <p className='text-sm text-muted-foreground'>{warehouseInfo?.phone || 'MOBILE NO 9160606633'}</p>
+                            <CardDescription>Inflow Bill (from Plot)</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                    <h3 className="font-semibold mb-2">Customer Details</h3>
+                                    <p>{customer.name}</p>
+                                    {customer.fatherName && <p>S/o {customer.fatherName}</p>}
+                                    <p>{customer.village || customer.address}</p>
+                                    <p>Phone: {customer.phone}</p>
+                                </div>
+                                <div>
+                                    <h3 className="font-semibold mb-2">Billing Details</h3>
+                                    <p><span className="font-medium">Serial No:</span> {record.id}</p>
+                                    <p><span className="font-medium">Storage Date:</span> {formattedDate}</p>
+                                    <p><span className="font-medium">Commodity:</span> {record.commodityDescription}</p>
+                                    {dryingDays !== null && <p><span className="font-medium">Total Drying Days:</span> {dryingDays}</p>}
+                                </div>
+                            </div>
+                            <Separator />
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Description</TableHead>
+                                        <TableHead className="text-center">Bags</TableHead>
+                                        <TableHead className="text-right">Amount</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    <TableRow>
+                                        <TableCell>Total Hamali Charges (Unloading + Drying)</TableCell>
+                                        <TableCell className="text-center">{record.bagsIn}</TableCell>
+                                        <TableCell className="text-right font-mono">{formatCurrency(record.hamaliPayable)}</TableCell>
+                                    </TableRow>
+                                </TableBody>
+                                <TableFooter>
+                                    <TableRow>
+                                        <TableCell colSpan={2} className="text-right font-bold">Total Payable</TableCell>
+                                        <TableCell className="text-right font-bold font-mono">{formatCurrency(record.hamaliPayable)}</TableCell>
+                                    </TableRow>
+                                </TableFooter>
+                            </Table>
+                             <div className="mt-20 pt-10 flex justify-between text-center text-sm">
+                                <div className="w-1/2">
+                                    <div className="border-t border-gray-400 mx-4 pt-2">Manager Signature</div>
+                                </div>
+                                <div className="w-1/2">
+                                    <div className="border-t border-gray-400 mx-4 pt-2">Customer Signature</div>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+                {downloadButton}
+            </div>
+        );
+    }
+
+    // Original Godown Receipt for Direct inflow
     return (
         <div className="w-full max-w-2xl mx-auto bg-background p-4 sm:p-6">
             <div ref={receiptRef} className="printable-area bg-white p-6 border-2 border-blue-800 font-sans text-sm" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
@@ -156,21 +250,7 @@ export function InflowReceipt({ record, customer, warehouseInfo }: { record: Sto
                     </div>
                 </div>
             </div>
-            <div className="mt-6 flex justify-center print-hide">
-                <Button onClick={handleDownloadPdf} disabled={isGenerating}>
-                    {isGenerating ? (
-                        <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Downloading...
-                        </>
-                    ) : (
-                        <>
-                            <Download className="mr-2 h-4 w-4" />
-                            Download PDF
-                        </>
-                    )}
-                </Button>
-            </div>
+            {downloadButton}
         </div>
     );
 }

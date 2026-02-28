@@ -303,9 +303,9 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                         name="bagsForDrying"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Bags Sent for Drying (for Hamali calculation)</FormLabel>
+                                <FormLabel>Bags for Drying (Hamali Quantity)</FormLabel>
                                 <FormControl><Input type="number" placeholder="0" {...field} value={field.value ?? ''} disabled={!selectedUnloadingRecord} /></FormControl>
-                                {selectedUnloadingRecord && <FormDescription>Remaining on Bill: {bagsRemainingOnRecord} bags</FormDescription>}
+                                {selectedUnloadingRecord && <FormDescription>Enter the quantity for hamali calculation. Remaining on Bill: {bagsRemainingOnRecord} bags</FormDescription>}
                                 <FormMessage />
                             </FormItem>
                         )}

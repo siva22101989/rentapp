@@ -7,7 +7,7 @@ import { Logo } from './logo';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, LogOut } from 'lucide-react';
 import { useUser } from '@/firebase/auth/use-user';
-import { useAuth } from '@/firebase';
+import { useAuth } from '@/firebase/provider';
 import { Loader2 } from 'lucide-react';
 import {
     DropdownMenu,

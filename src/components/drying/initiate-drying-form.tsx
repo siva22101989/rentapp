@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useTransition, useState, useEffect, useMemo } from 'react';
@@ -38,9 +37,9 @@ const InitiateDryingSchema = z.object({
     message: "End date must be on or after start date.",
     path: ["dryingEndDate"],
 })
-.refine(data => data.bagsPacked <= data.bagsForDrying, {
-    message: "Bags packed cannot be more than the bags sent for drying.",
-    path: ["bagsPacked"],
+.refine(data => data.bagsForDrying <= data.bagsPacked, {
+    message: "Bags sent for drying cannot be more than bags packed.",
+    path: ["bagsForDrying"],
 });
 
 type DryingFormData = z.infer<typeof InitiateDryingSchema>;

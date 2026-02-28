@@ -6,7 +6,7 @@ import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { UserProvider } from '@/firebase/auth/use-user';
 
 export const metadata: Metadata = {
-  title: 'BagBill',
+  title: 'SRI LAKSHMI WAREHOUSE',
   description: 'Warehouse Rent Calculation App',
 };
 

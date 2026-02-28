@@ -56,7 +56,7 @@ export default function DashboardPage() {
     <AppLayout>
       <div className="space-y-8">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight font-headline mb-4">Management Sections</h2>
+          <h2 className="text-xl font-bold tracking-tight font-headline mb-4">Management Sections</h2>
           <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {navItems.map((item) => (
               <NavCard key={item.href} item={item} />

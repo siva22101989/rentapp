@@ -1,4 +1,3 @@
-
 'use client';
 import {
   createContext,
@@ -9,32 +8,23 @@ import {
 import { type FirebaseApp } from 'firebase/app';
 import { type Auth }from 'firebase/auth';
 import { type Firestore } from 'firebase/firestore';
-import { auth as authInstance, firestore as firestoreInstance, firebaseApp as firebaseAppInstance } from '.';
+import { auth, firestore, firebaseApp } from '.';
 
 export type FirebaseContextValue = {
-  auth: Auth | null;
-  firestore: Firestore | null;
-  firebaseApp: FirebaseApp | null;
+  auth: Auth;
+  firestore: Firestore;
+  firebaseApp: FirebaseApp;
 };
 
 const FirebaseContext = createContext<FirebaseContextValue>({
-    auth: authInstance,
-    firestore: firestoreInstance,
-    firebaseApp: firebaseAppInstance,
+    auth,
+    firestore,
+    firebaseApp,
 });
-
-type FirebaseProviderProps = {
-  children: ReactNode;
-  value: {
-    firebaseApp: FirebaseApp;
-    auth: Auth;
-    firestore: Firestore;
-  };
-};
 
 export function FirebaseProvider({ children }: { children: ReactNode }) {
   return (
-    <FirebaseContext.Provider value={{ auth: authInstance, firestore: firestoreInstance, firebaseApp: firebaseAppInstance }}>
+    <FirebaseContext.Provider value={{ auth, firestore, firebaseApp }}>
       {children}
     </FirebaseContext.Provider>
   );

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useTransition, useState, useEffect, useMemo } from 'react';
@@ -201,6 +202,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                     commodityDescription: selectedRecordOnSubmit.commodityDescription,
                     location: data.lotNo,
                     bagsIn: bagsStored,
+                    bagsForDrying: data.bagsForDrying,
                     bagsOut: 0,
                     bagsStored: bagsStored,
                     storageStartDate: finalStorageDate,

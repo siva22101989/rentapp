@@ -1,3 +1,4 @@
+
 import type { Timestamp } from 'firebase/firestore';
 
 export type Customer = {
@@ -44,6 +45,7 @@ export type StorageRecord = {
   bagsIn: number;
   bagsOut: number;
   bagsStored: number;
+  bagsForDrying?: number;
   storageStartDate: Date | Timestamp;
   storageEndDate: Date | Timestamp | null;
   billingCycle: '6-Month Initial' | '1-Year Rollover' | '1-Year Renewal' | 'Completed';

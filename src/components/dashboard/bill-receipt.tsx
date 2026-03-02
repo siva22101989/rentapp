@@ -23,10 +23,10 @@ export const BillReceipt = React.forwardRef<HTMLDivElement, BillReceiptProps>(
     const balanceDue = totalBilled - totalPaid;
 
     return (
-        <div ref={ref} className="printable-area bg-white p-6 border-2 border-blue-800 font-sans text-sm" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-            <div className="text-center mb-4">
+        <div ref={ref} className="printable-area bg-white p-4 border-2 border-blue-800 font-sans text-xs" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+            <div className="text-center mb-2">
                 <div className="text-xs">Cell: {warehouseInfo?.phone || '9703503423, 9160606633'}</div>
-                <h1 className="text-2xl font-bold text-blue-900">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</h1>
+                <h1 className="text-xl font-bold text-blue-900">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</h1>
                 {warehouseInfo?.ownerName && <p className="text-xs">Prop: {warehouseInfo.ownerName}</p>}
                 <p className="text-xs">{warehouseInfo?.addressLine1 || 'Survey No. 165,237/2, Owk - Koilakuntla Road, OWK - 518 122,'}</p>
                 <p className="text-xs">{warehouseInfo?.addressLine2 || 'Owk (M), Kurnool (Dt.), A.P.'}</p>
@@ -34,12 +34,12 @@ export const BillReceipt = React.forwardRef<HTMLDivElement, BillReceiptProps>(
 
             <h2 className="font-bold underline text-center">ACCOUNT STATEMENT</h2>
             
-            <div className="flex justify-between items-baseline my-4">
+            <div className="flex justify-between items-baseline my-2">
                 <div><span className="font-bold">Serial No.</span> {record.id}</div>
                 <div><span className="font-bold">Date:</span> {formattedBillDate}</div>
             </div>
 
-            <div className="space-y-2 mb-4">
+            <div className="space-y-1 mb-2">
                 <div className="flex"><span className="w-1/3 font-bold">CUSTOMER</span><span>: {customer.name}</span></div>
                 {customer.fatherName && <div className="flex"><span className="w-1/3 font-bold">FATHER'S NAME</span><span>: {customer.fatherName}</span></div>}
                 <div className="flex"><span className="w-1/3 font-bold">VILLAGE</span><span>: {customer.village || 'N/A'}</span></div>
@@ -88,32 +88,32 @@ export const BillReceipt = React.forwardRef<HTMLDivElement, BillReceiptProps>(
                 </TableFooter>
             </Table>
 
-            <div className="flex justify-end mt-4">
+            <div className="flex justify-end mt-2">
                 <div className="w-full max-w-xs space-y-1">
                     <div className="flex justify-between">
                         <span>Amount Paid</span>
                         <span className="font-mono">{formatCurrency(totalPaid)}</span>
                     </div>
                     <Separator className="bg-gray-400" />
-                    <div className="flex justify-between font-bold text-base">
+                    <div className="flex justify-between font-bold text-sm">
                         <span>Balance Due</span>
                         <span className={`font-mono ${balanceDue > 0 ? 'text-destructive' : ''}`}>{formatCurrency(balanceDue)}</span>
                     </div>
                 </div>
             </div>
 
-            <div className="mt-20 pt-10 flex justify-between text-center">
+            <div className="mt-16 pt-8 flex justify-between text-center">
                 <div className="w-1/2">
-                    <div className="mt-16 border-t border-gray-400 mx-4 pt-2">Manager Signature</div>
+                    <div className="mt-12 border-t border-gray-400 mx-4 pt-1">Manager Signature</div>
                 </div>
                 <div className="w-1/2">
-                     <div className="mt-16 border-t border-gray-400 mx-4 pt-2">Customer Signature</div>
+                     <div className="mt-12 border-t border-gray-400 mx-4 pt-1">Customer Signature</div>
                 </div>
             </div>
 
-             <div className="text-xs text-muted-foreground space-y-2 pt-6 mt-4">
+             <div className="text-xs text-muted-foreground space-y-1 pt-4 mt-2">
                 {warehouseInfo?.bankDetails && (
-                    <p className="mb-4">
+                    <p className="mb-2">
                         <strong>Bank Details for Payment:</strong><br />
                         <span className="whitespace-pre-wrap">{warehouseInfo.bankDetails}</span>
                     </p>

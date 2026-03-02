@@ -104,10 +104,10 @@ export function InflowReceipt({ record, customer, warehouseInfo }: { record: Sto
     if (record.inflowType === 'Plot') {
         return (
              <div className="w-full max-w-2xl mx-auto bg-background p-4 sm:p-6">
-                <div ref={receiptRef} className="printable-area bg-white p-6 border-2 border-blue-800 font-sans text-sm" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-                    <div className="text-center mb-4">
+                <div ref={receiptRef} className="printable-area bg-white p-4 border-2 border-blue-800 font-sans text-xs" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                    <div className="text-center mb-2">
                         <div className="text-xs">Cell: {warehouseInfo?.phone || '9703503423, 9160606633'}</div>
-                        <h1 className="text-2xl font-bold text-blue-900">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</h1>
+                        <h1 className="text-xl font-bold text-blue-900">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</h1>
                         {warehouseInfo?.ownerName && <p className="text-xs">Prop: {warehouseInfo.ownerName}</p>}
                         <p className="text-xs">{warehouseInfo?.addressLine1 || 'Survey No. 165,237/2, Owk - Koilakuntla Road, OWK - 518 122,'}</p>
                         <p className="text-xs">{warehouseInfo?.addressLine2 || 'Owk (M), Kurnool (Dt.), A.P.'}</p>
@@ -115,12 +115,12 @@ export function InflowReceipt({ record, customer, warehouseInfo }: { record: Sto
 
                     <h2 className="font-bold underline text-center">INFLOW BILL (FROM PLOT)</h2>
                     
-                    <div className="flex justify-between items-baseline my-4">
+                    <div className="flex justify-between items-baseline my-2">
                         <div><span className="font-bold">Serial No.</span> {record.id}</div>
                         <div><span className="font-bold">Date:</span> {formattedDate}</div>
                     </div>
 
-                    <div className="space-y-2 mb-4">
+                    <div className="space-y-1 mb-2">
                         <div className="flex"><span className="w-1/3 font-bold">CUSTOMER</span><span>: {customer.name}</span></div>
                         {customer.fatherName && <div className="flex"><span className="w-1/3 font-bold">FATHER'S NAME</span><span>: {customer.fatherName}</span></div>}
                         <div className="flex"><span className="w-1/3 font-bold">VILLAGE</span><span>: {customer.village || 'N/A'}</span></div>
@@ -129,8 +129,8 @@ export function InflowReceipt({ record, customer, warehouseInfo }: { record: Sto
                         <div className="flex"><span className="w-1/3 font-bold">LOT No.</span><span>: {record.location}</span></div>
                     </div>
 
-                    <div className="mb-4 p-4 bg-gray-100 rounded-lg text-black">
-                        <h3 className="text-xs font-bold mb-2">STOCK SUMMARY</h3>
+                    <div className="mb-2 p-2 bg-gray-100 rounded-lg text-black">
+                        <h3 className="text-xs font-bold mb-1">STOCK SUMMARY</h3>
                         <div className="grid grid-cols-2 gap-4 text-center">
                             <div>
                                 <p className="text-xs">Bags for Plot</p>
@@ -177,12 +177,12 @@ export function InflowReceipt({ record, customer, warehouseInfo }: { record: Sto
                     </Table>
 
 
-                     <div className="mt-20 pt-10 flex justify-between text-center">
+                     <div className="mt-16 pt-8 flex justify-between text-center">
                         <div className="w-1/2">
-                            <div className="mt-16 border-t border-gray-400 mx-4 pt-2">Manager Signature</div>
+                            <div className="mt-12 border-t border-gray-400 mx-4 pt-1">Manager Signature</div>
                         </div>
                         <div className="w-1/2">
-                            <div className="mt-16 border-t border-gray-400 mx-4 pt-2">Customer Signature</div>
+                            <div className="mt-12 border-t border-gray-400 mx-4 pt-1">Customer Signature</div>
                         </div>
                     </div>
                 </div>
@@ -194,25 +194,25 @@ export function InflowReceipt({ record, customer, warehouseInfo }: { record: Sto
     // Original Godown Receipt for Direct inflow
     return (
         <div className="w-full max-w-2xl mx-auto bg-background p-4 sm:p-6">
-            <div ref={receiptRef} className="printable-area bg-white p-6 border-2 border-blue-800 font-sans text-sm" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-                <div className="text-center mb-4">
+            <div ref={receiptRef} className="printable-area bg-white p-4 border-2 border-blue-800 font-sans text-xs" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                <div className="text-center mb-2">
                     <div className="text-xs">Cell: {warehouseInfo?.phone || '9703503423, 9160606633'}</div>
-                    <h1 className="text-2xl font-bold text-blue-900">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</h1>
+                    <h1 className="text-xl font-bold text-blue-900">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</h1>
                     {warehouseInfo?.ownerName && <p className="text-xs">Prop: {warehouseInfo.ownerName}</p>}
                     <p className="text-xs">{warehouseInfo?.addressLine1 || 'Survey No. 165,237/2, Owk - Koilakuntla Road, OWK - 518 122,'}</p>
                     <p className="text-xs">{warehouseInfo?.addressLine2 || 'Owk (M), Kurnool (Dt.), A.P.'}</p>
                 </div>
                 
-                <div className="flex justify-between items-center mb-2">
+                <div className="flex justify-between items-center mb-1">
                     <h2 className="font-bold underline">GODOWN RECEIPT</h2>
                 </div>
 
-                <div className="flex justify-between items-baseline mb-4">
+                <div className="flex justify-between items-baseline my-2">
                     <div><span className="font-bold">Serial No.</span> {record.id}</div>
                     <div><span className="font-bold">Date:</span> {formattedDate}</div>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-1">
                     <div className="flex">
                         <span className="w-1/3 font-bold">LORRY / TRACTOR No.</span>
                         <span>: {record.lorryTractorNo || 'N/A'}</span>
@@ -252,13 +252,13 @@ export function InflowReceipt({ record, customer, warehouseInfo }: { record: Sto
                     </div>
                 </div>
 
-                <div className="mt-20 flex justify-between text-center">
+                <div className="mt-16 flex justify-between text-center">
                     <div className="w-1/2">
                         <div className="font-bold">STOCK RECEIVED</div>
-                         <div className="mt-12 border-t border-gray-400 mx-4">GODOWN INCHARGE SIGNATURE</div>
+                         <div className="mt-12 border-t border-gray-400 mx-4 pt-1">GODOWN INCHARGE SIGNATURE</div>
                     </div>
                     <div className="w-1/2">
-                         <div className="mt-16 border-t border-gray-400 mx-4">FARMER / AGENT SIGNATURE</div>
+                         <div className="mt-16 border-t border-gray-400 mx-4 pt-1">FARMER / AGENT SIGNATURE</div>
                     </div>
                 </div>
             </div>

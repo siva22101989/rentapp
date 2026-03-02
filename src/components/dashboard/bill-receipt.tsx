@@ -60,7 +60,7 @@ export const BillReceipt = React.forwardRef<HTMLDivElement, BillReceiptProps>(
                         record.hamaliDetails.map((item, index) => (
                             <TableRow key={`hamali-${index}`}>
                                 <TableCell>{item.description}</TableCell>
-                                <TableCell className="text-center font-mono text-xs">{`${item.bags} bags x ${formatCurrency(item.rate)}`}</TableCell>
+                                <TableCell className="text-center font-mono text-xs">{item.bags && item.rate ? `${item.bags} bags x ${formatCurrency(item.rate)}` : '-'}</TableCell>
                                 <TableCell className="text-right font-mono">{formatCurrency(item.amount)}</TableCell>
                             </TableRow>
                         ))

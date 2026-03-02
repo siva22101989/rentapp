@@ -40,7 +40,7 @@ export function OutflowReceipt({ record, customer, warehouseInfo, withdrawnBags,
         const endDate = record.storageEndDate ? toDate(record.storageEndDate) : new Date();
         
         setFormattedStartDate(format(startDate, 'dd MMM yyyy'));
-        setFormattedEndDate(format(endDate, 'dd MMM yyyy, hh:mm a'));
+        setFormattedEndDate(format(endDate, 'dd/MM/yy, hh:mm a'));
 
         setDuration({
             days: differenceInDays(endDate, startDate),
@@ -142,7 +142,7 @@ export function OutflowReceipt({ record, customer, warehouseInfo, withdrawnBags,
                 </div>
 
                 <div className="mb-4 p-4 bg-gray-100 rounded-lg text-black">
-                    <h3 className="text-xs font-bold mb-2">STORAGE SUMMARY</h3>
+                    <h3 className="text-xs font-bold mb-2">STOCK SUMMARY</h3>
                     <div className="grid grid-cols-3 gap-4 text-center">
                         <div>
                             <p className="text-xs">Bags Before</p>
@@ -173,13 +173,13 @@ export function OutflowReceipt({ record, customer, warehouseInfo, withdrawnBags,
                             <TableCell>Rent</TableCell>
                             <TableCell>{withdrawnBags} bags</TableCell>
                             <TableCell>{formatCurrency(rentBreakdown.rentPerBag)} / bag</TableCell>
-                            <TableCell className="text-right">{formatCurrency(finalRent)}</TableCell>
+                            <TableCell className="text-right font-mono">{formatCurrency(finalRent)}</TableCell>
                         </TableRow>
                          <TableRow>
                             <TableCell>Pending Hamali Charges</TableCell>
                             <TableCell> - </TableCell>
                             <TableCell> - </TableCell>
-                            <TableCell className="text-right">{formatCurrency(hamaliPending)}</TableCell>
+                            <TableCell className="text-right font-mono">{formatCurrency(hamaliPending)}</TableCell>
                         </TableRow>
                     </TableBody>
                 </Table>

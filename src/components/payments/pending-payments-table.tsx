@@ -69,6 +69,8 @@ export function PendingPaymentsTable({ records, customers }: { records: StorageR
                             <TableHead>Record ID</TableHead>
                             <TableHead>Customer</TableHead>
                             <TableHead className="hidden sm:table-cell">Status</TableHead>
+                            <TableHead className="text-right hidden md:table-cell">Bags In</TableHead>
+                            <TableHead className="text-right hidden md:table-cell">Bags Out</TableHead>
                             <TableHead className="text-right hidden lg:table-cell">Total Billed</TableHead>
                             <TableHead className="text-right hidden md:table-cell">Hamali Pending</TableHead>
                             <TableHead className="text-right hidden md:table-cell">Rent Pending</TableHead>
@@ -88,6 +90,8 @@ export function PendingPaymentsTable({ records, customers }: { records: StorageR
                                         {record.storageEndDate ? 'Completed' : 'Active'}
                                     </Badge>
                                 </TableCell>
+                                <TableCell className="text-right font-mono hidden md:table-cell">{record.bagsIn || 0}</TableCell>
+                                <TableCell className="text-right font-mono hidden md:table-cell">{record.bagsOut || 0}</TableCell>
                                 <TableCell className="text-right font-mono hidden lg:table-cell">{formatCurrency(record.totalBilled)}</TableCell>
                                 <TableCell className="text-right font-mono text-orange-600 hidden md:table-cell">{formatCurrency(record.hamaliPending)}</TableCell>
                                 <TableCell className="text-right font-mono text-blue-600 hidden md:table-cell">{formatCurrency(record.rentPending)}</TableCell>
@@ -99,7 +103,7 @@ export function PendingPaymentsTable({ records, customers }: { records: StorageR
                         )})}
                          {pendingRecords.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={8} className="text-center text-muted-foreground">
+                                <TableCell colSpan={10} className="text-center text-muted-foreground">
                                     No outstanding balances found.
                                 </TableCell>
                             </TableRow>

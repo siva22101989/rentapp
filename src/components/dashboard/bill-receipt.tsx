@@ -1,10 +1,9 @@
 
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import type { Customer, StorageRecord, WarehouseInfo } from '@/lib/definitions';
 import { format } from 'date-fns';
-import { getRecordStatus, type RecordStatusInfo } from '@/lib/billing';
 import { formatCurrency, toDate } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Separator } from '../ui/separator';
@@ -17,29 +16,11 @@ type BillReceiptProps = {
 
 export const BillReceipt = React.forwardRef<HTMLDivElement, BillReceiptProps>(
   ({ record, customer, warehouseInfo }, ref) => {
-    const [statusInfo, setStatusInfo] = useState<RecordStatusInfo | null>(null);
-    const [formattedBillDate, setFormattedBillDate] = useState('');
-    const [paymentInfo, setPaymentInfo] = useState({ paid: 0, balance: 0 });
-
-    useEffect(() => {
-        const safeRecord = {
-            ...record,
-            storageStartDate: toDate(record.storageStartDate),
-            storageEndDate: record.storageEndDate ? toDate(record.storageEndDate) : null,
-        }
-        setStatusInfo(getRecordStatus(safeRecord));
-        setFormattedBillDate(format(new Date(), 'dd MMM yyyy'));
-        
-        const totalPaid = (record.payments || []).reduce((acc, p) => acc + p.amount, 0);
-        const totalBilled = record.hamaliPayable + (record.totalRentBilled || 0);
-        setPaymentInfo({
-            paid: totalPaid,
-            balance: totalBilled - totalPaid,
-        });
-
-    }, [record]);
-
-    if (!statusInfo) return null;
+    const formattedBillDate = format(new Date(), 'dd/MM/yy');
+    
+    const totalBilled = (record.hamaliPayable || 0) + (record.totalRentBilled || 0);
+    const totalPaid = (record.payments || []).reduce((acc, p) => acc + p.amount, 0);
+    const balanceDue = totalBilled - totalPaid;
 
     return (
         <div ref={ref} className="printable-area bg-white p-6 border-2 border-blue-800 font-sans text-sm" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
@@ -51,11 +32,11 @@ export const BillReceipt = React.forwardRef<HTMLDivElement, BillReceiptProps>(
                 <p className="text-xs">{warehouseInfo?.addressLine2 || 'Owk (M), Kurnool (Dt.), A.P.'}</p>
             </div>
 
-            <h2 className="font-bold underline text-center">BILLING STATEMENT</h2>
+            <h2 className="font-bold underline text-center">ACCOUNT STATEMENT</h2>
             
             <div className="flex justify-between items-baseline my-4">
                 <div><span className="font-bold">Serial No.</span> {record.id}</div>
-                <div><span className="font-bold">Bill Date:</span> {formattedBillDate}</div>
+                <div><span className="font-bold">Date:</span> {formattedBillDate}</div>
             </div>
 
             <div className="space-y-2 mb-4">
@@ -63,57 +44,60 @@ export const BillReceipt = React.forwardRef<HTMLDivElement, BillReceiptProps>(
                 {customer.fatherName && <div className="flex"><span className="w-1/3 font-bold">FATHER'S NAME</span><span>: {customer.fatherName}</span></div>}
                 <div className="flex"><span className="w-1/3 font-bold">VILLAGE</span><span>: {customer.village || 'N/A'}</span></div>
                 <div className="flex"><span className="w-1/3 font-bold">PRODUCT</span><span>: {record.commodityDescription}</span></div>
+                <div className="flex"><span className="w-1/3 font-bold">LOT No.</span><span>: {record.location}</span></div>
             </div>
-
+            
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead className="w-[50px] text-black">No.</TableHead>
                         <TableHead className="text-black">Description</TableHead>
-                        <TableHead className="text-right text-black">Quantity</TableHead>
+                        <TableHead className="text-center text-black">Calculation</TableHead>
                         <TableHead className="text-right text-black">Amount</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    <TableRow>
-                        <TableCell>1</TableCell>
-                        <TableCell>{record.commodityDescription}</TableCell>
-                        <TableCell className="text-right">{record.bagsIn || 0} bags</TableCell>
-                        <TableCell className="text-right">-</TableCell>
-                    </TableRow>
-                    <TableRow>
-                        <TableCell>2</TableCell>
-                        <TableCell>Hamali Charges</TableCell>
-                        <TableCell className="text-right">-</TableCell>
-                        <TableCell className="text-right">{formatCurrency(record.hamaliPayable)}</TableCell>
-                    </TableRow>
-                     {record.totalRentBilled > 0 && (
+                     {(record.hamaliDetails && record.hamaliDetails.length > 0) ? (
+                        record.hamaliDetails.map((item, index) => (
+                            <TableRow key={`hamali-${index}`}>
+                                <TableCell>{item.description}</TableCell>
+                                <TableCell className="text-center font-mono text-xs">{`${item.bags} bags x ${formatCurrency(item.rate)}`}</TableCell>
+                                <TableCell className="text-right font-mono">{formatCurrency(item.amount)}</TableCell>
+                            </TableRow>
+                        ))
+                    ) : (
+                         record.hamaliPayable > 0 && (
+                            <TableRow>
+                                <TableCell colSpan={2}>Total Hamali Payable</TableCell>
+                                <TableCell className="text-right font-mono">{formatCurrency(record.hamaliPayable)}</TableCell>
+                            </TableRow>
+                         )
+                    )}
+
+                    {record.totalRentBilled > 0 && (
                         <TableRow>
-                            <TableCell>3</TableCell>
-                            <TableCell>Rent Charges</TableCell>
-                            <TableCell className="text-right">-</TableCell>
-                            <TableCell className="text-right">{formatCurrency(record.totalRentBilled)}</TableCell>
+                            <TableCell colSpan={2}>Total Rent Billed</TableCell>
+                            <TableCell className="text-right font-mono">{formatCurrency(record.totalRentBilled)}</TableCell>
                         </TableRow>
                     )}
                 </TableBody>
                 <TableFooter>
                     <TableRow>
-                        <TableCell colSpan={3} className="text-right font-bold">Total Billed</TableCell>
-                        <TableCell className="text-right font-bold">{formatCurrency(record.hamaliPayable + (record.totalRentBilled || 0))}</TableCell>
+                        <TableCell colSpan={2} className="text-right font-bold">Total Billed</TableCell>
+                        <TableCell className="text-right font-bold font-mono">{formatCurrency(totalBilled)}</TableCell>
                     </TableRow>
                 </TableFooter>
             </Table>
-            
+
             <div className="flex justify-end mt-4">
                 <div className="w-full max-w-xs space-y-1">
                     <div className="flex justify-between">
                         <span>Amount Paid</span>
-                        <span className="font-mono">{formatCurrency(paymentInfo.paid)}</span>
+                        <span className="font-mono">{formatCurrency(totalPaid)}</span>
                     </div>
                     <Separator className="bg-gray-400" />
                     <div className="flex justify-between font-bold text-base">
                         <span>Balance Due</span>
-                        <span className={`font-mono ${paymentInfo.balance > 0 ? 'text-destructive' : ''}`}>{formatCurrency(paymentInfo.balance)}</span>
+                        <span className={`font-mono ${balanceDue > 0 ? 'text-destructive' : ''}`}>{formatCurrency(balanceDue)}</span>
                     </div>
                 </div>
             </div>
@@ -127,7 +111,7 @@ export const BillReceipt = React.forwardRef<HTMLDivElement, BillReceiptProps>(
                 </div>
             </div>
 
-            <div className="text-xs text-muted-foreground space-y-2 pt-6 mt-4">
+             <div className="text-xs text-muted-foreground space-y-2 pt-6 mt-4">
                 {warehouseInfo?.bankDetails && (
                     <p className="mb-4">
                         <strong>Bank Details for Payment:</strong><br />

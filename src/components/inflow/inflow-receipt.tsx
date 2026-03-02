@@ -235,12 +235,10 @@ export function InflowReceipt({ record, customer, warehouseInfo }: { record: Sto
                         <span className="w-1/3 font-bold">PRODUCT</span>
                         <span>: {record.commodityDescription}</span>
                     </div>
-                    <div className="flex">
+                    <div className="flex text-base">
                         <span className="w-1/3 font-bold">No. OF BAGS</span>
-                        <div className="flex-1 flex justify-between">
-                           <span>: {record.bagsIn || 0}</span>
-                           <div><span className="font-bold">WEIGHT :</span> {record.weight ? `${record.weight} kgs` : '____'}</div>
-                        </div>
+                        <span className="w-1/3">: {record.bagsIn || 0}</span>
+                        <span className="w-1/3"><span className="font-bold">WEIGHT:</span> {record.weight ? `${record.weight} kgs` : '____'}</span>
                     </div>
                     <div className="flex">
                         <span className="w-1/3 font-bold">LOT No.</span>

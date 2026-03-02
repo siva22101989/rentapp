@@ -1,4 +1,3 @@
-
 'use client';
 import {
   createContext,
@@ -9,12 +8,10 @@ import {
 } from 'react';
 
 import { getApp, getApps, initializeApp, type FirebaseApp } from 'firebase/app';
-import { getAuth, type Auth }from 'firebase/auth';
-import { getFirestore, type Firestore } from 'firebase/firestore';
+import { getAuth, type Auth } from 'firebase/auth';
+// Import a common function like `collection` to hint the bundler against tree-shaking.
+import { getFirestore, collection, type Firestore } from 'firebase/firestore';
 import { firebaseConfig } from './config';
-
-// This context provides the Firebase app, Auth, and Firestore instances.
-// It ensures that Firebase is initialized only once.
 
 export type FirebaseContextValue = {
   auth: Auth;
@@ -25,30 +22,27 @@ export type FirebaseContextValue = {
 const FirebaseContext = createContext<FirebaseContextValue | null>(null);
 
 export function FirebaseProvider({ children }: { children: ReactNode }) {
-    const [value, setValue] = useState<FirebaseContextValue | null>(null);
+  const [value, setValue] = useState<FirebaseContextValue | null>(null);
 
-    useEffect(() => {
-        const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-        const auth = getAuth(app);
-        const firestore = getFirestore(app);
+  useEffect(() => {
+    const app =
+      getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const firestore = getFirestore(app);
 
-        setValue({
-            firebaseApp: app,
-            auth,
-            firestore,
-        });
-    }, []);
+    setValue({ firebaseApp: app, auth, firestore });
+  }, []); // Empty dependency array ensures this runs only once on the client.
 
-    if (!value) {
-        // You can return a loader here if you want
-        return null;
-    }
+  if (!value) {
+    // Return null or a loading component while Firebase is initializing.
+    return null;
+  }
 
-    return (
-        <FirebaseContext.Provider value={value}>
-            {children}
-        </FirebaseContext.Provider>
-    );
+  return (
+    <FirebaseContext.Provider value={value}>
+      {children}
+    </FirebaseContext.Provider>
+  );
 }
 
 export function useFirebase() {

@@ -4,7 +4,6 @@
 import { z } from 'zod';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { detectStorageAnomalies as detectStorageAnomaliesFlow } from '@/ai/flows/anomaly-detection';
 import type { StorageRecord, Payment, Customer } from './definitions';
 import { expenseCategories } from './definitions';
 import { Timestamp } from 'firebase/firestore';
@@ -13,34 +12,6 @@ export type FormState = {
   message: string;
   success: boolean;
 };
-
-export type AnomalyState = {
-  anomalies: string | null;
-  success: boolean;
-};
-
-export async function getAnomalyDetection(records: StorageRecord[]): Promise<AnomalyState> {
-  if (!records || records.length === 0) {
-    return { success: true, anomalies: 'No storage records found to analyze.' };
-  }
-  try {
-    const plainRecords = JSON.parse(JSON.stringify(records));
-    const result = await detectStorageAnomaliesFlow({ storageRecords: JSON.stringify(plainRecords) });
-    return { success: true, anomalies: result.anomalies };
-  } catch (error: any) {
-    console.error("Anomaly detection failed:", error);
-    let errorMessage = 'An error occurred while analyzing records.';
-    if (error.message) {
-      if (error.message.includes('API key not valid')) {
-        errorMessage = 'Analysis failed: The Gemini API key is missing or invalid. Please add it to your .env file.';
-      } else {
-        errorMessage = `Analysis failed: ${error.message}`;
-      }
-    }
-    return { success: false, anomalies: errorMessage };
-  }
-}
-
 
 const InflowSchema = z.object({
     customerId: z.string().min(1, 'Customer is required.'),

@@ -26,7 +26,6 @@ const navItems: NavItem[] = [
   { href: '/reports', label: 'Reports', description: 'See all transactions.', icon: FileText },
   { href: '/expenses', label: 'Expenses', description: 'Track and manage expenses.', icon: CreditCard },
   { href: '/settings', label: 'Settings', description: 'Manage database operations.', icon: Settings },
-  { href: '/anomaly-detection', label: 'Anomaly Detection', description: 'Use AI to find unusual patterns.', icon: ShieldAlert },
 ];
 
 

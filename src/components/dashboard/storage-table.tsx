@@ -8,13 +8,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { format } from 'date-fns';
-import { ActionsMenu } from "./actions-menu";
-import { formatCurrency, toDate } from "@/lib/utils";
 import type { Customer, StorageRecord } from "@/lib/definitions";
 import { useCollection } from "@/firebase/firestore/use-collection";
-import { collection, query, where } from "firebase/firestore";
+import { collection } from "firebase/firestore";
 import { useFirestore } from "@/firebase/provider";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 import { useMemo } from "react";
@@ -28,20 +24,39 @@ export function StorageTable() {
   );
   const { data: allRecords, loading: loadingRecords } = useCollection<StorageRecord>(allRecordsQuery);
 
-  const activeRecords = useMemo(() => {
-    if (!allRecords) return [];
-    return allRecords.filter(r => !r.storageEndDate);
-  }, [allRecords]);
-
   const customersQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'customers') : null),
     [firestore]
   );
   const { data: allCustomers, loading: loadingCustomers } = useCollection<Customer>(customersQuery);
+  
+  const customerStorageSummary = useMemo(() => {
+    if (!allRecords || !allCustomers) return [];
 
-  const getCustomerName = (customerId: string) => {
-    return allCustomers?.find(c => c.id === customerId)?.name ?? 'Unknown';
-  };
+    const activeRecords = allRecords.filter(r => !r.storageEndDate && r.bagsStored > 0);
+    
+    const summary: { [customerId: string]: { totalBags: number, recordCount: number } } = {};
+
+    activeRecords.forEach(record => {
+        if (!summary[record.customerId]) {
+            summary[record.customerId] = { totalBags: 0, recordCount: 0 };
+        }
+        summary[record.customerId].totalBags += record.bagsStored;
+        summary[record.customerId].recordCount++;
+    });
+
+    const customerMap = new Map(allCustomers.map(c => [c.id, c.name]));
+
+    return Object.entries(summary)
+        .map(([customerId, data]) => ({
+            customerId,
+            customerName: customerMap.get(customerId) || 'Unknown',
+            ...data
+        }))
+        .sort((a,b) => b.totalBags - a.totalBags);
+
+  }, [allRecords, allCustomers]);
+
 
   if (loadingRecords || loadingCustomers) {
     return <div>Loading table...</div>;
@@ -52,39 +67,25 @@ export function StorageTable() {
       <TableHeader>
         <TableRow>
           <TableHead>Customer</TableHead>
-          <TableHead>Commodity</TableHead>
-          <TableHead className="hidden lg:table-cell">Location</TableHead>
-          <TableHead className="text-right">Bags</TableHead>
-          <TableHead className="hidden md:table-cell">Start Date</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead className="text-right hidden lg:table-cell">Amount Paid</TableHead>
-          <TableHead className="w-[50px]"></TableHead>
+          <TableHead className="hidden sm:table-cell text-center">Active Records</TableHead>
+          <TableHead className="text-right">Total Active Bags</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
-        {activeRecords && allCustomers && allRecords && activeRecords.map((record) => {
-            const customerName = getCustomerName(record.customerId);
-            const amountPaid = (record.payments || []).reduce((acc, p) => acc + p.amount, 0);
-            const startDate = toDate(record.storageStartDate);
-            return (
-              <TableRow key={record.id}>
-                <TableCell className="font-medium">{customerName}</TableCell>
-                <TableCell>{record.commodityDescription}</TableCell>
-                <TableCell className="hidden lg:table-cell">{record.location}</TableCell>
-                <TableCell className="text-right">{record.bagsStored}</TableCell>
-                <TableCell className="hidden md:table-cell">{startDate ? format(startDate, 'dd MMM yyyy') : 'N/A'}</TableCell>
-                <TableCell>
-                  <Badge variant="secondary" className="bg-green-100 text-green-800">
-                    Active
-                  </Badge>
+        {customerStorageSummary.map((summary) => (
+            <TableRow key={summary.customerId}>
+                <TableCell className="font-medium">{summary.customerName}</TableCell>
+                <TableCell className="hidden sm:table-cell text-center">{summary.recordCount}</TableCell>
+                <TableCell className="text-right font-mono font-bold">{summary.totalBags}</TableCell>
+            </TableRow>
+        ))}
+         {customerStorageSummary.length === 0 && (
+            <TableRow>
+                <TableCell colSpan={3} className="text-center text-muted-foreground">
+                    No active storage records found.
                 </TableCell>
-                <TableCell className="text-right hidden lg:table-cell">{formatCurrency(amountPaid)}</TableCell>
-                <TableCell>
-                    <ActionsMenu record={record} customers={allCustomers} allRecords={allRecords} />
-                </TableCell>
-              </TableRow>
-            )
-        })}
+            </TableRow>
+        )}
       </TableBody>
     </Table>
   );

@@ -96,7 +96,7 @@ export default function StoragePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Active Storage Details</CardTitle>
+          <CardTitle>Customer Storage Summary</CardTitle>
         </CardHeader>
         <CardContent>
           <StorageTable />

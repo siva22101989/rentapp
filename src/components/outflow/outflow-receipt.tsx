@@ -1,11 +1,11 @@
 
 'use client';
 
-import { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useMemo } from 'react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Separator } from '@/components/ui/separator';
-import type { Customer, StorageRecord, WarehouseInfo } from '@/lib/definitions';
+import type { Customer, StorageRecord, WarehouseInfo, Outflow } from '@/lib/definitions';
 import { format, differenceInDays, differenceInMonths } from 'date-fns';
 import { Button } from '../ui/button';
 import { Download, Loader2 } from 'lucide-react';
@@ -21,59 +21,43 @@ type OutflowReceiptProps = {
   finalRent: number;
   paidNow: number;
   discount: number;
+  deliveryOrderNo: string;
+  deliveryOrderDate: Date;
 };
 
-export function OutflowReceipt({ record, customer, warehouseInfo, withdrawnBags, finalRent, paidNow, discount }: OutflowReceiptProps) {
-    const receiptRef = useRef<HTMLDivElement>(null);
-    const [formattedStartDate, setFormattedStartDate] = useState('');
-    const [formattedEndDate, setFormattedEndDate] = useState('');
+export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptProps>(
+  ({ record, customer, warehouseInfo, withdrawnBags, finalRent, paidNow, discount, deliveryOrderNo, deliveryOrderDate }, ref) => {
     const [isGenerating, setIsGenerating] = useState(false);
     
-    const [durationString, setDurationString] = useState('');
-    const [rentBreakdown, setRentBreakdown] = useState({ rentPerBag: 0 });
-    const [hamaliPending, setHamaliPending] = useState(0);
+    const formattedStartDate = format(toDate(record.storageStartDate), 'dd/MM/yyyy');
+    const formattedEndDate = format(deliveryOrderDate, 'dd/MM/yyyy');
+    
+    const startDate = toDate(record.storageStartDate);
+    const totalMonths = differenceInMonths(deliveryOrderDate, startDate);
+    const years = Math.floor(totalMonths / 12);
+    const months = totalMonths % 12;
+    let durationStr = '';
+    if (years > 0) durationStr += `${years} Year${years > 1 ? 's' : ''} `;
+    if (months > 0 || years === 0) durationStr += `${months} month${months > 1 ? 's' : ''}`;
+    if (durationString === '') durationString = 'Less than a month';
 
-    useEffect(() => {
-        if (!record) return;
-        const startDate = toDate(record.storageStartDate);
-        const endDate = record.storageEndDate ? toDate(record.storageEndDate) : new Date();
-        
-        setFormattedStartDate(format(startDate, 'dd/MM/yyyy'));
-        setFormattedEndDate(format(endDate, 'dd/MM/yyyy'));
+    const { rentPerBag } = calculateFinalRent({
+        ...record,
+        storageStartDate: startDate,
+    }, deliveryOrderDate, withdrawnBags);
 
-        const totalMonths = differenceInMonths(endDate, startDate);
-        const years = Math.floor(totalMonths / 12);
-        const months = totalMonths % 12;
-        let durationStr = '';
-        if (years > 0) durationStr += `${years} Year${years > 1 ? 's' : ''} `;
-        if (months > 0) durationStr += `${months} month${months > 1 ? 's' : ''}`;
-        setDurationString(durationStr.trim());
-
-
-        const safeRecord = {
-            ...record,
-            storageStartDate: startDate,
-        }
-
-        const { rentPerBag } = calculateFinalRent(safeRecord, endDate, withdrawnBags);
-        setRentBreakdown({ rentPerBag });
-
-        const originalHamaliPayable = record.hamaliPayable || 0;
-        const hamaliPaid = (record.payments || [])
-            .filter(p => p.type === 'hamali')
-            .reduce((acc, p) => acc + p.amount, 0);
-        
-        const pending = originalHamaliPayable - hamaliPaid;
-        setHamaliPending(pending > 0 ? pending : 0);
-        
-    }, [record, withdrawnBags]);
-
+    const originalHamaliPayable = record.hamaliPayable || 0;
+    const hamaliPaid = (record.payments || [])
+        .filter(p => p.type === 'hamali')
+        .reduce((acc, p) => acc + p.amount, 0);
+    const hamaliPending = Math.max(0, originalHamaliPayable - hamaliPaid);
+    
     const totalAmount = finalRent + hamaliPending + (record.khataAmount || 0);
     const grandTotal = totalAmount - discount;
     const balanceDue = grandTotal - paidNow;
 
     const handleDownloadPdf = async () => {
-        const element = receiptRef.current;
+        const element = ref && 'current' in ref ? ref.current : null;
         if (!element) return;
 
         setIsGenerating(true);
@@ -105,7 +89,7 @@ export function OutflowReceipt({ record, customer, warehouseInfo, withdrawnBags,
             const y = 10;
 
             pdf.addImage(imgData, 'PNG', x, y, widthInPdf, heightInPdf);
-            pdf.save(`outflow-bill-${record.id}.pdf`);
+            pdf.save(`outflow-bill-${deliveryOrderNo}.pdf`);
         } catch (error) {
             console.error('Error generating PDF:', error);
         } finally {
@@ -119,7 +103,7 @@ export function OutflowReceipt({ record, customer, warehouseInfo, withdrawnBags,
 
     return (
         <div className="w-full max-w-3xl mx-auto bg-background p-4 sm:p-6">
-             <div ref={receiptRef} className="printable-area bg-white p-6 border-2 border-black font-sans text-sm text-black">
+             <div ref={ref} className="printable-area bg-white p-6 border-2 border-black font-sans text-sm text-black">
                 {/* Header */}
                 <div className="text-center mb-4">
                     <h1 className="text-2xl font-bold tracking-wider">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</h1>
@@ -130,7 +114,7 @@ export function OutflowReceipt({ record, customer, warehouseInfo, withdrawnBags,
                 {/* Bill Info */}
                 <div className="grid grid-cols-2 gap-x-4 mb-4">
                     <div>
-                        <p><span className="font-bold">Bill No.:</span> {record.id}</p>
+                        <p><span className="font-bold">Bill No.:</span> {deliveryOrderNo}</p>
                         <p><span className="font-bold">Depositor Name:</span> {customer.name}</p>
                         <p><span className="font-bold">Address:</span> {customer.village || 'N/A'}</p>
                     </div>
@@ -146,7 +130,7 @@ export function OutflowReceipt({ record, customer, warehouseInfo, withdrawnBags,
                     <div className="grid grid-cols-2 gap-x-8 gap-y-1">
                         <p><span className="font-bold">1. Warehouse Receipt No.:</span> {record.id}</p>
                         <p><span className="font-bold">Date:</span> {formattedStartDate}</p>
-                        <p><span className="font-bold">Delivery Order No.:</span> {record.id}</p>
+                        <p><span className="font-bold">Delivery Order No.:</span> {deliveryOrderNo}</p>
                         <p><span className="font-bold">Date:</span> {formattedEndDate}</p>
                         <p><span className="font-bold">2. Name of the Commodity:</span> {record.commodityDescription}</p>
                         <p><span className="font-bold">Quantity:</span> {record.weight ? `${record.weight} Kgs` : 'N/A'}</p>
@@ -171,30 +155,18 @@ export function OutflowReceipt({ record, customer, warehouseInfo, withdrawnBags,
                         <TableRow>
                             <TableCell>1. Ware house Rent</TableCell>
                             <TableCell className="text-center">{withdrawnBags}</TableCell>
-                            <TableCell className="text-center">{rentBreakdown.rentPerBag > 0 ? rentBreakdown.rentPerBag.toFixed(2) : ''}</TableCell>
+                            <TableCell className="text-center">{rentPerBag > 0 ? rentPerBag.toFixed(2) : ''}</TableCell>
                             <TableCell className="text-right font-mono">{finalRent > 0 ? formatCurrency(finalRent) : ''}</TableCell>
                         </TableRow>
                         <TableRow>
-                            <TableCell>2. Insurance Charges</TableCell>
-                            <TableCell className="text-center"></TableCell>
-                            <TableCell></TableCell>
-                            <TableCell className="text-right font-mono"></TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell>3. Unloading Charges</TableCell>
+                            <TableCell>2. Unloading Charges</TableCell>
                             <TableCell></TableCell>
                             <TableCell></TableCell>
                             <TableCell className="text-right font-mono">{hamaliPending > 0 ? formatCurrency(hamaliPending) : ''}</TableCell>
                         </TableRow>
-                        <TableRow>
-                            <TableCell>4. Loading Charges</TableCell>
-                            <TableCell></TableCell>
-                            <TableCell></TableCell>
-                            <TableCell className="text-right font-mono"></TableCell>
-                        </TableRow>
                         {record.khataAmount && record.khataAmount > 0 && (
                             <TableRow>
-                                <TableCell>5. Khata (Weighbridge) Charges</TableCell>
+                                <TableCell>3. Khata (Weighbridge) Charges</TableCell>
                                 <TableCell></TableCell>
                                 <TableCell></TableCell>
                                 <TableCell className="text-right font-mono">{formatCurrency(record.khataAmount)}</TableCell>
@@ -256,4 +228,6 @@ export function OutflowReceipt({ record, customer, warehouseInfo, withdrawnBags,
             </div>
         </div>
     );
-}
+})
+
+OutflowReceipt.displayName = 'OutflowReceipt';

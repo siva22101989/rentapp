@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -71,10 +72,23 @@ export function OutflowReportTable({ events, customers, title, allRecords }: Rep
                     {events.map((event, index) => {
                         const fullRecord = allRecords.find(r => r.id === event.recordId);
                         const customer = customers.find(c => c.id === event.customerId);
+                        
+                        let deliveryOrderNo = event.recordId;
+                        if (fullRecord && fullRecord.outflows) {
+                            const outflowIndex = fullRecord.outflows.findIndex(o => 
+                                toDate(o.date).getTime() === event.date.getTime() &&
+                                o.bagsWithdrawn === event.bagsWithdrawn &&
+                                o.rentBilled === event.rentBilled
+                            );
+                            if (outflowIndex !== -1) {
+                                deliveryOrderNo = `${event.recordId}-${outflowIndex + 1}`;
+                            }
+                        }
+
                         return (
                         <TableRow key={index}>
                             <TableCell className="p-2">{format(toDate(event.date), 'dd MMM yyyy')}</TableCell>
-                            <TableCell className="p-2">{event.recordId}</TableCell>
+                            <TableCell className="p-2">{deliveryOrderNo}</TableCell>
                             <TableCell className="p-2 font-medium">{getCustomerName(event.customerId)}</TableCell>
                             <TableCell className="p-2">{event.commodityDescription}</TableCell>
                             <TableCell className="p-2">{event.location}</TableCell>
@@ -87,6 +101,8 @@ export function OutflowReportTable({ events, customers, title, allRecords }: Rep
                                         customer={customer}
                                         warehouseInfo={warehouseInfo}
                                         outflow={event}
+                                        deliveryOrderNo={deliveryOrderNo}
+                                        deliveryOrderDate={event.date}
                                     >
                                         <Button variant="ghost" size="icon">
                                             <Download className="h-4 w-4" />

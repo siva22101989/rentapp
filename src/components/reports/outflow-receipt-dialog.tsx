@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useRef, useState } from 'react';
@@ -22,9 +23,11 @@ type OutflowReceiptDialogProps = {
   warehouseInfo: WarehouseInfo | null;
   outflow: Outflow;
   children: React.ReactNode;
+  deliveryOrderNo: string;
+  deliveryOrderDate: Date;
 }
 
-export function OutflowReceiptDialog({ record, customer, warehouseInfo, outflow, children }: OutflowReceiptDialogProps) {
+export function OutflowReceiptDialog({ record, customer, warehouseInfo, outflow, children, deliveryOrderNo, deliveryOrderDate }: OutflowReceiptDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const receiptRef = useRef<HTMLDivElement>(null);
@@ -62,7 +65,7 @@ export function OutflowReceiptDialog({ record, customer, warehouseInfo, outflow,
       const y = 10;
 
       pdf.addImage(imgData, 'PNG', x, y, widthInPdf, heightInPdf);
-      pdf.save(`outflow-bill-${record.id}-${outflow.bagsWithdrawn}.pdf`);
+      pdf.save(`outflow-bill-${deliveryOrderNo}.pdf`);
     } catch (error) {
       console.error('Error generating PDF:', error);
     } finally {
@@ -88,6 +91,8 @@ export function OutflowReceiptDialog({ record, customer, warehouseInfo, outflow,
                 finalRent={outflow.rentBilled}
                 paidNow={0} // Payment info isn't available on the outflow event, so default to 0 for the receipt.
                 discount={outflow.discount || 0}
+                deliveryOrderNo={deliveryOrderNo}
+                deliveryOrderDate={deliveryOrderDate}
             />
         </div>
         <DialogFooter className="sm:justify-end">

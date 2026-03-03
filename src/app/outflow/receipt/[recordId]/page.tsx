@@ -9,6 +9,7 @@ import { useDoc } from "@/firebase/firestore/use-doc";
 import { useFirestore } from "@/firebase/provider";
 import { doc } from "firebase/firestore";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
+import { toDate } from "@/lib/utils";
 
 export default function OutflowReceiptPage() {
   const params = useParams();
@@ -47,6 +48,16 @@ export default function OutflowReceiptPage() {
   if (!record || !customer) {
     notFound();
   }
+
+  const latestOutflow = record.outflows && record.outflows.length > 0
+    ? record.outflows[record.outflows.length - 1]
+    : null;
+  
+  const deliveryOrderNo = record.outflows && record.outflows.length > 0
+    ? `${record.id}-${record.outflows.length}`
+    : `${record.id}-1`;
+
+  const deliveryOrderDate = latestOutflow ? toDate(latestOutflow.date) : new Date();
   
   return (
     <AppLayout>
@@ -63,6 +74,8 @@ export default function OutflowReceiptPage() {
             finalRent={finalRent}
             paidNow={paidNow}
             discount={discount}
+            deliveryOrderNo={deliveryOrderNo}
+            deliveryOrderDate={deliveryOrderDate}
         />
       </div>
     </AppLayout>

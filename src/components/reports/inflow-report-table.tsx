@@ -6,7 +6,10 @@ import type { Customer, StorageRecord } from "@/lib/definitions";
 import { toDate } from '@/lib/utils';
 import { useMemo } from "react";
 import { Badge } from "../ui/badge";
-import { ActionsMenu } from "@/components/dashboard/actions-menu";
+import { Button } from "../ui/button";
+import { Download } from "lucide-react";
+import { BillReceiptDialog } from "../dashboard/bill-receipt-dialog";
+
 
 type ReportTableProps = {
     records: StorageRecord[];
@@ -47,7 +50,9 @@ export function InflowReportTable({ records, customers, title }: ReportTableProp
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {records.map((record, index) => (
+                    {records.map((record, index) => {
+                        const customer = customers.find(c => c.id === record.customerId);
+                        return (
                         <TableRow key={record.id}>
                             <TableCell className="p-2">{format(toDate(record.storageStartDate), 'dd MMM yyyy')}</TableCell>
                             <TableCell className="p-2">{record.id}</TableCell>
@@ -63,10 +68,16 @@ export function InflowReportTable({ records, customers, title }: ReportTableProp
                             <TableCell className="p-2 text-right font-mono">{record.bagsIn}</TableCell>
                             <TableCell className="p-2 text-right font-mono">{record.weight}</TableCell>
                             <TableCell className="p-2 text-right print-hide">
-                                <ActionsMenu record={record} customers={customers} allRecords={records} />
+                                {customer && (
+                                     <BillReceiptDialog record={record} customer={customer}>
+                                        <Button variant="ghost" size="icon">
+                                            <Download className="h-4 w-4" />
+                                        </Button>
+                                    </BillReceiptDialog>
+                                )}
                             </TableCell>
                         </TableRow>
-                    ))}
+                    )})}
                     {records.length === 0 && (
                         <TableRow>
                             <TableCell colSpan={10} className="p-2 text-center text-muted-foreground">

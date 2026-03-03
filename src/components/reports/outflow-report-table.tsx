@@ -2,10 +2,17 @@
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { format } from "date-fns";
-import type { Customer, StorageRecord, Outflow } from "@/lib/definitions";
+import type { Customer, StorageRecord, Outflow, WarehouseInfo } from "@/lib/definitions";
 import { toDate, formatCurrency } from '@/lib/utils';
-import { useMemo } from "react";
-import { ActionsMenu } from "@/components/dashboard/actions-menu";
+import { useMemo, useState } from "react";
+import { Button } from "../ui/button";
+import { Download } from "lucide-react";
+import { OutflowReceiptDialog } from "./outflow-receipt-dialog";
+import { useDoc } from "@/firebase/firestore/use-doc";
+import { useFirestore } from "@/firebase/provider";
+import { useMemoFirebase } from "@/hooks/use-memo-firebase";
+import { doc } from "firebase/firestore";
+
 
 export type OutflowEvent = Outflow & {
     customerId: string;
@@ -24,6 +31,14 @@ type ReportTableProps = {
 
 export function OutflowReportTable({ events, customers, title, allRecords }: ReportTableProps) {
     const generatedDate = useMemo(() => format(new Date(), 'dd MMM yyyy, hh:mm a'), []);
+    const firestore = useFirestore();
+
+    const warehouseInfoRef = useMemoFirebase(
+        () => (firestore ? doc(firestore, 'settings', 'main') : null),
+        [firestore]
+    );
+    const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
+
 
     const getCustomerName = (customerId: string) => {
         return customers.find(c => c.id === customerId)?.name ?? 'Unknown';
@@ -55,6 +70,7 @@ export function OutflowReportTable({ events, customers, title, allRecords }: Rep
                 <TableBody>
                     {events.map((event, index) => {
                         const fullRecord = allRecords.find(r => r.id === event.recordId);
+                        const customer = customers.find(c => c.id === event.customerId);
                         return (
                         <TableRow key={index}>
                             <TableCell className="p-2">{format(toDate(event.date), 'dd MMM yyyy')}</TableCell>
@@ -64,8 +80,19 @@ export function OutflowReportTable({ events, customers, title, allRecords }: Rep
                             <TableCell className="p-2">{event.location}</TableCell>
                             <TableCell className="p-2 text-right font-mono">{event.bagsWithdrawn}</TableCell>
                             <TableCell className="p-2 text-right font-mono">{formatCurrency(event.rentBilled)}</TableCell>
-                            <TableCell className="p-2 print-hide">
-                                {fullRecord && <ActionsMenu record={fullRecord} customers={customers} allRecords={allRecords} />}
+                            <TableCell className="p-2 print-hide text-right">
+                                {fullRecord && customer && (
+                                    <OutflowReceiptDialog
+                                        record={fullRecord}
+                                        customer={customer}
+                                        warehouseInfo={warehouseInfo}
+                                        outflow={event}
+                                    >
+                                        <Button variant="ghost" size="icon">
+                                            <Download className="h-4 w-4" />
+                                        </Button>
+                                    </OutflowReceiptDialog>
+                                )}
                             </TableCell>
                         </TableRow>
                     )})}

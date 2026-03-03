@@ -68,7 +68,7 @@ export function OutflowReceipt({ record, customer, warehouseInfo, withdrawnBags,
         
     }, [record, withdrawnBags]);
 
-    const totalAmount = finalRent + hamaliPending;
+    const totalAmount = finalRent + hamaliPending + (record.khataAmount || 0);
     const grandTotal = totalAmount - discount;
     const balanceDue = grandTotal - paidNow;
 
@@ -192,18 +192,14 @@ export function OutflowReceipt({ record, customer, warehouseInfo, withdrawnBags,
                             <TableCell></TableCell>
                             <TableCell className="text-right font-mono"></TableCell>
                         </TableRow>
-                        <TableRow>
-                            <TableCell>5. Miscellaneous Charges</TableCell>
-                            <TableCell></TableCell>
-                            <TableCell></TableCell>
-                            <TableCell className="text-right font-mono"></TableCell>
-                        </TableRow>
-                         <TableRow>
-                            <TableCell>6. Other Charges</TableCell>
-                            <TableCell></TableCell>
-                            <TableCell></TableCell>
-                            <TableCell className="text-right font-mono"></TableCell>
-                        </TableRow>
+                        {record.khataAmount && record.khataAmount > 0 && (
+                            <TableRow>
+                                <TableCell>5. Khata (Weighbridge) Charges</TableCell>
+                                <TableCell></TableCell>
+                                <TableCell></TableCell>
+                                <TableCell className="text-right font-mono">{formatCurrency(record.khataAmount)}</TableCell>
+                            </TableRow>
+                        )}
                     </TableBody>
                     <TableFooter>
                         <TableRow>

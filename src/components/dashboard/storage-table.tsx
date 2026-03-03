@@ -7,6 +7,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  TableFooter,
 } from "@/components/ui/table";
 import type { Customer, StorageRecord } from "@/lib/definitions";
 import { useCollection } from "@/firebase/firestore/use-collection";
@@ -30,30 +31,34 @@ export function StorageTable() {
   );
   const { data: allCustomers, loading: loadingCustomers } = useCollection<Customer>(customersQuery);
   
-  const customerStorageSummary = useMemo(() => {
-    if (!allRecords || !allCustomers) return [];
+  const { summary, totalBags } = useMemo(() => {
+    if (!allRecords || !allCustomers) return { summary: [], totalBags: 0 };
 
     const activeRecords = allRecords.filter(r => !r.storageEndDate && r.bagsStored > 0);
     
-    const summary: { [customerId: string]: { totalBags: number, recordCount: number } } = {};
+    const customerSummary: { [customerId: string]: { totalBags: number, recordCount: number } } = {};
 
     activeRecords.forEach(record => {
-        if (!summary[record.customerId]) {
-            summary[record.customerId] = { totalBags: 0, recordCount: 0 };
+        if (!customerSummary[record.customerId]) {
+            customerSummary[record.customerId] = { totalBags: 0, recordCount: 0 };
         }
-        summary[record.customerId].totalBags += record.bagsStored;
-        summary[record.customerId].recordCount++;
+        customerSummary[record.customerId].totalBags += record.bagsStored;
+        customerSummary[record.customerId].recordCount++;
     });
 
     const customerMap = new Map(allCustomers.map(c => [c.id, c.name]));
 
-    return Object.entries(summary)
+    const summaryArray = Object.entries(customerSummary)
         .map(([customerId, data]) => ({
             customerId,
             customerName: customerMap.get(customerId) || 'Unknown',
             ...data
         }))
         .sort((a,b) => b.totalBags - a.totalBags);
+        
+    const total = summaryArray.reduce((acc, item) => acc + item.totalBags, 0);
+
+    return { summary: summaryArray, totalBags: total };
 
   }, [allRecords, allCustomers]);
 
@@ -72,14 +77,14 @@ export function StorageTable() {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {customerStorageSummary.map((summary) => (
-            <TableRow key={summary.customerId}>
-                <TableCell className="font-medium">{summary.customerName}</TableCell>
-                <TableCell className="hidden sm:table-cell text-center">{summary.recordCount}</TableCell>
-                <TableCell className="text-right font-mono font-bold">{summary.totalBags}</TableCell>
+        {summary.map((summaryItem) => (
+            <TableRow key={summaryItem.customerId}>
+                <TableCell className="font-medium">{summaryItem.customerName}</TableCell>
+                <TableCell className="hidden sm:table-cell text-center">{summaryItem.recordCount}</TableCell>
+                <TableCell className="text-right font-mono font-bold">{summaryItem.totalBags}</TableCell>
             </TableRow>
         ))}
-         {customerStorageSummary.length === 0 && (
+         {summary.length === 0 && (
             <TableRow>
                 <TableCell colSpan={3} className="text-center text-muted-foreground">
                     No active storage records found.
@@ -87,6 +92,12 @@ export function StorageTable() {
             </TableRow>
         )}
       </TableBody>
+       <TableFooter>
+        <TableRow>
+            <TableCell colSpan={2} className="text-right font-bold text-lg">Total Bags in Stock</TableCell>
+            <TableCell className="text-right font-mono font-bold text-lg">{totalBags}</TableCell>
+        </TableRow>
+      </TableFooter>
     </Table>
   );
 }

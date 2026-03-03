@@ -31,45 +31,45 @@ export function InflowReportTable({ records, customers, title }: ReportTableProp
                 <p className="text-muted-foreground">{title}</p>
                 <p className="text-xs text-muted-foreground">Generated on: {generatedDate}</p>
             </div>
-            <Table>
+            <Table className="text-xs">
                 <TableHeader>
                     <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Serial No</TableHead>
-                        <TableHead>Customer</TableHead>
-                        <TableHead>Commodity</TableHead>
-                        <TableHead>Inflow Type</TableHead>
-                        <TableHead>Lorry/Tractor No</TableHead>
-                        <TableHead>Lot No</TableHead>
-                        <TableHead className="text-right">Bags</TableHead>
-                        <TableHead className="text-right">Weight (Kgs)</TableHead>
-                        <TableHead className="w-[50px] text-right print-hide">Actions</TableHead>
+                        <TableHead className="h-auto py-2 px-2">Date</TableHead>
+                        <TableHead className="h-auto py-2 px-2">Serial No</TableHead>
+                        <TableHead className="h-auto py-2 px-2">Customer</TableHead>
+                        <TableHead className="h-auto py-2 px-2">Commodity</TableHead>
+                        <TableHead className="h-auto py-2 px-2">Inflow Type</TableHead>
+                        <TableHead className="h-auto py-2 px-2">Lorry/Tractor No</TableHead>
+                        <TableHead className="h-auto py-2 px-2">Lot No</TableHead>
+                        <TableHead className="h-auto py-2 px-2 text-right">Bags</TableHead>
+                        <TableHead className="h-auto py-2 px-2 text-right">Weight (Kgs)</TableHead>
+                        <TableHead className="h-auto py-2 px-2 w-[50px] text-right print-hide">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {records.map((record, index) => (
                         <TableRow key={record.id}>
-                            <TableCell>{format(toDate(record.storageStartDate), 'dd MMM yyyy')}</TableCell>
-                            <TableCell>{record.id}</TableCell>
-                            <TableCell className="font-medium">{getCustomerName(record.customerId)}</TableCell>
-                            <TableCell>{record.commodityDescription}</TableCell>
-                            <TableCell>
+                            <TableCell className="p-2">{format(toDate(record.storageStartDate), 'dd MMM yyyy')}</TableCell>
+                            <TableCell className="p-2">{record.id}</TableCell>
+                            <TableCell className="p-2 font-medium">{getCustomerName(record.customerId)}</TableCell>
+                            <TableCell className="p-2">{record.commodityDescription}</TableCell>
+                            <TableCell className="p-2">
                                 <Badge variant={record.inflowType === 'Direct' ? 'default' : 'secondary'} className={record.inflowType === 'Plot' ? 'bg-purple-100 text-purple-800' : ''}>
                                     {record.inflowType || 'Direct'}
                                 </Badge>
                             </TableCell>
-                            <TableCell>{record.lorryTractorNo}</TableCell>
-                            <TableCell>{record.location}</TableCell>
-                            <TableCell className="text-right font-mono">{record.bagsIn}</TableCell>
-                            <TableCell className="text-right font-mono">{record.weight}</TableCell>
-                            <TableCell className="text-right print-hide">
+                            <TableCell className="p-2">{record.lorryTractorNo}</TableCell>
+                            <TableCell className="p-2">{record.location}</TableCell>
+                            <TableCell className="p-2 text-right font-mono">{record.bagsIn}</TableCell>
+                            <TableCell className="p-2 text-right font-mono">{record.weight}</TableCell>
+                            <TableCell className="p-2 text-right print-hide">
                                 <ActionsMenu record={record} customers={customers} allRecords={records} />
                             </TableCell>
                         </TableRow>
                     ))}
                     {records.length === 0 && (
                         <TableRow>
-                            <TableCell colSpan={10} className="text-center text-muted-foreground">
+                            <TableCell colSpan={10} className="p-2 text-center text-muted-foreground">
                                 No inflow records found for the selected criteria.
                             </TableCell>
                         </TableRow>
@@ -77,10 +77,10 @@ export function InflowReportTable({ records, customers, title }: ReportTableProp
                 </TableBody>
                 <TableFooter>
                     <TableRow>
-                        <TableCell colSpan={7} className="text-right font-bold">Totals</TableCell>
-                        <TableCell className="text-right font-mono font-bold">{totalBagsIn}</TableCell>
-                        <TableCell className="text-right font-mono font-bold">{totalWeight.toFixed(2)}</TableCell>
-                        <TableCell className="print-hide"></TableCell>
+                        <TableCell colSpan={7} className="p-2 text-right font-bold">Totals</TableCell>
+                        <TableCell className="p-2 text-right font-mono font-bold">{totalBagsIn}</TableCell>
+                        <TableCell className="p-2 text-right font-mono font-bold">{totalWeight.toFixed(2)}</TableCell>
+                        <TableCell className="p-2 print-hide"></TableCell>
                     </TableRow>
                 </TableFooter>
             </Table>

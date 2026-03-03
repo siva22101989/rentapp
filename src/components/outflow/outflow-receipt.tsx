@@ -11,8 +11,7 @@ import { Button } from '../ui/button';
 import { Download, Loader2 } from 'lucide-react';
 import { calculateFinalRent } from '@/lib/billing';
 import { formatCurrency, toDate } from '@/lib/utils';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '../ui/table';
 
 type OutflowReceiptProps = {
   record: StorageRecord;
@@ -30,7 +29,7 @@ export function OutflowReceipt({ record, customer, warehouseInfo, withdrawnBags,
     const [formattedEndDate, setFormattedEndDate] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
     
-    const [duration, setDuration] = useState({ days: 0, months: 0 });
+    const [durationString, setDurationString] = useState('');
     const [rentBreakdown, setRentBreakdown] = useState({ rentPerBag: 0 });
     const [hamaliPending, setHamaliPending] = useState(0);
 
@@ -39,13 +38,17 @@ export function OutflowReceipt({ record, customer, warehouseInfo, withdrawnBags,
         const startDate = toDate(record.storageStartDate);
         const endDate = record.storageEndDate ? toDate(record.storageEndDate) : new Date();
         
-        setFormattedStartDate(format(startDate, 'dd MMM yyyy'));
-        setFormattedEndDate(format(endDate, 'dd/MM/yy, hh:mm a'));
+        setFormattedStartDate(format(startDate, 'dd/MM/yyyy'));
+        setFormattedEndDate(format(endDate, 'dd/MM/yyyy'));
 
-        setDuration({
-            days: differenceInDays(endDate, startDate),
-            months: differenceInMonths(endDate, startDate) || 1
-        });
+        const totalMonths = differenceInMonths(endDate, startDate);
+        const years = Math.floor(totalMonths / 12);
+        const months = totalMonths % 12;
+        let durationStr = '';
+        if (years > 0) durationStr += `${years} Year${years > 1 ? 's' : ''} `;
+        if (months > 0) durationStr += `${months} month${months > 1 ? 's' : ''}`;
+        setDurationString(durationStr.trim());
+
 
         const safeRecord = {
             ...record,
@@ -65,9 +68,7 @@ export function OutflowReceipt({ record, customer, warehouseInfo, withdrawnBags,
         
     }, [record, withdrawnBags]);
 
-    const subtotal = finalRent + hamaliPending;
-    const totalPayable = subtotal - discount;
-    const balanceDue = totalPayable - paidNow;
+    const totalAmount = finalRent + hamaliPending;
 
     const handleDownloadPdf = async () => {
         const element = receiptRef.current;
@@ -115,115 +116,111 @@ export function OutflowReceipt({ record, customer, warehouseInfo, withdrawnBags,
     }
 
     return (
-        <div className="w-full max-w-2xl mx-auto bg-background p-4 sm:p-6">
-             <div ref={receiptRef} className="printable-area bg-white p-4 border-2 border-blue-800 font-sans text-xs" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-                <div className="text-center mb-2">
-                    <div className="text-xs">Cell: {warehouseInfo?.phone || '9703503423, 9160606633'}</div>
-                    <h1 className="text-xl font-bold text-blue-900">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</h1>
-                    {warehouseInfo?.ownerName && <p className="text-xs">Prop: {warehouseInfo.ownerName}</p>}
+        <div className="w-full max-w-3xl mx-auto bg-background p-4 sm:p-6">
+             <div ref={receiptRef} className="printable-area bg-white p-6 border-2 border-black font-sans text-sm text-black">
+                {/* Header */}
+                <div className="text-center mb-4">
+                    {/* You can add a logo image here if you have one */}
+                    <h1 className="text-2xl font-bold tracking-wider">SRI LAKSHMI WAREHOUSE</h1>
                     <p className="text-xs">{warehouseInfo?.addressLine1 || 'Survey No. 165,237/2, Owk - Koilakuntla Road, OWK - 518 122,'}</p>
-                    <p className="text-xs">{warehouseInfo?.addressLine2 || 'Owk (M), Kurnool (Dt.), A.P.'}</p>
+                    <p className="text-xs">{warehouseInfo?.addressLine2 || 'Owk (M), Kurnool (Dt.), A.P.'} Cell: {warehouseInfo?.phone || '9703503423, 9160606633'}</p>
                 </div>
                 
-                <h2 className="font-bold underline text-center">OUTFLOW BILL</h2>
-
-                <div className="flex justify-between items-baseline my-2">
-                    <div><span className="font-bold">Bill No.</span> {record.id}</div>
-                    <div><span className="font-bold">Date:</span> {formattedEndDate}</div>
-                </div>
-
-                <div className="space-y-1 mb-2">
-                    <div className="flex"><span className="w-1/3 font-bold">CUSTOMER</span><span>: {customer.name}</span></div>
-                    {customer.fatherName && <div className="flex"><span className="w-1/3 font-bold">FATHER'S NAME</span><span>: {customer.fatherName}</span></div>}
-                    <div className="flex"><span className="w-1/3 font-bold">VILLAGE</span><span>: {customer.village || 'N/A'}</span></div>
-                    <div className="flex"><span className="w-1/3 font-bold">PRODUCT</span><span>: {record.commodityDescription}</span></div>
-                    <div className="flex"><span className="w-1/3 font-bold">LOT No.</span><span>: {record.location}</span></div>
-                    <div className="flex"><span className="w-1/3 font-bold">STORAGE DURATION</span><span>: {duration.months} months ({duration.days} days)</span></div>
-                </div>
-
-                <div className="mb-2 p-2 bg-gray-100 rounded-lg text-black">
-                    <h3 className="text-xs font-bold mb-1">STOCK SUMMARY</h3>
-                    <div className="grid grid-cols-3 gap-4 text-center">
-                        <div>
-                            <p className="text-xs">Bags Before</p>
-                            <p className="font-bold">{(record.bagsStored || 0) + withdrawnBags}</p>
-                        </div>
-                        <div>
-                            <p className="text-xs">Bags Withdrawn</p>
-                            <p className="font-bold">-{withdrawnBags}</p>
-                        </div>
-                        <div>
-                            <p className="text-xs">Bags Remaining</p>
-                            <p className="font-bold">{record.bagsStored}</p>
-                        </div>
+                {/* Bill Info */}
+                <div className="grid grid-cols-2 gap-x-4 mb-4">
+                    <div>
+                        <p><span className="font-bold">Bill No.:</span> {record.id}</p>
+                        <p><span className="font-bold">Depositor Name:</span> {customer.name}</p>
+                        <p><span className="font-bold">Address:</span> {customer.village || 'N/A'}</p>
+                    </div>
+                    <div className="text-right">
+                        <p>{durationString}</p>
+                        <p><span className="font-bold">Date:</span> {formattedEndDate}</p>
                     </div>
                 </div>
 
-                <Table>
+                {/* Particulars of Withdrawal */}
+                <div className="border-y-2 border-black py-2 mb-4">
+                    <h2 className="font-bold text-center mb-2">PARTICULARS OF WITHDRAWAL</h2>
+                    <div className="grid grid-cols-2 gap-x-8 gap-y-1">
+                        <p><span className="font-bold">1. Warehouse Receipt No.:</span> {record.id}</p>
+                        <p><span className="font-bold">Date:</span> {formattedStartDate}</p>
+                        <p><span className="font-bold">Delivery Order No.:</span> {record.id}</p>
+                        <p><span className="font-bold">Date:</span> {formattedEndDate}</p>
+                        <p><span className="font-bold">2. Name of the Commodity:</span> {record.commodityDescription}</p>
+                        <p><span className="font-bold">Quantity:</span> {record.weight ? `${record.weight} Kgs` : 'N/A'}</p>
+                        <p><span className="font-bold">No. of Bags:</span> {withdrawnBags}</p>
+                        <p><span className="font-bold">Net Weight:</span></p>
+                        <p><span className="font-bold">3. Godown No.:</span> {record.location}</p>
+                        <p><span className="font-bold">Lot No.:</span></p>
+                    </div>
+                </div>
+
+                {/* Charges Table */}
+                <Table className="text-sm">
                     <TableHeader>
                         <TableRow>
-                            <TableHead className="w-[50%] text-black">Description</TableHead>
-                            <TableHead className="text-black">Quantity</TableHead>
-                            <TableHead className="text-black">Rate</TableHead>
-                            <TableHead className="text-right text-black">Amount</TableHead>
+                            <TableHead className="text-black font-bold w-[50%]">PARTICULARS</TableHead>
+                            <TableHead className="text-center text-black font-bold">No.of Bags</TableHead>
+                            <TableHead className="text-center text-black font-bold">Rate</TableHead>
+                            <TableHead className="text-right text-black font-bold">Amount</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         <TableRow>
-                            <TableCell>Rent</TableCell>
-                            <TableCell>{withdrawnBags} bags</TableCell>
-                            <TableCell>{formatCurrency(rentBreakdown.rentPerBag)} / bag</TableCell>
-                            <TableCell className="text-right font-mono">{formatCurrency(finalRent)}</TableCell>
+                            <TableCell>1. Ware house Rent</TableCell>
+                            <TableCell className="text-center">{withdrawnBags}</TableCell>
+                            <TableCell className="text-center">{rentBreakdown.rentPerBag > 0 ? rentBreakdown.rentPerBag.toFixed(2) : ''}</TableCell>
+                            <TableCell className="text-right font-mono">{finalRent > 0 ? formatCurrency(finalRent) : ''}</TableCell>
+                        </TableRow>
+                        <TableRow>
+                            <TableCell>2. Insurance Charges</TableCell>
+                            <TableCell className="text-center">{withdrawnBags}</TableCell>
+                            <TableCell></TableCell>
+                            <TableCell className="text-right font-mono"></TableCell>
+                        </TableRow>
+                        <TableRow>
+                            <TableCell>3. Unloading Charges</TableCell>
+                            <TableCell></TableCell>
+                            <TableCell></TableCell>
+                            <TableCell className="text-right font-mono">{hamaliPending > 0 ? formatCurrency(hamaliPending) : ''}</TableCell>
+                        </TableRow>
+                        <TableRow>
+                            <TableCell>4. Loading Charges</TableCell>
+                            <TableCell></TableCell>
+                            <TableCell></TableCell>
+                            <TableCell className="text-right font-mono"></TableCell>
+                        </TableRow>
+                        <TableRow>
+                            <TableCell>5. Miscellaneous Charges</TableCell>
+                            <TableCell></TableCell>
+                            <TableCell></TableCell>
+                            <TableCell className="text-right font-mono"></TableCell>
                         </TableRow>
                          <TableRow>
-                            <TableCell>Pending Hamali Charges</TableCell>
-                            <TableCell> - </TableCell>
-                            <TableCell> - </TableCell>
-                            <TableCell className="text-right font-mono">{formatCurrency(hamaliPending)}</TableCell>
+                            <TableCell>6. Other Charges</TableCell>
+                            <TableCell></TableCell>
+                            <TableCell></TableCell>
+                            <TableCell className="text-right font-mono"></TableCell>
                         </TableRow>
                     </TableBody>
+                    <TableFooter>
+                        <TableRow className="font-bold border-t-2 border-black">
+                            <TableCell>Cash Receipt No..</TableCell>
+                            <TableCell colSpan={2} className="text-right">TOTAL</TableCell>
+                            <TableCell className="text-right font-mono">{formatCurrency(totalAmount)}</TableCell>
+                        </TableRow>
+                    </TableFooter>
                 </Table>
-
-                <div className="flex justify-end mt-2">
-                    <div className="w-full max-w-xs space-y-1">
-                         <div className="flex justify-between">
-                            <span>Subtotal</span>
-                            <span className="font-mono">{formatCurrency(subtotal)}</span>
-                        </div>
-                        {discount > 0 && (
-                             <div className="flex justify-between">
-                                <span>Discount</span>
-                                <span className="font-mono text-green-600">- {formatCurrency(discount)}</span>
-                            </div>
-                        )}
-                        <Separator className="bg-gray-400" />
-                        <div className="flex justify-between font-bold">
-                            <span>Total Due</span>
-                            <span className="font-mono">{formatCurrency(totalPayable)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span>Amount Paid</span>
-                            <span className="font-mono">{formatCurrency(paidNow)}</span>
-                        </div>
-                        <Separator className="bg-gray-400" />
-                        <div className="flex justify-between font-bold text-sm">
-                            <span>Balance Due</span>
-                            <span className="font-mono">{formatCurrency(balanceDue)}</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="mt-16 pt-8 flex justify-between text-center">
+                
+                {/* Signature */}
+                 <div className="mt-16 pt-8 flex justify-between text-center">
                     <div className="w-1/2">
-                        <div className="mt-12 border-t border-gray-400 mx-4 pt-1">Manager Signature</div>
+                        <div className="mt-12 border-t border-gray-400 mx-4 pt-1">Depositor Signature</div>
                     </div>
                     <div className="w-1/2">
-                        <div className="mt-12 border-t border-gray-400 mx-4 pt-1">Customer Signature</div>
+                        <div className="mt-12 border-t border-gray-400 mx-4 pt-1">Warehouse Manager</div>
                     </div>
-                </div>
-                 <div className="text-xs mt-2 pt-2 text-center">
-                    <p>This bill reflects the final settlement for the withdrawal of goods.</p>
-                    <p className="mt-1 font-semibold">Thank you for your business!</p>
                 </div>
             </div>
             <div className="mt-6 flex justify-center print-hide">

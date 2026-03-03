@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef, useMemo } from 'react';
@@ -43,7 +42,7 @@ export function InflowReport({ records, customers }: InflowReportProps) {
             filteredRecords = filteredRecords.filter(r => toDate(r.storageStartDate) <= toDateObj);
         }
 
-        return filteredRecords.sort((a,b) => toDate(a.storageStartDate).getTime() - toDate(b.storageStartDate).getTime());
+        return filteredRecords.sort((a,b) => toDate(b.storageStartDate).getTime() - toDate(a.storageStartDate).getTime());
     }, [records, selectedCustomerId, dateRange]);
 
 

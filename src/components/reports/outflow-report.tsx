@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef, useMemo } from 'react';
@@ -59,7 +58,7 @@ export function OutflowReport({ records, customers }: OutflowReportProps) {
             filteredEvents = filteredEvents.filter(r => r.date <= toDateObj);
         }
 
-        return filteredEvents.sort((a,b) => a.date.getTime() - b.date.getTime());
+        return filteredEvents.sort((a,b) => b.date.getTime() - a.date.getTime());
     }, [records, selectedCustomerId, dateRange]);
 
 

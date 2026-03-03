@@ -169,6 +169,7 @@ export function OutflowReport({ records, customers }: OutflowReportProps) {
                         events={outflowEvents} 
                         customers={customers}
                         title={title}
+                        allRecords={records}
                     />
                 </div>
             </CardContent>

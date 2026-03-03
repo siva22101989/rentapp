@@ -6,6 +6,7 @@ import type { Customer, StorageRecord } from "@/lib/definitions";
 import { toDate } from '@/lib/utils';
 import { useMemo } from "react";
 import { Badge } from "../ui/badge";
+import { ActionsMenu } from "@/components/dashboard/actions-menu";
 
 type ReportTableProps = {
     records: StorageRecord[];
@@ -42,6 +43,7 @@ export function InflowReportTable({ records, customers, title }: ReportTableProp
                         <TableHead>Lot No</TableHead>
                         <TableHead className="text-right">Bags</TableHead>
                         <TableHead className="text-right">Weight (Kgs)</TableHead>
+                        <TableHead className="w-[50px] text-right print-hide">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -60,11 +62,14 @@ export function InflowReportTable({ records, customers, title }: ReportTableProp
                             <TableCell>{record.location}</TableCell>
                             <TableCell className="text-right font-mono">{record.bagsIn}</TableCell>
                             <TableCell className="text-right font-mono">{record.weight}</TableCell>
+                            <TableCell className="text-right print-hide">
+                                <ActionsMenu record={record} customers={customers} allRecords={records} />
+                            </TableCell>
                         </TableRow>
                     ))}
                     {records.length === 0 && (
                         <TableRow>
-                            <TableCell colSpan={9} className="text-center text-muted-foreground">
+                            <TableCell colSpan={10} className="text-center text-muted-foreground">
                                 No inflow records found for the selected criteria.
                             </TableCell>
                         </TableRow>
@@ -75,6 +80,7 @@ export function InflowReportTable({ records, customers, title }: ReportTableProp
                         <TableCell colSpan={7} className="text-right font-bold">Totals</TableCell>
                         <TableCell className="text-right font-mono font-bold">{totalBagsIn}</TableCell>
                         <TableCell className="text-right font-mono font-bold">{totalWeight.toFixed(2)}</TableCell>
+                        <TableCell className="print-hide"></TableCell>
                     </TableRow>
                 </TableFooter>
             </Table>

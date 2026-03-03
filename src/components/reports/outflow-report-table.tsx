@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import type { Customer, StorageRecord, Outflow } from "@/lib/definitions";
 import { toDate, formatCurrency } from '@/lib/utils';
 import { useMemo } from "react";
+import { ActionsMenu } from "@/components/dashboard/actions-menu";
 
 export type OutflowEvent = Outflow & {
     customerId: string;
@@ -18,9 +19,10 @@ type ReportTableProps = {
     events: OutflowEvent[];
     customers: Customer[];
     title: string;
+    allRecords: StorageRecord[];
 }
 
-export function OutflowReportTable({ events, customers, title }: ReportTableProps) {
+export function OutflowReportTable({ events, customers, title, allRecords }: ReportTableProps) {
     const generatedDate = useMemo(() => format(new Date(), 'dd MMM yyyy, hh:mm a'), []);
 
     const getCustomerName = (customerId: string) => {
@@ -47,10 +49,13 @@ export function OutflowReportTable({ events, customers, title }: ReportTableProp
                         <TableHead>Lot No</TableHead>
                         <TableHead className="text-right">Bags Withdrawn</TableHead>
                         <TableHead className="text-right">Rent Billed</TableHead>
+                        <TableHead className="w-[50px] text-right print-hide">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {events.map((event, index) => (
+                    {events.map((event, index) => {
+                        const fullRecord = allRecords.find(r => r.id === event.recordId);
+                        return (
                         <TableRow key={index}>
                             <TableCell>{format(toDate(event.date), 'dd MMM yyyy')}</TableCell>
                             <TableCell>{event.recordId}</TableCell>
@@ -59,11 +64,14 @@ export function OutflowReportTable({ events, customers, title }: ReportTableProp
                             <TableCell>{event.location}</TableCell>
                             <TableCell className="text-right font-mono">{event.bagsWithdrawn}</TableCell>
                             <TableCell className="text-right font-mono">{formatCurrency(event.rentBilled)}</TableCell>
+                            <TableCell className="print-hide">
+                                {fullRecord && <ActionsMenu record={fullRecord} customers={customers} allRecords={allRecords} />}
+                            </TableCell>
                         </TableRow>
-                    ))}
+                    )})}
                     {events.length === 0 && (
                         <TableRow>
-                            <TableCell colSpan={7} className="text-center text-muted-foreground">
+                            <TableCell colSpan={8} className="text-center text-muted-foreground">
                                 No outflow records found for the selected criteria.
                             </TableCell>
                         </TableRow>
@@ -74,6 +82,7 @@ export function OutflowReportTable({ events, customers, title }: ReportTableProp
                         <TableCell colSpan={5} className="text-right font-bold">Totals</TableCell>
                         <TableCell className="text-right font-mono font-bold">{totalBagsWithdrawn}</TableCell>
                         <TableCell className="text-right font-mono font-bold">{formatCurrency(totalRentBilled)}</TableCell>
+                        <TableCell className="print-hide"></TableCell>
                     </TableRow>
                 </TableFooter>
             </Table>

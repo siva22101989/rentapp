@@ -15,12 +15,10 @@ import { LotInventoryReport } from './lot-inventory-report';
 import { UnloadingReport } from './unloading-report';
 import { PaymentReport } from './payment-report';
 import { DailySummaryReport } from './daily-summary-report';
-import { AllRecordsTable } from './all-records-table';
 
 const reportTypes = [
     { value: 'daily-summary', label: 'Daily Summary Report' },
     { value: 'customer-statement', label: 'Customer Dues Statement (Detailed)' },
-    { value: 'all-storage-records', label: 'All Storage Records (Find & Download Bills)' },
     { value: 'hamali-register', label: 'Hamali Register' },
     { value: 'inflow-register', label: 'Inflow Register (Date Range)' },
     { value: 'outflow-register', label: 'Outflow Register (Date Range)' },
@@ -66,18 +64,6 @@ export function CustomReportGenerator({ records, customers, unloadingRecords, ex
                 return <PaymentReport records={records} unloadingRecords={unloadingRecords} customers={customers} />;
             case 'lot-inventory':
                 return <LotInventoryReport records={records} customers={customers} />;
-            case 'all-storage-records':
-                return (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>All Storage Records</CardTitle>
-                            <CardDescription>A complete list of all active and completed storage records. Use the actions menu (...) on any row to download its current bill.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <AllRecordsTable allRecords={records} allCustomers={customers} />
-                        </CardContent>
-                    </Card>
-                );
             default:
                 return (
                     <Card>

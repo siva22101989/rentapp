@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useRef, useState, useMemo } from 'react';
@@ -14,7 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '../ui/button';
 import { Download, Loader2 } from 'lucide-react';
-import { BillReceipt } from './bill-receipt';
+import { InflowReceipt } from '../inflow/inflow-receipt';
 import type { Customer, StorageRecord, WarehouseInfo } from '@/lib/definitions';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { useFirestore } from '@/firebase/provider';
@@ -89,11 +88,11 @@ export function BillReceiptDialog({
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Billing Statement</DialogTitle>
+          <DialogTitle>Inflow Receipt</DialogTitle>
         </DialogHeader>
         <div className="max-h-[70vh] overflow-y-auto p-2">
             {loadingWarehouseInfo ? <div>Loading...</div> : (
-              <BillReceipt ref={receiptRef} record={record} customer={customer} warehouseInfo={warehouseInfo} />
+              <InflowReceipt ref={receiptRef} record={record} customer={customer} warehouseInfo={warehouseInfo} />
             )}
         </div>
         <DialogFooter className="sm:justify-end">

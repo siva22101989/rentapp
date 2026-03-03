@@ -69,6 +69,8 @@ export function OutflowReceipt({ record, customer, warehouseInfo, withdrawnBags,
     }, [record, withdrawnBags]);
 
     const totalAmount = finalRent + hamaliPending;
+    const grandTotal = totalAmount - discount;
+    const balanceDue = grandTotal - paidNow;
 
     const handleDownloadPdf = async () => {
         const element = receiptRef.current;
@@ -120,8 +122,7 @@ export function OutflowReceipt({ record, customer, warehouseInfo, withdrawnBags,
              <div ref={receiptRef} className="printable-area bg-white p-6 border-2 border-black font-sans text-sm text-black">
                 {/* Header */}
                 <div className="text-center mb-4">
-                    {/* You can add a logo image here if you have one */}
-                    <h1 className="text-2xl font-bold tracking-wider">SRI LAKSHMI WAREHOUSE</h1>
+                    <h1 className="text-2xl font-bold tracking-wider">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</h1>
                     <p className="text-xs">{warehouseInfo?.addressLine1 || 'Survey No. 165,237/2, Owk - Koilakuntla Road, OWK - 518 122,'}</p>
                     <p className="text-xs">{warehouseInfo?.addressLine2 || 'Owk (M), Kurnool (Dt.), A.P.'} Cell: {warehouseInfo?.phone || '9703503423, 9160606633'}</p>
                 </div>
@@ -150,9 +151,9 @@ export function OutflowReceipt({ record, customer, warehouseInfo, withdrawnBags,
                         <p><span className="font-bold">2. Name of the Commodity:</span> {record.commodityDescription}</p>
                         <p><span className="font-bold">Quantity:</span> {record.weight ? `${record.weight} Kgs` : 'N/A'}</p>
                         <p><span className="font-bold">No. of Bags:</span> {withdrawnBags}</p>
-                        <p><span className="font-bold">Net Weight:</span></p>
-                        <p><span className="font-bold">3. Godown No.:</span> {record.location}</p>
-                        <p><span className="font-bold">Lot No.:</span></p>
+                        <p><span className="font-bold">Net Weight:</span> {record.weight ? `${record.weight} Kgs` : 'N/A'}</p>
+                        <p><span className="font-bold">3. Godown No.:</span> {record.location || 'N/A'}</p>
+                        <p><span className="font-bold">Lot No.:</span> {record.location || 'N/A'}</p>
                     </div>
                 </div>
 
@@ -175,7 +176,7 @@ export function OutflowReceipt({ record, customer, warehouseInfo, withdrawnBags,
                         </TableRow>
                         <TableRow>
                             <TableCell>2. Insurance Charges</TableCell>
-                            <TableCell className="text-center">{withdrawnBags}</TableCell>
+                            <TableCell className="text-center"></TableCell>
                             <TableCell></TableCell>
                             <TableCell className="text-right font-mono"></TableCell>
                         </TableRow>
@@ -205,10 +206,29 @@ export function OutflowReceipt({ record, customer, warehouseInfo, withdrawnBags,
                         </TableRow>
                     </TableBody>
                     <TableFooter>
+                        <TableRow>
+                            <TableCell colSpan={3} className="text-right font-bold">TOTAL</TableCell>
+                            <TableCell className="text-right font-mono font-bold">{formatCurrency(totalAmount)}</TableCell>
+                        </TableRow>
+                        {discount > 0 && (
+                            <TableRow>
+                                <TableCell colSpan={3} className="text-right font-bold">Discount</TableCell>
+                                <TableCell className="text-right font-mono font-bold text-green-600">- {formatCurrency(discount)}</TableCell>
+                            </TableRow>
+                        )}
                         <TableRow className="font-bold border-t-2 border-black">
-                            <TableCell>Cash Receipt No..</TableCell>
-                            <TableCell colSpan={2} className="text-right">TOTAL</TableCell>
-                            <TableCell className="text-right font-mono">{formatCurrency(totalAmount)}</TableCell>
+                            <TableCell colSpan={3} className="text-right">GRAND TOTAL</TableCell>
+                            <TableCell className="text-right font-mono">{formatCurrency(grandTotal)}</TableCell>
+                        </TableRow>
+                        {paidNow > 0 && (
+                            <TableRow>
+                                <TableCell colSpan={3} className="text-right font-bold">Amount Paid Now</TableCell>
+                                <TableCell className="text-right font-mono font-bold text-green-600">- {formatCurrency(paidNow)}</TableCell>
+                            </TableRow>
+                        )}
+                        <TableRow>
+                            <TableCell colSpan={3} className="text-right font-bold text-destructive">Balance Due</TableCell>
+                            <TableCell className="text-right font-mono font-bold text-destructive">{formatCurrency(balanceDue)}</TableCell>
                         </TableRow>
                     </TableFooter>
                 </Table>

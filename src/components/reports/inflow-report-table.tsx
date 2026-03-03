@@ -6,18 +6,17 @@ import type { Customer, StorageRecord } from "@/lib/definitions";
 import { toDate } from '@/lib/utils';
 import { useMemo } from "react";
 import { Badge } from "../ui/badge";
-import { Button } from "../ui/button";
-import { Download } from "lucide-react";
-import { BillReceiptDialog } from "../dashboard/bill-receipt-dialog";
+import { ActionsMenu } from "../dashboard/actions-menu";
 
 
 type ReportTableProps = {
     records: StorageRecord[];
     customers: Customer[];
     title: string;
+    allRecords: StorageRecord[];
 }
 
-export function InflowReportTable({ records, customers, title }: ReportTableProps) {
+export function InflowReportTable({ records, customers, title, allRecords }: ReportTableProps) {
     const generatedDate = useMemo(() => format(new Date(), 'dd MMM yyyy, hh:mm a'), []);
 
     const getCustomerName = (customerId: string) => {
@@ -51,7 +50,6 @@ export function InflowReportTable({ records, customers, title }: ReportTableProp
                 </TableHeader>
                 <TableBody>
                     {records.map((record, index) => {
-                        const customer = customers.find(c => c.id === record.customerId);
                         return (
                         <TableRow key={record.id}>
                             <TableCell className="p-2">{format(toDate(record.storageStartDate), 'dd MMM yyyy')}</TableCell>
@@ -68,13 +66,7 @@ export function InflowReportTable({ records, customers, title }: ReportTableProp
                             <TableCell className="p-2 text-right font-mono">{record.bagsIn}</TableCell>
                             <TableCell className="p-2 text-right font-mono">{record.weight}</TableCell>
                             <TableCell className="p-2 text-right print-hide">
-                                {customer && (
-                                     <BillReceiptDialog record={record} customer={customer}>
-                                        <Button variant="ghost" size="icon">
-                                            <Download className="h-4 w-4" />
-                                        </Button>
-                                    </BillReceiptDialog>
-                                )}
+                                <ActionsMenu record={record} customers={customers} allRecords={allRecords} />
                             </TableCell>
                         </TableRow>
                     )})}

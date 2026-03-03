@@ -152,6 +152,7 @@ export function InflowReport({ records, customers }: InflowReportProps) {
                         records={inflowRecords} 
                         customers={customers}
                         title={title}
+                        allRecords={records}
                     />
                 </div>
             </CardContent>

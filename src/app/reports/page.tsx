@@ -7,9 +7,14 @@ import { useCollection } from "@/firebase/firestore/use-collection";
 import { collection } from "firebase/firestore";
 import { useFirestore } from "@/firebase/provider";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
+import { useSearchParams } from "next/navigation";
 
 export default function ReportsPage() {
     const firestore = useFirestore();
+    const searchParams = useSearchParams();
+
+    const initialReport = searchParams.get('report') || undefined;
+    const initialCustomerId = searchParams.get('customerId') || undefined;
 
     const recordsQuery = useMemoFirebase(
       () => (firestore ? collection(firestore, 'storageRecords') : null),
@@ -51,6 +56,8 @@ export default function ReportsPage() {
         customers={allCustomers || []} 
         unloadingRecords={allUnloadingRecords || []}
         expenses={allExpenses || []}
+        initialReport={initialReport}
+        initialCustomerId={initialCustomerId}
       />
     </AppLayout>
   );

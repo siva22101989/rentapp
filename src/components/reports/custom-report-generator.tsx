@@ -35,10 +35,12 @@ type ReportGeneratorProps = {
     customers: Customer[];
     unloadingRecords: UnloadingRecord[];
     expenses: Expense[];
+    initialReport?: string;
+    initialCustomerId?: string;
 }
 
-export function CustomReportGenerator({ records, customers, unloadingRecords, expenses }: ReportGeneratorProps) {
-    const [selectedReport, setSelectedReport] = useState<string>('daily-summary');
+export function CustomReportGenerator({ records, customers, unloadingRecords, expenses, initialReport, initialCustomerId }: ReportGeneratorProps) {
+    const [selectedReport, setSelectedReport] = useState<string>(initialReport || 'daily-summary');
 
     const renderReport = () => {
         switch (selectedReport) {
@@ -47,7 +49,12 @@ export function CustomReportGenerator({ records, customers, unloadingRecords, ex
             case 'all-customers':
                 return <CustomersTable customers={customers} />;
             case 'customer-statement':
-                return <ReportClient records={records} customers={customers} unloadingRecords={unloadingRecords} />;
+                return <ReportClient 
+                            records={records} 
+                            customers={customers} 
+                            unloadingRecords={unloadingRecords} 
+                            initialCustomerId={initialCustomerId}
+                        />;
             case 'active-inventory':
                 return <StorageTable />;
             case 'pending-dues':

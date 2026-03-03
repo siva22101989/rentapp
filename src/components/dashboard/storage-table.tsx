@@ -15,9 +15,11 @@ import { collection } from "firebase/firestore";
 import { useFirestore } from "@/firebase/provider";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 import { useMemo } from "react";
+import { useRouter } from "next/navigation";
 
 export function StorageTable() {
   const firestore = useFirestore();
+  const router = useRouter();
 
   const allRecordsQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'storageRecords') : null),
@@ -67,6 +69,10 @@ export function StorageTable() {
     return <div>Loading table...</div>;
   }
 
+  const handleRowClick = (customerId: string) => {
+    router.push(`/reports?report=customer-statement&customerId=${customerId}`);
+  };
+
   return (
     <Table>
       <TableHeader>
@@ -78,7 +84,11 @@ export function StorageTable() {
       </TableHeader>
       <TableBody>
         {summary.map((summaryItem) => (
-            <TableRow key={summaryItem.customerId}>
+            <TableRow
+              key={summaryItem.customerId}
+              onClick={() => handleRowClick(summaryItem.customerId)}
+              className="cursor-pointer hover:bg-muted/50"
+            >
                 <TableCell className="font-medium">{summaryItem.customerName}</TableCell>
                 <TableCell className="hidden sm:table-cell text-center">{summaryItem.recordCount}</TableCell>
                 <TableCell className="text-right font-mono font-bold">{summaryItem.totalBags}</TableCell>

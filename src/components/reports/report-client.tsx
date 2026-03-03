@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef } from 'react';
@@ -15,8 +14,8 @@ import { useFirestore } from '@/firebase/provider';
 import { doc } from 'firebase/firestore';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 
-export function ReportClient({ records, customers, unloadingRecords }: { records: StorageRecord[], customers: Customer[], unloadingRecords: UnloadingRecord[] }) {
-    const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
+export function ReportClient({ records, customers, unloadingRecords, initialCustomerId }: { records: StorageRecord[], customers: Customer[], unloadingRecords: UnloadingRecord[], initialCustomerId?: string }) {
+    const [selectedCustomerId, setSelectedCustomerId] = useState<string>(initialCustomerId || '');
     const [isGenerating, setIsGenerating] = useState(false);
     const firestore = useFirestore();
     

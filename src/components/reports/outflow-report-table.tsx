@@ -6,9 +6,7 @@ import { format } from "date-fns";
 import type { Customer, StorageRecord, Outflow, WarehouseInfo } from "@/lib/definitions";
 import { toDate, formatCurrency } from '@/lib/utils';
 import { useMemo, useState } from "react";
-import { Button } from "../ui/button";
-import { Download } from "lucide-react";
-import { OutflowReceiptDialog } from "./outflow-receipt-dialog";
+import { OutflowActionsMenu } from "./outflow-actions-menu";
 import { useDoc } from "@/firebase/firestore/use-doc";
 import { useFirestore } from "@/firebase/provider";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
@@ -73,16 +71,15 @@ export function OutflowReportTable({ events, customers, title, allRecords }: Rep
                         const fullRecord = allRecords.find(r => r.id === event.recordId);
                         const customer = customers.find(c => c.id === event.customerId);
                         
+                        const outflowIndex = fullRecord ? (fullRecord.outflows || []).findIndex(o => 
+                            toDate(o.date).getTime() === event.date.getTime() &&
+                            o.bagsWithdrawn === event.bagsWithdrawn &&
+                            o.rentBilled === event.rentBilled
+                        ) : -1;
+
                         let deliveryOrderNo = event.recordId;
-                        if (fullRecord && fullRecord.outflows) {
-                            const outflowIndex = fullRecord.outflows.findIndex(o => 
-                                toDate(o.date).getTime() === event.date.getTime() &&
-                                o.bagsWithdrawn === event.bagsWithdrawn &&
-                                o.rentBilled === event.rentBilled
-                            );
-                            if (outflowIndex !== -1) {
-                                deliveryOrderNo = `${event.recordId}-${outflowIndex + 1}`;
-                            }
+                        if (outflowIndex !== -1) {
+                            deliveryOrderNo = `${event.recordId}-${outflowIndex + 1}`;
                         }
 
                         return (
@@ -95,19 +92,16 @@ export function OutflowReportTable({ events, customers, title, allRecords }: Rep
                             <TableCell className="p-2 text-right font-mono">{event.bagsWithdrawn}</TableCell>
                             <TableCell className="p-2 text-right font-mono">{formatCurrency(event.rentBilled)}</TableCell>
                             <TableCell className="p-2 print-hide text-right">
-                                {fullRecord && customer && (
-                                    <OutflowReceiptDialog
+                                {fullRecord && customer && outflowIndex !== -1 && (
+                                    <OutflowActionsMenu
                                         record={fullRecord}
                                         customer={customer}
                                         warehouseInfo={warehouseInfo}
                                         outflow={event}
+                                        outflowIndex={outflowIndex}
                                         deliveryOrderNo={deliveryOrderNo}
                                         deliveryOrderDate={event.date}
-                                    >
-                                        <Button variant="ghost" size="icon">
-                                            <Download className="h-4 w-4" />
-                                        </Button>
-                                    </OutflowReceiptDialog>
+                                    />
                                 )}
                             </TableCell>
                         </TableRow>

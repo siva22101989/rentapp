@@ -191,28 +191,26 @@ export function InflowReceipt({ record, customer, warehouseInfo }: { record: Sto
         );
     }
 
-    // Original Godown Receipt for Direct inflow
+    // Godown Receipt for Direct inflow
     return (
         <div className="w-full max-w-2xl mx-auto bg-background p-4 sm:p-6">
-            <div ref={receiptRef} className="printable-area bg-white p-4 border-2 border-blue-800 font-sans" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-                <div className="text-center mb-2">
-                    <div className="text-sm">Cell: {warehouseInfo?.phone || '9703503423, 9160606633'}</div>
-                    <h1 className="text-2xl font-bold text-blue-900">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</h1>
-                    {warehouseInfo?.ownerName && <p className="text-sm">Prop: {warehouseInfo.ownerName}</p>}
-                    <p className="text-sm">{warehouseInfo?.addressLine1 || 'Survey No. 165,237/2, Owk - Koilakuntla Road, OWK - 518 122,'}</p>
-                    <p className="text-sm">{warehouseInfo?.addressLine2 || 'Owk (M), Kurnool (Dt.), A.P.'}</p>
+            <div ref={receiptRef} className="printable-area bg-white p-4 border border-black font-sans text-xs" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                <div className="text-center mb-4">
+                    <p className="text-xs">Cell: {warehouseInfo?.phone || 'N/A'}</p>
+                    <h1 className="text-lg font-bold text-blue-900">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</h1>
+                    <p className="text-xs">{warehouseInfo?.addressLine1 || 'Address Line 1'}</p>
+                    <p className="text-xs">{warehouseInfo?.addressLine2 || 'Address Line 2'}</p>
+                    {warehouseInfo?.email && <p className="text-xs">{warehouseInfo.email}</p>}
                 </div>
                 
-                <div className="flex justify-between items-center mb-1">
-                    <h2 className="text-lg font-bold underline">GODOWN RECEIPT</h2>
-                </div>
+                <h2 className="text-sm font-bold underline text-center mb-2">GODOWN RECEIPT</h2>
 
-                <div className="flex justify-between items-baseline my-2 text-base">
-                    <div><span className="font-bold">Serial No.</span> {record.id}</div>
+                <div className="flex justify-between items-baseline mb-4">
+                    <div><span className="font-bold">Receipt #</span> {record.id}</div>
                     <div><span className="font-bold">Date:</span> {formattedDate}</div>
                 </div>
 
-                <div className="space-y-2 text-base">
+                <div className="space-y-1">
                     <div className="flex">
                         <span className="w-1/3 font-bold">LORRY / TRACTOR No.</span>
                         <span>: {record.lorryTractorNo || 'N/A'}</span>
@@ -221,42 +219,25 @@ export function InflowReceipt({ record, customer, warehouseInfo }: { record: Sto
                         <span className="w-1/3 font-bold">NAME OF THE FARMER</span>
                         <span>: {customer.name}</span>
                     </div>
-                    {customer.fatherName && (
-                        <div className="flex">
-                            <span className="w-1/3 font-bold">FATHER'S NAME</span>
-                            <span>: {customer.fatherName}</span>
-                        </div>
-                    )}
                     <div className="flex">
                         <span className="w-1/3 font-bold">VILLAGE</span>
                         <span>: {customer.village || 'N/A'}</span>
                     </div>
                     <div className="flex">
-                        <span className="w-1/3 font-bold">PRODUCT</span>
+                        <span className="w-1/3 font-bold">COMMODITY</span>
                         <span>: {record.commodityDescription}</span>
                     </div>
-                    <div className="flex text-base">
-                        <span className="w-1/3 font-bold">No. OF BAGS</span>
-                        <span className="w-1/3">: {record.bagsIn || 0}</span>
-                        <span className="w-1/3"><span className="font-bold">WEIGHT:</span> {record.weight ? `${record.weight} kgs` : '____'}</span>
+                    <div className="flex">
+                        <span className="w-1/3 font-bold">NO. OF BAGS</span>
+                        <span>: {record.bagsIn || 0}</span>
                     </div>
                     <div className="flex">
-                        <span className="w-1/3 font-bold">LOT No.</span>
+                        <span className="w-1/3 font-bold">LOT NO.</span>
                         <span>: {record.location}</span>
                     </div>
                      <div className="flex">
-                        <span className="w-1/3 font-bold">WAREHOUSE RECEIPT No.</span>
-                        <span>: {record.id}</span>
-                    </div>
-                </div>
-
-                <div className="mt-20 flex justify-between text-center">
-                    <div className="w-1/2">
-                        <div className="font-bold">STOCK RECEIVED</div>
-                         <div className="mt-12 border-t border-gray-400 mx-4 pt-1">GODOWN INCHARGE SIGNATURE</div>
-                    </div>
-                    <div className="w-1/2">
-                         <div className="mt-20 border-t border-gray-400 mx-4 pt-1">FARMER / AGENT SIGNATURE</div>
+                        <span className="w-1/3 font-bold">HAMALI PAYABLE</span>
+                        <span>: {formatCurrency(record.hamaliPayable)}</span>
                     </div>
                 </div>
             </div>

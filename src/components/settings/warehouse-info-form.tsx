@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useTransition, useEffect } from 'react';
@@ -22,6 +23,7 @@ import { Textarea } from '../ui/textarea';
 const WarehouseInfoSchema = z.object({
   name: z.string().min(3, 'Warehouse name is required.'),
   phone: z.string().optional(),
+  email: z.string().email('Invalid email address.').optional().or(z.literal('')),
   addressLine1: z.string().optional(),
   addressLine2: z.string().optional(),
   ownerName: z.string().optional(),
@@ -46,6 +48,7 @@ export function WarehouseInfoForm() {
         defaultValues: {
             name: '',
             phone: '',
+            email: '',
             addressLine1: '',
             addressLine2: '',
             ownerName: '',
@@ -58,6 +61,7 @@ export function WarehouseInfoForm() {
             form.reset({
                 name: warehouseInfo.name || '',
                 phone: warehouseInfo.phone || '',
+                email: warehouseInfo.email || '',
                 addressLine1: warehouseInfo.addressLine1 || '',
                 addressLine2: warehouseInfo.addressLine2 || '',
                 ownerName: warehouseInfo.ownerName || '',
@@ -144,6 +148,17 @@ export function WarehouseInfoForm() {
                             <FormItem>
                                 <FormLabel>Phone Number</FormLabel>
                                 <FormControl><Input placeholder="e.g., 9160606633" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                     <FormField
+                        control={form.control}
+                        name="email"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Email Address</FormLabel>
+                                <FormControl><Input type="email" placeholder="e.g., contact@warehouse.com" {...field} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}

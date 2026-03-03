@@ -83,6 +83,17 @@ export type Expense = {
   date: Date | Timestamp;
 };
 
+export type WarehouseInfo = {
+  id: string;
+  name: string;
+  ownerName?: string;
+  phone?: string;
+  email?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  bankDetails?: string;
+};
+
 export type UnloadingRecord = {
   id: string;
   customerId: string;

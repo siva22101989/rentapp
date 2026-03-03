@@ -312,52 +312,61 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                             <Separator />
                             <div className="space-y-4">
                                 <h4 className="font-medium">Final Billing Summary</h4>
-                                <div className="space-y-2">
-                                    <div className="flex justify-between items-center text-sm">
+                                <div className="space-y-2 text-sm">
+                                    <div className="flex justify-between items-center">
                                         <span className="text-muted-foreground">Storage Duration</span>
                                         <span className="font-mono">{storageMonths} months</span>
                                     </div>
-                                    <div className="flex justify-between items-center text-sm">
+                                    <div className="flex justify-between items-center">
                                         <span className="text-muted-foreground">Rent Due for {Number(bagsToWithdraw) || 0} bags</span>
                                         <span className="font-mono">{formatCurrency(finalRent)}</span>
                                     </div>
-                                     <div className="flex justify-between items-center text-sm">
+                                     <div className="flex justify-between items-center">
                                         <span className="text-muted-foreground">Pending Hamali Charges</span>
                                         <span className="font-mono">{formatCurrency(hamaliPending)}</span>
                                     </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="discount">Discount</Label>
-                                        <Input
-                                            id="discount"
-                                            name="discount"
-                                            type="number"
-                                            placeholder="0.00"
-                                            step="0.01"
-                                            value={discount}
-                                            onChange={e => setDiscount(e.target.value === '' ? '' : Number(e.target.value))}
-                                        />
-                                    </div>
-                                    <Separator />
-                                    <div className="flex justify-between items-center font-semibold text-lg">
-                                        <span className="text-foreground">Total Payable</span>
-                                        <span className="font-mono">{formatCurrency(totalPayable)}</span>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="amountPaidNow">Total Paid Now</Label>
-                                        <Input
-                                            id="amountPaidNow"
-                                            name="amountPaidNow"
-                                            type="number"
-                                            placeholder="0.00"
-                                            step="0.01"
-                                            value={amountPaidNow}
-                                            onChange={e => setAmountPaidNow(e.target.value === '' ? '' : Number(e.target.value))}
-                                            max={totalPayable.toFixed(2)}
-                                        />
-                                        <p className="text-xs text-muted-foreground">
-                                            Enter the amount paid by the customer. Leave blank if unpaid.
-                                        </p>
-                                    </div>
+                                </div>
+                            </div>
+
+                            <Separator/>
+
+                            <div className="space-y-4 pt-2">
+                                <div className="space-y-2">
+                                    <Label htmlFor="discount">Discount Amount</Label>
+                                    <Input
+                                        id="discount"
+                                        name="discount"
+                                        type="number"
+                                        placeholder="0.00"
+                                        step="0.01"
+                                        value={discount}
+                                        onChange={e => setDiscount(e.target.value === '' ? '' : Number(e.target.value))}
+                                    />
+                                     <p className="text-xs text-muted-foreground">
+                                        Enter any discount amount to be applied to the bill.
+                                    </p>
+                                </div>
+
+                                <div className="flex justify-between items-center font-semibold text-lg">
+                                    <span className="text-foreground">Total Payable</span>
+                                    <span className="font-mono">{formatCurrency(totalPayable)}</span>
+                                </div>
+                                
+                                <div className="space-y-2">
+                                    <Label htmlFor="amountPaidNow">Total Paid Now</Label>
+                                    <Input
+                                        id="amountPaidNow"
+                                        name="amountPaidNow"
+                                        type="number"
+                                        placeholder="0.00"
+                                        step="0.01"
+                                        value={amountPaidNow}
+                                        onChange={e => setAmountPaidNow(e.target.value === '' ? '' : Number(e.target.value))}
+                                        max={totalPayable.toFixed(2)}
+                                    />
+                                    <p className="text-xs text-muted-foreground">
+                                        Enter the amount paid by the customer. Leave blank if unpaid.
+                                    </p>
                                 </div>
                             </div>
                         </>

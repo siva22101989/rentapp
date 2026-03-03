@@ -39,7 +39,7 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
     let durationStr = '';
     if (years > 0) durationStr += `${years} Year${years > 1 ? 's' : ''} `;
     if (months > 0 || years === 0) durationStr += `${months} month${months > 1 ? 's' : ''}`;
-    if (durationString === '') durationString = 'Less than a month';
+    if (durationStr === '') durationStr = 'Less than a month';
 
     const { rentPerBag } = calculateFinalRent({
         ...record,
@@ -119,7 +119,7 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
                         <p><span className="font-bold">Address:</span> {customer.village || 'N/A'}</p>
                     </div>
                     <div className="text-right">
-                        <p>{durationString}</p>
+                        <p>{durationStr}</p>
                         <p><span className="font-bold">Date:</span> {formattedEndDate}</p>
                     </div>
                 </div>

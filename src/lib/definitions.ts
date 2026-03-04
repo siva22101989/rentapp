@@ -94,6 +94,9 @@ export type WarehouseInfo = {
   bankDetails?: string;
 };
 
+export const unloadingStatus = ["Unloading", "Drying", "Packing", "Billed"] as const;
+export type UnloadingStatus = typeof unloadingStatus[number];
+
 export type UnloadingRecord = {
   id: string;
   customerId: string;
@@ -101,10 +104,37 @@ export type UnloadingRecord = {
   lorryTractorNo?: string;
   unloadingDate: Date | Timestamp;
   bagsUnloaded: number;
+  status: UnloadingStatus;
   bagsSentToDrying: number;
   hamaliPerBag: number;
   totalHamali: number;
   workerHamaliPayable?: number;
   billNo?: string;
   payments?: Payment[];
+};
+
+export const dryingStatus = ["Drying", "Packing", "Billed"] as const;
+export type DryingStatus = typeof dryingStatus[number];
+
+export type HamaliCharge = {
+  description: string;
+  amount: number;
+  date: Date | Timestamp;
+};
+
+export type DryingRecord = {
+  id: string;
+  unloadingRecordId: string;
+  customerId: string;
+  commodityDescription: string;
+  bagsForDrying: number;
+  bagsPacked?: number;
+  status: DryingStatus;
+  dryingStartDate: Date | Timestamp;
+  packingDate?: Date | Timestamp | null;
+  billingDate?: Date | Timestamp | null;
+  hamaliPerBag: number;
+  totalDryingHamali: number;
+  hamaliCharges?: HamaliCharge[];
+  totalDryingWorkerHamali?: number;
 };

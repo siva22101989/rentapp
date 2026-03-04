@@ -1,4 +1,3 @@
-
 'use client';
 import {
   Table,
@@ -9,13 +8,21 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useMemo } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { Customer, StorageRecord } from "@/lib/definitions";
 import { Badge } from "@/components/ui/badge";
 import { AddPaymentDialog } from "@/components/payments/add-payment-dialog";
 import { formatCurrency } from "@/lib/utils";
+import { Button } from "../ui/button";
+import { Download, Loader2 } from "lucide-react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
+import { PendingDuesReportTable } from "../reports/pending-dues-report-table";
 
 export function PendingPaymentsTable({ records, customers }: { records: StorageRecord[], customers: Customer[] }) {
+
+    const [isGenerating, setIsGenerating] = useState(false);
+    const reportRef = useRef<HTMLDivElement>(null);
 
     const pendingRecords = useMemo(() => {
         if (!records) return [];
@@ -57,10 +64,50 @@ export function PendingPaymentsTable({ records, customers }: { records: StorageR
         return customers?.find(c => c.id === customerId)?.name ?? 'Unknown';
     }
 
+    const handleDownloadPdf = async () => {
+        const element = reportRef.current;
+        if (!element) return;
+        setIsGenerating(true);
+        try {
+            const canvas = await html2canvas(element, { 
+                scale: 2, 
+                useCORS: true,
+                windowWidth: element.scrollWidth,
+                windowHeight: element.scrollHeight
+            });
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('l', 'mm', 'a4'); // Landscape
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+            const imgWidth = canvas.width;
+            const imgHeight = canvas.height;
+            const ratio = imgWidth / imgHeight;
+            let widthInPdf = pdfWidth - 20;
+            let heightInPdf = widthInPdf / ratio;
+            if (heightInPdf > pdfHeight - 20) {
+                heightInPdf = pdfHeight - 20;
+                widthInPdf = heightInPdf * ratio;
+            }
+            const x = (pdfWidth - widthInPdf) / 2;
+            const y = 10;
+
+            pdf.addImage(imgData, 'PNG', x, y, widthInPdf, heightInPdf);
+            pdf.save(`pending-dues-report-${Date.now()}.pdf`);
+        } catch (error) {
+            console.error('Error generating PDF:', error);
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
   return (
         <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Outstanding Balances</CardTitle>
+                <Button onClick={handleDownloadPdf} disabled={isGenerating || pendingRecords.length === 0} size="sm">
+                    {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                    Download List
+                </Button>
             </CardHeader>
             <CardContent>
                  <Table>
@@ -111,6 +158,15 @@ export function PendingPaymentsTable({ records, customers }: { records: StorageR
                     </TableBody>
                  </Table>
             </CardContent>
+            <div className="hidden">
+                <div ref={reportRef}>
+                    <PendingDuesReportTable
+                        records={pendingRecords}
+                        customers={customers}
+                        title="Pending Dues Report"
+                    />
+                </div>
+            </div>
         </Card>
   );
 }

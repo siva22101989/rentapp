@@ -127,8 +127,12 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
         return 1;
     }, [startDate, endDate]);
 
-    const pavHamali = (Number(bagsForDrying) || 0) * (Number(pavHamaliPerBag) || 0) * dryingDays;
-    const cuppaHamali = (Number(bagsForDrying) || 0) * (Number(cuppaHamaliPerBag) || 0) * dryingDays;
+    const extraDryingDays = useMemo(() => {
+        return dryingDays > 1 ? dryingDays - 1 : 0;
+    }, [dryingDays]);
+
+    const pavHamali = (Number(bagsForDrying) || 0) * (Number(pavHamaliPerBag) || 0) * extraDryingDays;
+    const cuppaHamali = (Number(bagsForDrying) || 0) * (Number(cuppaHamaliPerBag) || 0) * extraDryingDays;
     
     const day1DryingHamali = (Number(bagsForDrying) || 0) * (Number(customerDay1HamaliRate) || 0);
 
@@ -242,20 +246,23 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                     });
                 }
 
-                const pavHamaliAmount = data.bagsForDrying * (data.pavHamaliPerBag || 0) * dryingDays;
+                const totalDryingDays = differenceInDays(new Date(data.dryingEndDate), new Date(data.dryingStartDate)) + 1;
+                const extraDaysForSubmission = totalDryingDays > 1 ? totalDryingDays - 1 : 0;
+
+                const pavHamaliAmount = data.bagsForDrying * (data.pavHamaliPerBag || 0) * extraDaysForSubmission;
                 if (pavHamaliAmount > 0) {
                      hamaliDetails.push({
-                        description: `Pav Hamali (${dryingDays} Days)`,
+                        description: `Pav Hamali (${extraDaysForSubmission} extra day${extraDaysForSubmission !== 1 ? 's' : ''})`,
                         bags: data.bagsForDrying,
                         rate: data.pavHamaliPerBag || 0,
                         amount: pavHamaliAmount
                     });
                 }
 
-                const cuppaHamaliAmount = data.bagsForDrying * (data.cuppaHamaliPerBag || 0) * dryingDays;
+                const cuppaHamaliAmount = data.bagsForDrying * (data.cuppaHamaliPerBag || 0) * extraDaysForSubmission;
                 if (cuppaHamaliAmount > 0) {
                     hamaliDetails.push({
-                        description: `Cuppa Hamali (${dryingDays} Days)`,
+                        description: `Cuppa Hamali (${extraDaysForSubmission} extra day${extraDaysForSubmission !== 1 ? 's' : ''})`,
                         bags: data.bagsForDrying,
                         rate: data.cuppaHamaliPerBag || 0,
                         amount: cuppaHamaliAmount
@@ -547,11 +554,11 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                             <span className="font-mono">{formatCurrency(day1DryingHamali)}</span>
                         </div>
                         <div className="flex justify-between items-center text-sm">
-                            <span className="text-muted-foreground">Pav Hamali ({dryingDays} Days)</span>
+                            <span className="text-muted-foreground">Pav Hamali ({extraDryingDays} extra day{extraDryingDays !== 1 ? 's' : ''})</span>
                             <span className="font-mono">{formatCurrency(pavHamali)}</span>
                         </div>
                         <div className="flex justify-between items-center text-sm">
-                            <span className="text-muted-foreground">Cuppa Hamali ({dryingDays} Days)</span>
+                            <span className="text-muted-foreground">Cuppa Hamali ({extraDryingDays} extra day{extraDryingDays !== 1 ? 's' : ''})</span>
                             <span className="font-mono">{formatCurrency(cuppaHamali)}</span>
                         </div>
                         <Separator />
@@ -572,11 +579,11 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                             <span className="font-mono">{formatCurrency(workerHamaliDay1)}</span>
                         </div>
                         <div className="flex justify-between items-center text-sm">
-                            <span className="text-muted-foreground">Pav Hamali ({dryingDays} Days)</span>
+                            <span className="text-muted-foreground">Pav Hamali ({extraDryingDays} extra day{extraDryingDays !== 1 ? 's' : ''})</span>
                             <span className="font-mono">{formatCurrency(pavHamali)}</span>
                         </div>
                         <div className="flex justify-between items-center text-sm">
-                            <span className="text-muted-foreground">Cuppa Hamali ({dryingDays} Days)</span>
+                            <span className="text-muted-foreground">Cuppa Hamali ({extraDryingDays} extra day{extraDryingDays !== 1 ? 's' : ''})</span>
                             <span className="font-mono">{formatCurrency(cuppaHamali)}</span>
                         </div>
                         <Separator />

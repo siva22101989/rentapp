@@ -86,11 +86,11 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
         commodityDescription: record.commodityDescription,
         location: record.location || '',
         storageStartDate: format(toDate(record.storageStartDate), 'yyyy-MM-dd'),
-        bagsIn: record.bagsIn,
-        weight: record.weight || '',
+        bagsIn: record.bagsIn ?? '',
+        weight: record.weight ?? '',
         lorryTractorNo: record.lorryTractorNo || '',
-        hamaliPayable: record.hamaliPayable,
-        khataAmount: record.khataAmount || '',
+        hamaliPayable: record.hamaliPayable ?? '',
+        khataAmount: record.khataAmount ?? '',
       });
     }
     setIsOpen(open);
@@ -210,7 +210,7 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
                     render={({ field }) => (
                     <FormItem>
                         <FormLabel>Bags In</FormLabel>
-                        <FormControl><Input type="number" {...field} /></FormControl>
+                        <FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl>
                         <FormMessage />
                     </FormItem>
                     )}
@@ -234,7 +234,7 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
                     render={({ field }) => (
                     <FormItem>
                         <FormLabel>Hamali Payable</FormLabel>
-                        <FormControl><Input type="number" step="0.01" {...field} /></FormControl>
+                        <FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ''} /></FormControl>
                         <FormMessage />
                     </FormItem>
                     )}

@@ -1,3 +1,4 @@
+
 import {
   collection,
   doc,
@@ -12,7 +13,7 @@ import {
   writeBatch,
   arrayUnion,
 } from 'firebase/firestore';
-import type { Customer, Expense, Payment, StorageRecord, Commodity, Outflow } from './definitions';
+import type { Customer, Expense, Payment, StorageRecord, Commodity, Outflow, UnloadingRecord } from './definitions';
 import { cleanForFirestore } from './utils';
 
 // These functions are intended for client-side use.
@@ -116,4 +117,22 @@ export const editOutflowEvent = async (db: Firestore, recordId: string, outflowI
     await updateDoc(recordRef, {
         outflows: cleanForFirestore(outflows),
     });
+};
+
+export const updateUnloadingRecord = async (db: Firestore, id: string, data: Partial<UnloadingRecord>): Promise<void> => {
+    const recordRef = doc(db, 'unloadingRecords', id);
+    await updateDoc(recordRef, cleanForFirestore(data));
+};
+
+export const deleteUnloadingRecord = async (db: Firestore, id: string): Promise<void> => {
+    const recordRef = doc(db, 'unloadingRecords', id);
+    const recordSnap = await getDoc(recordRef);
+    if (!recordSnap.exists()) {
+        throw new Error("Record not found.");
+    }
+    const record = recordSnap.data() as UnloadingRecord;
+    if (record.bagsSentToDrying && record.bagsSentToDrying > 0) {
+        throw new Error("Cannot delete unloading record. It is already linked to a drying or storage process.");
+    }
+    await deleteDoc(recordRef);
 };

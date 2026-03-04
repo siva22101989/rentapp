@@ -60,7 +60,11 @@ export default function UnloadingPage() {
             <AddUnloadingRecordForm customers={customers || []} commodities={commodities || []} nextBillNo={nextBillNo} />
           </div>
           <div className="lg:col-span-2">
-            <UnloadingRecordsTable unloadingRecords={unloadingRecords || []} customers={customers || []} />
+            <UnloadingRecordsTable 
+              unloadingRecords={unloadingRecords || []} 
+              customers={customers || []}
+              commodities={commodities || []}
+            />
           </div>
       </div>
     </AppLayout>

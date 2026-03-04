@@ -1,22 +1,24 @@
 
 'use client';
 
-import { MoreHorizontal, IndianRupee } from "lucide-react";
+import { MoreHorizontal, IndianRupee, Pencil, Trash2, FileText } from "lucide-react";
 import { Button } from "../ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
-import type { UnloadingRecord } from "@/lib/definitions";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu";
+import type { UnloadingRecord, Customer, Commodity } from "@/lib/definitions";
 import { AddUnloadingPaymentDialog } from "./add-unloading-payment-dialog";
+import { EditUnloadingRecordDialog } from "./edit-unloading-record-dialog";
+import { DeleteUnloadingRecordDialog } from "./delete-unloading-record-dialog";
+import { ViewUnloadingReceiptDialog } from "./view-unloading-receipt-dialog";
 
 type ActionsMenuProps = {
     record: UnloadingRecord & { hamaliPending: number; };
+    customers: Customer[];
+    commodities: Commodity[];
 }
 
-export function UnloadingTableActionsMenu({ record }: ActionsMenuProps) {
-
-    if (record.hamaliPending <= 0) {
-        return null; // Don't show menu if nothing is pending
-    }
-
+export function UnloadingTableActionsMenu({ record, customers, commodities }: ActionsMenuProps) {
+    const customer = customers.find(c => c.id === record.customerId);
+    
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -26,12 +28,39 @@ export function UnloadingTableActionsMenu({ record }: ActionsMenuProps) {
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-                <AddUnloadingPaymentDialog record={record}>
+                {customer && (
+                    <ViewUnloadingReceiptDialog record={record} customer={customer}>
+                         <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                            <FileText className="mr-2 h-4 w-4" />
+                            View/Print Receipt
+                        </DropdownMenuItem>
+                    </ViewUnloadingReceiptDialog>
+                )}
+
+                <EditUnloadingRecordDialog record={record} customers={customers} commodities={commodities}>
                     <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                        <IndianRupee className="mr-2 h-4 w-4" />
-                        Add Payment
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Edit
                     </DropdownMenuItem>
-                </AddUnloadingPaymentDialog>
+                </EditUnloadingRecordDialog>
+                
+                {record.hamaliPending > 0 && (
+                    <AddUnloadingPaymentDialog record={record}>
+                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                            <IndianRupee className="mr-2 h-4 w-4" />
+                            Add Payment
+                        </DropdownMenuItem>
+                    </AddUnloadingPaymentDialog>
+                )}
+                
+                <DropdownMenuSeparator />
+
+                <DeleteUnloadingRecordDialog recordId={record.id}>
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                    </DropdownMenuItem>
+                </DeleteUnloadingRecordDialog>
             </DropdownMenuContent>
         </DropdownMenu>
     );

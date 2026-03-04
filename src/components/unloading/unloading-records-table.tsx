@@ -12,7 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns';
 import { formatCurrency, toDate } from "@/lib/utils";
-import type { Customer, UnloadingRecord } from "@/lib/definitions";
+import type { Customer, UnloadingRecord, Commodity } from "@/lib/definitions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { UnloadingTableActionsMenu } from "./unloading-table-actions-menu";
 
@@ -32,7 +32,7 @@ const getRecordStatus = (record: UnloadingRecord): StatusInfo => {
     return { text: 'Drying Complete', variant: 'bg-green-100 text-green-800' };
 };
   
-export function UnloadingRecordsTable({ unloadingRecords, customers }: { unloadingRecords: UnloadingRecord[], customers: Customer[] }) {
+export function UnloadingRecordsTable({ unloadingRecords, customers, commodities }: { unloadingRecords: UnloadingRecord[], customers: Customer[], commodities: Commodity[] }) {
 
     const getCustomerName = (customerId: string) => {
         return customers.find(c => c.id === customerId)?.name ?? 'Unknown';
@@ -95,7 +95,7 @@ export function UnloadingRecordsTable({ unloadingRecords, customers }: { unloadi
                             </Badge>
                         </TableCell>
                         <TableCell>
-                            <UnloadingTableActionsMenu record={record} />
+                            <UnloadingTableActionsMenu record={record} customers={customers} commodities={commodities} />
                         </TableCell>
                     </TableRow>
                     )

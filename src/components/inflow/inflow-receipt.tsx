@@ -5,7 +5,7 @@ import { useRef, useState, useEffect, useCallback } from 'react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Separator } from '@/components/ui/separator';
-import type { Customer, StorageRecord, WarehouseInfo } from '@/lib/definitions';
+import type { Customer, StorageRecord, WarehouseInfo, UnloadingRecord } from '@/lib/definitions';
 import { format, differenceInDays } from 'date-fns';
 import { Button } from '../ui/button';
 import { Download, Loader2 } from 'lucide-react';
@@ -13,7 +13,7 @@ import { toDate, formatCurrency } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '../ui/table';
 
 
-export function InflowReceipt({ record, customer, warehouseInfo }: { record: StorageRecord, customer: Customer, warehouseInfo: WarehouseInfo | null }) {
+export function InflowReceipt({ record, customer, warehouseInfo, unloadingRecord }: { record: StorageRecord, customer: Customer, warehouseInfo: WarehouseInfo | null, unloadingRecord?: UnloadingRecord }) {
     const receiptRef = useRef<HTMLDivElement>(null);
     const [formattedDate, setFormattedDate] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
@@ -125,8 +125,26 @@ export function InflowReceipt({ record, customer, warehouseInfo }: { record: Sto
                         {customer.fatherName && <div className="flex"><span className="w-1/3 font-bold">FATHER'S NAME</span><span>: {customer.fatherName}</span></div>}
                         <div className="flex"><span className="w-1/3 font-bold">VILLAGE</span><span>: {customer.village || 'N/A'}</span></div>
                         <div className="flex"><span className="w-1/3 font-bold">PRODUCT</span><span>: {record.commodityDescription}</span></div>
-                        <div className="flex"><span className="w-1/3 font-bold">DRYING DAYS</span><span>: {dryingDays ?? 'N/A'} days</span></div>
                         <div className="flex"><span className="w-1/3 font-bold">LOT No.</span><span>: {record.location}</span></div>
+                    </div>
+                    
+                    <div className="my-2 p-2 border-y">
+                        <h3 className="text-xs font-bold text-center mb-1">PROCESS DATES</h3>
+                        <div className="grid grid-cols-3 gap-x-2 text-center">
+                            <div>
+                                <p className="font-semibold">Unloading</p>
+                                <p>{unloadingRecord ? format(toDate(unloadingRecord.unloadingDate), 'dd/MM/yy') : 'N/A'}</p>
+                            </div>
+                             <div>
+                                <p className="font-semibold">Drying Start</p>
+                                <p>{record.dryingStartDate ? format(toDate(record.dryingStartDate), 'dd/MM/yy') : 'N/A'}</p>
+                            </div>
+                             <div>
+                                <p className="font-semibold">Storage Start</p>
+                                <p>{record.dryingEndDate ? format(toDate(record.dryingEndDate), 'dd/MM/yy') : 'N/A'}</p>
+                            </div>
+                        </div>
+                         <p className="text-center mt-1"><span className="font-bold">Total Drying Days:</span> {dryingDays ?? 'N/A'}</p>
                     </div>
 
                     <div className="mb-2 p-2 bg-gray-100 rounded-md text-black">

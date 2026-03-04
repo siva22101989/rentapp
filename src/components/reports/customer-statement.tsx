@@ -67,11 +67,11 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
 
         // Outflows from the new model
         if (Array.isArray(record.outflows)) {
-            record.outflows.forEach(outflow => {
+            record.outflows.forEach((outflow, index) => {
                 events.push({
                     date: toDate(outflow.date),
                     description: `Outflow`,
-                    invoiceId: record.id,
+                    invoiceId: `${record.id}-${index + 1}`,
                     lotNo: record.location || '',
                     bagsUnloaded: 0,
                     bagsIn: 0,
@@ -174,7 +174,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             <div className="text-right">
                 <p>{warehouseInfo?.addressLine1}</p>
                 <p>{warehouseInfo?.addressLine2}</p>
-                <p>accounts@slwarehouse.com</p>
+                <p>{warehouseInfo?.email}</p>
                 <p>www.slwarehouse.com</p>
                 <p>Phone: {warehouseInfo?.phone}</p>
             </div>
@@ -222,7 +222,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                     <TableRow className="border-b-2 border-black">
                         <TableHead className="text-black font-bold">Date</TableHead>
                         <TableHead className="text-black font-bold">Description</TableHead>
-                        <TableHead className="text-black font-bold hidden lg:table-cell">Invoice No</TableHead>
+                        <TableHead className="text-black font-bold hidden sm:table-cell">Bill No</TableHead>
                         <TableHead className="text-black font-bold hidden lg:table-cell">Lot No</TableHead>
                         <TableHead className="text-right text-black font-bold hidden md:table-cell">Unloaded</TableHead>
                         <TableHead className="text-right text-black font-bold hidden md:table-cell">Stored</TableHead>
@@ -238,7 +238,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                         <TableRow key={index} className="border-0">
                             <TableCell className="py-1">{format(item.date, 'dd/MM/yyyy')}</TableCell>
                             <TableCell className="py-1">{item.description}</TableCell>
-                            <TableCell className="py-1 hidden lg:table-cell">{item.invoiceId}</TableCell>
+                            <TableCell className="py-1 hidden sm:table-cell">{item.invoiceId}</TableCell>
                             <TableCell className="py-1 hidden lg:table-cell">{item.lotNo}</TableCell>
                             <TableCell className="text-right py-1 hidden md:table-cell">{item.bagsUnloaded || ''}</TableCell>
                             <TableCell className="text-right py-1 hidden md:table-cell">{item.bagsIn || ''}</TableCell>
@@ -253,7 +253,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                  <TableFooter>
                     <TableRow className="border-t-2 border-black">
                         <TableCell colSpan={2} className="text-right font-bold">Totals:</TableCell>
-                        <TableCell className="hidden lg:table-cell" />
+                        <TableCell className="hidden sm:table-cell" />
                         <TableCell className="hidden lg:table-cell" />
                         <TableCell className="text-right font-bold hidden md:table-cell">{summary.totalBagsUnloaded}</TableCell>
                         <TableCell className="text-right font-bold hidden md:table-cell">{summary.totalBagsIn}</TableCell>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef, useMemo } from 'react';
@@ -6,15 +5,11 @@ import type { Customer, UnloadingRecord } from "@/lib/definitions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from '@/components/ui/button';
-import { Download, Loader2, Calendar as CalendarIcon, X } from 'lucide-react';
+import { Download, Loader2 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { UnloadingReportTable } from './unloading-report-table';
 import { toDate } from '@/lib/utils';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { format } from 'date-fns';
-import { DateRange } from 'react-day-picker';
 
 type UnloadingReportProps = {
     unloadingRecords: UnloadingRecord[];
@@ -23,7 +18,6 @@ type UnloadingReportProps = {
 
 export function UnloadingReport({ unloadingRecords, customers }: UnloadingReportProps) {
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>('all');
-    const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
     const [isGenerating, setIsGenerating] = useState(false);
     
     const reportRef = useRef<HTMLDivElement>(null);
@@ -34,17 +28,9 @@ export function UnloadingReport({ unloadingRecords, customers }: UnloadingReport
         if (selectedCustomerId && selectedCustomerId !== 'all') {
             records = records.filter(r => r.customerId === selectedCustomerId);
         }
-        if (dateRange?.from) {
-            records = records.filter(r => toDate(r.unloadingDate) >= dateRange.from!);
-        }
-        if (dateRange?.to) {
-            const toDateObj = new Date(dateRange.to);
-            toDateObj.setHours(23, 59, 59, 999); // Include the whole day
-            records = records.filter(r => toDate(r.unloadingDate) <= toDateObj);
-        }
 
-        return records.sort((a,b) => toDate(a.unloadingDate).getTime() - toDate(b.unloadingDate).getTime());
-    }, [unloadingRecords, selectedCustomerId, dateRange]);
+        return records.sort((a,b) => toDate(b.unloadingDate).getTime() - toDate(a.unloadingDate).getTime());
+    }, [unloadingRecords, selectedCustomerId]);
 
 
     const handleDownloadPdf = async () => {
@@ -106,41 +92,7 @@ export function UnloadingReport({ unloadingRecords, customers }: UnloadingReport
                             ))}
                         </SelectContent>
                     </Select>
-                     <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            id="date"
-                            variant={"outline"}
-                            className="w-full sm:w-[260px] justify-start text-left font-normal"
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {dateRange?.from ? (
-                              dateRange.to ? (
-                                <>
-                                  {format(dateRange.from, "LLL dd, y")} -{" "}
-                                  {format(dateRange.to, "LLL dd, y")}
-                                </>
-                              ) : (
-                                format(dateRange.from, "LLL dd, y")
-                              )
-                            ) : (
-                              <span>Pick a date range</span>
-                            )}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="end">
-                          <Calendar
-                            initialFocus
-                            mode="range"
-                            defaultMonth={dateRange?.from}
-                            selected={dateRange}
-                            onSelect={setDateRange}
-                            numberOfMonths={2}
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      {dateRange && <Button variant="ghost" size="icon" onClick={() => setDateRange(undefined)}><X className="h-4 w-4" /></Button>}
-
+                    
                     <Button onClick={handleDownloadPdf} disabled={isGenerating}>
                         {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
                         Download

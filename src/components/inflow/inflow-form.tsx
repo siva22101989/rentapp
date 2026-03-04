@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useTransition, useState, useEffect, useMemo } from 'react';
@@ -161,7 +162,7 @@ export function InflowForm({ customers, commodities, lots, records, nextSerialNu
                 <CardHeader>
                     <CardTitle>New Storage Record Details</CardTitle>
                     <CardDescription>
-                        Next Serial No: <span className="font-bold text-primary">{nextSerialNumber}</span>
+                        Next Inflow Bill No: <span className="font-bold text-primary">{nextSerialNumber}</span>
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">

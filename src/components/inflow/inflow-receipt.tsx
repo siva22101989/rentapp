@@ -116,7 +116,7 @@ export function InflowReceipt({ record, customer, warehouseInfo }: { record: Sto
                     <h2 className="font-bold underline text-center text-sm">INFLOW BILL (FROM PLOT)</h2>
                     
                     <div className="flex justify-between items-baseline my-1 text-xs">
-                        <div><span className="font-bold">Serial No.</span> {record.id}</div>
+                        <div><span className="font-bold">Bill No.</span> {record.id}</div>
                         <div><span className="font-bold">Date:</span> {formattedDate}</div>
                     </div>
 
@@ -206,7 +206,7 @@ export function InflowReceipt({ record, customer, warehouseInfo }: { record: Sto
                 <h2 className="text-sm font-bold underline text-center mb-2">GODOWN RECEIPT</h2>
 
                 <div className="flex justify-between items-baseline mb-4">
-                    <div><span className="font-bold">Receipt #</span> {record.id}</div>
+                    <div><span className="font-bold">Bill No.</span> {record.id}</div>
                     <div><span className="font-bold">Date:</span> {formattedDate}</div>
                 </div>
 

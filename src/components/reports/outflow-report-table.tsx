@@ -57,7 +57,7 @@ export function OutflowReportTable({ events, customers, title, allRecords }: Rep
                 <TableHeader>
                     <TableRow>
                         <TableHead className="h-auto py-2 px-2">Date</TableHead>
-                        <TableHead className="h-auto py-2 px-2">Serial No</TableHead>
+                        <TableHead className="h-auto py-2 px-2">Bill No</TableHead>
                         <TableHead className="h-auto py-2 px-2">Customer</TableHead>
                         <TableHead className="h-auto py-2 px-2">Commodity</TableHead>
                         <TableHead className="h-auto py-2 px-2">Lot No</TableHead>

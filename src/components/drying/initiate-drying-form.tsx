@@ -342,7 +342,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                     <CardTitle>Finalize Drying & Create Storage Record</CardTitle>
                     <CardDescription>
                         Select an item from the unloading queue. This will create a new storage record.
-                        <br/>Next Serial No: <span className="font-bold text-primary">{nextSerialNumber}</span>
+                        <br/>Next Storage Bill No: <span className="font-bold text-primary">{nextSerialNumber}</span>
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">

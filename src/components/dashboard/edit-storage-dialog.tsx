@@ -15,7 +15,6 @@ import {
   DialogClose,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import type { Customer, StorageRecord, Commodity, Lot } from '@/lib/definitions';
 import { format } from 'date-fns';
@@ -32,16 +31,19 @@ import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 import { collection } from 'firebase/firestore';
 
 
-const StorageRecordSchema = z.object({
+const EditStorageRecordSchema = z.object({
   customerId: z.string().min(1, 'Customer is required.'),
   commodityDescription: z.string().min(1, 'Commodity is required.'),
   location: z.string().optional(),
-  bagsStored: z.coerce.number().int().nonnegative(),
-  hamaliPayable: z.coerce.number().nonnegative(),
   storageStartDate: z.string().refine(val => !isNaN(Date.parse(val))),
+  bagsIn: z.coerce.number().int().nonnegative('Must be a non-negative number.'),
+  weight: z.coerce.number().nonnegative('Must be a non-negative number.').optional(),
+  lorryTractorNo: z.string().optional(),
+  hamaliPayable: z.coerce.number().nonnegative(),
+  khataAmount: z.coerce.number().nonnegative().optional(),
 });
 
-type StorageRecordFormData = z.infer<typeof StorageRecordSchema>;
+type EditStorageRecordFormData = z.infer<typeof EditStorageRecordSchema>;
 
 
 export function EditStorageDialog({ record, customers, allRecords, children }: { record: StorageRecord, customers: Customer[], allRecords: StorageRecord[], children: React.ReactNode }) {
@@ -65,26 +67,36 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
   const lotOccupancy = useMemo(() => {
     const occupancy: { [lotName: string]: number } = {};
     (allRecords || []).forEach(r => {
-        if (r.location && r.bagsStored > 0) {
+        if (r.location && r.bagsStored > 0 && r.id !== record.id) {
             occupancy[r.location] = (occupancy[r.location] || 0) + r.bagsStored;
         }
     });
     return occupancy;
-  }, [allRecords]);
+  }, [allRecords, record.id]);
 
-  const form = useForm<StorageRecordFormData>({
-    resolver: zodResolver(StorageRecordSchema),
-    defaultValues: {
-      customerId: record.customerId,
-      commodityDescription: record.commodityDescription,
-      location: record.location || '',
-      bagsStored: record.bagsStored,
-      hamaliPayable: record.hamaliPayable,
-      storageStartDate: format(toDate(record.storageStartDate), 'yyyy-MM-dd'),
-    }
+  const form = useForm<EditStorageRecordFormData>({
+    resolver: zodResolver(EditStorageRecordSchema),
+    defaultValues: {}, // Will be set in handleOpenChange
   });
+
+  const handleOpenChange = (open: boolean) => {
+    if (open) {
+      form.reset({
+        customerId: record.customerId,
+        commodityDescription: record.commodityDescription,
+        location: record.location || '',
+        storageStartDate: format(toDate(record.storageStartDate), 'yyyy-MM-dd'),
+        bagsIn: record.bagsIn,
+        weight: record.weight || '',
+        lorryTractorNo: record.lorryTractorNo || '',
+        hamaliPayable: record.hamaliPayable,
+        khataAmount: record.khataAmount || '',
+      });
+    }
+    setIsOpen(open);
+  }
   
-  const onSubmit = (data: StorageRecordFormData) => {
+  const onSubmit = (data: EditStorageRecordFormData) => {
     if (!firestore) {
       toast({ variant: 'destructive', title: 'Error', description: 'Firestore not available' });
       return;
@@ -94,6 +106,7 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
         const updateData = {
           ...data,
           storageStartDate: new Date(data.storageStartDate),
+          bagsStored: data.bagsIn - (record.bagsOut || 0)
         };
         await updateStorageRecord(firestore, record.id, updateData);
         toast({ title: 'Success', description: 'Storage record updated.' });
@@ -110,7 +123,7 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <Form {...form}>
@@ -166,36 +179,8 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
                   </FormItem>
                 )}
               />
-               <div className="grid grid-cols-2 gap-4">
-                <FormField
-                    control={form.control}
-                    name="location"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Location</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                                <SelectTrigger><SelectValue /></SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                {lots
-                                    ?.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
-                                    .map(lot => {
-                                        const occupied = lotOccupancy[lot.name] || 0;
-                                        const capacity = lot.capacity ? ` / ${lot.capacity}` : '';
-                                        return (
-                                            <SelectItem key={lot.id} value={lot.name}>
-                                                {lot.name} ({occupied}{capacity} bags)
-                                            </SelectItem>
-                                        )
-                                })}
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                 <FormField
+              <div className="grid grid-cols-2 gap-4">
+                  <FormField
                     control={form.control}
                     name="storageStartDate"
                     render={({ field }) => (
@@ -206,19 +191,43 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
                     </FormItem>
                     )}
                 />
-              </div>
-               <div className="grid grid-cols-2 gap-4">
                  <FormField
                     control={form.control}
-                    name="bagsStored"
+                    name="lorryTractorNo"
                     render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Bags Stored</FormLabel>
+                        <FormLabel>Lorry/Tractor No.</FormLabel>
+                        <FormControl><Input placeholder="AP 12 3456" {...field} value={field.value ?? ''} /></FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                    control={form.control}
+                    name="bagsIn"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Bags In</FormLabel>
                         <FormControl><Input type="number" {...field} /></FormControl>
                         <FormMessage />
                     </FormItem>
                     )}
                 />
+                <FormField
+                    control={form.control}
+                    name="weight"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Weight (Kgs)</FormLabel>
+                        <FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ''} /></FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+              </div>
+               <div className="grid grid-cols-2 gap-4">
                  <FormField
                     control={form.control}
                     name="hamaliPayable"
@@ -230,7 +239,46 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
                     </FormItem>
                     )}
                 />
+                <FormField
+                    control={form.control}
+                    name="khataAmount"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Khata Amount</FormLabel>
+                        <FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ''} /></FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
               </div>
+              <FormField
+                  control={form.control}
+                  name="location"
+                  render={({ field }) => (
+                  <FormItem>
+                      <FormLabel>Location</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                              <SelectTrigger><SelectValue placeholder="Select a lot..."/></SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                              {lots
+                                  ?.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
+                                  .map(lot => {
+                                      const occupied = lotOccupancy[lot.name] || 0;
+                                      const capacity = lot.capacity ? ` / ${lot.capacity}` : '';
+                                      return (
+                                          <SelectItem key={lot.id} value={lot.name}>
+                                              {lot.name} ({occupied}{capacity} bags)
+                                          </SelectItem>
+                                      )
+                              })}
+                          </SelectContent>
+                      </Select>
+                      <FormMessage />
+                  </FormItem>
+                  )}
+              />
           </div>
           <DialogFooter>
             <DialogClose asChild>

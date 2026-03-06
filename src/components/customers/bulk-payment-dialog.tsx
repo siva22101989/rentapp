@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useMemo } from 'react';
@@ -49,7 +48,7 @@ export function BulkPaymentDialog({ customer, storageRecords, unloadingRecords, 
     resolver: zodResolver(BulkPaymentSchema),
     defaultValues: {
         paymentDate: new Date().toISOString().split('T')[0],
-        paymentAmount: '',
+        paymentAmount: undefined,
     },
   });
 

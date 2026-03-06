@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -6,10 +5,10 @@ import { format } from "date-fns";
 import type { Customer } from "@/lib/definitions";
 import { formatCurrency } from '@/lib/utils';
 import { useMemo } from "react";
-import type { HamaliEvent } from "./hamali-report";
+import type { CustomerHamaliEvent } from "./hamali-report";
 
 type ReportTableProps = {
-    events: HamaliEvent[];
+    events: CustomerHamaliEvent[];
     customers: Customer[];
     title: string;
 }

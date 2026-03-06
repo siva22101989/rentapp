@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -12,11 +11,12 @@ import { ActionsMenu } from "@/components/dashboard/actions-menu";
 
 type ReportTableProps = {
     records: StorageRecord[];
+    allRecords: StorageRecord[];
     customers: Customer[];
     title: string;
 }
 
-export function ReportTable({ records, customers, title }: ReportTableProps) {
+export function ReportTable({ records, allRecords, customers, title }: ReportTableProps) {
     const [generatedDate, setGeneratedDate] = useState('');
 
     useEffect(() => {
@@ -98,7 +98,7 @@ export function ReportTable({ records, customers, title }: ReportTableProps) {
                                 {formatCurrency(record.balanceDue || 0)}
                             </TableCell>
                              <TableCell className="text-right print-hide">
-                                <ActionsMenu record={record} customers={customers} />
+                                <ActionsMenu record={record} customers={customers} allRecords={allRecords} />
                             </TableCell>
                         </TableRow>
                     )})}

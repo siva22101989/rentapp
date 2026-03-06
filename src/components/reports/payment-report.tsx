@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef, useMemo } from 'react';
@@ -26,8 +25,35 @@ export function PaymentReport({ records, unloadingRecords, customers }: PaymentR
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>('all');
     const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
     const [isGenerating, setIsGenerating] = useState(false);
+    const [financialYear, setFinancialYear] = useState<string>('');
     
     const reportRef = useRef<HTMLDivElement>(null);
+
+    const financialYears = useMemo(() => {
+        const currentYear = new Date().getFullYear();
+        const currentMonth = new Date().getMonth();
+        const startYear = currentMonth < 3 ? currentYear - 1 : currentYear;
+        const years = [];
+        for (let i = 0; i < 10; i++) {
+            const year = startYear - i;
+            years.push(`${year}-${(year + 1).toString().slice(2)}`);
+        }
+        return years;
+    }, []);
+
+    const handleFinancialYearChange = (fy: string) => {
+        setFinancialYear(fy);
+        if (!fy) {
+            setDateRange(undefined);
+            return;
+        }
+
+        const startYear = parseInt(fy.substring(0, 4), 10);
+        const fromDate = new Date(startYear, 3, 1);
+        const toDate = new Date(startYear + 1, 2, 31);
+        
+        setDateRange({ from: fromDate, to: toDate });
+    };
 
     const paymentEvents = useMemo(() => {
         const events: PaymentEvent[] = [];
@@ -122,9 +148,9 @@ export function PaymentReport({ records, unloadingRecords, customers }: PaymentR
                 <div className="flex-1">
                     <CardTitle>Payment Register</CardTitle>
                 </div>
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto flex-wrap">
                     <Select onValueChange={setSelectedCustomerId} value={selectedCustomerId}>
-                        <SelectTrigger className="w-full sm:w-[200px]">
+                        <SelectTrigger className="w-full sm:w-auto">
                             <SelectValue placeholder="All Customers" />
                         </SelectTrigger>
                         <SelectContent>
@@ -136,12 +162,25 @@ export function PaymentReport({ records, unloadingRecords, customers }: PaymentR
                             ))}
                         </SelectContent>
                     </Select>
+                     <Select value={financialYear} onValueChange={handleFinancialYearChange}>
+                        <SelectTrigger className="w-full sm:w-auto">
+                            <SelectValue placeholder="Select FY" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="">All Time</SelectItem>
+                            {financialYears.map(fy => (
+                                <SelectItem key={fy} value={fy}>
+                                    FY {fy}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                      <Popover>
                         <PopoverTrigger asChild>
                           <Button
                             id="date"
                             variant={"outline"}
-                            className="w-full sm:w-[260px] justify-start text-left font-normal"
+                            className="w-full sm:w-auto justify-start text-left font-normal"
                           >
                             <CalendarIcon className="mr-2 h-4 w-4" />
                             {dateRange?.from ? (
@@ -164,12 +203,12 @@ export function PaymentReport({ records, unloadingRecords, customers }: PaymentR
                             mode="range"
                             defaultMonth={dateRange?.from}
                             selected={dateRange}
-                            onSelect={setDateRange}
+                            onSelect={(range) => { setDateRange(range); setFinancialYear(''); }}
                             numberOfMonths={2}
                           />
                         </PopoverContent>
                       </Popover>
-                      {dateRange && <Button variant="ghost" size="icon" onClick={() => setDateRange(undefined)}><X className="h-4 w-4" /></Button>}
+                      {dateRange && <Button variant="ghost" size="icon" onClick={() => { setDateRange(undefined); setFinancialYear(''); }}><X className="h-4 w-4" /></Button>}
 
                     <Button onClick={handleDownloadPdf} disabled={isGenerating}>
                         {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}

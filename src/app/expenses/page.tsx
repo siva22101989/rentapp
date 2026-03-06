@@ -1,4 +1,3 @@
-
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
@@ -19,6 +18,7 @@ import { DateRange } from "react-day-picker";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 function ExpensesTable({ expenses }: { expenses: Expense[] }) {
   if (expenses.length === 0) {
@@ -70,6 +70,33 @@ function ExpensesTable({ expenses }: { expenses: Expense[] }) {
 export default function ExpensesPage() {
   const firestore = useFirestore();
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  const [financialYear, setFinancialYear] = useState<string>('');
+
+  const financialYears = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth();
+    const startYear = currentMonth < 3 ? currentYear - 1 : currentYear;
+    const years = [];
+    for (let i = 0; i < 10; i++) {
+        const year = startYear - i;
+        years.push(`${year}-${(year + 1).toString().slice(2)}`);
+    }
+    return years;
+  }, []);
+
+  const handleFinancialYearChange = (fy: string) => {
+    setFinancialYear(fy);
+    if (!fy) {
+        setDateRange(undefined);
+        return;
+    }
+
+    const startYear = parseInt(fy.substring(0, 4), 10);
+    const fromDate = new Date(startYear, 3, 1); // April 1st
+    const toDate = new Date(startYear + 1, 2, 31); // March 31st
+    
+    setDateRange({ from: fromDate, to: toDate });
+  };
 
   const recordsQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'storageRecords') : null),
@@ -139,6 +166,19 @@ export default function ExpensesPage() {
         description="Track your warehouse operational finances for the selected period."
       >
         <div className="flex items-center gap-2">
+            <Select value={financialYear} onValueChange={handleFinancialYearChange}>
+                <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Select FY" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="">All Time</SelectItem>
+                    {financialYears.map(fy => (
+                        <SelectItem key={fy} value={fy}>
+                            FY {fy}
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
             <Popover>
             <PopoverTrigger asChild>
                 <Button
@@ -167,12 +207,12 @@ export default function ExpensesPage() {
                 mode="range"
                 defaultMonth={dateRange?.from}
                 selected={dateRange}
-                onSelect={setDateRange}
+                onSelect={(range) => { setDateRange(range); setFinancialYear(''); }}
                 numberOfMonths={2}
                 />
             </PopoverContent>
             </Popover>
-            {dateRange && <Button variant="ghost" size="icon" onClick={() => setDateRange(undefined)}><X className="h-4 w-4" /></Button>}
+            {dateRange && <Button variant="ghost" size="icon" onClick={() => { setDateRange(undefined); setFinancialYear(''); }}><X className="h-4 w-4" /></Button>}
             <AddExpenseDialog />
         </div>
       </PageHeader>

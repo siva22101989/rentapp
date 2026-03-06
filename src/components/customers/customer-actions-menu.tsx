@@ -1,14 +1,15 @@
 
 'use client';
 
-import { MoreHorizontal, Trash2 } from "lucide-react";
+import { MoreHorizontal, Trash2, IndianRupee, Pencil } from "lucide-react";
 import { Button } from "../ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu";
-import type { Customer } from "@/lib/definitions";
+import type { Customer, StorageRecord, UnloadingRecord } from "@/lib/definitions";
 import { EditCustomerDialog } from "./edit-customer-dialog";
 import { DeleteCustomerDialog } from "./delete-customer-dialog";
+import { BulkPaymentDialog } from "./bulk-payment-dialog";
 
-export function CustomerActionsMenu({ customer }: { customer: Customer }) {
+export function CustomerActionsMenu({ customer, storageRecords, unloadingRecords }: { customer: Customer, storageRecords: StorageRecord[], unloadingRecords: UnloadingRecord[] }) {
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -18,8 +19,15 @@ export function CustomerActionsMenu({ customer }: { customer: Customer }) {
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+                <BulkPaymentDialog customer={customer} storageRecords={storageRecords} unloadingRecords={unloadingRecords}>
+                     <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                        <IndianRupee className="mr-2 h-4 w-4" />
+                        Add Bulk Payment
+                    </DropdownMenuItem>
+                </BulkPaymentDialog>
                 <EditCustomerDialog customer={customer}>
                     <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                        <Pencil className="mr-2 h-4 w-4" />
                         Edit
                     </DropdownMenuItem>
                 </EditCustomerDialog>

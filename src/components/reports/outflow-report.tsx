@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useMemo } from 'react';
@@ -43,7 +44,7 @@ export function OutflowReport({ records, customers }: OutflowReportProps) {
 
     const handleFinancialYearChange = (fy: string) => {
         setFinancialYear(fy);
-        if (!fy) {
+        if (fy === 'all-time') {
             setDateRange(undefined);
             return;
         }
@@ -154,7 +155,7 @@ export function OutflowReport({ records, customers }: OutflowReportProps) {
                             <SelectValue placeholder="Select FY" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="">All Time</SelectItem>
+                            <SelectItem value="all-time">All Time</SelectItem>
                             {financialYears.map(fy => (
                                 <SelectItem key={fy} value={fy}>
                                     FY {fy}

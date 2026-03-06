@@ -1,3 +1,4 @@
+
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
@@ -87,7 +88,7 @@ export default function ExpensesPage() {
 
   const handleFinancialYearChange = (fy: string) => {
     setFinancialYear(fy);
-    if (!fy) {
+    if (fy === 'all-time') {
         setDateRange(undefined);
         return;
     }
@@ -172,7 +173,7 @@ export default function ExpensesPage() {
                     <SelectValue placeholder="Select FY" />
                 </SelectTrigger>
                 <SelectContent>
-                    <SelectItem value="">All Time</SelectItem>
+                    <SelectItem value="all-time">All Time</SelectItem>
                     {financialYears.map(fy => (
                         <SelectItem key={fy} value={fy}>
                             FY {fy}

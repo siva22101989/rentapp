@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useMemo } from 'react';
@@ -111,6 +110,9 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
         const batch = writeBatch(firestore);
         let amountToApply = data.paymentAmount;
         const paymentDate = new Date(data.paymentDate);
+        
+        const settledRecordIds: string[] = [];
+        const partiallyPaidRecordIds = new Set<string>();
 
         // Combine storage and unloading records for the selected customer
         const allCustomerRecords = [
@@ -128,8 +130,6 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
         for (const record of sortedRecords) {
             if (amountToApply <= 0.005) break; // Float tolerance
             
-            let hamaliDue = 0;
-            let rentDue = 0;
             const newPayments: Payment[] = [];
 
             if (record.recordType === 'storage') {
@@ -139,46 +139,73 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
                 const hamaliPaid = (sr.payments || []).filter(p => p.type === 'hamali').reduce((acc, p) => acc + p.amount, 0);
                 const rentPaid = (sr.payments || []).filter(p => p.type === 'rent').reduce((acc, p) => acc + p.amount, 0);
                 const otherPaid = (sr.payments || []).filter(p => !p.type || p.type === 'other').reduce((acc, p) => acc + p.amount, 0);
-                hamaliDue = Math.max(0, hamaliPayable - hamaliPaid);
-                rentDue = Math.max(0, totalRentBilled - rentPaid - otherPaid);
+                const hamaliDue = Math.max(0, hamaliPayable - hamaliPaid);
+                const rentDue = Math.max(0, totalRentBilled - rentPaid - otherPaid);
+
+                if (hamaliDue <= 0.005 && rentDue <= 0.005) continue;
 
                 const hamaliToPay = Math.min(amountToApply, hamaliDue);
-                if (hamaliToPay > 0) {
-                    newPayments.push({ amount: hamaliToPay, date: paymentDate, type: 'hamali' });
-                    amountToApply -= hamaliToPay;
-                }
-                if (amountToApply > 0 && rentDue > 0) {
-                    const rentToPay = Math.min(amountToApply, rentDue);
-                    newPayments.push({ amount: rentToPay, date: paymentDate, type: 'rent' });
-                    amountToApply -= rentToPay;
+                let rentToPay = 0;
+                if (amountToApply - hamaliToPay > 0 && rentDue > 0) {
+                    rentToPay = Math.min(amountToApply - hamaliToPay, rentDue);
                 }
 
+                if (hamaliToPay > 0) newPayments.push({ amount: hamaliToPay, date: paymentDate, type: 'hamali' });
+                if (rentToPay > 0) newPayments.push({ amount: rentToPay, date: paymentDate, type: 'rent' });
+
                 if (newPayments.length > 0) {
+                    amountToApply -= (hamaliToPay + rentToPay);
+                    partiallyPaidRecordIds.add(sr.id);
                     const recordRef = doc(firestore, 'storageRecords', sr.id);
                     batch.update(recordRef, { payments: arrayUnion(...newPayments.map(p => cleanForFirestore(p))) });
+
+                    if (hamaliDue - hamaliToPay <= 0.005 && rentDue - rentToPay <= 0.005) {
+                        settledRecordIds.push(sr.id);
+                        partiallyPaidRecordIds.delete(sr.id);
+                    }
                 }
 
             } else { // unloading record
                 const ur = record;
                 const totalHamali = ur.totalHamali || 0;
                 const totalPaid = (ur.payments || []).reduce((acc, p) => acc + p.amount, 0);
-                hamaliDue = Math.max(0, totalHamali - totalPaid);
+                const hamaliDue = Math.max(0, totalHamali - totalPaid);
+
+                if (hamaliDue <= 0.005) continue;
 
                 const hamaliToPay = Math.min(amountToApply, hamaliDue);
+                
                 if (hamaliToPay > 0) {
                     newPayments.push({ amount: hamaliToPay, date: paymentDate, type: 'unloading' });
                     amountToApply -= hamaliToPay;
-                }
-                if (newPayments.length > 0) {
+
+                    partiallyPaidRecordIds.add(ur.billNo || ur.id);
                     const recordRef = doc(firestore, 'unloadingRecords', ur.id);
                     batch.update(recordRef, { payments: arrayUnion(...newPayments.map(p => cleanForFirestore(p))) });
+                    
+                    if (hamaliDue - hamaliToPay <= 0.005) {
+                        settledRecordIds.push(ur.billNo || ur.id);
+                        partiallyPaidRecordIds.delete(ur.billNo || ur.id);
+                    }
                 }
             }
         }
         
         await batch.commit();
 
-        toast({ title: 'Success', description: `${formatCurrency(data.paymentAmount)} applied to customer's pending dues.` });
+        let description = `${formatCurrency(data.paymentAmount)} applied.`;
+        if (settledRecordIds.length > 0) {
+            description += ` Settled bills: ${settledRecordIds.join(', ')}.`;
+        }
+        if (partiallyPaidRecordIds.size > 0) {
+            description += ` Partially paid: ${Array.from(partiallyPaidRecordIds).join(', ')}.`;
+        }
+
+        toast({ 
+            title: 'Payment Recorded', 
+            description: description,
+            duration: 10000,
+        });
         setIsOpen(false);
         form.reset();
       } catch (error) {

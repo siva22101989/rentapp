@@ -215,7 +215,7 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
             Bulk Customer Payment
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-sm max-h-[80vh] overflow-y-auto">
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
             <DialogHeader>

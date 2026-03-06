@@ -1,6 +1,6 @@
 
 'use client';
-import { FirebaseProvider } from './provider';
+import { FirebaseProvider, DateFilterProvider } from './provider';
 import type { ReactNode } from 'react';
 
 export function FirebaseClientProvider({
@@ -8,5 +8,11 @@ export function FirebaseClientProvider({
 }: {
   children: ReactNode;
 }) {
-  return <FirebaseProvider>{children}</FirebaseProvider>;
+  return (
+    <FirebaseProvider>
+      <DateFilterProvider>
+        {children}
+      </DateFilterProvider>
+    </FirebaseProvider>
+  );
 }

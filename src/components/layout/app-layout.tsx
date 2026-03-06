@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -5,9 +6,9 @@ import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { Logo } from './logo';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, LogOut } from 'lucide-react';
+import { ArrowLeft, LogOut, Calendar as CalendarIcon, X } from 'lucide-react';
 import { useUser } from '@/firebase/auth/use-user';
-import { useAuth } from '@/firebase/provider';
+import { useAuth, useDateFilter } from '@/firebase/provider';
 import { Loader2 } from 'lucide-react';
 import {
     DropdownMenu,
@@ -21,6 +22,10 @@ import {
     Avatar,
     AvatarFallback,
 } from "@/components/ui/avatar";
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar } from '@/components/ui/calendar';
+import { format } from 'date-fns';
 
 
 function LiveClock() {
@@ -47,6 +52,76 @@ function LiveClock() {
       {currentTime.toLocaleTimeString()}
     </span>
   );
+}
+
+function DateFilters() {
+    const { 
+        dateRange, 
+        setDateRange,
+        financialYear,
+        handleFinancialYearChange,
+        financialYears,
+        resetFilters
+    } = useDateFilter();
+    
+    const pathname = usePathname();
+    const showFilters = ['/expenses', '/reports'].some(path => pathname.startsWith(path));
+
+    if (!showFilters) {
+        return null;
+    }
+
+    return (
+        <div className="hidden md:flex items-center gap-2">
+            <Select value={financialYear} onValueChange={handleFinancialYearChange}>
+                <SelectTrigger className="w-[150px] h-8 text-xs">
+                    <SelectValue placeholder="Select FY" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all-time">All Time</SelectItem>
+                    {financialYears.map(fy => (
+                        <SelectItem key={fy} value={fy}>
+                            FY {fy}
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+            <Popover>
+            <PopoverTrigger asChild>
+                <Button
+                id="date"
+                variant={"outline"}
+                className="w-[240px] h-8 justify-start text-left font-normal text-xs"
+                >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {dateRange?.from ? (
+                    dateRange.to ? (
+                    <>
+                        {format(dateRange.from, "LLL dd, y")} -{" "}
+                        {format(dateRange.to, "LLL dd, y")}
+                    </>
+                    ) : (
+                    format(dateRange.from, "LLL dd, y")
+                    )
+                ) : (
+                    <span>Pick a date range</span>
+                )}
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                initialFocus
+                mode="range"
+                defaultMonth={dateRange?.from}
+                selected={dateRange}
+                onSelect={setDateRange}
+                numberOfMonths={2}
+                />
+            </PopoverContent>
+            </Popover>
+            {dateRange && <Button variant="ghost" size="icon" className="h-8 w-8" onClick={resetFilters}><X className="h-4 w-4" /></Button>}
+        </div>
+    );
 }
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -110,6 +185,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   </Button>
               )}
               <Logo />
+              <DateFilters />
             </div>
             <div className='flex items-center gap-4'>
                 <LiveClock />

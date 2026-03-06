@@ -4,22 +4,17 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
 import { AddExpenseDialog } from "@/components/expenses/add-expense-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Scale, Calendar as CalendarIcon, X } from "lucide-react";
+import { TrendingUp, TrendingDown, Scale } from "lucide-react";
 import { formatCurrency, toDate } from "@/lib/utils";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Expense, StorageRecord, UnloadingRecord } from "@/lib/definitions";
 import { format } from "date-fns";
 import { ExpenseActionsMenu } from "@/components/expenses/expense-actions-menu";
 import { useCollection } from "@/firebase/firestore/use-collection";
-import { useFirestore } from "@/firebase/provider";
+import { useFirestore, useDateFilter } from "@/firebase/provider";
 import { collection } from "firebase/firestore";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
-import { DateRange } from "react-day-picker";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 function ExpensesTable({ expenses }: { expenses: Expense[] }) {
   if (expenses.length === 0) {
@@ -70,35 +65,7 @@ function ExpensesTable({ expenses }: { expenses: Expense[] }) {
 
 export default function ExpensesPage() {
   const firestore = useFirestore();
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
-  const [financialYear, setFinancialYear] = useState<string>('');
-
-  const financialYears = useMemo(() => {
-    const currentYear = new Date().getFullYear();
-    const currentMonth = new Date().getMonth(); // 0-indexed: Jan is 0, Nov is 10
-    // If current month is Nov or Dec, the FY starts this year. Otherwise, it started last year.
-    const startYear = currentMonth >= 10 ? currentYear : currentYear - 1;
-    const years = [];
-    for (let i = 0; i < 10; i++) {
-        const year = startYear - i;
-        years.push(`${year}-${(year + 1).toString().slice(2)}`);
-    }
-    return years;
-  }, []);
-
-  const handleFinancialYearChange = (fy: string) => {
-    setFinancialYear(fy);
-    if (fy === 'all-time') {
-        setDateRange(undefined);
-        return;
-    }
-
-    const startYear = parseInt(fy.substring(0, 4), 10);
-    const fromDate = new Date(startYear, 10, 1); // November 1st
-    const toDate = new Date(startYear + 1, 9, 31); // October 31st
-    
-    setDateRange({ from: fromDate, to: toDate });
-  };
+  const { dateRange } = useDateFilter();
 
   const recordsQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'storageRecords') : null),
@@ -168,53 +135,6 @@ export default function ExpensesPage() {
         description="Track your warehouse operational finances for the selected period."
       >
         <div className="flex items-center gap-2">
-            <Select value={financialYear} onValueChange={handleFinancialYearChange}>
-                <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Select FY" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="all-time">All Time</SelectItem>
-                    {financialYears.map(fy => (
-                        <SelectItem key={fy} value={fy}>
-                            FY {fy}
-                        </SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
-            <Popover>
-            <PopoverTrigger asChild>
-                <Button
-                id="date"
-                variant={"outline"}
-                className="w-[260px] justify-start text-left font-normal"
-                >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {dateRange?.from ? (
-                    dateRange.to ? (
-                    <>
-                        {format(dateRange.from, "LLL dd, y")} -{" "}
-                        {format(dateRange.to, "LLL dd, y")}
-                    </>
-                    ) : (
-                    format(dateRange.from, "LLL dd, y")
-                    )
-                ) : (
-                    <span>Pick a date range</span>
-                )}
-                </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="end">
-                <Calendar
-                initialFocus
-                mode="range"
-                defaultMonth={dateRange?.from}
-                selected={dateRange}
-                onSelect={(range) => { setDateRange(range); setFinancialYear(''); }}
-                numberOfMonths={2}
-                />
-            </PopoverContent>
-            </Popover>
-            {dateRange && <Button variant="ghost" size="icon" onClick={() => { setDateRange(undefined); setFinancialYear(''); }}><X className="h-4 w-4" /></Button>}
             <AddExpenseDialog />
         </div>
       </PageHeader>

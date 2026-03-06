@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -44,28 +44,15 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer,
 
   const form = useForm<CustomerFormData>({
     resolver: zodResolver(CustomerSchema),
-    defaultValues: {
-      name: '',
-      phone: '',
-      email: '',
-      fatherName: '',
-      village: '',
+    // Use `values` to make the form controlled and ensure it updates when the `customer` prop changes.
+    values: {
+      name: customer.name || '',
+      phone: customer.phone || '',
+      email: customer.email || '',
+      fatherName: customer.fatherName || '',
+      village: customer.village || '',
     },
   });
-
-  const handleOpenChange = (open: boolean) => {
-    if (open) {
-      // When the dialog opens, reset the form with the current customer's data.
-      form.reset({
-        name: customer.name || '',
-        phone: customer.phone || '',
-        email: customer.email || '',
-        fatherName: customer.fatherName || '',
-        village: customer.village || '',
-      });
-    }
-    setIsOpen(open);
-  };
 
   const onSubmit = (data: CustomerFormData) => {
     if (!firestore) {
@@ -86,7 +73,7 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer,
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <Form {...form}>

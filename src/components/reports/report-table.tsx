@@ -60,14 +60,14 @@ export function ReportTable({ records, customers, title }: ReportTableProps) {
                 <TableHeader>
                     <TableRow>
                         <TableHead>Customer</TableHead>
-                        <TableHead>Start Date</TableHead>
-                        <TableHead>End Date</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Bags In</TableHead>
-                        <TableHead className="text-right">Bags Out</TableHead>
+                        <TableHead className="hidden sm:table-cell">Start Date</TableHead>
+                        <TableHead className="hidden lg:table-cell">End Date</TableHead>
+                        <TableHead className="hidden md:table-cell">Status</TableHead>
+                        <TableHead className="text-right hidden xl:table-cell">Bags In</TableHead>
+                        <TableHead className="text-right hidden xl:table-cell">Bags Out</TableHead>
                         <TableHead className="text-right">Balance</TableHead>
-                        <TableHead className="text-right">Total Billed</TableHead>
-                        <TableHead className="text-right">Amount Paid</TableHead>
+                        <TableHead className="text-right hidden md:table-cell">Total Billed</TableHead>
+                        <TableHead className="text-right hidden lg:table-cell">Amount Paid</TableHead>
                         <TableHead className="text-right">Balance Due</TableHead>
                         <TableHead className="w-[50px] text-right print-hide">Actions</TableHead>
                     </TableRow>
@@ -80,20 +80,20 @@ export function ReportTable({ records, customers, title }: ReportTableProps) {
                         return (
                         <TableRow key={record.id}>
                             <TableCell className="font-medium">{customerName}</TableCell>
-                            <TableCell>{startDate ? format(startDate, 'dd MMM yyyy') : 'N/A'}</TableCell>
-                            <TableCell>
+                            <TableCell className="hidden sm:table-cell">{startDate ? format(startDate, 'dd MMM yyyy') : 'N/A'}</TableCell>
+                            <TableCell className="hidden lg:table-cell">
                                 {endDate ? format(endDate, 'dd MMM yyyy') : 'N/A'}
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="hidden md:table-cell">
                                 <Badge variant={record.storageEndDate ? "secondary" : "default"} className={record.storageEndDate ? 'bg-zinc-100 text-zinc-800' : 'bg-green-100 text-green-800'}>
                                     {record.storageEndDate ? 'Completed' : 'Active'}
                                 </Badge>
                             </TableCell>
-                            <TableCell className="text-right">{record.bagsIn || 0}</TableCell>
-                            <TableCell className="text-right">{record.bagsOut || 0}</TableCell>
+                            <TableCell className="text-right hidden xl:table-cell">{record.bagsIn || 0}</TableCell>
+                            <TableCell className="text-right hidden xl:table-cell">{record.bagsOut || 0}</TableCell>
                             <TableCell className="text-right font-bold">{record.bagsStored}</TableCell>
-                            <TableCell className="text-right font-mono">{formatCurrency(record.totalBilled || 0)}</TableCell>
-                            <TableCell className="text-right font-mono">{formatCurrency(record.amountPaid || 0)}</TableCell>
+                            <TableCell className="text-right font-mono hidden md:table-cell">{formatCurrency(record.totalBilled || 0)}</TableCell>
+                            <TableCell className="text-right font-mono hidden lg:table-cell">{formatCurrency(record.amountPaid || 0)}</TableCell>
                             <TableCell className={`text-right font-mono ${record.balanceDue > 0 ? 'text-destructive' : ''}`}>
                                 {formatCurrency(record.balanceDue || 0)}
                             </TableCell>
@@ -112,16 +112,19 @@ export function ReportTable({ records, customers, title }: ReportTableProps) {
                 </TableBody>
                 <TableFooter>
                     <TableRow>
-                        <TableCell colSpan={4} className="text-right font-bold text-lg">Totals</TableCell>
-                        <TableCell className="text-right font-mono font-bold text-lg">{totalBagsIn}</TableCell>
-                        <TableCell className="text-right font-mono font-bold text-lg">{totalBagsOut}</TableCell>
+                        <TableCell className="font-bold text-lg">Totals</TableCell>
+                        <TableCell className="hidden sm:table-cell" />
+                        <TableCell className="hidden lg:table-cell" />
+                        <TableCell className="hidden md:table-cell" />
+                        <TableCell className="text-right font-mono font-bold text-lg hidden xl:table-cell">{totalBagsIn}</TableCell>
+                        <TableCell className="text-right font-mono font-bold text-lg hidden xl:table-cell">{totalBagsOut}</TableCell>
                         <TableCell className="text-right font-mono font-bold text-lg">{totalBagsStored}</TableCell>
-                        <TableCell className="text-right font-mono font-bold text-lg">{formatCurrency(totalBilledSum)}</TableCell>
-                        <TableCell className="text-right font-mono font-bold text-lg">{formatCurrency(totalAmountPaid)}</TableCell>
+                        <TableCell className="text-right font-mono font-bold text-lg hidden md:table-cell">{formatCurrency(totalBilledSum)}</TableCell>
+                        <TableCell className="text-right font-mono font-bold text-lg hidden lg:table-cell">{formatCurrency(totalAmountPaid)}</TableCell>
                         <TableCell className="text-right font-mono font-bold text-lg text-destructive">
                             {formatCurrency(totalBalanceDue)}
                         </TableCell>
-                         <TableCell />
+                         <TableCell className="print-hide" />
                     </TableRow>
                 </TableFooter>
             </Table>

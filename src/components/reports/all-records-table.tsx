@@ -33,9 +33,9 @@ export function AllRecordsTable({ allRecords, allCustomers }: { allRecords: Stor
       <TableHeader>
         <TableRow>
           <TableHead>Customer</TableHead>
-          <TableHead>Commodity</TableHead>
-          <TableHead>Start Date</TableHead>
-          <TableHead>End Date</TableHead>
+          <TableHead className="hidden md:table-cell">Commodity</TableHead>
+          <TableHead className="hidden sm:table-cell">Start Date</TableHead>
+          <TableHead className="hidden lg:table-cell">End Date</TableHead>
           <TableHead>Status</TableHead>
           <TableHead className="text-right">Balance Bags</TableHead>
           <TableHead className="w-[50px]"></TableHead>
@@ -50,9 +50,9 @@ export function AllRecordsTable({ allRecords, allCustomers }: { allRecords: Stor
             return (
               <TableRow key={record.id}>
                 <TableCell className="font-medium">{customerName}</TableCell>
-                <TableCell>{record.commodityDescription}</TableCell>
-                <TableCell>{startDate ? format(startDate, 'dd MMM yyyy') : 'N/A'}</TableCell>
-                <TableCell>{endDate ? format(endDate, 'dd MMM yyyy') : 'N/A'}</TableCell>
+                <TableCell className="hidden md:table-cell">{record.commodityDescription}</TableCell>
+                <TableCell className="hidden sm:table-cell">{startDate ? format(startDate, 'dd MMM yyyy') : 'N/A'}</TableCell>
+                <TableCell className="hidden lg:table-cell">{endDate ? format(endDate, 'dd MMM yyyy') : 'N/A'}</TableCell>
                 <TableCell>
                   <Badge variant={record.storageEndDate ? "secondary" : "default"} className={record.storageEndDate ? 'bg-zinc-100 text-zinc-800' : 'bg-green-100 text-green-800'}>
                     {record.storageEndDate ? 'Completed' : 'Active'}

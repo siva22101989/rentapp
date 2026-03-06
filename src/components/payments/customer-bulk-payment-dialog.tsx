@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useMemo } from 'react';
@@ -30,6 +31,7 @@ const BulkPaymentSchema = z.object({
   customerId: z.string().min(1, 'Please select a customer.'),
   paymentDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date" }),
   paymentAmount: z.coerce.number().positive('Payment amount must be a positive number.'),
+  discount: z.coerce.number().nonnegative('Discount must be a non-negative number.').optional(),
 });
 
 type PaymentFormData = z.infer<typeof BulkPaymentSchema>;
@@ -54,10 +56,12 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
         customerId: '',
         paymentDate: new Date().toISOString().split('T')[0],
         paymentAmount: undefined,
+        discount: undefined,
     },
   });
   
   const selectedCustomerId = form.watch('customerId');
+  const discountAmount = form.watch('discount') || 0;
 
   const { totalDue, totalHamaliDue, totalRentDue } = useMemo(() => {
     if (!selectedCustomerId) {
@@ -74,7 +78,7 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
             const totalRentBilled = rec.totalRentBilled || 0;
             const hamaliPaid = (rec.payments || []).filter(p => p.type === 'hamali').reduce((acc, p) => acc + p.amount, 0);
             const rentPaid = (rec.payments || []).filter(p => p.type === 'rent').reduce((acc, p) => acc + p.amount, 0);
-            const otherPaid = (rec.payments || []).filter(p => !p.type || p.type === 'other').reduce((acc, p) => acc + p.amount, 0);
+            const otherPaid = (rec.payments || []).filter(p => !p.type || p.type === 'other' || p.type === 'discount').reduce((acc, p) => acc + p.amount, 0);
             
             hamaliDue += Math.max(0, hamaliPayable - hamaliPaid);
             rentDue += Math.max(0, totalRentBilled - rentPaid - otherPaid);
@@ -95,26 +99,30 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
     };
   }, [selectedCustomerId, storageRecords, unloadingRecords]);
 
+  const totalPayable = totalDue - discountAmount;
+
   const onSubmit = (data: PaymentFormData) => {
     if (!firestore) {
       toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
       return;
     }
-    if (data.paymentAmount <= 0) {
-        toast({ title: 'Invalid Amount', description: 'Payment amount must be positive.', variant: 'destructive' });
+    
+    const finalPayable = totalDue - (data.discount || 0);
+    if (data.paymentAmount > finalPayable) {
+        form.setError('paymentAmount', { message: `Payment cannot exceed payable amount of ${formatCurrency(finalPayable)}.`});
         return;
     }
 
     startTransition(async () => {
       try {
         const batch = writeBatch(firestore);
-        let amountToApply = data.paymentAmount;
+        let cashToApply = data.paymentAmount;
+        let discountToApply = data.discount || 0;
         const paymentDate = new Date(data.paymentDate);
         
         const settledRecordIds: string[] = [];
         const partiallyPaidRecordIds = new Set<string>();
 
-        // Combine storage and unloading records for the selected customer
         const allCustomerRecords = [
             ...storageRecords
                 .filter(r => r.customerId === data.customerId)
@@ -124,11 +132,10 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
                 .map(r => ({ ...r, recordType: 'unloading' as const, date: toDate(r.unloadingDate) }))
         ];
 
-        // Sort by date, oldest first
         const sortedRecords = allCustomerRecords.sort((a,b) => a.date.getTime() - b.date.getTime());
 
         for (const record of sortedRecords) {
-            if (amountToApply <= 0.005) break; // Float tolerance
+            if (cashToApply <= 0.005 && discountToApply <= 0.005) break; 
             
             const newPayments: Payment[] = [];
 
@@ -138,74 +145,59 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
                 const totalRentBilled = sr.totalRentBilled || 0;
                 const hamaliPaid = (sr.payments || []).filter(p => p.type === 'hamali').reduce((acc, p) => acc + p.amount, 0);
                 const rentPaid = (sr.payments || []).filter(p => p.type === 'rent').reduce((acc, p) => acc + p.amount, 0);
-                const otherPaid = (sr.payments || []).filter(p => !p.type || p.type === 'other').reduce((acc, p) => acc + p.amount, 0);
-                const hamaliDue = Math.max(0, hamaliPayable - hamaliPaid);
-                const rentDue = Math.max(0, totalRentBilled - rentPaid - otherPaid);
+                const otherPaid = (sr.payments || []).filter(p => !p.type || p.type === 'other' || p.type === 'discount').reduce((acc, p) => acc + p.amount, 0);
+                
+                let hamaliDue = Math.max(0, hamaliPayable - hamaliPaid);
+                let rentDue = Math.max(0, totalRentBilled - rentPaid - otherPaid);
 
                 if (hamaliDue <= 0.005 && rentDue <= 0.005) continue;
 
-                const hamaliToPay = Math.min(amountToApply, hamaliDue);
-                let rentToPay = 0;
-                if (amountToApply - hamaliToPay > 0 && rentDue > 0) {
-                    rentToPay = Math.min(amountToApply - hamaliToPay, rentDue);
-                }
-
-                if (hamaliToPay > 0) newPayments.push({ amount: hamaliToPay, date: paymentDate, type: 'hamali' });
-                if (rentToPay > 0) newPayments.push({ amount: rentToPay, date: paymentDate, type: 'rent' });
+                const hamaliPaidWithCash = Math.min(cashToApply, hamaliDue);
+                if (hamaliPaidWithCash > 0) { newPayments.push({ amount: hamaliPaidWithCash, date: paymentDate, type: 'hamali' }); cashToApply -= hamaliPaidWithCash; hamaliDue -= hamaliPaidWithCash; }
+                const hamaliPaidWithDiscount = Math.min(discountToApply, hamaliDue);
+                if (hamaliPaidWithDiscount > 0) { newPayments.push({ amount: hamaliPaidWithDiscount, date: paymentDate, type: 'discount' }); discountToApply -= hamaliPaidWithDiscount; hamaliDue -= hamaliPaidWithDiscount; }
+                const rentPaidWithCash = Math.min(cashToApply, rentDue);
+                if (rentPaidWithCash > 0) { newPayments.push({ amount: rentPaidWithCash, date: paymentDate, type: 'rent' }); cashToApply -= rentPaidWithCash; rentDue -= rentPaidWithCash; }
+                const rentPaidWithDiscount = Math.min(discountToApply, rentDue);
+                if (rentPaidWithDiscount > 0) { newPayments.push({ amount: rentPaidWithDiscount, date: paymentDate, type: 'discount' }); discountToApply -= rentPaidWithDiscount; rentDue -= rentPaidWithDiscount; }
 
                 if (newPayments.length > 0) {
-                    amountToApply -= (hamaliToPay + rentToPay);
                     partiallyPaidRecordIds.add(sr.id);
                     const recordRef = doc(firestore, 'storageRecords', sr.id);
                     batch.update(recordRef, { payments: arrayUnion(...newPayments.map(p => cleanForFirestore(p))) });
-
-                    if (hamaliDue - hamaliToPay <= 0.005 && rentDue - rentToPay <= 0.005) {
-                        settledRecordIds.push(sr.id);
-                        partiallyPaidRecordIds.delete(sr.id);
-                    }
+                    if (hamaliDue <= 0.005 && rentDue <= 0.005) { settledRecordIds.push(sr.id); partiallyPaidRecordIds.delete(sr.id); }
                 }
 
             } else { // unloading record
                 const ur = record;
-                const totalHamali = ur.totalHamali || 0;
-                const totalPaid = (ur.payments || []).reduce((acc, p) => acc + p.amount, 0);
-                const hamaliDue = Math.max(0, totalHamali - totalPaid);
-
+                let hamaliDue = Math.max(0, (ur.totalHamali || 0) - (ur.payments || []).reduce((acc, p) => acc + p.amount, 0));
+                
                 if (hamaliDue <= 0.005) continue;
 
-                const hamaliToPay = Math.min(amountToApply, hamaliDue);
+                const hamaliPaidWithCash = Math.min(cashToApply, hamaliDue);
+                if (hamaliPaidWithCash > 0) { newPayments.push({ amount: hamaliPaidWithCash, date: paymentDate, type: 'unloading' }); cashToApply -= hamaliPaidWithCash; hamaliDue -= hamaliPaidWithCash; }
+                const hamaliPaidWithDiscount = Math.min(discountToApply, hamaliDue);
+                if (hamaliPaidWithDiscount > 0) { newPayments.push({ amount: hamaliPaidWithDiscount, date: paymentDate, type: 'discount' }); discountToApply -= hamaliPaidWithDiscount; hamaliDue -= hamaliPaidWithDiscount; }
                 
-                if (hamaliToPay > 0) {
-                    newPayments.push({ amount: hamaliToPay, date: paymentDate, type: 'unloading' });
-                    amountToApply -= hamaliToPay;
-
+                if (newPayments.length > 0) {
                     partiallyPaidRecordIds.add(ur.billNo || ur.id);
                     const recordRef = doc(firestore, 'unloadingRecords', ur.id);
                     batch.update(recordRef, { payments: arrayUnion(...newPayments.map(p => cleanForFirestore(p))) });
-                    
-                    if (hamaliDue - hamaliToPay <= 0.005) {
-                        settledRecordIds.push(ur.billNo || ur.id);
-                        partiallyPaidRecordIds.delete(ur.billNo || ur.id);
-                    }
+                    if (hamaliDue <= 0.005) { settledRecordIds.push(ur.billNo || ur.id); partiallyPaidRecordIds.delete(ur.billNo || ur.id); }
                 }
             }
         }
         
         await batch.commit();
 
-        let description = `${formatCurrency(data.paymentAmount)} applied.`;
-        if (settledRecordIds.length > 0) {
-            description += ` Settled bills: ${settledRecordIds.join(', ')}.`;
+        let description = `${formatCurrency(data.paymentAmount)} paid.`;
+        if (data.discount && data.discount > 0) {
+            description += ` ${formatCurrency(data.discount)} discount applied.`
         }
-        if (partiallyPaidRecordIds.size > 0) {
-            description += ` Partially paid: ${Array.from(partiallyPaidRecordIds).join(', ')}.`;
-        }
+        if (settledRecordIds.length > 0) { description += ` Settled bills: ${settledRecordIds.join(', ')}.`; }
+        if (partiallyPaidRecordIds.size > 0) { description += ` Partially paid: ${Array.from(partiallyPaidRecordIds).join(', ')}.`; }
 
-        toast({ 
-            title: 'Payment Recorded', 
-            description: description,
-            duration: 10000,
-        });
+        toast({ title: 'Payment Recorded', description, duration: 10000 });
         setIsOpen(false);
         form.reset();
       } catch (error) {
@@ -246,6 +238,7 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
                                 placeholder="Select a customer..."
                                 searchPlaceholder="Search customers..."
                                 emptyPlaceholder="No customer found."
+                                modal={true}
                             />
                             <FormMessage />
                         </FormItem>
@@ -265,8 +258,16 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
                         <span className="font-medium">{formatCurrency(totalRentDue)}</span>
                     </div>
                     <div className="flex justify-between text-sm font-bold border-t pt-2 mt-2">
-                        <span className="text-foreground">Total Due for Customer</span>
+                        <span className="text-foreground">Total Due</span>
                         <span className="text-destructive">{formatCurrency(totalDue)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Discount</span>
+                        <span className="font-medium text-green-600">- {formatCurrency(discountAmount)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm font-bold border-t pt-2 mt-2">
+                        <span className="text-foreground">Final Payable</span>
+                        <span className="text-destructive">{formatCurrency(totalPayable)}</span>
                     </div>
                 </div>
 
@@ -278,6 +279,20 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
                             <FormLabel>Payment Date</FormLabel>
                             <FormControl>
                                 <Input type="date" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+
+                <FormField
+                    control={form.control}
+                    name="discount"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Discount Amount</FormLabel>
+                            <FormControl>
+                                <Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>

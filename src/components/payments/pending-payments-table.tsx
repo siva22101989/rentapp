@@ -51,7 +51,7 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords }: {
                 .reduce((acc, p) => acc + p.amount, 0);
             
             const otherPaid = (record.payments || [])
-                .filter(p => p.type === 'other' || !p.type)
+                .filter(p => p.type === 'other' || !p.type || p.type === 'discount')
                 .reduce((acc, p) => acc + p.amount, 0);
 
             const hamaliPending = hamaliPayable - hamaliPaid;

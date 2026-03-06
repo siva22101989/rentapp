@@ -27,7 +27,7 @@ export type Lot = {
 export type Payment = {
   amount: number;
   date: Date | Timestamp;
-  type?: 'rent' | 'hamali' | 'other' | 'unloading';
+  type?: 'rent' | 'hamali' | 'other' | 'unloading' | 'discount';
 };
 
 export type Outflow = {

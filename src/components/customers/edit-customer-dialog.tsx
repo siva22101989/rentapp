@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -44,15 +43,27 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer,
 
   const form = useForm<CustomerFormData>({
     resolver: zodResolver(CustomerSchema),
-    // Use `values` to make the form controlled and ensure it updates when the `customer` prop changes.
-    values: {
-      name: customer.name || '',
-      phone: customer.phone || '',
-      email: customer.email || '',
-      fatherName: customer.fatherName || '',
-      village: customer.village || '',
+    defaultValues: {
+      name: '',
+      phone: '',
+      email: '',
+      fatherName: '',
+      village: '',
     },
   });
+
+  const handleOpenChange = (open: boolean) => {
+    if (open) {
+      form.reset({
+        name: customer.name || '',
+        phone: customer.phone || '',
+        email: customer.email || '',
+        fatherName: customer.fatherName || '',
+        village: customer.village || '',
+      });
+    }
+    setIsOpen(open);
+  };
 
   const onSubmit = (data: CustomerFormData) => {
     if (!firestore) {
@@ -73,7 +84,7 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer,
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <Form {...form}>

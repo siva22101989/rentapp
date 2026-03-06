@@ -63,13 +63,6 @@ function DateFilters() {
         financialYears,
         resetFilters
     } = useDateFilter();
-    
-    const pathname = usePathname();
-    const showFilters = ['/expenses', '/reports'].some(path => pathname.startsWith(path));
-
-    if (!showFilters) {
-        return null;
-    }
 
     return (
         <div className="hidden md:flex items-center gap-2">

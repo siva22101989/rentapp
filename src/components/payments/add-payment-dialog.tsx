@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -16,18 +17,20 @@ import {
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import type { Payment, StorageRecord } from '@/lib/definitions';
-import { formatCurrency, cleanForFirestore, toDate } from '@/lib/utils';
+import { formatCurrency, cleanForFirestore } from '@/lib/utils';
 import { useFirestore } from '@/firebase/provider';
-import { doc, updateDoc, arrayUnion, writeBatch } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { Separator } from '../ui/separator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 const PaymentSchema = z.object({
   paymentDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date" }),
   paymentAmount: z.coerce.number().positive('Payment amount must be a positive number.'),
+  paymentType: z.enum(['rent', 'hamali', 'other']),
 });
 
 type PaymentFormData = z.infer<typeof PaymentSchema>;
@@ -38,10 +41,9 @@ type AddPaymentDialogProps = {
         hamaliPending: number;
         rentPending: number;
     };
-    allRecords: StorageRecord[];
 };
 
-export function AddPaymentDialog({ record, allRecords }: AddPaymentDialogProps) {
+export function AddPaymentDialog({ record }: AddPaymentDialogProps) {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -52,6 +54,7 @@ export function AddPaymentDialog({ record, allRecords }: AddPaymentDialogProps) 
     defaultValues: {
         paymentDate: new Date().toISOString().split('T')[0],
         paymentAmount: undefined,
+        paymentType: 'rent',
     },
   });
 
@@ -60,85 +63,26 @@ export function AddPaymentDialog({ record, allRecords }: AddPaymentDialogProps) 
       toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
       return;
     }
+    
+    if (data.paymentAmount > record.balanceDue) {
+         form.setError('paymentAmount', { message: `Payment cannot exceed total due of ${formatCurrency(record.balanceDue)}.`});
+        return;
+    }
 
     startTransition(async () => {
       try {
-        const batch = writeBatch(firestore);
-        let amountToApply = data.paymentAmount;
-        const paymentDate = new Date(data.paymentDate);
+        const newPayment: Payment = {
+          amount: data.paymentAmount,
+          date: new Date(data.paymentDate),
+          type: data.paymentType,
+        };
 
-        // 1. Handle current record first
         const recordRef = doc(firestore, 'storageRecords', record.id);
-        const hamaliToPayOnCurrent = Math.min(amountToApply, record.hamaliPending);
-        const newPaymentsCurrent: Payment[] = [];
+        await updateDoc(recordRef, {
+          payments: arrayUnion(cleanForFirestore(newPayment))
+        });
 
-        if (hamaliToPayOnCurrent > 0) {
-          newPaymentsCurrent.push({ amount: hamaliToPayOnCurrent, date: paymentDate, type: 'hamali' });
-          amountToApply -= hamaliToPayOnCurrent;
-        }
-
-        if (amountToApply > 0) {
-            const rentToPayOnCurrent = Math.min(amountToApply, record.rentPending);
-            if (rentToPayOnCurrent > 0) {
-              newPaymentsCurrent.push({ amount: rentToPayOnCurrent, date: paymentDate, type: 'rent' });
-              amountToApply -= rentToPayOnCurrent;
-            }
-        }
-
-        if (newPaymentsCurrent.length > 0) {
-          batch.update(recordRef, {
-            payments: arrayUnion(...newPaymentsCurrent.map(p => cleanForFirestore(p)))
-          });
-        }
-
-        // 2. Handle overpayment by applying to other records, sorted oldest first
-        if (amountToApply > 0.005) { // Use tolerance for float issues
-          const otherRecordsWithDues = allRecords
-            .filter(r => r.customerId === record.customerId && r.id !== record.id)
-            .map(rec => {
-              const hamaliPayable = rec.hamaliPayable || 0;
-              const totalRentBilled = rec.totalRentBilled || 0;
-              const hamaliPaid = (rec.payments || []).filter(p => p.type === 'hamali').reduce((acc, p) => acc + p.amount, 0);
-              const rentPaid = (rec.payments || []).filter(p => p.type === 'rent').reduce((acc, p) => acc + p.amount, 0);
-              const otherPaid = (rec.payments || []).filter(p => !p.type || p.type === 'other').reduce((acc, p) => acc + p.amount, 0);
-              const hamaliDue = Math.max(0, hamaliPayable - hamaliPaid);
-              const rentDue = Math.max(0, totalRentBilled - rentPaid - otherPaid);
-              return { ...rec, hamaliDue, rentDue, totalDue: hamaliDue + rentDue };
-            })
-            .filter(r => r.totalDue > 0.005)
-            .sort((a, b) => toDate(a.storageStartDate).getTime() - toDate(b.storageStartDate).getTime());
-
-          for (const otherRecord of otherRecordsWithDues) {
-            if (amountToApply <= 0.005) break;
-
-            const otherRecordRef = doc(firestore, 'storageRecords', otherRecord.id);
-            const newPaymentsOther: Payment[] = [];
-
-            const hamaliToPay = Math.min(amountToApply, otherRecord.hamaliDue);
-            if (hamaliToPay > 0) {
-              newPaymentsOther.push({ amount: hamaliToPay, date: paymentDate, type: 'hamali' });
-              amountToApply -= hamaliToPay;
-            }
-            
-            if (amountToApply > 0) {
-                const rentToPay = Math.min(amountToApply, otherRecord.rentDue);
-                if (rentToPay > 0) {
-                    newPaymentsOther.push({ amount: rentToPay, date: paymentDate, type: 'rent' });
-                    amountToApply -= rentToPay;
-                }
-            }
-
-            if (newPaymentsOther.length > 0) {
-              batch.update(otherRecordRef, {
-                payments: arrayUnion(...newPaymentsOther.map(p => cleanForFirestore(p)))
-              });
-            }
-          }
-        }
-        
-        await batch.commit();
-
-        toast({ title: 'Success', description: 'Payment(s) recorded successfully.' });
+        toast({ title: 'Success', description: 'Payment recorded successfully.' });
         setIsOpen(false);
         form.reset();
       } catch (error) {
@@ -159,7 +103,7 @@ export function AddPaymentDialog({ record, allRecords }: AddPaymentDialogProps) 
             <DialogHeader>
                 <DialogTitle>Record a Payment</DialogTitle>
                 <DialogDescription>
-                For storage record {record.id}. Any overpayment will be automatically applied to this customer's oldest outstanding bills.
+                For storage record {record.id}.
                 </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -189,6 +133,27 @@ export function AddPaymentDialog({ record, allRecords }: AddPaymentDialogProps) 
                                     {...field}
                                 />
                             </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                
+                 <FormField
+                    control={form.control}
+                    name="paymentType"
+                    render={({ field }) => (
+                         <FormItem>
+                            <FormLabel>Payment For</FormLabel>
+                             <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    <SelectItem value="rent">Rent</SelectItem>
+                                    <SelectItem value="hamali">Hamali</SelectItem>
+                                    <SelectItem value="other">Other</SelectItem>
+                                </SelectContent>
+                            </Select>
                             <FormMessage />
                         </FormItem>
                     )}

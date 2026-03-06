@@ -9,10 +9,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
-import type { Customer, StorageRecord, UnloadingRecord } from "@/lib/definitions";
+import type { Customer } from "@/lib/definitions";
 import { CustomerActionsMenu } from "@/components/customers/customer-actions-menu";
 
-export function CustomersTable({ customers, storageRecords, unloadingRecords }: { customers: Customer[], storageRecords: StorageRecord[], unloadingRecords: UnloadingRecord[] }) {
+export function CustomersTable({ customers }: { customers: Customer[] }) {
   if (!customers || customers.length === 0) {
     return (
       <Card>
@@ -44,8 +44,6 @@ export function CustomersTable({ customers, storageRecords, unloadingRecords }: 
                 <TableCell>
                   <CustomerActionsMenu 
                     customer={customer} 
-                    storageRecords={storageRecords} 
-                    unloadingRecords={unloadingRecords} 
                   />
                 </TableCell>
               </TableRow>

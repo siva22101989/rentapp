@@ -1,3 +1,4 @@
+
 'use client';
 import {
   Table,
@@ -144,7 +145,7 @@ export function PendingPaymentsTable({ records, customers }: { records: StorageR
                                 <TableCell className="text-right font-mono text-blue-600 hidden md:table-cell">{formatCurrency(record.rentPending)}</TableCell>
                                 <TableCell className="text-right font-mono text-destructive">{formatCurrency(record.balanceDue)}</TableCell>
                                 <TableCell className="text-right">
-                                    <AddPaymentDialog record={record} allRecords={records} />
+                                    <AddPaymentDialog record={record} />
                                 </TableCell>
                             </TableRow>
                         )})}

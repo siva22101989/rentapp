@@ -74,8 +74,9 @@ export default function ExpensesPage() {
 
   const financialYears = useMemo(() => {
     const currentYear = new Date().getFullYear();
-    const currentMonth = new Date().getMonth();
-    const startYear = currentMonth < 3 ? currentYear - 1 : currentYear;
+    const currentMonth = new Date().getMonth(); // 0-indexed: Jan is 0, Nov is 10
+    // If current month is Nov or Dec, the FY starts this year. Otherwise, it started last year.
+    const startYear = currentMonth >= 10 ? currentYear : currentYear - 1;
     const years = [];
     for (let i = 0; i < 10; i++) {
         const year = startYear - i;
@@ -92,8 +93,8 @@ export default function ExpensesPage() {
     }
 
     const startYear = parseInt(fy.substring(0, 4), 10);
-    const fromDate = new Date(startYear, 3, 1); // April 1st
-    const toDate = new Date(startYear + 1, 2, 31); // March 31st
+    const fromDate = new Date(startYear, 10, 1); // November 1st
+    const toDate = new Date(startYear + 1, 9, 31); // October 31st
     
     setDateRange({ from: fromDate, to: toDate });
   };

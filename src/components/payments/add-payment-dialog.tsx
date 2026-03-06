@@ -15,10 +15,10 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import type { StorageRecord } from '@/lib/definitions';
-import { formatCurrency, cleanForFirestore } from '@/lib/utils';
+import type { Payment, StorageRecord } from '@/lib/definitions';
+import { formatCurrency, cleanForFirestore, toDate } from '@/lib/utils';
 import { useFirestore } from '@/firebase/provider';
-import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, writeBatch } from 'firebase/firestore';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -27,11 +27,7 @@ import { Separator } from '../ui/separator';
 
 const PaymentSchema = z.object({
   paymentDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date" }),
-  payForHamali: z.coerce.number().nonnegative('Must be a positive number').optional(),
-  payForRent: z.coerce.number().nonnegative('Must be a positive number').optional(),
-}).refine(data => (data.payForHamali && data.payForHamali > 0) || (data.payForRent && data.payForRent > 0), {
-  message: "At least one payment amount is required.",
-  path: ["payForHamali"],
+  paymentAmount: z.coerce.number().positive('Payment amount must be a positive number.'),
 });
 
 type PaymentFormData = z.infer<typeof PaymentSchema>;
@@ -41,10 +37,11 @@ type AddPaymentDialogProps = {
         balanceDue: number;
         hamaliPending: number;
         rentPending: number;
-    }
+    };
+    allRecords: StorageRecord[];
 };
 
-export function AddPaymentDialog({ record }: AddPaymentDialogProps) {
+export function AddPaymentDialog({ record, allRecords }: AddPaymentDialogProps) {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -54,8 +51,7 @@ export function AddPaymentDialog({ record }: AddPaymentDialogProps) {
     resolver: zodResolver(PaymentSchema),
     defaultValues: {
         paymentDate: new Date().toISOString().split('T')[0],
-        payForHamali: '',
-        payForRent: '',
+        paymentAmount: undefined,
     },
   });
 
@@ -67,35 +63,82 @@ export function AddPaymentDialog({ record }: AddPaymentDialogProps) {
 
     startTransition(async () => {
       try {
-        const newPayments = [];
+        const batch = writeBatch(firestore);
+        let amountToApply = data.paymentAmount;
         const paymentDate = new Date(data.paymentDate);
 
-        if (data.payForHamali && data.payForHamali > 0) {
-          newPayments.push(cleanForFirestore({
-            amount: data.payForHamali,
-            date: paymentDate,
-            type: 'hamali',
-          }));
-        }
-        if (data.payForRent && data.payForRent > 0) {
-          newPayments.push(cleanForFirestore({
-            amount: data.payForRent,
-            date: paymentDate,
-            type: 'rent',
-          }));
-        }
-
-        if (newPayments.length === 0) {
-          toast({ title: 'Info', description: 'No payment amount entered.' });
-          return;
-        }
-
+        // 1. Handle current record first
         const recordRef = doc(firestore, 'storageRecords', record.id);
-        await updateDoc(recordRef, {
-          payments: arrayUnion(...newPayments)
-        });
+        const hamaliToPayOnCurrent = Math.min(amountToApply, record.hamaliPending);
+        const newPaymentsCurrent: Payment[] = [];
 
-        toast({ title: 'Success', description: 'Payment recorded successfully.' });
+        if (hamaliToPayOnCurrent > 0) {
+          newPaymentsCurrent.push({ amount: hamaliToPayOnCurrent, date: paymentDate, type: 'hamali' });
+          amountToApply -= hamaliToPayOnCurrent;
+        }
+
+        if (amountToApply > 0) {
+            const rentToPayOnCurrent = Math.min(amountToApply, record.rentPending);
+            if (rentToPayOnCurrent > 0) {
+              newPaymentsCurrent.push({ amount: rentToPayOnCurrent, date: paymentDate, type: 'rent' });
+              amountToApply -= rentToPayOnCurrent;
+            }
+        }
+
+        if (newPaymentsCurrent.length > 0) {
+          batch.update(recordRef, {
+            payments: arrayUnion(...newPaymentsCurrent.map(p => cleanForFirestore(p)))
+          });
+        }
+
+        // 2. Handle overpayment by applying to other records, sorted oldest first
+        if (amountToApply > 0.005) { // Use tolerance for float issues
+          const otherRecordsWithDues = allRecords
+            .filter(r => r.customerId === record.customerId && r.id !== record.id)
+            .map(rec => {
+              const hamaliPayable = rec.hamaliPayable || 0;
+              const totalRentBilled = rec.totalRentBilled || 0;
+              const hamaliPaid = (rec.payments || []).filter(p => p.type === 'hamali').reduce((acc, p) => acc + p.amount, 0);
+              const rentPaid = (rec.payments || []).filter(p => p.type === 'rent').reduce((acc, p) => acc + p.amount, 0);
+              const otherPaid = (rec.payments || []).filter(p => !p.type || p.type === 'other').reduce((acc, p) => acc + p.amount, 0);
+              const hamaliDue = Math.max(0, hamaliPayable - hamaliPaid);
+              const rentDue = Math.max(0, totalRentBilled - rentPaid - otherPaid);
+              return { ...rec, hamaliDue, rentDue, totalDue: hamaliDue + rentDue };
+            })
+            .filter(r => r.totalDue > 0.005)
+            .sort((a, b) => toDate(a.storageStartDate).getTime() - toDate(b.storageStartDate).getTime());
+
+          for (const otherRecord of otherRecordsWithDues) {
+            if (amountToApply <= 0.005) break;
+
+            const otherRecordRef = doc(firestore, 'storageRecords', otherRecord.id);
+            const newPaymentsOther: Payment[] = [];
+
+            const hamaliToPay = Math.min(amountToApply, otherRecord.hamaliDue);
+            if (hamaliToPay > 0) {
+              newPaymentsOther.push({ amount: hamaliToPay, date: paymentDate, type: 'hamali' });
+              amountToApply -= hamaliToPay;
+            }
+            
+            if (amountToApply > 0) {
+                const rentToPay = Math.min(amountToApply, otherRecord.rentDue);
+                if (rentToPay > 0) {
+                    newPaymentsOther.push({ amount: rentToPay, date: paymentDate, type: 'rent' });
+                    amountToApply -= rentToPay;
+                }
+            }
+
+            if (newPaymentsOther.length > 0) {
+              batch.update(otherRecordRef, {
+                payments: arrayUnion(...newPaymentsOther.map(p => cleanForFirestore(p)))
+              });
+            }
+          }
+        }
+        
+        await batch.commit();
+
+        toast({ title: 'Success', description: 'Payment(s) recorded successfully.' });
         setIsOpen(false);
         form.reset();
       } catch (error) {
@@ -116,7 +159,7 @@ export function AddPaymentDialog({ record }: AddPaymentDialogProps) {
             <DialogHeader>
                 <DialogTitle>Record a Payment</DialogTitle>
                 <DialogDescription>
-                For storage record {record.id}. The total amount due is {formatCurrency(record.balanceDue)}.
+                For storage record {record.id}. Any overpayment will be automatically applied to this customer's oldest outstanding bills.
                 </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -127,6 +170,10 @@ export function AddPaymentDialog({ record }: AddPaymentDialogProps) {
                 <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Rent Pending</span>
                     <span className="font-medium text-blue-600">{formatCurrency(record.rentPending)}</span>
+                </div>
+                <div className="flex justify-between text-sm font-bold border-t pt-2 mt-2">
+                    <span className="text-foreground">Total Due for this Record</span>
+                    <span className="text-destructive">{formatCurrency(record.balanceDue)}</span>
                 </div>
                 <Separator className="my-2" />
 
@@ -149,36 +196,15 @@ export function AddPaymentDialog({ record }: AddPaymentDialogProps) {
 
                 <FormField
                     control={form.control}
-                    name="payForHamali"
+                    name="paymentAmount"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Pay towards Hamali</FormLabel>
+                            <FormLabel>Payment Amount</FormLabel>
                             <FormControl>
                                 <Input 
                                     type="number" 
                                     step="0.01" 
-                                    placeholder="0.00" 
-                                    max={record.hamaliPending}
-                                    {...field}
-                                    value={field.value ?? ''}
-                                />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                 <FormField
-                    control={form.control}
-                    name="payForRent"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Pay towards Rent</FormLabel>
-                            <FormControl>
-                                 <Input 
-                                    type="number" 
-                                    step="0.01" 
-                                    placeholder="0.00" 
-                                    max={record.rentPending}
+                                    placeholder="0.00"
                                     {...field}
                                     value={field.value ?? ''}
                                 />

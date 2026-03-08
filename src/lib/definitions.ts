@@ -91,6 +91,26 @@ export type Borrowing = {
   interestType: 'Monthly' | 'Yearly';
 };
 
+export type Lending = {
+  id: string;
+  borrowerName: string;
+  principal: number;
+  interestRate: number;
+  dateGiven: Date | Timestamp;
+  interestType: 'Monthly' | 'Yearly';
+};
+
+export const incomeCategories = ["Interest Received", "Other"] as const;
+export type IncomeCategory = typeof incomeCategories[number];
+
+export type OtherIncome = {
+    id: string;
+    description: string;
+    amount: number;
+    category: IncomeCategory;
+    date: Date | Timestamp;
+}
+
 export type WarehouseInfo = {
   id: string;
   name: string;

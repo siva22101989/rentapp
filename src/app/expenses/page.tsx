@@ -7,7 +7,7 @@ import { TrendingUp, TrendingDown, Scale, Banknote } from "lucide-react";
 import { formatCurrency, toDate } from "@/lib/utils";
 import { useMemo } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import type { Expense, StorageRecord, UnloadingRecord, WarehouseInfo, Borrowing } from "@/lib/definitions";
+import type { Expense, StorageRecord, UnloadingRecord, WarehouseInfo, Borrowing, Lending, OtherIncome } from "@/lib/definitions";
 import { format } from "date-fns";
 import { ExpenseActionsMenu } from "@/components/expenses/expense-actions-menu";
 import { useCollection } from "@/firebase/firestore/use-collection";
@@ -17,6 +17,44 @@ import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 import { useDoc } from "@/firebase/firestore/use-doc";
 import { ManageInvestmentDialog } from "@/components/expenses/manage-investment-dialog";
 import { AddBorrowingDialog } from "@/components/borrowings/add-borrowing-dialog";
+import { AddLendingDialog } from "@/components/lendings/add-lending-dialog";
+import { AddIncomeDialog } from "@/components/income/add-income-dialog";
+import { Separator } from "@/components/ui/separator";
+
+function IncomesTable({ incomes }: { incomes: OtherIncome[] }) {
+    if (incomes.length === 0) {
+      return null;
+    }
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Income History</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="hidden sm:table-cell">Date</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {incomes.map((income) => (
+                <TableRow key={income.id}>
+                  <TableCell className="hidden sm:table-cell">{format(toDate(income.date), 'dd MMM yyyy')}</TableCell>
+                  <TableCell>{income.category}</TableCell>
+                  <TableCell className="font-medium">{income.description}</TableCell>
+                  <TableCell className="text-right font-mono text-green-600">{formatCurrency(income.amount)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    );
+}
 
 function ExpensesTable({ expenses }: { expenses: Expense[] }) {
   if (expenses.length === 0) {
@@ -32,7 +70,7 @@ function ExpensesTable({ expenses }: { expenses: Expense[] }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Transaction History</CardTitle>
+        <CardTitle>Expense History</CardTitle>
       </CardHeader>
       <CardContent>
         <Table>
@@ -71,7 +109,7 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Active Borrowings</CardTitle>
+        <CardTitle>Active Borrowings (Money Taken)</CardTitle>
       </CardHeader>
       <CardContent>
         <Table>
@@ -108,9 +146,54 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
   )
 }
 
+function LendingsTable({ lendings }: { lendings: Lending[] }) {
+  if (lendings.length === 0) {
+    return null;
+  }
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Active Lendings (Money Given)</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Borrower</TableHead>
+              <TableHead>Date Given</TableHead>
+              <TableHead>Interest</TableHead>
+              <TableHead className="text-right">Yearly Interest Income</TableHead>
+              <TableHead className="text-right">Principal</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {lendings.map((lending) => {
+              const annualInterest =
+                lending.interestType === 'Monthly'
+                  ? lending.principal * (lending.interestRate / 100) * 12
+                  : lending.principal * (lending.interestRate / 100);
+
+              return (
+                <TableRow key={lending.id}>
+                  <TableCell className="font-medium">{lending.borrowerName}</TableCell>
+                  <TableCell>{format(toDate(lending.dateGiven), 'dd MMM yyyy')}</TableCell>
+                  <TableCell>{lending.interestRate}% {lending.interestType}</TableCell>
+                  <TableCell className="text-right font-mono text-green-600">{formatCurrency(annualInterest)}</TableCell>
+                  <TableCell className="text-right font-mono">{formatCurrency(lending.principal)}</TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  )
+}
+
+
 export default function ExpensesPage() {
   const firestore = useFirestore();
-  const { dateRange } = useDateFilter();
+  const { dateRange, financialYear } = useDateFilter();
   
   const warehouseInfoRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'settings', 'main') : null),
@@ -118,34 +201,28 @@ export default function ExpensesPage() {
   );
   const { data: warehouseInfo, loading: loadingWarehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
-  const recordsQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'storageRecords') : null),
-    [firestore]
-  );
+  const recordsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'storageRecords') : null), [firestore]);
   const { data: allRecords, loading: loadingRecords } = useCollection<StorageRecord>(recordsQuery);
 
-  const expensesQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'expenses') : null),
-    [firestore]
-  );
+  const expensesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'expenses') : null), [firestore]);
   const { data: allExpenses, loading: loadingExpenses } = useCollection<Expense>(expensesQuery);
   
-  const unloadingRecordsQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'unloadingRecords') : null),
-    [firestore]
-  );
+  const unloadingRecordsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'unloadingRecords') : null), [firestore]);
   const { data: allUnloadingRecords, loading: loadingUnloading } = useCollection<UnloadingRecord>(unloadingRecordsQuery);
 
-  const borrowingsQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'borrowings') : null),
-    [firestore]
-  );
+  const borrowingsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'borrowings') : null), [firestore]);
   const { data: borrowings, loading: loadingBorrowings } = useCollection<Borrowing>(borrowingsQuery);
+  
+  const lendingsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'lendings') : null), [firestore]);
+  const { data: lendings, loading: loadingLendings } = useCollection<Lending>(lendingsQuery);
+  
+  const otherIncomesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'otherIncomes') : null), [firestore]);
+  const { data: otherIncomes, loading: loadingOtherIncomes } = useCollection<OtherIncome>(otherIncomesQuery);
 
 
-  const { periodIncome, periodExpenses, periodBalance, filteredExpenses, interestOnCapital } = useMemo(() => {
-    if (!allRecords || !allExpenses || !allUnloadingRecords) {
-        return { periodIncome: 0, periodExpenses: 0, periodBalance: 0, filteredExpenses: [], interestOnCapital: 0 };
+  const { periodIncome, periodExpenses, periodBalance, filteredExpenses, filteredIncomes, interestOnCapital } = useMemo(() => {
+    if (!allRecords || !allExpenses || !allUnloadingRecords || !otherIncomes) {
+        return { periodIncome: 0, periodExpenses: 0, periodBalance: 0, filteredExpenses: [], filteredIncomes: [], interestOnCapital: 0 };
     }
 
     const inRange = (date: Date) => {
@@ -164,7 +241,7 @@ export default function ExpensesPage() {
     const capital = warehouseInfo?.capitalInvestment || 0;
     const interestRate = warehouseInfo?.annualInterestRate || 0;
 
-    if (dateRange?.from && capital > 0 && interestRate > 0) {
+    if (financialYear !== 'all-time' && dateRange?.from && capital > 0 && interestRate > 0) {
         const from = dateRange.from;
         const to = dateRange.to ? new Date(dateRange.to) : new Date(); // Use today if 'to' is not set
         to.setHours(23, 59, 59, 999);
@@ -179,10 +256,13 @@ export default function ExpensesPage() {
     
     const filteredStoragePayments = allRecords.flatMap(r => r.payments || []).filter(p => inRange(toDate(p.date)));
     const filteredUnloadingPayments = allUnloadingRecords.flatMap(r => r.payments || []).filter(p => inRange(toDate(p.date)));
+    const localFilteredOtherIncomes = otherIncomes.filter(i => inRange(toDate(i.date)));
 
-    const income = filteredStoragePayments.reduce((acc, p) => acc + p.amount, 0) +
+    const incomeFromRecords = filteredStoragePayments.reduce((acc, p) => acc + p.amount, 0) +
                    filteredUnloadingPayments.reduce((acc, p) => acc + p.amount, 0);
-    
+    const incomeFromOther = localFilteredOtherIncomes.reduce((acc, i) => acc + i.amount, 0);
+    const income = incomeFromRecords + incomeFromOther;
+
     const localFilteredExpenses = allExpenses.filter(e => inRange(toDate(e.date)));
     const expensesFromDb = localFilteredExpenses.reduce((total, expense) => total + expense.amount, 0);
     const totalExpenses = expensesFromDb + calculatedInterest;
@@ -192,12 +272,13 @@ export default function ExpensesPage() {
       periodExpenses: totalExpenses,
       periodBalance: income - totalExpenses,
       filteredExpenses: localFilteredExpenses.sort((a,b) => toDate(b.date).getTime() - toDate(a.date).getTime()),
+      filteredIncomes: localFilteredOtherIncomes.sort((a,b) => toDate(b.date).getTime() - toDate(a.date).getTime()),
       interestOnCapital: calculatedInterest,
     };
-  }, [allRecords, allExpenses, allUnloadingRecords, dateRange, warehouseInfo]);
+  }, [allRecords, allExpenses, allUnloadingRecords, otherIncomes, dateRange, warehouseInfo, financialYear]);
 
 
-  if (loadingRecords || loadingExpenses || loadingUnloading || loadingWarehouseInfo || loadingBorrowings) {
+  if (loadingRecords || loadingExpenses || loadingUnloading || loadingWarehouseInfo || loadingBorrowings || loadingLendings || loadingOtherIncomes) {
     return (
       <AppLayout>
         <PageHeader title="Profit & Loss" description="Track your operational finances and view profit/loss for the selected period." />
@@ -212,10 +293,14 @@ export default function ExpensesPage() {
         title="Profit & Loss"
         description="Track your operational finances and view profit/loss for the selected period."
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+            <AddIncomeDialog />
             <AddExpenseDialog />
-            <ManageInvestmentDialog initialData={warehouseInfo} />
+            <Separator orientation="vertical" className="h-6" />
+            <AddLendingDialog />
             <AddBorrowingDialog />
+            <Separator orientation="vertical" className="h-6" />
+            <ManageInvestmentDialog initialData={warehouseInfo} />
         </div>
       </PageHeader>
 
@@ -262,7 +347,7 @@ export default function ExpensesPage() {
                  <Scale className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-                <div className={`text-2xl font-bold ${periodBalance >= 0 ? 'text-primary' : ''}`}>{formatCurrency(periodBalance)}</div>
+                <div className={`text-2xl font-bold ${periodBalance >= 0 ? 'text-primary' : 'text-destructive'}`}>{formatCurrency(periodBalance)}</div>
                  <p className="text-xs text-muted-foreground">
                     Your net profit or loss for the selected period.
                 </p>
@@ -271,6 +356,9 @@ export default function ExpensesPage() {
       </div>
       <div className="mt-4 space-y-4">
         <BorrowingsTable borrowings={borrowings || []} />
+        <LendingsTable lendings={lendings || []} />
+        <Separator />
+        <IncomesTable incomes={filteredIncomes} />
         <ExpensesTable expenses={filteredExpenses} />
       </div>
     </AppLayout>

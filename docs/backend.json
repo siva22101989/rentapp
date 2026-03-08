@@ -251,6 +251,71 @@
         "interestType"
       ]
     },
+    "lending": {
+      "title": "Lending",
+      "description": "Represents a loan given to an individual or entity.",
+      "type": "object",
+      "properties": {
+        "borrowerName": {
+          "type": "string",
+          "description": "The name of the person or entity to whom the money was lent."
+        },
+        "principal": {
+          "type": "number",
+          "description": "The original amount of money lent."
+        },
+        "interestRate": {
+          "type": "number",
+          "description": "The interest rate in percent (e.g., 2 for 2%)."
+        },
+        "dateGiven": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The date the loan was given."
+        },
+        "interestType": {
+          "type": "string",
+          "enum": [
+            "Monthly",
+            "Yearly"
+          ],
+          "description": "The type of interest calculation."
+        }
+      },
+      "required": [
+        "borrowerName",
+        "principal",
+        "interestRate",
+        "dateGiven",
+        "interestType"
+      ]
+    },
+    "otherIncome": {
+      "title": "Other Income",
+      "description": "Represents miscellaneous income not from storage rent or hamali.",
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "A description of the income source."
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount of income received."
+        },
+        "category": {
+          "type": "string",
+          "enum": ["Interest Received", "Other"],
+          "description": "The category of the income."
+        },
+        "date": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The date the income was received."
+        }
+      },
+      "required": ["description", "amount", "category", "date"]
+    },
     "unloadingRecord": {
       "title": "Unloading Record",
       "description": "Represents a record of items being unloaded from a vehicle.",
@@ -430,6 +495,14 @@
     "/borrowings/{borrowingId}": {
       "schema": "borrowing",
       "description": "Stores individual borrowing/loan records."
+    },
+    "/lendings/{lendingId}": {
+      "schema": "lending",
+      "description": "Stores individual lending/loan records."
+    },
+    "/otherIncomes/{incomeId}": {
+      "schema": "otherIncome",
+      "description": "Stores individual miscellaneous income records."
     },
     "/unloadingRecords/{unloadingId}": {
       "schema": "unloadingRecord",

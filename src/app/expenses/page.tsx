@@ -3,7 +3,7 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
 import { AddExpenseDialog } from "@/components/expenses/add-expense-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Scale, Banknote, Landmark } from "lucide-react";
+import { TrendingUp, TrendingDown, Scale, Banknote } from "lucide-react";
 import { formatCurrency, toDate } from "@/lib/utils";
 import { useMemo } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -204,6 +204,7 @@ export default function ExpensesPage() {
         description="Track your operational finances and view profit/loss for the selected period."
       >
         <div className="flex items-center gap-2">
+            <AddExpenseDialog />
             <ManageInvestmentDialog initialData={warehouseInfo} />
             <AddBorrowingDialog />
         </div>

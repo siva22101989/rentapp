@@ -351,6 +351,14 @@
         "addressLine2": {
           "type": "string",
           "description": "Address Line 2 (e.g., City, State, ZIP)."
+        },
+        "capitalInvestment": {
+          "type": "number",
+          "description": "The total capital invested in the business."
+        },
+        "annualInterestRate": {
+          "type": "number",
+          "description": "The annual interest rate used to calculate cost of capital."
         }
       },
       "required": ["name"]

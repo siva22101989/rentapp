@@ -1,4 +1,3 @@
-
 import type { Timestamp } from 'firebase/firestore';
 
 export type Customer = {
@@ -92,6 +91,8 @@ export type WarehouseInfo = {
   addressLine1?: string;
   addressLine2?: string;
   bankDetails?: string;
+  capitalInvestment?: number;
+  annualInterestRate?: number;
 };
 
 export const unloadingStatus = ["Unloading", "Drying", "Packing", "Billed"] as const;

@@ -289,11 +289,14 @@ export default function ExpensesPage() {
   
   return (
     <AppLayout>
-      <PageHeader
-        title="Profit & Loss"
-        description="Track your operational finances and view profit/loss for the selected period."
-      >
-        <div className="flex items-center gap-2 flex-wrap">
+      <div>
+        <div className="space-y-0.5">
+          <h1 className="text-xl font-bold tracking-tight font-headline">Profit & Loss</h1>
+          <p className="text-sm text-muted-foreground">
+            Track your operational finances and view profit/loss for the selected period.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap mt-3">
             <AddIncomeDialog />
             <AddExpenseDialog />
             <Separator orientation="vertical" className="h-6" />
@@ -302,7 +305,7 @@ export default function ExpensesPage() {
             <Separator orientation="vertical" className="h-6" />
             <ManageInvestmentDialog initialData={warehouseInfo} />
         </div>
-      </PageHeader>
+      </div>
 
       <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-4">
         <Card>
@@ -354,7 +357,7 @@ export default function ExpensesPage() {
             </CardContent>
         </Card>
       </div>
-      <div className="mt-4 space-y-4">
+      <div className="space-y-4">
         <BorrowingsTable borrowings={borrowings || []} />
         <LendingsTable lendings={lendings || []} />
         <Separator />

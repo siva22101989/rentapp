@@ -84,8 +84,7 @@ interface DateFilterContextType {
 const DateFilterContext = createContext<DateFilterContextType | undefined>(undefined);
 
 export function DateFilterProvider({ children }: { children: ReactNode }) {
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
-  const [financialYear, setFinancialYear] = useState<string>('');
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
   const financialYears = useMemo(() => {
     const currentYear = new Date().getFullYear();
@@ -98,6 +97,9 @@ export function DateFilterProvider({ children }: { children: ReactNode }) {
     }
     return years;
   }, []);
+  
+  // Default to the current financial year
+  const [financialYear, setFinancialYear] = useState<string>(financialYears[0] || '');
 
   const handleFinancialYearChange = (fy: string) => {
     setFinancialYear(fy);
@@ -111,6 +113,15 @@ export function DateFilterProvider({ children }: { children: ReactNode }) {
     setDateRange({ from: fromDate, to: toDate });
   };
   
+  // This effect sets the initial date range when the component mounts
+  useEffect(() => {
+    if (financialYear) {
+      handleFinancialYearChange(financialYear);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only once on mount
+
+  
   const resetFilters = () => {
     setDateRange(undefined);
     setFinancialYear('');
@@ -118,8 +129,9 @@ export function DateFilterProvider({ children }: { children: ReactNode }) {
 
   const onSetDateRange = (newRange: DateRange | undefined) => {
     setDateRange(newRange);
+    // Since custom date range picker is removed, clearing the FY is not needed.
     if (newRange) {
-        setFinancialYear(''); // Clear FY if custom range is set
+        setFinancialYear(''); 
     }
   };
 

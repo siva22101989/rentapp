@@ -201,7 +201,7 @@ export default function ExpensesPage() {
             <CardContent>
                 <div className="text-2xl font-bold text-orange-600">{formatCurrency(interestOnCapital)}</div>
                 <p className="text-xs text-muted-foreground">
-                    {dateRange ? 'For the selected period.' : 'Select a Financial Year to calculate.'}
+                    on {formatCurrency(warehouseInfo?.capitalInvestment || 0)} @ {warehouseInfo?.annualInterestRate || 0}% p.a.
                 </p>
             </CardContent>
         </Card>

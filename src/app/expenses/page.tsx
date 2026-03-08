@@ -80,18 +80,27 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
               <TableHead>Lender</TableHead>
               <TableHead>Date Taken</TableHead>
               <TableHead>Interest</TableHead>
+              <TableHead className="text-right">Yearly Interest</TableHead>
               <TableHead className="text-right">Principal</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {borrowings.map((borrowing) => (
-              <TableRow key={borrowing.id}>
-                <TableCell className="font-medium">{borrowing.lenderName}</TableCell>
-                <TableCell>{format(toDate(borrowing.dateTaken), 'dd MMM yyyy')}</TableCell>
-                <TableCell>{borrowing.interestRate}% {borrowing.interestType}</TableCell>
-                <TableCell className="text-right font-mono">{formatCurrency(borrowing.principal)}</TableCell>
-              </TableRow>
-            ))}
+            {borrowings.map((borrowing) => {
+              const annualInterest =
+                borrowing.interestType === 'Monthly'
+                  ? borrowing.principal * (borrowing.interestRate / 100) * 12
+                  : borrowing.principal * (borrowing.interestRate / 100);
+
+              return (
+                <TableRow key={borrowing.id}>
+                  <TableCell className="font-medium">{borrowing.lenderName}</TableCell>
+                  <TableCell>{format(toDate(borrowing.dateTaken), 'dd MMM yyyy')}</TableCell>
+                  <TableCell>{borrowing.interestRate}% {borrowing.interestType}</TableCell>
+                  <TableCell className="text-right font-mono">{formatCurrency(annualInterest)}</TableCell>
+                  <TableCell className="text-right font-mono">{formatCurrency(borrowing.principal)}</TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </CardContent>

@@ -78,7 +78,7 @@ export function AddCustomerDialog() {
           Add Customer
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-sm">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <DialogHeader>
@@ -87,7 +87,7 @@ export function AddCustomerDialog() {
                 Enter the details for the new customer. Click save when you're done.
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
+            <div className="grid gap-2 py-4">
               <FormField
                 control={form.control}
                 name="name"

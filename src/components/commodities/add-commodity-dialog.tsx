@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -72,7 +73,7 @@ export function AddCommodityDialog() {
           Add Commodity
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-sm">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <DialogHeader>
@@ -81,7 +82,7 @@ export function AddCommodityDialog() {
                 Enter the details for the new commodity and its rent rates.
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
+            <div className="grid gap-2 py-4">
               <FormField
                 control={form.control}
                 name="name"

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -81,7 +82,7 @@ export function ManageInvestmentDialog({ initialData }: { initialData?: Warehous
           Manage Investment
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-sm">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <DialogHeader>
@@ -90,7 +91,7 @@ export function ManageInvestmentDialog({ initialData }: { initialData?: Warehous
                 Set your total investment and annual interest rate to automatically calculate the cost of capital.
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
+            <div className="grid gap-2 py-4">
               <FormField
                 control={form.control}
                 name="capitalInvestment"

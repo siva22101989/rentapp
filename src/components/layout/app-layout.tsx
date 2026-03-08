@@ -62,7 +62,7 @@ function DateFilters() {
     } = useDateFilter();
 
     return (
-        <div className="hidden md:flex items-center gap-2">
+        <div className="flex items-center gap-2">
             <Select value={financialYear} onValueChange={handleFinancialYearChange}>
                 <SelectTrigger className="w-[150px] h-8 text-xs">
                     <SelectValue placeholder="Select FY" />
@@ -171,7 +171,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 </DropdownMenu>
             </div>
         </header>
-        <main className="flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">{children}</main>
+        <main className="flex flex-1 flex-col gap-4 p-4 md:gap-4 md:p-4">{children}</main>
     </div>
   );
 }

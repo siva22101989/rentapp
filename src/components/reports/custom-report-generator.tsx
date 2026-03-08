@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import type { Customer, StorageRecord, UnloadingRecord, Expense } from "@/lib/definitions";
+import type { Customer, StorageRecord, UnloadingRecord, Expense, WarehouseInfo, Borrowing, Lending, OtherIncome } from "@/lib/definitions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CustomersTable } from '@/components/customers/customers-table';
@@ -15,9 +15,11 @@ import { LotInventoryReport } from './lot-inventory-report';
 import { UnloadingReport } from './unloading-report';
 import { PaymentReport } from './payment-report';
 import { DailySummaryReport } from './daily-summary-report';
+import { ProfitAndLossReport } from './profit-and-loss-report';
 
 const reportTypes = [
     { value: 'daily-summary', label: 'Daily Summary Report' },
+    { value: 'profit-and-loss', label: 'Profit & Loss Report' },
     { value: 'customer-statement', label: 'Customer Dues Statement (Detailed)' },
     { value: 'hamali-register', label: 'Hamali Register' },
     { value: 'inflow-register', label: 'Inflow Register (Date Range)' },
@@ -35,17 +37,42 @@ type ReportGeneratorProps = {
     customers: Customer[];
     unloadingRecords: UnloadingRecord[];
     expenses: Expense[];
+    warehouseInfo: WarehouseInfo | null;
+    borrowings: Borrowing[];
+    lendings: Lending[];
+    otherIncomes: OtherIncome[];
     initialReport?: string;
     initialCustomerId?: string;
 }
 
-export function CustomReportGenerator({ records, customers, unloadingRecords, expenses, initialReport, initialCustomerId }: ReportGeneratorProps) {
+export function CustomReportGenerator({ 
+    records, 
+    customers, 
+    unloadingRecords, 
+    expenses, 
+    warehouseInfo, 
+    borrowings, 
+    lendings, 
+    otherIncomes, 
+    initialReport, 
+    initialCustomerId 
+}: ReportGeneratorProps) {
     const [selectedReport, setSelectedReport] = useState<string>(initialReport || 'daily-summary');
 
     const renderReport = () => {
         switch (selectedReport) {
             case 'daily-summary':
                 return <DailySummaryReport records={records} customers={customers} unloadingRecords={unloadingRecords} expenses={expenses} />;
+            case 'profit-and-loss':
+                return <ProfitAndLossReport 
+                    allRecords={records}
+                    allExpenses={expenses}
+                    allUnloadingRecords={unloadingRecords}
+                    otherIncomes={otherIncomes}
+                    warehouseInfo={warehouseInfo}
+                    borrowings={borrowings}
+                    lendings={lendings}
+                />;
             case 'all-customers':
                 return <CustomersTable customers={customers} />;
             case 'customer-statement':
@@ -58,7 +85,7 @@ export function CustomReportGenerator({ records, customers, unloadingRecords, ex
             case 'active-inventory':
                 return <StorageTable />;
             case 'pending-dues':
-                return <PendingPaymentsTable records={records} customers={customers} />;
+                return <PendingPaymentsTable records={records} customers={customers} unloadingRecords={unloadingRecords} />;
             case 'hamali-register':
                 return <HamaliReport records={records} customers={customers} unloadingRecords={unloadingRecords} expenses={expenses} />;
             case 'inflow-register':

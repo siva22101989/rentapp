@@ -82,6 +82,15 @@ export type Expense = {
   date: Date | Timestamp;
 };
 
+export type Borrowing = {
+  id: string;
+  lenderName: string;
+  principal: number;
+  interestRate: number;
+  dateTaken: Date | Timestamp;
+  interestType: 'Monthly' | 'Yearly';
+};
+
 export type WarehouseInfo = {
   id: string;
   name: string;

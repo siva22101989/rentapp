@@ -3,11 +3,11 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
 import { AddExpenseDialog } from "@/components/expenses/add-expense-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Scale, Banknote } from "lucide-react";
+import { TrendingUp, TrendingDown, Scale, Banknote, Landmark } from "lucide-react";
 import { formatCurrency, toDate } from "@/lib/utils";
 import { useMemo } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import type { Expense, StorageRecord, UnloadingRecord, WarehouseInfo } from "@/lib/definitions";
+import type { Expense, StorageRecord, UnloadingRecord, WarehouseInfo, Borrowing } from "@/lib/definitions";
 import { format } from "date-fns";
 import { ExpenseActionsMenu } from "@/components/expenses/expense-actions-menu";
 import { useCollection } from "@/firebase/firestore/use-collection";
@@ -16,12 +16,13 @@ import { collection, doc } from "firebase/firestore";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 import { useDoc } from "@/firebase/firestore/use-doc";
 import { ManageInvestmentDialog } from "@/components/expenses/manage-investment-dialog";
+import { AddBorrowingDialog } from "@/components/borrowings/add-borrowing-dialog";
 
 function ExpensesTable({ expenses }: { expenses: Expense[] }) {
   if (expenses.length === 0) {
     return (
       <Card>
-        <CardContent className="p-4 text-center text-muted-foreground">
+        <CardContent className="p-2 text-center text-muted-foreground">
           No expenses recorded for the selected period.
         </CardContent>
       </Card>
@@ -63,6 +64,40 @@ function ExpensesTable({ expenses }: { expenses: Expense[] }) {
   );
 }
 
+function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
+  if (borrowings.length === 0) {
+    return null;
+  }
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Active Borrowings</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Lender</TableHead>
+              <TableHead>Date Taken</TableHead>
+              <TableHead>Interest</TableHead>
+              <TableHead className="text-right">Principal</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {borrowings.map((borrowing) => (
+              <TableRow key={borrowing.id}>
+                <TableCell className="font-medium">{borrowing.lenderName}</TableCell>
+                <TableCell>{format(toDate(borrowing.dateTaken), 'dd MMM yyyy')}</TableCell>
+                <TableCell>{borrowing.interestRate}% {borrowing.interestType}</TableCell>
+                <TableCell className="text-right font-mono">{formatCurrency(borrowing.principal)}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  )
+}
 
 export default function ExpensesPage() {
   const firestore = useFirestore();
@@ -91,6 +126,12 @@ export default function ExpensesPage() {
     [firestore]
   );
   const { data: allUnloadingRecords, loading: loadingUnloading } = useCollection<UnloadingRecord>(unloadingRecordsQuery);
+
+  const borrowingsQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'borrowings') : null),
+    [firestore]
+  );
+  const { data: borrowings, loading: loadingBorrowings } = useCollection<Borrowing>(borrowingsQuery);
 
 
   const { periodIncome, periodExpenses, periodBalance, filteredExpenses, interestOnCapital } = useMemo(() => {
@@ -147,7 +188,7 @@ export default function ExpensesPage() {
   }, [allRecords, allExpenses, allUnloadingRecords, dateRange, warehouseInfo]);
 
 
-  if (loadingRecords || loadingExpenses || loadingUnloading || loadingWarehouseInfo) {
+  if (loadingRecords || loadingExpenses || loadingUnloading || loadingWarehouseInfo || loadingBorrowings) {
     return (
       <AppLayout>
         <PageHeader title="Profit & Loss" description="Track your operational finances and view profit/loss for the selected period." />
@@ -164,7 +205,7 @@ export default function ExpensesPage() {
       >
         <div className="flex items-center gap-2">
             <ManageInvestmentDialog initialData={warehouseInfo} />
-            <AddExpenseDialog />
+            <AddBorrowingDialog />
         </div>
       </PageHeader>
 
@@ -218,7 +259,8 @@ export default function ExpensesPage() {
             </CardContent>
         </Card>
       </div>
-      <div className="mt-4">
+      <div className="mt-4 space-y-4">
+        <BorrowingsTable borrowings={borrowings || []} />
         <ExpensesTable expenses={filteredExpenses} />
       </div>
     </AppLayout>

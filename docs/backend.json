@@ -212,6 +212,45 @@
         },
         "required": ["description", "amount", "category", "date"]
     },
+    "borrowing": {
+      "title": "Borrowing",
+      "description": "Represents a loan taken from an individual or entity.",
+      "type": "object",
+      "properties": {
+        "lenderName": {
+          "type": "string",
+          "description": "The name of the person or entity from whom the money was borrowed."
+        },
+        "principal": {
+          "type": "number",
+          "description": "The original amount of money borrowed."
+        },
+        "interestRate": {
+          "type": "number",
+          "description": "The interest rate in percent (e.g., 2 for 2%)."
+        },
+        "dateTaken": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The date the loan was taken."
+        },
+        "interestType": {
+          "type": "string",
+          "enum": [
+            "Monthly",
+            "Yearly"
+          ],
+          "description": "The type of interest calculation."
+        }
+      },
+      "required": [
+        "lenderName",
+        "principal",
+        "interestRate",
+        "dateTaken",
+        "interestType"
+      ]
+    },
     "unloadingRecord": {
       "title": "Unloading Record",
       "description": "Represents a record of items being unloaded from a vehicle.",
@@ -387,6 +426,10 @@
     "/expenses/{expenseId}": {
         "schema": "expense",
         "description": "Stores individual expense documents."
+    },
+    "/borrowings/{borrowingId}": {
+      "schema": "borrowing",
+      "description": "Stores individual borrowing/loan records."
     },
     "/unloadingRecords/{unloadingId}": {
       "schema": "unloadingRecord",

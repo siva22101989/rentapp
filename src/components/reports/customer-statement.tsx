@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, forwardRef } from 'react';
@@ -54,7 +53,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         // Inflow
         events.push({
             date: toDate(record.storageStartDate),
-            description: record.inflowType === 'Direct' ? 'Direct Inflow' : 'Inflow from Plot',
+            description: record.inflowType === 'Direct' ? `Inflow - ${record.commodityDescription}` : `Inflow from Plot - ${record.commodityDescription}`,
             invoiceId: record.id,
             lotNo: record.location || '',
             bagsUnloaded: 0,
@@ -70,7 +69,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             record.outflows.forEach((outflow, index) => {
                 events.push({
                     date: toDate(outflow.date),
-                    description: `Outflow`,
+                    description: `Outflow - ${record.commodityDescription}`,
                     invoiceId: `${record.id}-${index + 1}`,
                     lotNo: record.location || '',
                     bagsUnloaded: 0,
@@ -78,7 +77,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                     bagsOut: outflow.bagsWithdrawn,
                     hamaliBilled: 0,
                     rentBilled: outflow.rentBilled || 0,
-                    credit: 0,
+                    credit: outflow.discount || 0, // Treat discount as a credit
                 });
             });
         }
@@ -90,6 +89,8 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 paymentDescription = 'Payment for Storage Hamali';
             } else if (payment.type === 'rent') {
                 paymentDescription = 'Payment for Rent';
+            } else if (payment.type === 'discount') {
+                paymentDescription = 'Discount Given';
             }
 
             events.push({
@@ -110,7 +111,6 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
     const sortedEvents = events.sort((a, b) => a.date.getTime() - b.date.getTime());
 
     let runningBalance = 0;
-    let totalBagsUnloaded = 0;
     let totalBagsIn = 0;
     let totalBagsOut = 0;
     let totalHamaliBilled = 0;
@@ -120,7 +120,6 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
     const lineItems = sortedEvents.map(event => {
         const debit = (event.hamaliBilled || 0) + (event.rentBilled || 0);
         runningBalance += debit - (event.credit || 0);
-        totalBagsUnloaded += event.bagsUnloaded || 0;
         totalBagsIn += event.bagsIn || 0;
         totalBagsOut += event.bagsOut || 0;
         totalHamaliBilled += event.hamaliBilled || 0;
@@ -132,11 +131,9 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         };
     });
     
-    // Correctly calculate final balance stock from the source of truth (the records)
     const finalBalanceStock = (records || []).reduce((acc, r) => acc + (r.bagsStored || 0), 0);
 
     const summary = {
-        totalBagsUnloaded,
         totalBagsIn,
         totalBagsOut,
         balanceStock: finalBalanceStock,
@@ -152,7 +149,6 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
   }, [records, unloadingRecords]);
   
   const generatedDate = useMemo(() => format(new Date(), 'dd/MM/yyyy'), []);
-  const generatedTimestamp = useMemo(() => format(new Date(), 'dd/MM/yyyy HH:mm:ss'), []);
 
   if (lineItems.length === 0) {
     return (
@@ -163,131 +159,89 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
   }
 
   return (
-    <div ref={ref} className="bg-white p-8 printable-area text-black font-sans text-xs">
+    <div ref={ref} className="bg-white p-4 printable-area text-black font-sans text-xs" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
         {/* Header */}
-        <header className="flex justify-between items-start mb-8">
-            <div className="flex flex-col">
-                <h1 className="text-2xl font-bold">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</h1>
-                {warehouseInfo?.ownerName && <p className="text-sm">Prop: {warehouseInfo.ownerName}</p>}
-                <p>Accounting Software</p>
-            </div>
-            <div className="text-right">
-                <p>{warehouseInfo?.addressLine1}</p>
-                <p>{warehouseInfo?.addressLine2}</p>
-                <p>{warehouseInfo?.email}</p>
-                <p>www.slwarehouse.com</p>
-                <p>Phone: {warehouseInfo?.phone}</p>
-            </div>
+        <header className="text-center mb-4">
+            <h1 className="text-lg font-bold">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</h1>
+            <p className="text-xs">{warehouseInfo?.addressLine1}, {warehouseInfo?.addressLine2}</p>
+            <p className="text-xs">Phone: {warehouseInfo?.phone}</p>
         </header>
 
-        <h2 className="text-xl font-bold mb-6">Statement of Account</h2>
+        <h2 className="text-base font-bold mb-2 text-center underline">Statement of Account</h2>
         
         {/* Customer Info */}
-        <div className="flex justify-between items-start mb-6">
-             <div className="w-1/2">
-                <p className="font-bold">{customer.name}</p>
+        <div className="flex justify-between items-start mb-2">
+             <div>
+                <p><span className="font-bold">To:</span> {customer.name}</p>
                 <p>{customer.village}</p>
             </div>
-            <div className="w-1/2 text-right">
-                 <div className="flex justify-end">
-                    <span className="font-bold w-24 text-left">Date</span>
-                    <span>{generatedDate}</span>
-                </div>
+            <div className="text-right">
+                 <p><span className="font-bold">Date:</span> {generatedDate}</p>
             </div>
         </div>
 
-        {/* New Summary Box */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 mb-6 p-4 border rounded-lg">
-            {/* Stock Summary */}
+        {/* Summary Box */}
+        <div className="grid grid-cols-2 gap-x-4 mb-2 p-2 border-y border-dashed border-black">
             <div className="space-y-1">
-                <div className="flex justify-between"><span className="font-bold">Total Bags Unloaded:</span><span>{summary.totalBagsUnloaded}</span></div>
-                <div className="flex justify-between"><span className="font-bold">Total Bags Stored (In):</span><span>{summary.totalBagsIn}</span></div>
+                <div className="flex justify-between"><span className="font-bold">Total Bags In:</span><span>{summary.totalBagsIn}</span></div>
                 <div className="flex justify-between"><span className="font-bold">Total Bags Out:</span><span>{summary.totalBagsOut}</span></div>
-                <div className="flex justify-between border-t pt-1 mt-1"><span className="font-bold">Balance Stock:</span><span>{summary.balanceStock}</span></div>
+                <div className="flex justify-between"><span className="font-bold">Balance Stock:</span><span className="font-bold">{summary.balanceStock}</span></div>
             </div>
-            {/* Financial Summary */}
             <div className="space-y-1">
-                <div className="flex justify-between"><span className="font-bold">Total Hamali:</span><span>{formatCurrency(summary.totalHamali)}</span></div>
-                <div className="flex justify-between"><span className="font-bold">Total Rent:</span><span>{formatCurrency(summary.totalRent)}</span></div>
-                <div className="flex justify-between"><span className="font-bold">Total Paid:</span><span>({formatCurrency(summary.totalPaid)})</span></div>
-                <div className="flex justify-between border-t pt-1 mt-1"><span className="font-bold">Balance Due:</span><span className="font-bold">{formatCurrency(summary.balanceDue)}</span></div>
+                <div className="flex justify-between"><span className="font-bold">Total Billed:</span><span>{formatCurrency(summary.totalBilled)}</span></div>
+                <div className="flex justify-between"><span className="font-bold">Total Paid:</span><span>{formatCurrency(summary.totalPaid)}</span></div>
+                <div className="flex justify-between"><span className="font-bold">Balance Due:</span><span className="font-bold">{formatCurrency(summary.balanceDue)}</span></div>
             </div>
         </div>
-
 
         {/* Transaction History */}
         <div>
-            <Table className="w-full">
+            <Table className="w-full text-xs">
                 <TableHeader>
                     <TableRow className="border-b-2 border-black">
-                        <TableHead className="text-black font-bold">Date</TableHead>
-                        <TableHead className="text-black font-bold">Description</TableHead>
-                        <TableHead className="text-black font-bold hidden sm:table-cell">Bill No</TableHead>
-                        <TableHead className="text-black font-bold hidden lg:table-cell">Lot No</TableHead>
-                        <TableHead className="text-right text-black font-bold hidden md:table-cell">Unloaded</TableHead>
-                        <TableHead className="text-right text-black font-bold hidden md:table-cell">Stored</TableHead>
-                        <TableHead className="text-right text-black font-bold hidden md:table-cell">Out</TableHead>
-                        <TableHead className="text-right text-black font-bold">Hamali</TableHead>
-                        <TableHead className="text-right text-black font-bold">Rent</TableHead>
-                        <TableHead className="text-right text-black font-bold">Paid</TableHead>
-                        <TableHead className="text-right text-black font-bold">Balance</TableHead>
+                        <TableHead className="h-auto p-1 text-black font-bold">Date</TableHead>
+                        <TableHead className="h-auto p-1 text-black font-bold">Description</TableHead>
+                        <TableHead className="h-auto p-1 text-black font-bold">Bill No</TableHead>
+                        <TableHead className="h-auto p-1 text-right text-black font-bold">Bags In</TableHead>
+                        <TableHead className="h-auto p-1 text-right text-black font-bold">Bags Out</TableHead>
+                        <TableHead className="h-auto p-1 text-right text-black font-bold">Debit</TableHead>
+                        <TableHead className="h-auto p-1 text-right text-black font-bold">Credit</TableHead>
+                        <TableHead className="h-auto p-1 text-right text-black font-bold">Balance</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {lineItems.map((item, index) => (
+                    {lineItems.map((item, index) => {
+                        const debit = (item.hamaliBilled || 0) + (item.rentBilled || 0);
+                        return (
                         <TableRow key={index} className="border-0">
-                            <TableCell className="py-1">{format(item.date, 'dd/MM/yyyy')}</TableCell>
-                            <TableCell className="py-1">{item.description}</TableCell>
-                            <TableCell className="py-1 hidden sm:table-cell">{item.invoiceId}</TableCell>
-                            <TableCell className="py-1 hidden lg:table-cell">{item.lotNo}</TableCell>
-                            <TableCell className="text-right py-1 hidden md:table-cell">{item.bagsUnloaded || ''}</TableCell>
-                            <TableCell className="text-right py-1 hidden md:table-cell">{item.bagsIn || ''}</TableCell>
-                            <TableCell className="text-right py-1 hidden md:table-cell">{item.bagsOut || ''}</TableCell>
-                            <TableCell className="text-right py-1">{item.hamaliBilled > 0 ? formatCurrency(item.hamaliBilled) : ''}</TableCell>
-                            <TableCell className="text-right py-1">{item.rentBilled > 0 ? formatCurrency(item.rentBilled) : ''}</TableCell>
-                            <TableCell className="text-right py-1">{item.credit > 0 ? formatCurrency(item.credit) : ''}</TableCell>
-                            <TableCell className="text-right py-1">{formatCurrency(item.balance)}</TableCell>
+                            <TableCell className="p-1">{format(item.date, 'dd/MM/yy')}</TableCell>
+                            <TableCell className="p-1">{item.description}</TableCell>
+                            <TableCell className="p-1">{item.invoiceId}</TableCell>
+                            <TableCell className="p-1 text-right">{item.bagsIn || ''}</TableCell>
+                            <TableCell className="p-1 text-right">{item.bagsOut || ''}</TableCell>
+                            <TableCell className="p-1 text-right">{debit > 0 ? formatCurrency(debit) : ''}</TableCell>
+                            <TableCell className="p-1 text-right">{item.credit > 0 ? formatCurrency(item.credit) : ''}</TableCell>
+                            <TableCell className="p-1 text-right">{formatCurrency(item.balance)}</TableCell>
                         </TableRow>
-                    ))}
+                    )})}
                 </TableBody>
                  <TableFooter>
-                    <TableRow className="border-t-2 border-black">
-                        <TableCell colSpan={2} className="text-right font-bold">Totals:</TableCell>
-                        <TableCell className="hidden sm:table-cell" />
-                        <TableCell className="hidden lg:table-cell" />
-                        <TableCell className="text-right font-bold hidden md:table-cell">{summary.totalBagsUnloaded}</TableCell>
-                        <TableCell className="text-right font-bold hidden md:table-cell">{summary.totalBagsIn}</TableCell>
-                        <TableCell className="text-right font-bold hidden md:table-cell">{summary.totalBagsOut}</TableCell>
-                        <TableCell className="text-right font-bold">{formatCurrency(summary.totalHamali)}</TableCell>
-                        <TableCell className="text-right font-bold">{formatCurrency(summary.totalRent)}</TableCell>
-                        <TableCell className="text-right font-bold">{formatCurrency(summary.totalPaid)}</TableCell>
-                        <TableCell className="text-right font-bold">{formatCurrency(summary.balanceDue)}</TableCell>
+                    <TableRow className="border-t-2 border-black font-bold">
+                        <TableCell colSpan={3} className="p-1 text-right">Totals:</TableCell>
+                        <TableCell className="p-1 text-right">{summary.totalBagsIn}</TableCell>
+                        <TableCell className="p-1 text-right">{summary.totalBagsOut}</TableCell>
+                        <TableCell className="p-1 text-right">{formatCurrency(summary.totalBilled)}</TableCell>
+                        <TableCell className="p-1 text-right">{formatCurrency(summary.totalPaid)}</TableCell>
+                        <TableCell className="p-1 text-right">{formatCurrency(summary.balanceDue)}</TableCell>
                     </TableRow>
                  </TableFooter>
             </Table>
         </div>
         
         {/* Footer */}
-        <div className="border-t-2 border-black pt-4 mt-8">
-            <div className="flex justify-between items-end">
-                <div className="text-left w-1/2">
-                    <p className="font-bold">Please pay direct into our bank account</p>
-                    <p className="whitespace-pre-wrap">{warehouseInfo?.bankDetails || 'Bank details not provided.'}</p>
-                </div>
-                <div className="text-right w-1/2 max-w-sm">
-                    <div className="flex justify-between"><span className="font-bold">Customer</span><span>{customer.name}</span></div>
-                    <div className="flex justify-between"><span className="font-bold">Date</span><span>{generatedDate}</span></div>
-                    <div className="flex justify-between mt-2"><span className="font-bold">Total Due</span><span>{formatCurrency(summary.balanceDue)}</span></div>
-                    <div className="flex justify-between items-center mt-1"><span className="font-bold">Amount Paid</span><span className="inline-block border-b border-black w-24 h-4 ml-2"></span></div>
-                </div>
-            </div>
-
-            <div className="flex justify-between items-center mt-8 text-xs">
-                <span>{generatedTimestamp}</span>
-                <span>Page 1 of 1</span>
-            </div>
+        <div className="text-center text-xs mt-4">
+            <p>This is a computer generated report.</p>
         </div>
-
     </div>
   );
 });

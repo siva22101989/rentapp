@@ -38,27 +38,39 @@ export function ReportClient({ records, customers, unloadingRecords, initialCust
         setIsGenerating(true);
 
         try {
-            const canvas = await html2canvas(element, { scale: 2, useCORS: true, backgroundColor: '#ffffff', windowWidth: element.scrollWidth, windowHeight: element.scrollHeight });
+            const canvas = await html2canvas(element, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#ffffff',
+            });
+
             const imgData = canvas.toDataURL('image/png');
-            const pdf = new jsPDF('p', 'mm', 'a4'); // Portrait orientation
+            const pdf = new jsPDF('p', 'mm', 'a4');
             const pdfWidth = pdf.internal.pageSize.getWidth();
             const pdfHeight = pdf.internal.pageSize.getHeight();
-            const imgWidth = canvas.width;
-            const imgHeight = canvas.height;
+            
+            const imgProps= pdf.getImageProperties(imgData);
+            const imgWidth = imgProps.width;
+            const imgHeight = imgProps.height;
+            
             const ratio = imgWidth / imgHeight;
             
-            let widthInPdf = pdfWidth - 20; // 10mm margin on each side
-            let heightInPdf = widthInPdf / ratio;
+            const widthInPdf = pdfWidth; 
+            const heightInPdf = widthInPdf / ratio;
 
-            if (heightInPdf > pdfHeight - 20) { // If it's too tall, scale down
-                heightInPdf = pdfHeight - 20;
-                widthInPdf = heightInPdf * ratio;
+            let position = 0;
+            let heightLeft = heightInPdf;
+
+            pdf.addImage(imgData, 'PNG', 0, position, widthInPdf, heightInPdf);
+            heightLeft -= pdfHeight;
+
+            while (heightLeft > 0) {
+                position -= pdfHeight;
+                pdf.addPage();
+                pdf.addImage(imgData, 'PNG', 0, position, widthInPdf, heightInPdf);
+                heightLeft -= pdfHeight;
             }
-
-            const x = (pdfWidth - widthInPdf) / 2;
-            const y = 10; // 10mm top margin
-
-            pdf.addImage(imgData, 'PNG', x, y, widthInPdf, heightInPdf);
+            
             pdf.save(`statement-${selectedCustomerId}-${Date.now()}.pdf`);
         } catch (error) {
             console.error('Error generating PDF:', error);

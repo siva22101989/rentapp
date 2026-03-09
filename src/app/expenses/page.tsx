@@ -1,9 +1,8 @@
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
-import { PageHeader } from "@/components/shared/page-header";
 import { AddExpenseDialog } from "@/components/expenses/add-expense-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Scale, Banknote } from "lucide-react";
+import { TrendingUp, TrendingDown, Scale, Banknote, IndianRupee } from "lucide-react";
 import { formatCurrency, toDate } from "@/lib/utils";
 import { useMemo } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -20,6 +19,7 @@ import { AddBorrowingDialog } from "@/components/borrowings/add-borrowing-dialog
 import { AddLendingDialog } from "@/components/lendings/add-lending-dialog";
 import { AddIncomeDialog } from "@/components/income/add-income-dialog";
 import { Separator } from "@/components/ui/separator";
+import { calculateFinalRent } from "@/lib/billing";
 
 function IncomesTable({ incomes }: { incomes: OtherIncome[] }) {
     if (incomes.length === 0) {
@@ -220,9 +220,9 @@ export default function ExpensesPage() {
   const { data: otherIncomes, loading: loadingOtherIncomes } = useCollection<OtherIncome>(otherIncomesQuery);
 
 
-  const { periodIncome, periodExpenses, periodBalance, filteredExpenses, filteredIncomes, interestOnCapital } = useMemo(() => {
+  const { periodIncome, periodExpenses, periodBalance, filteredExpenses, filteredIncomes, interestOnCapital, estimatedRent } = useMemo(() => {
     if (!allRecords || !allExpenses || !allUnloadingRecords || !otherIncomes) {
-        return { periodIncome: 0, periodExpenses: 0, periodBalance: 0, filteredExpenses: [], filteredIncomes: [], interestOnCapital: 0 };
+        return { periodIncome: 0, periodExpenses: 0, periodBalance: 0, filteredExpenses: [], filteredIncomes: [], interestOnCapital: 0, estimatedRent: 0 };
     }
 
     const inRange = (date: Date) => {
@@ -267,6 +267,13 @@ export default function ExpensesPage() {
     const expensesFromDb = localFilteredExpenses.reduce((total, expense) => total + expense.amount, 0);
     const totalExpenses = expensesFromDb + calculatedInterest;
 
+    const activeRecords = allRecords.filter(r => !r.storageEndDate && r.bagsStored > 0);
+    const rentEstimate = activeRecords.reduce((total, record) => {
+      const { rent } = calculateFinalRent(record, new Date(), record.bagsStored);
+      return total + rent;
+    }, 0);
+
+
     return {
       periodIncome: income,
       periodExpenses: totalExpenses,
@@ -274,6 +281,7 @@ export default function ExpensesPage() {
       filteredExpenses: localFilteredExpenses.sort((a,b) => toDate(b.date).getTime() - toDate(a.date).getTime()),
       filteredIncomes: localFilteredOtherIncomes.sort((a,b) => toDate(b.date).getTime() - toDate(a.date).getTime()),
       interestOnCapital: calculatedInterest,
+      estimatedRent: rentEstimate
     };
   }, [allRecords, allExpenses, allUnloadingRecords, otherIncomes, dateRange, warehouseInfo, financialYear]);
 
@@ -281,7 +289,6 @@ export default function ExpensesPage() {
   if (loadingRecords || loadingExpenses || loadingUnloading || loadingWarehouseInfo || loadingBorrowings || loadingLendings || loadingOtherIncomes) {
     return (
       <AppLayout>
-        <PageHeader title="Profit & Loss" description="Track your operational finances and view profit/loss for the selected period." />
         <div>Loading...</div>
       </AppLayout>
     );
@@ -307,7 +314,7 @@ export default function ExpensesPage() {
         </div>
       </div>
 
-      <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-2 md:grid-cols-3 lg:grid-cols-5">
         <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
                 <CardTitle>Total Income</CardTitle>
@@ -341,6 +348,18 @@ export default function ExpensesPage() {
                 <div className="text-2xl font-bold text-orange-600">{formatCurrency(interestOnCapital)}</div>
                 <p className="text-xs text-muted-foreground">
                     on {formatCurrency(warehouseInfo?.capitalInvestment || 0)} @ {warehouseInfo?.annualInterestRate || 0}% p.a.
+                </p>
+            </CardContent>
+        </Card>
+         <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
+                <CardTitle>Estimated Rent Due</CardTitle>
+                <IndianRupee className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+                <div className="text-2xl font-bold text-blue-600">{formatCurrency(estimatedRent)}</div>
+                <p className="text-xs text-muted-foreground">
+                    For all active stock as of today.
                 </p>
             </CardContent>
         </Card>

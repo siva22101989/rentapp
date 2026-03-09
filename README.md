@@ -1,8 +1,42 @@
-# Firebase Studio
+# Sri Lakshmi Warehouse Management
 
-This is a NextJS starter in Firebase Studio.
+A comprehensive web application built with Next.js and Firebase to streamline warehouse operations. This application provides tools for managing inventory, finances, customer relationships, and generating detailed reports.
 
-To get started, take a look at src/app/page.tsx.
+## Features
+
+- **Dashboard:** A central hub providing an at-a-glance overview of key warehouse operations and navigation to all major sections.
+- **Inventory Management:**
+  - **Inflow:** Record new items arriving for storage.
+  - **Outflow:** Process withdrawals and generate final bills for customers.
+  - **Unloading & Drying:** Manage intermediate steps for commodities that require processing before storage.
+  - **Storage Overview:** View all active inventory, total stock, and a summary of items stored by each customer.
+- **Financial Tracking:**
+  - **Profit & Loss:** A detailed dashboard to track income, expenses, and net profit over selectable financial periods.
+  - **Expense Management:** Record and categorize all operational expenses.
+  - **Borrowings & Lendings:** Track loans taken and given, including principal and interest details.
+  - **Income Logging:** Record miscellaneous income sources outside of regular storage fees.
+- **Customer & Warehouse Setup:**
+  - **Customer Management:** Maintain a complete list of all customers, including contact details.
+  - **Commodities & Lots:** Define different commodity types, their specific rent rates, and manage the physical lot locations in the warehouse.
+- **Comprehensive Reporting:**
+  - Generate a wide variety of reports, including:
+    - Daily Summaries
+    - Profit & Loss Statements
+    - Detailed Customer Dues Statements
+    - Hamali (Labor) Registers
+    - Inflow, Outflow, and Payment Registers
+    - Lot-wise Inventory
+- **Data Management:**
+  - Import data from a CSV file to quickly set up or migrate customer and storage information.
+  - Export all application data to a JSON file for backup and analysis.
+  - Securely clear transactional data for testing or archival purposes.
+
+## Tech Stack
+
+- **Framework:** [Next.js](https://nextjs.org/) with App Router
+- **Language:** [TypeScript](https://www.typescriptlang.org/)
+- **Backend & Database:** [Firebase](https://firebase.google.com/) (Authentication, Firestore)
+- **UI:** [React](https://react.dev/), [ShadCN UI](https://ui.shadcn.com/), [Tailwind CSS](https://tailwindcss.com/)
 
 ## Running the Project
 
@@ -32,7 +66,7 @@ This is the standard way to work on a web application.
     ```
 
 4.  **View the App:**
-    Your terminal will show you a local URL, typically `http://localhost:9002`. Open this address in your web browser to see and interact with your running application.
+    Your terminal will show you a local URL, typically `http://localhost:3000` or another specified port. Open this address in your web browser to see and interact with your running application.
 
 ### Option 2: Running with GitHub Codespaces
 

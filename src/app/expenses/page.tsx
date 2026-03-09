@@ -220,9 +220,9 @@ export default function ExpensesPage() {
   const { data: otherIncomes, loading: loadingOtherIncomes } = useCollection<OtherIncome>(otherIncomesQuery);
 
 
-  const { periodIncome, periodExpenses, periodBalance, filteredExpenses, filteredIncomes, interestOnCapital, estimatedRent } = useMemo(() => {
+  const { periodIncome, periodExpenses, periodBalance, filteredExpenses, filteredIncomes, interestOnCapital, estimatedRent, activeBags } = useMemo(() => {
     if (!allRecords || !allExpenses || !allUnloadingRecords || !otherIncomes) {
-        return { periodIncome: 0, periodExpenses: 0, periodBalance: 0, filteredExpenses: [], filteredIncomes: [], interestOnCapital: 0, estimatedRent: 0 };
+        return { periodIncome: 0, periodExpenses: 0, periodBalance: 0, filteredExpenses: [], filteredIncomes: [], interestOnCapital: 0, estimatedRent: 0, activeBags: 0 };
     }
 
     const inRange = (date: Date) => {
@@ -272,6 +272,8 @@ export default function ExpensesPage() {
       const { rent } = calculateFinalRent(record, new Date(), record.bagsStored);
       return total + rent;
     }, 0);
+    
+    const totalActiveBags = activeRecords.reduce((acc, record) => acc + record.bagsStored, 0);
 
 
     return {
@@ -281,7 +283,8 @@ export default function ExpensesPage() {
       filteredExpenses: localFilteredExpenses.sort((a,b) => toDate(b.date).getTime() - toDate(a.date).getTime()),
       filteredIncomes: localFilteredOtherIncomes.sort((a,b) => toDate(b.date).getTime() - toDate(a.date).getTime()),
       interestOnCapital: calculatedInterest,
-      estimatedRent: rentEstimate
+      estimatedRent: rentEstimate,
+      activeBags: totalActiveBags
     };
   }, [allRecords, allExpenses, allUnloadingRecords, otherIncomes, dateRange, warehouseInfo, financialYear]);
 
@@ -359,7 +362,7 @@ export default function ExpensesPage() {
             <CardContent>
                 <div className="text-2xl font-bold text-blue-600">{formatCurrency(estimatedRent)}</div>
                 <p className="text-xs text-muted-foreground">
-                    For all active stock as of today.
+                    For {activeBags} active bags as of today.
                 </p>
             </CardContent>
         </Card>

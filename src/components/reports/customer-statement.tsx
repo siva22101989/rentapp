@@ -159,38 +159,39 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
   }
 
   return (
-    <div ref={ref} className="bg-white p-4 printable-area text-black font-sans text-xs" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+    <div ref={ref} className="bg-white p-6 printable-area text-foreground font-sans text-sm">
         {/* Header */}
         <header className="text-center mb-4">
-            <h1 className="text-lg font-bold">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</h1>
-            <p className="text-xs">{warehouseInfo?.addressLine1}, {warehouseInfo?.addressLine2}</p>
-            <p className="text-xs">Phone: {warehouseInfo?.phone}</p>
+            <h1 className="text-xl font-bold text-primary">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</h1>
+            <p className="text-xs text-muted-foreground">{warehouseInfo?.addressLine1}, {warehouseInfo?.addressLine2}</p>
+            <p className="text-xs text-muted-foreground">Phone: {warehouseInfo?.phone}</p>
         </header>
 
-        <h2 className="text-base font-bold mb-2 text-center underline">Statement of Account</h2>
+        <h2 className="text-lg font-semibold mb-4 text-center underline">Statement of Account</h2>
         
         {/* Customer Info */}
-        <div className="flex justify-between items-start mb-2">
+        <div className="flex justify-between items-start mb-4 text-sm">
              <div>
-                <p><span className="font-bold">To:</span> {customer.name}</p>
+                <p className="text-muted-foreground">To:</p>
+                <p className="font-bold">{customer.name}</p>
                 <p>{customer.village}</p>
             </div>
             <div className="text-right">
-                 <p><span className="font-bold">Date:</span> {generatedDate}</p>
+                 <p><span className="font-semibold">Date:</span> {generatedDate}</p>
             </div>
         </div>
 
         {/* Summary Box */}
-        <div className="grid grid-cols-2 gap-x-4 mb-2 p-2 border-y border-dashed border-black">
-            <div className="space-y-1">
-                <div className="flex justify-between"><span className="font-bold">Total Bags In:</span><span>{summary.totalBagsIn}</span></div>
-                <div className="flex justify-between"><span className="font-bold">Total Bags Out:</span><span>{summary.totalBagsOut}</span></div>
-                <div className="flex justify-between"><span className="font-bold">Balance Stock:</span><span className="font-bold">{summary.balanceStock}</span></div>
+        <div className="grid grid-cols-2 gap-x-4 mb-4 p-4 border rounded-lg bg-secondary/30">
+            <div className="space-y-1 text-sm">
+                <div className="flex justify-between"><span className="text-muted-foreground">Total Bags In:</span><span className="font-medium">{summary.totalBagsIn}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Total Bags Out:</span><span className="font-medium">{summary.totalBagsOut}</span></div>
+                <div className="flex justify-between font-semibold"><span className="text-foreground">Balance Stock:</span><span>{summary.balanceStock}</span></div>
             </div>
-            <div className="space-y-1">
-                <div className="flex justify-between"><span className="font-bold">Total Billed:</span><span>{formatCurrency(summary.totalBilled)}</span></div>
-                <div className="flex justify-between"><span className="font-bold">Total Paid:</span><span>{formatCurrency(summary.totalPaid)}</span></div>
-                <div className="flex justify-between"><span className="font-bold">Balance Due:</span><span className="font-bold">{formatCurrency(summary.balanceDue)}</span></div>
+            <div className="space-y-1 text-sm">
+                <div className="flex justify-between"><span className="text-muted-foreground">Total Billed:</span><span className="font-medium">{formatCurrency(summary.totalBilled)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Total Paid:</span><span className="font-medium">{formatCurrency(summary.totalPaid)}</span></div>
+                <div className="flex justify-between font-semibold"><span className="text-foreground">Balance Due:</span><span className="text-destructive">{formatCurrency(summary.balanceDue)}</span></div>
             </div>
         </div>
 
@@ -198,48 +199,48 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         <div>
             <Table className="w-full text-xs">
                 <TableHeader>
-                    <TableRow className="border-b-2 border-black">
-                        <TableHead className="h-auto p-1 text-black font-bold">Date</TableHead>
-                        <TableHead className="h-auto p-1 text-black font-bold">Description</TableHead>
-                        <TableHead className="h-auto p-1 text-black font-bold">Bill No</TableHead>
-                        <TableHead className="h-auto p-1 text-right text-black font-bold">Bags In</TableHead>
-                        <TableHead className="h-auto p-1 text-right text-black font-bold">Bags Out</TableHead>
-                        <TableHead className="h-auto p-1 text-right text-black font-bold">Debit</TableHead>
-                        <TableHead className="h-auto p-1 text-right text-black font-bold">Credit</TableHead>
-                        <TableHead className="h-auto p-1 text-right text-black font-bold">Balance</TableHead>
+                    <TableRow className="border-b-2 border-border">
+                        <TableHead className="h-auto p-1.5 font-semibold text-muted-foreground">Date</TableHead>
+                        <TableHead className="h-auto p-1.5 font-semibold text-muted-foreground">Description</TableHead>
+                        <TableHead className="h-auto p-1.5 font-semibold text-muted-foreground">Bill No</TableHead>
+                        <TableHead className="h-auto p-1.5 text-right font-semibold text-muted-foreground">Bags In</TableHead>
+                        <TableHead className="h-auto p-1.5 text-right font-semibold text-muted-foreground">Bags Out</TableHead>
+                        <TableHead className="h-auto p-1.5 text-right font-semibold text-muted-foreground">Debit</TableHead>
+                        <TableHead className="h-auto p-1.5 text-right font-semibold text-muted-foreground">Credit</TableHead>
+                        <TableHead className="h-auto p-1.5 text-right font-semibold text-muted-foreground">Balance</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {lineItems.map((item, index) => {
                         const debit = (item.hamaliBilled || 0) + (item.rentBilled || 0);
                         return (
-                        <TableRow key={index} className="border-0">
-                            <TableCell className="p-1">{format(item.date, 'dd/MM/yy')}</TableCell>
-                            <TableCell className="p-1">{item.description}</TableCell>
-                            <TableCell className="p-1">{item.invoiceId}</TableCell>
-                            <TableCell className="p-1 text-right">{item.bagsIn || ''}</TableCell>
-                            <TableCell className="p-1 text-right">{item.bagsOut || ''}</TableCell>
-                            <TableCell className="p-1 text-right">{debit > 0 ? formatCurrency(debit) : ''}</TableCell>
-                            <TableCell className="p-1 text-right">{item.credit > 0 ? formatCurrency(item.credit) : ''}</TableCell>
-                            <TableCell className="p-1 text-right">{formatCurrency(item.balance)}</TableCell>
+                        <TableRow key={index} className="border-b border-border/50">
+                            <TableCell className="p-1.5">{format(item.date, 'dd/MM/yy')}</TableCell>
+                            <TableCell className="p-1.5">{item.description}</TableCell>
+                            <TableCell className="p-1.5">{item.invoiceId}</TableCell>
+                            <TableCell className="p-1.5 text-right font-mono">{item.bagsIn || ''}</TableCell>
+                            <TableCell className="p-1.5 text-right font-mono">{item.bagsOut || ''}</TableCell>
+                            <TableCell className="p-1.5 text-right font-mono text-destructive">{debit > 0 ? formatCurrency(debit) : ''}</TableCell>
+                            <TableCell className="p-1.5 text-right font-mono text-green-600">{item.credit > 0 ? formatCurrency(item.credit) : ''}</TableCell>
+                            <TableCell className="p-1.5 text-right font-mono font-semibold">{formatCurrency(item.balance)}</TableCell>
                         </TableRow>
                     )})}
                 </TableBody>
                  <TableFooter>
-                    <TableRow className="border-t-2 border-black font-bold">
-                        <TableCell colSpan={3} className="p-1 text-right">Totals:</TableCell>
-                        <TableCell className="p-1 text-right">{summary.totalBagsIn}</TableCell>
-                        <TableCell className="p-1 text-right">{summary.totalBagsOut}</TableCell>
-                        <TableCell className="p-1 text-right">{formatCurrency(summary.totalBilled)}</TableCell>
-                        <TableCell className="p-1 text-right">{formatCurrency(summary.totalPaid)}</TableCell>
-                        <TableCell className="p-1 text-right">{formatCurrency(summary.balanceDue)}</TableCell>
+                    <TableRow className="border-t-2 border-foreground font-bold">
+                        <TableCell colSpan={3} className="p-1.5 text-right">Totals:</TableCell>
+                        <TableCell className="p-1.5 text-right font-mono">{summary.totalBagsIn}</TableCell>
+                        <TableCell className="p-1.5 text-right font-mono">{summary.totalBagsOut}</TableCell>
+                        <TableCell className="p-1.5 text-right font-mono text-destructive">{formatCurrency(summary.totalBilled)}</TableCell>
+                        <TableCell className="p-1.5 text-right font-mono text-green-600">{formatCurrency(summary.totalPaid)}</TableCell>
+                        <TableCell className="p-1.5 text-right font-mono">{formatCurrency(summary.balanceDue)}</TableCell>
                     </TableRow>
                  </TableFooter>
             </Table>
         </div>
         
         {/* Footer */}
-        <div className="text-center text-xs mt-4">
+        <div className="text-center text-xs text-muted-foreground mt-6">
             <p>This is a computer generated report.</p>
         </div>
     </div>

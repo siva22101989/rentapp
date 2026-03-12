@@ -11,6 +11,10 @@ import { Logo } from '@/components/layout/logo';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Link from 'next/link';
 
+// IMPORTANT: Replace 'your-email@example.com' with your own Google email address.
+// Only emails in this list will be allowed to access the application.
+const AUTHORIZED_EMAILS = ['your-email@example.com'];
+
 function GoogleIcon() {
     return (
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="24px" height="24px">
@@ -36,7 +40,17 @@ export default function LoginPage() {
     if (auth) {
       const provider = new GoogleAuthProvider();
       try {
-        await signInWithPopup(auth, provider);
+        const result = await signInWithPopup(auth, provider);
+        const user = result.user;
+
+        // Check if the user is authorized
+        if (!user.email || !AUTHORIZED_EMAILS.includes(user.email.toLowerCase())) {
+            await auth.signOut();
+            setError("You are not authorized to access this application. Please contact the administrator.");
+            setIsLoading(false);
+            return;
+        }
+
         router.push('/');
       } catch (error: any) {
         if (error.code === 'auth/unauthorized-domain') {
@@ -61,7 +75,7 @@ export default function LoginPage() {
             <div className="mx-auto mb-4">
               <Logo />
             </div>
-          <CardTitle>Welcome Back</CardTitle>
+          <CardTitle>Welcome</CardTitle>
           <CardDescription>Sign in to access your warehouse dashboard</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
@@ -95,7 +109,11 @@ export default function LoginPage() {
           )}
 
           {error && (
-            <p className="text-sm text-center text-destructive">{error}</p>
+            <Alert variant="destructive" className="text-center">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Access Denied</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+            </Alert>
           )}
         </CardContent>
       </Card>

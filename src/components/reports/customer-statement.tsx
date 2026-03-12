@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, forwardRef } from 'react';
@@ -189,7 +190,8 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 <div className="flex justify-between font-semibold"><span className="text-foreground">Balance Stock:</span><span>{summary.balanceStock}</span></div>
             </div>
             <div className="space-y-1 text-sm">
-                <div className="flex justify-between"><span className="text-muted-foreground">Total Billed:</span><span className="font-medium">{formatCurrency(summary.totalBilled)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Total Hamali:</span><span className="font-medium">{formatCurrency(summary.totalHamali)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Total Rent:</span><span className="font-medium">{formatCurrency(summary.totalRent)}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Total Paid:</span><span className="font-medium">{formatCurrency(summary.totalPaid)}</span></div>
                 <div className="flex justify-between font-semibold"><span className="text-foreground">Balance Due:</span><span className="text-destructive">{formatCurrency(summary.balanceDue)}</span></div>
             </div>
@@ -205,14 +207,14 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                         <TableHead className="h-auto p-1.5 font-semibold text-muted-foreground">Bill No</TableHead>
                         <TableHead className="h-auto p-1.5 text-right font-semibold text-muted-foreground">Bags In</TableHead>
                         <TableHead className="h-auto p-1.5 text-right font-semibold text-muted-foreground">Bags Out</TableHead>
-                        <TableHead className="h-auto p-1.5 text-right font-semibold text-muted-foreground">Debit</TableHead>
+                        <TableHead className="h-auto p-1.5 text-right font-semibold text-muted-foreground">Hamali</TableHead>
+                        <TableHead className="h-auto p-1.5 text-right font-semibold text-muted-foreground">Rent</TableHead>
                         <TableHead className="h-auto p-1.5 text-right font-semibold text-muted-foreground">Credit</TableHead>
                         <TableHead className="h-auto p-1.5 text-right font-semibold text-muted-foreground">Balance</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {lineItems.map((item, index) => {
-                        const debit = (item.hamaliBilled || 0) + (item.rentBilled || 0);
                         return (
                         <TableRow key={index} className="border-b border-border/50">
                             <TableCell className="p-1.5">{format(item.date, 'dd/MM/yy')}</TableCell>
@@ -220,7 +222,8 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                             <TableCell className="p-1.5">{item.invoiceId}</TableCell>
                             <TableCell className="p-1.5 text-right font-mono">{item.bagsIn || ''}</TableCell>
                             <TableCell className="p-1.5 text-right font-mono">{item.bagsOut || ''}</TableCell>
-                            <TableCell className="p-1.5 text-right font-mono text-destructive">{debit > 0 ? formatCurrency(debit) : ''}</TableCell>
+                            <TableCell className="p-1.5 text-right font-mono text-destructive">{item.hamaliBilled > 0 ? formatCurrency(item.hamaliBilled) : ''}</TableCell>
+                            <TableCell className="p-1.5 text-right font-mono text-destructive">{item.rentBilled > 0 ? formatCurrency(item.rentBilled) : ''}</TableCell>
                             <TableCell className="p-1.5 text-right font-mono text-green-600">{item.credit > 0 ? formatCurrency(item.credit) : ''}</TableCell>
                             <TableCell className="p-1.5 text-right font-mono font-semibold">{formatCurrency(item.balance)}</TableCell>
                         </TableRow>
@@ -231,7 +234,8 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                         <TableCell colSpan={3} className="p-1.5 text-right">Totals:</TableCell>
                         <TableCell className="p-1.5 text-right font-mono">{summary.totalBagsIn}</TableCell>
                         <TableCell className="p-1.5 text-right font-mono">{summary.totalBagsOut}</TableCell>
-                        <TableCell className="p-1.5 text-right font-mono text-destructive">{formatCurrency(summary.totalBilled)}</TableCell>
+                        <TableCell className="p-1.5 text-right font-mono text-destructive">{formatCurrency(summary.totalHamali)}</TableCell>
+                        <TableCell className="p-1.5 text-right font-mono text-destructive">{formatCurrency(summary.totalRent)}</TableCell>
                         <TableCell className="p-1.5 text-right font-mono text-green-600">{formatCurrency(summary.totalPaid)}</TableCell>
                         <TableCell className="p-1.5 text-right font-mono">{formatCurrency(summary.balanceDue)}</TableCell>
                     </TableRow>

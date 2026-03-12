@@ -32,7 +32,7 @@ export default function OutflowPage() {
     <AppLayout>
       <PageHeader
         title="Process Outflow"
-        description="Select a record to process for withdrawal and generate a final bill."
+        description="Select one or more records to process for full withdrawal."
       />
       <OutflowForm records={activeRecords || []} customers={customers || []} />
     </AppLayout>

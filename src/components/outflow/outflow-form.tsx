@@ -244,7 +244,7 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                                             className="cursor-pointer"
                                             data-state={selectedRecordIds.includes(record.id) ? "selected" : ""}
                                         >
-                                            <TableCell className="p-2">
+                                            <TableCell className="p-2" onClick={(e) => e.stopPropagation()}>
                                                 <Checkbox
                                                     checked={selectedRecordIds.includes(record.id)}
                                                     onCheckedChange={() => handleSelectRecord(record.id)}

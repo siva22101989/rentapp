@@ -81,6 +81,8 @@
   }
   body {
     @apply bg-background text-foreground;
+    background-image: radial-gradient(hsl(var(--border) / 0.5) 1px, transparent 1px);
+    background-size: 16px 16px;
   }
   /* Hide arrows from number inputs */
   /* Chrome, Safari, Edge, Opera */

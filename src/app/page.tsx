@@ -41,7 +41,7 @@ function NavCard({ item }: { item: NavItem }) {
         <item.icon className="h-6 w-6 text-muted-foreground shrink-0" />
       </CardHeader>
       <CardContent className="flex flex-1 items-end p-4 pt-0">
-        <Button asChild className="w-full">
+        <Button asChild size="lg" className="w-full">
           <Link href={item.href}>
             Go to {item.label.split(' ')[0]}
             <ArrowRight className="ml-2 h-4 w-4" />

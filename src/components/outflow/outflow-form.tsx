@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Checkbox } from '@/components/ui/checkbox';
 import type { Customer, StorageRecord, Payment, Outflow } from '@/lib/definitions';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
@@ -42,13 +41,12 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
     const [isPending, startTransition] = useTransition();
     
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
-    const [selectedRecordIds, setSelectedRecordIds] = useState<string[]>([]);
+    const [withdrawals, setWithdrawals] = useState<Record<string, number | ''>>({});
     
     const [amountPaidNow, setAmountPaidNow] = useState<number | ''>('');
     const [discount, setDiscount] = useState<number | ''>('');
     const [withdrawalDate, setWithdrawalDate] = useState(new Date());
     
-    // Calculated totals for the selected records
     const [totalRent, setTotalRent] = useState(0);
     const [totalPendingHamali, setTotalPendingHamali] = useState(0);
     const [totalBags, setTotalBags] = useState(0);
@@ -60,52 +58,50 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
         [records, selectedCustomerId]
     );
 
-    const selectedRecords = useMemo(() => 
-        filteredRecords.filter(r => selectedRecordIds.includes(r.id)),
-        [filteredRecords, selectedRecordIds]
+    const withdrawalEntries = useMemo(() => 
+        Object.entries(withdrawals).filter(([, bags]) => Number(bags) > 0),
+        [withdrawals]
     );
+
+    const isMultiLotWithdrawal = useMemo(() => withdrawalEntries.length > 1, [withdrawalEntries]);
 
     const totalPayable = totalRent + totalPendingHamali - (Number(discount) || 0);
 
     useEffect(() => {
-        // Reset selections when customer changes
-        setSelectedRecordIds([]);
+        setWithdrawals({});
     }, [selectedCustomerId]);
 
     useEffect(() => {
-        // Recalculate totals when selection or date changes
-        if (selectedRecords.length > 0) {
-            let runningRent = 0;
-            let runningHamali = 0;
-            let runningBags = 0;
+        let runningRent = 0;
+        let runningHamali = 0;
+        let runningBags = 0;
+        const hamaliCalculatedRecords = new Set<string>();
 
-            selectedRecords.forEach(record => {
-                const hamaliPaid = (record.payments || [])
-                    .filter(p => p.type === 'hamali')
-                    .reduce((acc, p) => acc + p.amount, 0);
-                const pending = (record.hamaliPayable || 0) - hamaliPaid;
-                runningHamali += pending > 0 ? pending : 0;
-                
-                const safeRecord = { ...record, storageStartDate: toDate(record.storageStartDate) };
-                runningBags += record.bagsStored;
-
-                const { rent } = calculateFinalRent(safeRecord, withdrawalDate, record.bagsStored);
+        withdrawalEntries.forEach(([recordId, bags]) => {
+            const bagsToWithdraw = Number(bags);
+            const record = records.find(r => r.id === recordId);
+            if (record) {
+                const { rent } = calculateFinalRent({ ...record, storageStartDate: toDate(record.storageStartDate) }, withdrawalDate, bagsToWithdraw);
                 runningRent += rent;
-            });
-            
-            setTotalRent(runningRent);
-            setTotalPendingHamali(runningHamali);
-            setTotalBags(runningBags);
-        } else {
-            setTotalRent(0);
-            setTotalPendingHamali(0);
-            setTotalBags(0);
-        }
-    }, [selectedRecords, withdrawalDate]);
+                
+                if (!hamaliCalculatedRecords.has(recordId)) {
+                    const hamaliPaid = (record.payments || []).filter(p => p.type === 'hamali').reduce((acc, p) => acc + p.amount, 0);
+                    const pending = (record.hamaliPayable || 0) - hamaliPaid;
+                    runningHamali += pending > 0 ? pending : 0;
+                    hamaliCalculatedRecords.add(recordId);
+                }
+                runningBags += bagsToWithdraw;
+            }
+        });
+        
+        setTotalRent(runningRent);
+        setTotalPendingHamali(runningHamali);
+        setTotalBags(runningBags);
+    }, [withdrawals, withdrawalDate, records, withdrawalEntries]);
     
     const handleCustomerChange = (customerId: string) => {
         setSelectedCustomerId(customerId);
-        setSelectedRecordIds([]);
+        setWithdrawals({});
         setAmountPaidNow('');
         setDiscount('');
     }
@@ -115,85 +111,80 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
         setWithdrawalDate(dateValue);
     }
     
-    const handleSelectRecord = (recordId: string) => {
-        setSelectedRecordIds(prev => 
-            prev.includes(recordId) ? prev.filter(id => id !== recordId) : [...prev, recordId]
-        );
-    }
+    const handleWithdrawalChange = (recordId: string, value: string, maxBags: number) => {
+        const numValue = value === '' ? '' : Number(value);
+        if (numValue === '' || (numValue >= 0 && numValue <= maxBags && !isNaN(numValue))) {
+            setWithdrawals(prev => ({
+                ...prev,
+                [recordId]: numValue,
+            }));
+        }
+    };
     
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         
-        if (!firestore || selectedRecords.length === 0) {
-            toast({ title: 'Error', description: 'Please select a customer and at least one record.', variant: 'destructive' });
+        if (!firestore || withdrawalEntries.length === 0) {
+            toast({ title: 'Error', description: 'Please enter a withdrawal amount for at least one record.', variant: 'destructive' });
             return;
         }
 
         startTransition(async () => {
             try {
                 const batch = writeBatch(firestore);
-                const discountAmount = Number(discount) || 0;
+                const discountAmount = !isMultiLotWithdrawal ? (Number(discount) || 0) : 0;
                 
-                // Simple case: single record withdrawal
-                if (selectedRecords.length === 1) {
-                    const record = selectedRecords[0];
-                    const recordRef = doc(firestore, 'storageRecords', record.id);
+                for (const [recordId, bags] of withdrawalEntries) {
+                    const bagsToWithdraw = Number(bags);
+                    const record = records.find(r => r.id === recordId);
+                    if (!record || bagsToWithdraw <= 0) continue;
+
+                    const { rent: rentForThisWithdrawal } = calculateFinalRent({ ...record, storageStartDate: toDate(record.storageStartDate) }, withdrawalDate, bagsToWithdraw);
                     
                     const newOutflow: Partial<Outflow> = {
                         date: withdrawalDate,
-                        bagsWithdrawn: record.bagsStored,
-                        rentBilled: totalRent,
+                        bagsWithdrawn: bagsToWithdraw,
+                        rentBilled: rentForThisWithdrawal,
                         discount: discountAmount,
                     };
 
+                    const newBagsOut = (record.bagsOut || 0) + bagsToWithdraw;
+                    const newBagsStored = record.bagsStored - bagsToWithdraw;
+
                     const updateData: any = {
-                        bagsOut: (record.bagsOut || 0) + record.bagsStored,
-                        bagsStored: 0,
-                        totalRentBilled: (record.totalRentBilled || 0) + totalRent,
-                        storageEndDate: Timestamp.fromDate(withdrawalDate),
-                        billingCycle: 'Completed',
+                        bagsOut: newBagsOut,
+                        bagsStored: newBagsStored,
+                        totalRentBilled: (record.totalRentBilled || 0) + rentForThisWithdrawal,
                         outflows: arrayUnion(cleanForFirestore(newOutflow)),
                     };
+
+                    if (newBagsStored <= 0) {
+                        updateData.storageEndDate = Timestamp.fromDate(withdrawalDate);
+                        updateData.billingCycle = 'Completed';
+                    }
                     
                     const paidNow = Number(amountPaidNow) || 0;
-                    if (paidNow > 0) {
+                    if (!isMultiLotWithdrawal && paidNow > 0) {
                         const newPayment: Partial<Payment> = { amount: paidNow, date: withdrawalDate, type: 'rent' };
                         updateData.payments = arrayUnion(cleanForFirestore(newPayment));
                     }
                     
+                    const recordRef = doc(firestore, 'storageRecords', recordId);
                     batch.update(recordRef, updateData);
-                    await batch.commit();
-                    toast({ title: 'Success', description: 'Withdrawal processed successfully.' });
-                    router.push(`/outflow/receipt/${record.id}?withdrawn=${record.bagsStored}&rent=${totalRent}&paidNow=${paidNow}&discount=${discountAmount}`);
+                }
+                
+                await batch.commit();
 
-                } else { // Bulk withdrawal case
-                    for (const record of selectedRecords) {
-                        const recordRef = doc(firestore, 'storageRecords', record.id);
-                        
-                        // Recalculate rent for THIS specific record
-                        const { rent: recordRent } = calculateFinalRent({ ...record, storageStartDate: toDate(record.storageStartDate) }, withdrawalDate, record.bagsStored);
-
-                        const newOutflow: Partial<Outflow> = {
-                            date: withdrawalDate,
-                            bagsWithdrawn: record.bagsStored,
-                            rentBilled: recordRent,
-                            discount: 0, // Discount is applied globally later if needed, not per record
-                        };
-                        
-                        const updateData: any = {
-                            bagsOut: (record.bagsOut || 0) + record.bagsStored,
-                            bagsStored: 0,
-                            totalRentBilled: (record.totalRentBilled || 0) + recordRent,
-                            storageEndDate: Timestamp.fromDate(withdrawalDate),
-                            billingCycle: 'Completed',
-                            outflows: arrayUnion(cleanForFirestore(newOutflow)),
-                        };
-                        batch.update(recordRef, updateData);
-                    }
-                    
-                    await batch.commit();
-                    toast({ title: 'Success', description: `${selectedRecords.length} records processed in bulk. You can apply a bulk payment from the Pending Payments page.` });
+                if (isMultiLotWithdrawal) {
+                    toast({ title: 'Success', description: `${withdrawalEntries.length} records processed. You can make a bulk payment from the Pending Payments page.`, duration: 7000 });
                     router.push(`/reports?report=customer-statement&customerId=${selectedCustomerId}`);
+                } else {
+                    const [recordId, bags] = withdrawalEntries[0];
+                    const bagsToWithdraw = Number(bags);
+                    const record = records.find(r => r.id === recordId)!;
+                    const { rent: rentForThisWithdrawal } = calculateFinalRent({ ...record, storageStartDate: toDate(record.storageStartDate) }, withdrawalDate, bagsToWithdraw);
+                    toast({ title: 'Success', description: 'Withdrawal processed successfully.' });
+                    router.push(`/outflow/receipt/${recordId}?withdrawn=${bagsToWithdraw}&rent=${rentForThisWithdrawal}&paidNow=${Number(amountPaidNow) || 0}&discount=${discountAmount}`);
                 }
 
             } catch (error) {
@@ -205,11 +196,11 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
 
   return (
     <div className="flex justify-center">
-        <form onSubmit={handleSubmit} className="w-full max-w-2xl">
+        <form onSubmit={handleSubmit} className="w-full max-w-3xl">
             <Card>
                 <CardHeader>
-                <CardTitle>Withdrawal Details</CardTitle>
-                <CardDescription>Select a customer, then choose one or more records for full withdrawal.</CardDescription>
+                <CardTitle>Create Withdrawal</CardTitle>
+                <CardDescription>Select a customer, then enter the number of bags to withdraw from one or more records.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="space-y-2">
@@ -229,31 +220,31 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead className="w-12"></TableHead>
                                         <TableHead>Bill No</TableHead>
                                         <TableHead>Commodity</TableHead>
                                         <TableHead>Lot</TableHead>
-                                        <TableHead className="text-right">Bags</TableHead>
+                                        <TableHead className="text-right">Bags in Stock</TableHead>
+                                        <TableHead className="w-[150px]">Bags to Withdraw</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {filteredRecords.length > 0 ? filteredRecords.map(record => (
-                                        <TableRow 
-                                            key={record.id}
-                                            onClick={() => handleSelectRecord(record.id)}
-                                            className="cursor-pointer"
-                                            data-state={selectedRecordIds.includes(record.id) ? "selected" : ""}
-                                        >
-                                            <TableCell className="p-2" onClick={(e) => e.stopPropagation()}>
-                                                <Checkbox
-                                                    checked={selectedRecordIds.includes(record.id)}
-                                                    onCheckedChange={() => handleSelectRecord(record.id)}
-                                                />
-                                            </TableCell>
+                                        <TableRow key={record.id} data-state={Number(withdrawals[record.id] || 0) > 0 ? "selected" : ""}>
                                             <TableCell>{record.id}</TableCell>
                                             <TableCell>{record.commodityDescription}</TableCell>
                                             <TableCell>{record.location}</TableCell>
                                             <TableCell className="text-right font-mono">{record.bagsStored}</TableCell>
+                                            <TableCell>
+                                                <Input
+                                                    type="number"
+                                                    placeholder="0"
+                                                    min="0"
+                                                    max={record.bagsStored}
+                                                    value={withdrawals[record.id] || ''}
+                                                    onChange={(e) => handleWithdrawalChange(record.id, e.target.value, record.bagsStored)}
+                                                    className="text-right"
+                                                />
+                                            </TableCell>
                                         </TableRow>
                                     )) : (
                                         <TableRow>
@@ -268,7 +259,7 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                     )}
 
 
-                    {selectedRecords.length > 0 && (
+                    {withdrawalEntries.length > 0 && (
                         <>
                             <div className="space-y-2">
                                 <Label htmlFor="withdrawalDate">Withdrawal Date</Label>
@@ -286,7 +277,7 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                                 <h4 className="font-medium">Final Billing Summary</h4>
                                 <div className="space-y-2 text-sm">
                                     <div className="flex justify-between items-center">
-                                        <span className="text-muted-foreground">Total Bags Selected</span>
+                                        <span className="text-muted-foreground">Total Bags to Withdraw</span>
                                         <span className="font-mono font-bold">{totalBags}</span>
                                     </div>
                                     <div className="flex justify-between items-center">
@@ -313,6 +304,7 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                                         step="0.01"
                                         value={discount}
                                         onChange={e => setDiscount(e.target.value === '' ? '' : Number(e.target.value))}
+                                        disabled={isMultiLotWithdrawal}
                                     />
                                 </div>
 
@@ -331,11 +323,11 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                                         step="0.01"
                                         value={amountPaidNow}
                                         onChange={e => setAmountPaidNow(e.target.value === '' ? '' : Number(e.target.value))}
-                                        max={totalPayable.toFixed(2)}
-                                        disabled={selectedRecords.length > 1}
+                                        max={totalPayable > 0 ? totalPayable.toFixed(2) : undefined}
+                                        disabled={isMultiLotWithdrawal}
                                     />
                                     <p className="text-xs text-muted-foreground">
-                                        {selectedRecords.length > 1 ? "Payment can only be recorded for single record withdrawals. For bulk, use the Pending Payments page after." : "Enter amount paid by customer. Leave blank if unpaid."}
+                                        {isMultiLotWithdrawal ? "Payment can only be recorded for single-lot withdrawals. For bulk, use the Pending Payments page after." : "Enter amount paid by customer. Leave blank if unpaid."}
                                     </p>
                                 </div>
                             </div>

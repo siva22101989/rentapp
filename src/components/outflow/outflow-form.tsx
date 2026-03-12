@@ -77,7 +77,9 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
         let runningBags = 0;
         const hamaliCalculatedRecords = new Set<string>();
 
-        withdrawalEntries.forEach(([recordId, bags]) => {
+        const currentWithdrawalEntries = Object.entries(withdrawals).filter(([, bags]) => Number(bags) > 0);
+
+        currentWithdrawalEntries.forEach(([recordId, bags]) => {
             const bagsToWithdraw = Number(bags);
             const record = records.find(r => r.id === recordId);
             if (record) {
@@ -97,7 +99,7 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
         setTotalRent(runningRent);
         setTotalPendingHamali(runningHamali);
         setTotalBags(runningBags);
-    }, [withdrawals, withdrawalDate, records, withdrawalEntries]);
+    }, [withdrawals, withdrawalDate, records]);
     
     const handleCustomerChange = (customerId: string) => {
         setSelectedCustomerId(customerId);
@@ -107,7 +109,9 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
     }
 
     const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const dateValue = e.target.valueAsDate ? new Date(e.target.valueAsDate.valueOf() + e.target.valueAsDate.getTimezoneOffset() * 60 * 1000) : new Date();
+        // e.target.value will be a string like "2024-07-26"
+        // Appending T00:00:00 makes it parse as local time midnight, avoiding timezone bugs
+        const dateValue = new Date(e.target.value + 'T00:00:00');
         setWithdrawalDate(dateValue);
     }
     
@@ -180,9 +184,14 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                     router.push(`/reports?report=customer-statement&customerId=${selectedCustomerId}`);
                 } else {
                     const [recordId, bags] = withdrawalEntries[0];
+                    const record = records.find(r => r.id === recordId);
+                    if (!record) {
+                        toast({ title: 'Error', description: 'Could not find the processed record after submission.', variant: 'destructive' });
+                        return;
+                    }
                     const bagsToWithdraw = Number(bags);
-                    const record = records.find(r => r.id === recordId)!;
                     const { rent: rentForThisWithdrawal } = calculateFinalRent({ ...record, storageStartDate: toDate(record.storageStartDate) }, withdrawalDate, bagsToWithdraw);
+                    
                     toast({ title: 'Success', description: 'Withdrawal processed successfully.' });
                     router.push(`/outflow/receipt/${recordId}?withdrawn=${bagsToWithdraw}&rent=${rentForThisWithdrawal}&paidNow=${Number(amountPaidNow) || 0}&discount=${discountAmount}`);
                 }

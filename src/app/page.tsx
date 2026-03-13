@@ -25,7 +25,7 @@ const navItems: NavItem[] = [
   { href: '/customers', label: 'Customers', description: 'View and manage customers.', icon: Users },
   { href: '/commodities', label: 'Commodities & Lots', description: 'Manage commodity types, rents, and warehouse locations.', icon: Wheat },
   { href: '/reports', label: 'Reports', description: 'See all transactions.', icon: FileText },
-  { href: '/expenses', label: 'Expenses', description: 'Track and manage expenses.', icon: Scale },
+  { href: '/expenses', label: 'Profit & Loss', description: 'Track income, expenses, and net profit.', icon: Scale },
   { href: '/settings', label: 'Settings', description: 'Manage database operations.', icon: Settings },
 ];
 

@@ -1,6 +1,5 @@
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
-import { PageHeader } from "@/components/shared/page-header";
 import { CustomReportGenerator } from "@/components/reports/custom-report-generator";
 import type { Customer, StorageRecord, UnloadingRecord, Expense, WarehouseInfo, Borrowing, Lending, OtherIncome } from "@/lib/definitions";
 import { useCollection } from "@/firebase/firestore/use-collection";
@@ -50,10 +49,6 @@ export default function ReportsPage() {
     
   return (
     <AppLayout>
-      <PageHeader
-        title="Custom Reports"
-        description="Select the report type to generate a detailed analysis."
-      />
       <CustomReportGenerator 
         records={allRecords || []} 
         customers={allCustomers || []} 

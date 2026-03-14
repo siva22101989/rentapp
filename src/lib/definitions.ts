@@ -27,7 +27,7 @@ export type Lot = {
 export type Payment = {
   amount: number;
   date: Date | Timestamp;
-  type?: 'rent' | 'hamali' | 'other' | 'unloading' | 'discount';
+  type?: 'rent' | 'hamali' | 'other' | 'unloading' | 'discount' | 'interest' | 'principal';
 };
 
 export type Outflow = {
@@ -71,7 +71,7 @@ export type StorageRecord = {
   hamaliDetails?: HamaliChargeItem[];
 };
 
-export const expenseCategories = ["Worker Salary", "Petrol", "Maintenance", "Utilities", "Hamali", "EMI for Godown", "Interest on Capital", "Interest Paid", "Other"] as const;
+export const expenseCategories = ["Worker Salary", "Petrol", "Maintenance", "Utilities", "Hamali", "EMI for Godown", "Interest on Capital", "Other"] as const;
 
 export type ExpenseCategory = typeof expenseCategories[number];
 
@@ -90,6 +90,8 @@ export type Borrowing = {
   interestRate: number;
   dateTaken: Date | Timestamp;
   interestType: 'Monthly' | 'Yearly';
+  payments?: Payment[];
+  status?: 'Active' | 'Paid Off';
 };
 
 export type Lending = {
@@ -99,6 +101,8 @@ export type Lending = {
   interestRate: number;
   dateGiven: Date | Timestamp;
   interestType: 'Monthly' | 'Yearly';
+  payments?: Payment[];
+  status?: 'Active' | 'Paid Off';
 };
 
 export const incomeCategories = ["Interest Received", "Other"] as const;

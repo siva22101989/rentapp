@@ -180,8 +180,8 @@
         },
         "type": {
             "type": "string",
-            "enum": ["rent", "hamali", "other"],
-            "description": "The type of payment, which can be for rent, hamali, or other charges."
+            "enum": ["rent", "hamali", "other", "unloading", "discount", "interest", "principal"],
+            "description": "The type of payment."
         }
       },
       "required": ["amount", "date"]
@@ -241,6 +241,15 @@
             "Yearly"
           ],
           "description": "The type of interest calculation."
+        },
+        "payments": {
+          "type": "array",
+          "items": { "$ref": "#/entities/payment" }
+        },
+        "status": {
+            "type": "string",
+            "enum": ["Active", "Paid Off"],
+            "description": "The current status of the loan."
         }
       },
       "required": [
@@ -280,6 +289,15 @@
             "Yearly"
           ],
           "description": "The type of interest calculation."
+        },
+        "payments": {
+          "type": "array",
+          "items": { "$ref": "#/entities/payment" }
+        },
+        "status": {
+            "type": "string",
+            "enum": ["Active", "Paid Off"],
+            "description": "The current status of the loan."
         }
       },
       "required": [

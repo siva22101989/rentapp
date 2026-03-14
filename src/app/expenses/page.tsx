@@ -20,6 +20,8 @@ import { AddLendingDialog } from "@/components/lendings/add-lending-dialog";
 import { AddIncomeDialog } from "@/components/income/add-income-dialog";
 import { Separator } from "@/components/ui/separator";
 import { calculateFinalRent } from "@/lib/billing";
+import { BorrowingActionsMenu } from "@/components/borrowings/borrowing-actions-menu";
+import { LendingActionsMenu } from "@/components/lendings/lending-actions-menu";
 
 function IncomesTable({ incomes }: { incomes: OtherIncome[] }) {
     if (incomes.length === 0) {
@@ -116,26 +118,37 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
           <TableHeader>
             <TableRow>
               <TableHead>Lender</TableHead>
-              <TableHead>Date Taken</TableHead>
+              <TableHead>Principal</TableHead>
               <TableHead>Interest</TableHead>
-              <TableHead className="text-right">Yearly Interest</TableHead>
-              <TableHead className="text-right">Principal</TableHead>
+              <TableHead className="text-right">Principal Paid</TableHead>
+              <TableHead className="text-right">Interest Paid</TableHead>
+              <TableHead className="text-right">Principal Balance</TableHead>
+              <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {borrowings.map((borrowing) => {
-              const annualInterest =
-                borrowing.interestType === 'Monthly'
-                  ? borrowing.principal * (borrowing.interestRate / 100) * 12
-                  : borrowing.principal * (borrowing.interestRate / 100);
+              const principalPaid = (borrowing.payments || [])
+                .filter(p => p.type === 'principal')
+                .reduce((acc, p) => acc + p.amount, 0);
+              
+              const interestPaid = (borrowing.payments || [])
+                .filter(p => p.type === 'interest')
+                .reduce((acc, p) => acc + p.amount, 0);
+
+              const balance = borrowing.principal - principalPaid;
 
               return (
                 <TableRow key={borrowing.id}>
                   <TableCell className="font-medium">{borrowing.lenderName}</TableCell>
-                  <TableCell>{format(toDate(borrowing.dateTaken), 'dd MMM yyyy')}</TableCell>
+                  <TableCell className="font-mono">{formatCurrency(borrowing.principal)}</TableCell>
                   <TableCell>{borrowing.interestRate}% {borrowing.interestType}</TableCell>
-                  <TableCell className="text-right font-mono text-destructive">{formatCurrency(annualInterest)}</TableCell>
-                  <TableCell className="text-right font-mono">{formatCurrency(borrowing.principal)}</TableCell>
+                  <TableCell className="text-right font-mono text-green-600">{formatCurrency(principalPaid)}</TableCell>
+                  <TableCell className="text-right font-mono text-green-600">{formatCurrency(interestPaid)}</TableCell>
+                  <TableCell className="text-right font-mono text-destructive">{formatCurrency(balance)}</TableCell>
+                  <TableCell>
+                    <BorrowingActionsMenu borrowing={borrowing} />
+                  </TableCell>
                 </TableRow>
               );
             })}
@@ -160,26 +173,37 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
           <TableHeader>
             <TableRow>
               <TableHead>Borrower</TableHead>
-              <TableHead>Date Given</TableHead>
+              <TableHead>Principal</TableHead>
               <TableHead>Interest</TableHead>
-              <TableHead className="text-right">Yearly Interest Income</TableHead>
-              <TableHead className="text-right">Principal</TableHead>
+              <TableHead className="text-right">Principal Rcvd.</TableHead>
+              <TableHead className="text-right">Interest Rcvd.</TableHead>
+              <TableHead className="text-right">Principal Balance</TableHead>
+              <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {lendings.map((lending) => {
-              const annualInterest =
-                lending.interestType === 'Monthly'
-                  ? lending.principal * (lending.interestRate / 100) * 12
-                  : lending.principal * (lending.interestRate / 100);
+              const principalPaid = (lending.payments || [])
+                .filter(p => p.type === 'principal')
+                .reduce((acc, p) => acc + p.amount, 0);
+              
+              const interestPaid = (lending.payments || [])
+                .filter(p => p.type === 'interest')
+                .reduce((acc, p) => acc + p.amount, 0);
+
+              const balance = lending.principal - principalPaid;
 
               return (
                 <TableRow key={lending.id}>
                   <TableCell className="font-medium">{lending.borrowerName}</TableCell>
-                  <TableCell>{format(toDate(lending.dateGiven), 'dd MMM yyyy')}</TableCell>
+                  <TableCell className="font-mono">{formatCurrency(lending.principal)}</TableCell>
                   <TableCell>{lending.interestRate}% {lending.interestType}</TableCell>
-                  <TableCell className="text-right font-mono text-green-600">{formatCurrency(annualInterest)}</TableCell>
-                  <TableCell className="text-right font-mono">{formatCurrency(lending.principal)}</TableCell>
+                  <TableCell className="text-right font-mono text-green-600">{formatCurrency(principalPaid)}</TableCell>
+                  <TableCell className="text-right font-mono text-green-600">{formatCurrency(interestPaid)}</TableCell>
+                  <TableCell className="text-right font-mono text-destructive">{formatCurrency(balance)}</TableCell>
+                  <TableCell>
+                    <LendingActionsMenu lending={lending} />
+                  </TableCell>
                 </TableRow>
               );
             })}

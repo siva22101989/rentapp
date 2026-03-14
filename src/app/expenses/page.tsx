@@ -7,7 +7,7 @@ import { formatCurrency, toDate } from "@/lib/utils";
 import { useMemo, useState, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Expense, StorageRecord, UnloadingRecord, WarehouseInfo, Borrowing, Lending, OtherIncome } from "@/lib/definitions";
-import { format, differenceInMonths } from "date-fns";
+import { format, differenceInDays } from "date-fns";
 import { ExpenseActionsMenu } from "@/components/expenses/expense-actions-menu";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { useFirestore, useDateFilter } from "@/firebase/provider";
@@ -140,11 +140,15 @@ function BorrowingsTable({ borrowings, today }: { borrowings: Borrowing[], today
               const balance = borrowing.principal - principalPaid;
               
               const startDate = toDate(borrowing.dateTaken);
-              const monthsElapsed = today ? differenceInMonths(today, startDate) : 0;
+              const daysElapsed = today ? differenceInDays(today, startDate) : 0;
               let totalAccruedInterest = 0;
-              if (monthsElapsed > 0) {
-                const monthlyInterestRate = borrowing.interestType === 'Monthly' ? (borrowing.interestRate / 100) : ((borrowing.interestRate / 100) / 12);
-                totalAccruedInterest = borrowing.principal * monthlyInterestRate * monthsElapsed;
+              if (daysElapsed > 0) {
+                const annualInterestRate = borrowing.interestType === 'Monthly' 
+                  ? borrowing.interestRate * 12 
+                  : borrowing.interestRate;
+                
+                const dailyRate = (annualInterestRate / 100) / 365;
+                totalAccruedInterest = borrowing.principal * dailyRate * daysElapsed;
               }
               const interestPending = totalAccruedInterest - interestPaid;
 
@@ -207,11 +211,15 @@ function LendingsTable({ lendings, today }: { lendings: Lending[], today: Date |
               const balance = lending.principal - principalReceived;
               
               const startDate = toDate(lending.dateGiven);
-              const monthsElapsed = today ? differenceInMonths(today, startDate) : 0;
+              const daysElapsed = today ? differenceInDays(today, startDate) : 0;
               let totalAccruedInterest = 0;
-              if (monthsElapsed > 0) {
-                const monthlyInterestRate = lending.interestType === 'Monthly' ? (lending.interestRate / 100) : ((lending.interestRate / 100) / 12);
-                totalAccruedInterest = lending.principal * monthlyInterestRate * monthsElapsed;
+              if (daysElapsed > 0) {
+                const annualInterestRate = lending.interestType === 'Monthly' 
+                  ? lending.interestRate * 12 
+                  : lending.interestRate;
+                
+                const dailyRate = (annualInterestRate / 100) / 365;
+                totalAccruedInterest = lending.principal * dailyRate * daysElapsed;
               }
               const interestPending = totalAccruedInterest - interestReceived;
 

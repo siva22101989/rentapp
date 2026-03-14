@@ -26,6 +26,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
+import type { User } from 'firebase/auth';
 
 
 function LiveClock() {
@@ -128,6 +129,16 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     return email.charAt(0).toUpperCase();
   };
 
+  const getUserName = (user: User | null) => {
+    if (!user) return 'User';
+    if (user.displayName) return user.displayName;
+    if (user.email) {
+      const namePart = user.email.split('@')[0];
+      return namePart.charAt(0).toUpperCase() + namePart.slice(1);
+    }
+    return 'User';
+  };
+
   return (
     <div className="flex min-h-screen w-full flex-col">
        <header className="sticky top-0 flex h-16 items-center gap-4 border-b bg-card px-4 md:px-6">
@@ -156,12 +167,18 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     <DropdownMenuContent className="w-56" align="end" forceMount>
                         <DropdownMenuLabel className="font-normal">
                             <div className="flex flex-col space-y-1">
-                                <p className="text-sm font-medium leading-none">Signed in as</p>
+                                <p className="text-sm font-medium leading-none">{getUserName(user)}</p>
                                 <p className="text-xs leading-none text-muted-foreground">
                                     {user.email}
                                 </p>
                             </div>
                         </DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild>
+                            <Link href="/settings">
+                                Settings
+                            </Link>
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={handleSignOut}>
                             <LogOut className="mr-2 h-4 w-4" />

@@ -1,10 +1,11 @@
 'use client';
 
-import { MoreHorizontal, IndianRupee } from "lucide-react";
+import { MoreHorizontal, IndianRupee, Pencil } from "lucide-react";
 import { Button } from "../ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import type { Borrowing } from "@/lib/definitions";
 import { AddBorrowingPaymentDialog } from "./add-borrowing-payment-dialog";
+import { EditBorrowingDialog } from "./edit-borrowing-dialog";
 
 export function BorrowingActionsMenu({ borrowing }: { borrowing: Borrowing }) {
     return (
@@ -16,6 +17,12 @@ export function BorrowingActionsMenu({ borrowing }: { borrowing: Borrowing }) {
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+                <EditBorrowingDialog borrowing={borrowing}>
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Edit
+                    </DropdownMenuItem>
+                </EditBorrowingDialog>
                 <AddBorrowingPaymentDialog borrowing={borrowing}>
                     <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                         <IndianRupee className="mr-2 h-4 w-4" />

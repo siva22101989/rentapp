@@ -1,4 +1,3 @@
-
 import {
   collection,
   doc,
@@ -13,7 +12,7 @@ import {
   writeBatch,
   arrayUnion,
 } from 'firebase/firestore';
-import type { Customer, Expense, Payment, StorageRecord, Commodity, Outflow, UnloadingRecord } from './definitions';
+import type { Customer, Expense, Payment, StorageRecord, Commodity, Outflow, UnloadingRecord, Borrowing, Lending } from './definitions';
 import { cleanForFirestore } from './utils';
 
 // These functions are intended for client-side use.
@@ -135,4 +134,14 @@ export const deleteUnloadingRecord = async (db: Firestore, id: string): Promise<
         throw new Error("Cannot delete unloading record. It is already linked to a drying or storage process.");
     }
     await deleteDoc(recordRef);
+};
+
+export const updateBorrowing = async (db: Firestore, id: string, data: Partial<Borrowing>): Promise<void> => {
+    const borrowingRef = doc(db, 'borrowings', id);
+    await updateDoc(borrowingRef, cleanForFirestore(data));
+};
+
+export const updateLending = async (db: Firestore, id: string, data: Partial<Lending>): Promise<void> => {
+    const lendingRef = doc(db, 'lendings', id);
+    await updateDoc(lendingRef, cleanForFirestore(data));
 };

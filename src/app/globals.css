@@ -23,6 +23,9 @@
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
     --destructive-dark: 0 84.2% 50.2%;
+    --success: 142 71% 36%;
+    --success-foreground: 210 40% 98%;
+    --success-dark: 142 71% 26%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 221.2 83.2% 53.3%;
@@ -60,6 +63,9 @@
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
     --destructive-dark: 0 62.8% 20.6%;
+    --success: 145 63% 42%;
+    --success-foreground: 222.2 47.4% 11.2%;
+    --success-dark: 145 63% 32%;
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 217.2 91.2% 59.8%;

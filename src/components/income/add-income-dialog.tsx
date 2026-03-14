@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -77,7 +78,7 @@ export function AddIncomeDialog() {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button>
+        <Button variant="success">
           <TrendingUp className="mr-2" />
           Add Income
         </Button>

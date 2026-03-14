@@ -143,12 +143,13 @@ function BorrowingsTable({ borrowings, today }: { borrowings: Borrowing[], today
               const daysElapsed = today ? differenceInDays(today, startDate) : 0;
               let totalAccruedInterest = 0;
               if (daysElapsed > 0) {
-                const annualInterestRate = borrowing.interestType === 'Monthly' 
-                  ? borrowing.interestRate * 12 
-                  : borrowing.interestRate;
-                
-                const dailyRate = (annualInterestRate / 100) / 365;
-                totalAccruedInterest = borrowing.principal * dailyRate * daysElapsed;
+                if (borrowing.interestType === 'Monthly') {
+                  const dailyRate = (borrowing.interestRate / 100) / 30; // Assume 30 days in a month for monthly rates
+                  totalAccruedInterest = borrowing.principal * dailyRate * daysElapsed;
+                } else { // Yearly
+                  const dailyRate = (borrowing.interestRate / 100) / 365; // Use 365 for yearly rates
+                  totalAccruedInterest = borrowing.principal * dailyRate * daysElapsed;
+                }
               }
               const interestPending = totalAccruedInterest - interestPaid;
 
@@ -214,12 +215,13 @@ function LendingsTable({ lendings, today }: { lendings: Lending[], today: Date |
               const daysElapsed = today ? differenceInDays(today, startDate) : 0;
               let totalAccruedInterest = 0;
               if (daysElapsed > 0) {
-                const annualInterestRate = lending.interestType === 'Monthly' 
-                  ? lending.interestRate * 12 
-                  : lending.interestRate;
-                
-                const dailyRate = (annualInterestRate / 100) / 365;
-                totalAccruedInterest = lending.principal * dailyRate * daysElapsed;
+                if (lending.interestType === 'Monthly') {
+                  const dailyRate = (lending.interestRate / 100) / 30; // Assume 30 days in a month for monthly rates
+                  totalAccruedInterest = lending.principal * dailyRate * daysElapsed;
+                } else { // Yearly
+                  const dailyRate = (lending.interestRate / 100) / 365; // Use 365 for yearly rates
+                  totalAccruedInterest = lending.principal * dailyRate * daysElapsed;
+                }
               }
               const interestPending = totalAccruedInterest - interestReceived;
 

@@ -134,7 +134,7 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
                   <TableCell className="font-medium">{borrowing.lenderName}</TableCell>
                   <TableCell>{format(toDate(borrowing.dateTaken), 'dd MMM yyyy')}</TableCell>
                   <TableCell>{borrowing.interestRate}% {borrowing.interestType}</TableCell>
-                  <TableCell className="text-right font-mono">{formatCurrency(annualInterest)}</TableCell>
+                  <TableCell className="text-right font-mono text-destructive">{formatCurrency(annualInterest)}</TableCell>
                   <TableCell className="text-right font-mono">{formatCurrency(borrowing.principal)}</TableCell>
                 </TableRow>
               );

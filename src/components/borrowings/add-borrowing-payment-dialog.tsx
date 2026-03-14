@@ -7,19 +7,18 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import type { Payment, Borrowing } from '@/lib/definitions';
-import { formatCurrency, cleanForFirestore } from '@/lib/utils';
+import { cleanForFirestore, toDate } from '@/lib/utils';
 import { useFirestore } from '@/firebase/provider';
 import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
-import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
+import { differenceInDays } from 'date-fns';
 
 const PaymentSchema = z.object({
   paymentDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date" }),
   paymentAmount: z.coerce.number().positive('Payment amount must be a positive number.'),
-  paymentType: z.enum(['interest', 'principal'], { required_error: 'Payment type is required.' }),
 });
 type PaymentFormData = z.infer<typeof PaymentSchema>;
 
@@ -39,7 +38,6 @@ export function AddBorrowingPaymentDialog({ borrowing, children }: AddBorrowingP
     defaultValues: {
         paymentDate: new Date().toISOString().split('T')[0],
         paymentAmount: undefined,
-        paymentType: 'interest',
     },
   });
 
@@ -51,18 +49,54 @@ export function AddBorrowingPaymentDialog({ borrowing, children }: AddBorrowingP
 
     startTransition(async () => {
       try {
-        const newPayment: Payment = {
-          amount: data.paymentAmount,
-          date: new Date(data.paymentDate),
-          type: data.paymentType,
-        };
+        const paymentDate = new Date(data.paymentDate);
+        let amountToApply = data.paymentAmount;
+        const payments: Payment[] = [];
 
-        const recordRef = doc(firestore, 'borrowings', borrowing.id);
-        await updateDoc(recordRef, {
-          payments: arrayUnion(cleanForFirestore(newPayment))
-        });
+        // Calculate interest due up to payment date
+        const startDate = toDate(borrowing.dateTaken);
+        const daysElapsed = differenceInDays(paymentDate, startDate);
+        let totalAccruedInterest = 0;
+        if (daysElapsed > 0) {
+            if (borrowing.interestType === 'Monthly') {
+                const dailyRate = (borrowing.interestRate / 100) / 30;
+                totalAccruedInterest = borrowing.principal * dailyRate * daysElapsed;
+            } else { // Yearly
+                const dailyRate = (borrowing.interestRate / 100) / 365;
+                totalAccruedInterest = borrowing.principal * dailyRate * daysElapsed;
+            }
+        }
+        
+        const interestPaidSoFar = (borrowing.payments || [])
+            .filter(p => p.type === 'interest')
+            .reduce((acc, p) => acc + p.amount, 0);
 
-        toast({ title: 'Success', description: 'Payment recorded successfully.' });
+        const interestDue = totalAccruedInterest - interestPaidSoFar;
+        
+        // Apply to interest first
+        if (interestDue > 0) {
+            const interestPayment = Math.min(amountToApply, interestDue);
+            if (interestPayment > 0) {
+                payments.push({ amount: interestPayment, date: paymentDate, type: 'interest' });
+                amountToApply -= interestPayment;
+            }
+        }
+
+        // Apply remaining to principal
+        if (amountToApply > 0) {
+            payments.push({ amount: amountToApply, date: paymentDate, type: 'principal' });
+        }
+
+        if (payments.length > 0) {
+            const recordRef = doc(firestore, 'borrowings', borrowing.id);
+            await updateDoc(recordRef, {
+              payments: arrayUnion(...payments.map(p => cleanForFirestore(p)))
+            });
+            toast({ title: 'Success', description: 'Payment recorded successfully.' });
+        } else {
+            toast({ title: 'Info', description: 'Payment amount was zero, nothing recorded.' });
+        }
+
         setIsOpen(false);
         form.reset();
       } catch (error) {
@@ -81,7 +115,7 @@ export function AddBorrowingPaymentDialog({ borrowing, children }: AddBorrowingP
             <DialogHeader>
                 <DialogTitle>Add Payment to Loan</DialogTitle>
                 <DialogDescription>
-                For loan from {borrowing.lenderName}.
+                For loan from {borrowing.lenderName}. Payment will be applied to interest first, then principal.
                 </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -106,32 +140,6 @@ export function AddBorrowingPaymentDialog({ borrowing, children }: AddBorrowingP
                             <FormMessage />
                         </FormItem>
                     )}
-                />
-                 <FormField
-                  control={form.control}
-                  name="paymentType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Payment Type</FormLabel>
-                      <FormControl>
-                        <RadioGroup
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                          className="flex items-center space-x-4 pt-2"
-                        >
-                          <FormItem className="flex items-center space-x-2 space-y-0">
-                            <FormControl><RadioGroupItem value="interest" /></FormControl>
-                            <FormLabel className="font-normal">Interest Payment</FormLabel>
-                          </FormItem>
-                          <FormItem className="flex items-center space-x-2 space-y-0">
-                            <FormControl><RadioGroupItem value="principal" /></FormControl>
-                            <FormLabel className="font-normal">Principal Payment</FormLabel>
-                          </FormItem>
-                        </RadioGroup>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
                 />
             </div>
             <DialogFooter>

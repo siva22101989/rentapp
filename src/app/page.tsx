@@ -5,7 +5,7 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ArrowRight, Users, Warehouse, IndianRupee, FileText, ArrowDownToDot, ArrowUpFromDot, Scale, Settings, Wind, ShieldAlert, Wheat, ArrowDownFromLine, Archive, Package, TrendingUp } from "lucide-react";
+import { ArrowRight, Users, Warehouse, IndianRupee, FileText, ArrowDownToDot, ArrowUpFromDot, Scale, Wind, Wheat, ArrowDownFromLine, Archive, Package, TrendingUp } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { collection } from "firebase/firestore";
@@ -35,7 +35,6 @@ const navItems: NavItem[] = [
   { href: '/commodities', label: 'Commodities & Lots', description: 'Manage commodity types, rents, and warehouse locations.', icon: Wheat },
   { href: '/reports', label: 'Reports', description: 'See all transactions.', icon: FileText },
   { href: '/expenses', label: 'Profit & Loss', description: 'Track income, expenses, and net profit.', icon: Scale },
-  { href: '/settings', label: 'Settings', description: 'Manage database operations.', icon: Settings },
 ];
 
 function NavCard({ item }: { item: NavItem }) {

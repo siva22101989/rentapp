@@ -141,7 +141,15 @@ export const updateBorrowing = async (db: Firestore, id: string, data: Partial<B
     await updateDoc(borrowingRef, cleanForFirestore(data));
 };
 
+export const deleteBorrowing = async (db: Firestore, id: string): Promise<void> => {
+    await deleteDoc(doc(db, 'borrowings', id));
+};
+
 export const updateLending = async (db: Firestore, id: string, data: Partial<Lending>): Promise<void> => {
     const lendingRef = doc(db, 'lendings', id);
     await updateDoc(lendingRef, cleanForFirestore(data));
+};
+
+export const deleteLending = async (db: Firestore, id: string): Promise<void> => {
+    await deleteDoc(doc(db, 'lendings', id));
 };

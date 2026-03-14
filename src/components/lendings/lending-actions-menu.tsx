@@ -1,10 +1,11 @@
 'use client';
-import { MoreHorizontal, IndianRupee, Pencil } from "lucide-react";
+import { MoreHorizontal, IndianRupee, Pencil, Trash2 } from "lucide-react";
 import { Button } from "../ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "../ui/dropdown-menu";
 import type { Lending } from "@/lib/definitions";
 import { AddLendingPaymentDialog } from "./add-lending-payment-dialog";
 import { EditLendingDialog } from "./edit-lending-dialog";
+import { DeleteLendingDialog } from "./delete-lending-dialog";
 
 export function LendingActionsMenu({ lending }: { lending: Lending }) {
     return (
@@ -28,6 +29,13 @@ export function LendingActionsMenu({ lending }: { lending: Lending }) {
                         Add Payment
                     </DropdownMenuItem>
                 </AddLendingPaymentDialog>
+                <DropdownMenuSeparator />
+                <DeleteLendingDialog lendingId={lending.id}>
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                    </DropdownMenuItem>
+                </DeleteLendingDialog>
             </DropdownMenuContent>
         </DropdownMenu>
     );

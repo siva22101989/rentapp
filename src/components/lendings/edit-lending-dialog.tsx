@@ -116,7 +116,7 @@ export function EditLendingDialog({ lending, children }: { lending: Lending; chi
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Principal Amount</FormLabel>
-                    <FormControl><Input type="number" {...field} /></FormControl>
+                    <FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -128,7 +128,7 @@ export function EditLendingDialog({ lending, children }: { lending: Lending; chi
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Interest Rate (%)</FormLabel>
-                      <FormControl><Input type="number" step="0.01" {...field} /></FormControl>
+                      <FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ''} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}

@@ -120,10 +120,10 @@ function BorrowingsTable({ borrowings, today }: { borrowings: Borrowing[], today
               <TableHead>Lender</TableHead>
               <TableHead>Principal</TableHead>
               <TableHead>Interest</TableHead>
-              <TableHead className="text-right">Principal Balance</TableHead>
-              <TableHead className="text-right">Accrued Interest</TableHead>
+              <TableHead className="text-right">Principal Due</TableHead>
+              <TableHead className="text-right">Total Interest</TableHead>
               <TableHead className="text-right">Interest Paid</TableHead>
-              <TableHead className="text-right">Interest Pending</TableHead>
+              <TableHead className="text-right">Interest Due</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -192,10 +192,10 @@ function LendingsTable({ lendings, today }: { lendings: Lending[], today: Date |
               <TableHead>Borrower</TableHead>
               <TableHead>Principal</TableHead>
               <TableHead>Interest</TableHead>
-              <TableHead className="text-right">Principal Balance</TableHead>
-              <TableHead className="text-right">Accrued Interest</TableHead>
+              <TableHead className="text-right">Principal Due</TableHead>
+              <TableHead className="text-right">Total Interest</TableHead>
               <TableHead className="text-right">Interest Received</TableHead>
-              <TableHead className="text-right">Interest Pending</TableHead>
+              <TableHead className="text-right">Interest Due</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>

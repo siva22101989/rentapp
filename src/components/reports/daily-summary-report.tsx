@@ -11,7 +11,8 @@ import { toDate, formatCurrency } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format, isSameDay } from 'date-fns';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 
 type DailyReportProps = {
     records: StorageRecord[];
@@ -39,7 +40,7 @@ const DailySummaryContent = React.forwardRef<HTMLDivElement, { dailyData: DailyD
     const getCustomerName = (customerId: string) => customers.find(c => c.id === customerId)?.name ?? 'Unknown';
 
     return (
-        <div ref={ref} className="bg-white p-4 rounded-lg">
+        <div ref={ref} className="bg-white p-4 rounded-lg text-black">
             <div className="mb-6 text-center">
                 <h2 className="text-xl font-bold">Daily Summary Report</h2>
                 <p className="text-muted-foreground">{format(selectedDate, 'EEEE, dd MMMM yyyy')}</p>
@@ -75,7 +76,7 @@ const DailySummaryContent = React.forwardRef<HTMLDivElement, { dailyData: DailyD
                     <section>
                         <h3 className="font-semibold mb-2">Inflows</h3>
                         <Table>
-                            <TableHeader><TableRow><TableHead>Record ID</TableHead><TableHead>Customer</TableHead><TableHead>Commodity</TableHead><TableHead className="text-right">Bags</TableHead></TableRow></TableHeader>
+                            <TableHeader><TableRow><TableHead className="text-black">Record ID</TableHead><TableHead className="text-black">Customer</TableHead><TableHead className="text-black">Commodity</TableHead><TableHead className="text-right text-black">Bags</TableHead></TableRow></TableHeader>
                             <TableBody>
                                 {dailyData.inflows.map(rec => (
                                     <TableRow key={`in-${rec.id}`}><TableCell>{rec.id}</TableCell><TableCell>{getCustomerName(rec.customerId)}</TableCell><TableCell>{rec.commodityDescription}</TableCell><TableCell className="text-right font-mono">{rec.bagsIn}</TableCell></TableRow>
@@ -88,7 +89,7 @@ const DailySummaryContent = React.forwardRef<HTMLDivElement, { dailyData: DailyD
                     <section>
                         <h3 className="font-semibold mb-2">Outflows</h3>
                         <Table>
-                            <TableHeader><TableRow><TableHead>Record ID</TableHead><TableHead>Customer</TableHead><TableHead>Commodity</TableHead><TableHead className="text-right">Bags Withdrawn</TableHead></TableRow></TableHeader>
+                            <TableHeader><TableRow><TableHead className="text-black">Record ID</TableHead><TableHead className="text-black">Customer</TableHead><TableHead className="text-black">Commodity</TableHead><TableHead className="text-right text-black">Bags Withdrawn</TableHead></TableRow></TableHeader>
                             <TableBody>
                                 {dailyData.outflows.map(rec => (
                                     <TableRow key={`out-${rec.id}`}><TableCell>{rec.id}</TableCell><TableCell>{getCustomerName(rec.customerId)}</TableCell><TableCell>{rec.commodityDescription}</TableCell><TableCell className="text-right font-mono">{rec.bagsWithdrawn}</TableCell></TableRow>
@@ -101,7 +102,7 @@ const DailySummaryContent = React.forwardRef<HTMLDivElement, { dailyData: DailyD
                     <section>
                         <h3 className="font-semibold mb-2">Unloadings</h3>
                         <Table>
-                            <TableHeader><TableRow><TableHead>Bill No.</TableHead><TableHead>Customer</TableHead><TableHead>Commodity</TableHead><TableHead className="text-right">Bags Unloaded</TableHead></TableRow></TableHeader>
+                            <TableHeader><TableRow><TableHead className="text-black">Bill No.</TableHead><TableHead className="text-black">Customer</TableHead><TableHead className="text-black">Commodity</TableHead><TableHead className="text-right text-black">Bags Unloaded</TableHead></TableRow></TableHeader>
                             <TableBody>
                                 {dailyData.unloadings.map(rec => (
                                     <TableRow key={`unloading-${rec.id}`}><TableCell>{rec.billNo}</TableCell><TableCell>{getCustomerName(rec.customerId)}</TableCell><TableCell>{rec.commodityDescription}</TableCell><TableCell className="text-right font-mono">{rec.bagsUnloaded}</TableCell></TableRow>
@@ -114,7 +115,7 @@ const DailySummaryContent = React.forwardRef<HTMLDivElement, { dailyData: DailyD
                      <section>
                         <h3 className="font-semibold mb-2">Income (Payments Received)</h3>
                         <Table>
-                            <TableHeader><TableRow><TableHead>Customer</TableHead><TableHead>Description</TableHead><TableHead>Ref ID</TableHead><TableHead className="text-right">Amount</TableHead></TableRow></TableHeader>
+                            <TableHeader><TableRow><TableHead className="text-black">Customer</TableHead><TableHead className="text-black">Description</TableHead><TableHead className="text-black">Ref ID</TableHead><TableHead className="text-right text-black">Amount</TableHead></TableRow></TableHeader>
                             <TableBody>
                                 {dailyData.payments.map((p, i) => (
                                     <TableRow key={`payment-${i}`}><TableCell>{p.customerName}</TableCell><TableCell>{p.description}</TableCell><TableCell>{p.recordId}</TableCell><TableCell className="text-right font-mono">{formatCurrency(p.amount)}</TableCell></TableRow>
@@ -127,7 +128,7 @@ const DailySummaryContent = React.forwardRef<HTMLDivElement, { dailyData: DailyD
                      <section>
                         <h3 className="font-semibold mb-2">Expenses</h3>
                         <Table>
-                            <TableHeader><TableRow><TableHead>Category</TableHead><TableHead>Description</TableHead><TableHead className="text-right">Amount</TableHead></TableRow></TableHeader>
+                            <TableHeader><TableRow><TableHead className="text-black">Category</TableHead><TableHead className="text-black">Description</TableHead><TableHead className="text-right text-black">Amount</TableHead></TableRow></TableHeader>
                             <TableBody>
                                 {dailyData.expenses.map(exp => (
                                     <TableRow key={`exp-${exp.id}`}><TableCell>{exp.category}</TableCell><TableCell>{exp.description}</TableCell><TableCell className="text-right font-mono">{formatCurrency(exp.amount)}</TableCell></TableRow>
@@ -236,16 +237,21 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
             const imgWidth = canvas.width;
             const imgHeight = canvas.height;
             const ratio = imgWidth / imgHeight;
-            let widthInPdf = pdfWidth - 20;
+            let widthInPdf = pdfWidth;
             let heightInPdf = widthInPdf / ratio;
-            if (heightInPdf > pdfHeight - 20) {
-                heightInPdf = pdfHeight - 20;
-                widthInPdf = heightInPdf * ratio;
-            }
-            const x = (pdfWidth - widthInPdf) / 2;
-            const y = 10;
+            
+            let position = 0;
+            let heightLeft = heightInPdf;
 
-            pdf.addImage(imgData, 'PNG', x, y, widthInPdf, heightInPdf);
+            pdf.addImage(imgData, 'PNG', 0, position, widthInPdf, heightInPdf);
+            heightLeft -= pdfHeight;
+
+            while (heightLeft > 0) {
+                position = position - pdfHeight;
+                pdf.addPage();
+                pdf.addImage(imgData, 'PNG', 0, position, widthInPdf, heightInPdf);
+                heightLeft -= pdfHeight;
+            }
             pdf.save(`daily-summary-${format(selectedDate, 'yyyy-MM-dd')}.pdf`);
         } catch (error) {
             console.error('Error generating PDF:', error);
@@ -255,42 +261,55 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
     };
     
     return (
-        <Card>
-            <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                <div className="flex-1">
-                    <CardTitle>Daily Summary Report</CardTitle>
-                    <CardDescription>A summary of all transactions for a selected day.</CardDescription>
+        <Dialog>
+            <Card>
+                <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                    <div className="flex-1">
+                        <CardTitle>Daily Summary Report</CardTitle>
+                        <CardDescription>A summary of all transactions for a selected day.</CardDescription>
+                    </div>
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+                        <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                id="date"
+                                variant={"outline"}
+                                className="w-full sm:w-[260px] justify-start text-left font-normal"
+                              >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {selectedDate ? format(selectedDate, "LLL dd, y") : <span>Pick a date</span>}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="end">
+                              <Calendar
+                                initialFocus
+                                mode="single"
+                                selected={selectedDate}
+                                onSelect={(date) => date && setSelectedDate(date)}
+                              />
+                            </PopoverContent>
+                        </Popover>
+                         <DialogTrigger asChild>
+                            <Button>View Report</Button>
+                        </DialogTrigger>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                   <p className="text-sm text-muted-foreground">Select a date and click "View Report" to generate a printable summary.</p>
+                </CardContent>
+            </Card>
+            <DialogContent className="max-w-4xl p-0">
+                <div ref={reportRef} className="p-4">
+                     <DailySummaryContent dailyData={dailyData} customers={customers} selectedDate={selectedDate} />
                 </div>
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-                    <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            id="date"
-                            variant={"outline"}
-                            className="w-full sm:w-[260px] justify-start text-left font-normal"
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {selectedDate ? format(selectedDate, "LLL dd, y") : <span>Pick a date</span>}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="end">
-                          <Calendar
-                            initialFocus
-                            mode="single"
-                            selected={selectedDate}
-                            onSelect={(date) => date && setSelectedDate(date)}
-                          />
-                        </PopoverContent>
-                    </Popover>
+                <DialogFooter className="p-4 border-t">
+                    <DialogClose asChild><Button variant="outline">Close</Button></DialogClose>
                     <Button onClick={handleDownloadPdf} disabled={isGenerating}>
                         {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                        Download
+                        Print PDF
                     </Button>
-                </div>
-            </CardHeader>
-            <CardContent>
-                <DailySummaryContent ref={reportRef} dailyData={dailyData} customers={customers} selectedDate={selectedDate} />
-            </CardContent>
-        </Card>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     );
 }

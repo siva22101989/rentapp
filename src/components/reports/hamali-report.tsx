@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef, useMemo } from 'react';
@@ -13,6 +12,7 @@ import { CustomerHamaliReportTable } from './customer-hamali-report-table';
 import { WorkerHamaliReportTable } from './worker-hamali-report-table';
 import { toDate } from '@/lib/utils';
 import { useDateFilter } from '@/firebase/provider';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 
 export type CustomerHamaliEvent = {
     date: Date;
@@ -228,43 +228,48 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
     const title = `Hamali ${reportView === 'customer' ? 'Customer' : 'Worker'} Ledger ${customer ? `for ${customer.name}` : ''}`;
 
     return (
-        <Card>
-            <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                <div className="flex-1">
-                    <CardTitle>Hamali Register</CardTitle>
-                    <CardDescription>View ledgers for customer charges or worker payments.</CardDescription>
-                </div>
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto flex-wrap">
-                    <Select onValueChange={(v) => setReportView(v as 'customer' | 'worker')} value={reportView}>
-                        <SelectTrigger className='w-full sm:w-auto'>
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="customer">Customer Ledger</SelectItem>
-                            <SelectItem value="worker">Worker Ledger</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <Select onValueChange={setSelectedCustomerId} value={selectedCustomerId}>
-                        <SelectTrigger className="w-full sm:w-auto">
-                            <SelectValue placeholder="All Customers" />
-                        </SelectTrigger>
-                        <SelectContent>
-                             <SelectItem value="all">All Customers</SelectItem>
-                            {customers.map(customer => (
-                                <SelectItem key={customer.id} value={customer.id}>
-                                    {customer.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <Button onClick={handleDownloadPdf} disabled={isGenerating}>
-                        {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                        Download
-                    </Button>
-                </div>
-            </CardHeader>
-            <CardContent>
-                <div ref={reportRef}>
+        <Dialog>
+            <Card>
+                <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                    <div className="flex-1">
+                        <CardTitle>Hamali Register</CardTitle>
+                        <CardDescription>View ledgers for customer charges or worker payments.</CardDescription>
+                    </div>
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto flex-wrap">
+                        <Select onValueChange={(v) => setReportView(v as 'customer' | 'worker')} value={reportView}>
+                            <SelectTrigger className='w-full sm:w-auto'>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="customer">Customer Ledger</SelectItem>
+                                <SelectItem value="worker">Worker Ledger</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <Select onValueChange={setSelectedCustomerId} value={selectedCustomerId}>
+                            <SelectTrigger className="w-full sm:w-auto">
+                                <SelectValue placeholder="All Customers" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Customers</SelectItem>
+                                {customers.map(customer => (
+                                    <SelectItem key={customer.id} value={customer.id}>
+                                        {customer.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <DialogTrigger asChild>
+                            <Button>View Report</Button>
+                        </DialogTrigger>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-sm text-muted-foreground">Select options and click "View Report" to generate a printable summary.</p>
+                </CardContent>
+            </Card>
+
+            <DialogContent className="max-w-6xl p-0">
+                <div ref={reportRef} className="p-4 max-h-[80vh] overflow-y-auto">
                     {reportView === 'customer' ? (
                          <CustomerHamaliReportTable 
                             events={customerHamaliEvents} 
@@ -279,7 +284,14 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
                         />
                     )}
                 </div>
-            </CardContent>
-        </Card>
+                <DialogFooter className="p-4 border-t">
+                    <DialogClose asChild><Button variant="outline">Close</Button></DialogClose>
+                    <Button onClick={handleDownloadPdf} disabled={isGenerating}>
+                        {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                        Print PDF
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     );
 }

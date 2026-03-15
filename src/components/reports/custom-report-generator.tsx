@@ -111,28 +111,21 @@ export function CustomReportGenerator({
 
     return (
         <div className="space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Custom Report Generator</CardTitle>
-                    <CardDescription>Select the report type and format to generate a detailed analysis.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="max-w-sm">
-                        <Select onValueChange={setSelectedReport} value={selectedReport}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select a report type..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {reportTypes.map(report => (
-                                    <SelectItem key={report.value} value={report.value}>
-                                        {report.label}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                </CardContent>
-            </Card>
+            <div>
+                <label htmlFor="report-type-select" className="text-sm font-medium text-muted-foreground">Select Report Type</label>
+                <Select onValueChange={setSelectedReport} value={selectedReport}>
+                    <SelectTrigger id="report-type-select" className="mt-1">
+                        <SelectValue placeholder="Select a report type..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {reportTypes.map(report => (
+                            <SelectItem key={report.value} value={report.value}>
+                                {report.label}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
             <div className="mt-6">
                 {renderReport()}
             </div>

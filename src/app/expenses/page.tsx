@@ -149,10 +149,10 @@ function BorrowingsTable({ borrowings, today }: { borrowings: Borrowing[], today
                         totalAccruedInterest = borrowing.principal * monthlyRate * monthsPassed;
                     }
                 } else { // Yearly
-                    const monthlyRateEquivalent = (borrowing.interestRate / 100) / 12;
-                    const monthsPassed = differenceInMonths(today, startDate);
-                    if (monthsPassed > 0) {
-                        totalAccruedInterest = borrowing.principal * monthlyRateEquivalent * monthsPassed;
+                    const yearlyRate = borrowing.interestRate / 100;
+                    const yearsPassed = differenceInYears(today, startDate);
+                    if (yearsPassed > 0) {
+                        totalAccruedInterest = borrowing.principal * yearlyRate * yearsPassed;
                     }
                 }
               }
@@ -226,10 +226,10 @@ function LendingsTable({ lendings, today }: { lendings: Lending[], today: Date |
                           totalAccruedInterest = lending.principal * monthlyRate * monthsPassed;
                       }
                   } else { // Yearly
-                      const monthlyRateEquivalent = (lending.interestRate / 100) / 12;
-                      const monthsPassed = differenceInMonths(today, startDate);
-                      if (monthsPassed > 0) {
-                          totalAccruedInterest = lending.principal * monthlyRateEquivalent * monthsPassed;
+                      const yearlyRate = lending.interestRate / 100;
+                      const yearsPassed = differenceInYears(today, startDate);
+                      if (yearsPassed > 0) {
+                          totalAccruedInterest = lending.principal * yearlyRate * yearsPassed;
                       }
                   }
               }

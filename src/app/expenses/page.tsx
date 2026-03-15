@@ -7,7 +7,7 @@ import { formatCurrency, toDate } from "@/lib/utils";
 import { useMemo, useState, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Expense, StorageRecord, UnloadingRecord, WarehouseInfo, Borrowing, Lending, OtherIncome } from "@/lib/definitions";
-import { format, differenceInMonths, differenceInDays } from "date-fns";
+import { format } from "date-fns";
 import { ExpenseActionsMenu } from "@/components/expenses/expense-actions-menu";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { useFirestore, useDateFilter } from "@/firebase/provider";
@@ -104,7 +104,7 @@ function ExpensesTable({ expenses }: { expenses: Expense[] }) {
   );
 }
 
-function BorrowingsTable({ borrowings, today }: { borrowings: Borrowing[], today: Date | null }) {
+function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
   if (borrowings.length === 0) {
     return null;
   }
@@ -121,9 +121,6 @@ function BorrowingsTable({ borrowings, today }: { borrowings: Borrowing[], today
               <TableHead>Principal</TableHead>
               <TableHead>Interest</TableHead>
               <TableHead className="text-right">Principal Due</TableHead>
-              <TableHead className="text-right">Total Interest</TableHead>
-              <TableHead className="text-right">Interest Paid</TableHead>
-              <TableHead className="text-right">Interest Due</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -132,33 +129,8 @@ function BorrowingsTable({ borrowings, today }: { borrowings: Borrowing[], today
               const principalPaid = (borrowing.payments || [])
                 .filter(p => p.type === 'principal')
                 .reduce((acc, p) => acc + p.amount, 0);
-              
-              const interestPaid = (borrowing.payments || [])
-                .filter(p => p.type === 'interest')
-                .reduce((acc, p) => acc + p.amount, 0);
 
               const balance = borrowing.principal - principalPaid;
-              
-              const startDate = toDate(borrowing.dateTaken);
-              let totalAccruedInterest = 0;
-              if (today) {
-                if (borrowing.interestType === 'Monthly') {
-                    const monthlyRate = borrowing.interestRate / 100;
-                    const monthsPassed = differenceInMonths(today, startDate);
-                    if (monthsPassed > 0) {
-                        totalAccruedInterest = borrowing.principal * monthlyRate * monthsPassed;
-                    }
-                } else { // Yearly
-                    const yearlyRate = borrowing.interestRate / 100;
-                    const daysPassed = differenceInDays(today, startDate);
-                    if (daysPassed > 0) {
-                        const dailyRate = yearlyRate / 365.25; // Use 365.25 to account for leap years
-                        totalAccruedInterest = borrowing.principal * dailyRate * daysPassed;
-                    }
-                }
-              }
-              const interestPending = totalAccruedInterest - interestPaid;
-
 
               return (
                 <TableRow key={borrowing.id}>
@@ -166,9 +138,6 @@ function BorrowingsTable({ borrowings, today }: { borrowings: Borrowing[], today
                   <TableCell className="font-mono">{formatCurrency(borrowing.principal)}</TableCell>
                   <TableCell>{borrowing.interestRate}% {borrowing.interestType}</TableCell>
                   <TableCell className="text-right font-mono">{formatCurrency(balance)}</TableCell>
-                  <TableCell className="text-right font-mono text-orange-600">{formatCurrency(totalAccruedInterest)}</TableCell>
-                  <TableCell className="text-right font-mono text-green-600">{formatCurrency(interestPaid)}</TableCell>
-                  <TableCell className="text-right font-mono text-destructive">{formatCurrency(interestPending)}</TableCell>
                   <TableCell>
                     <BorrowingActionsMenu borrowing={borrowing} />
                   </TableCell>
@@ -182,7 +151,7 @@ function BorrowingsTable({ borrowings, today }: { borrowings: Borrowing[], today
   )
 }
 
-function LendingsTable({ lendings, today }: { lendings: Lending[], today: Date | null }) {
+function LendingsTable({ lendings }: { lendings: Lending[] }) {
   if (lendings.length === 0) {
     return null;
   }
@@ -199,9 +168,6 @@ function LendingsTable({ lendings, today }: { lendings: Lending[], today: Date |
               <TableHead>Principal</TableHead>
               <TableHead>Interest</TableHead>
               <TableHead className="text-right">Principal Due</TableHead>
-              <TableHead className="text-right">Total Interest</TableHead>
-              <TableHead className="text-right">Interest Received</TableHead>
-              <TableHead className="text-right">Interest Due</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -210,32 +176,8 @@ function LendingsTable({ lendings, today }: { lendings: Lending[], today: Date |
               const principalReceived = (lending.payments || [])
                 .filter(p => p.type === 'principal')
                 .reduce((acc, p) => acc + p.amount, 0);
-              
-              const interestReceived = (lending.payments || [])
-                .filter(p => p.type === 'interest')
-                .reduce((acc, p) => acc + p.amount, 0);
 
               const balance = lending.principal - principalReceived;
-              
-              const startDate = toDate(lending.dateGiven);
-              let totalAccruedInterest = 0;
-              if (today) {
-                  if (lending.interestType === 'Monthly') {
-                      const monthlyRate = lending.interestRate / 100;
-                      const monthsPassed = differenceInMonths(today, startDate);
-                      if (monthsPassed > 0) {
-                          totalAccruedInterest = lending.principal * monthlyRate * monthsPassed;
-                      }
-                  } else { // Yearly
-                      const yearlyRate = lending.interestRate / 100;
-                      const daysPassed = differenceInDays(today, startDate);
-                      if (daysPassed > 0) {
-                          const dailyRate = yearlyRate / 365.25;
-                          totalAccruedInterest = lending.principal * dailyRate * daysPassed;
-                      }
-                  }
-              }
-              const interestPending = totalAccruedInterest - interestReceived;
 
               return (
                 <TableRow key={lending.id}>
@@ -243,9 +185,6 @@ function LendingsTable({ lendings, today }: { lendings: Lending[], today: Date |
                   <TableCell className="font-mono">{formatCurrency(lending.principal)}</TableCell>
                   <TableCell>{lending.interestRate}% {lending.interestType}</TableCell>
                   <TableCell className="text-right font-mono">{formatCurrency(balance)}</TableCell>
-                  <TableCell className="text-right font-mono text-blue-600">{formatCurrency(totalAccruedInterest)}</TableCell>
-                  <TableCell className="text-right font-mono text-green-600">{formatCurrency(interestReceived)}</TableCell>
-                  <TableCell className="text-right font-mono text-destructive">{formatCurrency(interestPending)}</TableCell>
                   <TableCell>
                     <LendingActionsMenu lending={lending} />
                   </TableCell>
@@ -263,11 +202,6 @@ function LendingsTable({ lendings, today }: { lendings: Lending[], today: Date |
 export default function ExpensesPage() {
   const firestore = useFirestore();
   const { dateRange, financialYear } = useDateFilter();
-  const [today, setToday] = useState<Date | null>(null);
-
-  useEffect(() => {
-    setToday(new Date());
-  }, []);
   
   const warehouseInfoRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'settings', 'main') : null),
@@ -454,8 +388,8 @@ export default function ExpensesPage() {
         </Card>
       </div>
       <div className="space-y-4">
-        <BorrowingsTable borrowings={borrowings || []} today={today} />
-        <LendingsTable lendings={lendings || []} today={today} />
+        <BorrowingsTable borrowings={borrowings || []} />
+        <LendingsTable lendings={lendings || []} />
         <Separator />
         <IncomesTable incomes={filteredIncomes} />
         <ExpensesTable expenses={filteredExpenses} />
@@ -463,3 +397,5 @@ export default function ExpensesPage() {
     </AppLayout>
   );
 }
+
+    

@@ -7,7 +7,7 @@ import { formatCurrency, toDate } from "@/lib/utils";
 import { useMemo, useState, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Expense, StorageRecord, UnloadingRecord, WarehouseInfo, Borrowing, Lending, OtherIncome } from "@/lib/definitions";
-import { format, differenceInDays } from "date-fns";
+import { format, differenceInMonths, differenceInYears } from "date-fns";
 import { ExpenseActionsMenu } from "@/components/expenses/expense-actions-menu";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { useFirestore, useDateFilter } from "@/firebase/provider";
@@ -142,20 +142,19 @@ function BorrowingsTable({ borrowings, today }: { borrowings: Borrowing[], today
               const startDate = toDate(borrowing.dateTaken);
               let totalAccruedInterest = 0;
               if (today) {
-                  const daysElapsed = differenceInDays(today, startDate);
-                  if (daysElapsed > 0) {
-                      if (borrowing.interestType === 'Monthly') {
-                          const monthlyRate = borrowing.interestRate / 100;
-                          // Calculate time in months, using average days per year for precision
-                          const timeInMonths = daysElapsed / (365.25 / 12); 
-                          totalAccruedInterest = borrowing.principal * monthlyRate * timeInMonths;
-                      } else { // Yearly
-                          const yearlyRate = borrowing.interestRate / 100;
-                          // Calculate time in years
-                          const timeInYears = daysElapsed / 365.25; 
-                          totalAccruedInterest = borrowing.principal * yearlyRate * timeInYears;
-                      }
-                  }
+                if (borrowing.interestType === 'Monthly') {
+                    const monthlyRate = borrowing.interestRate / 100;
+                    const monthsPassed = differenceInMonths(today, startDate);
+                    if (monthsPassed > 0) {
+                        totalAccruedInterest = borrowing.principal * monthlyRate * monthsPassed;
+                    }
+                } else { // Yearly
+                    const yearlyRate = borrowing.interestRate / 100;
+                    const yearsPassed = differenceInYears(today, startDate);
+                     if (yearsPassed > 0) {
+                        totalAccruedInterest = borrowing.principal * yearlyRate * yearsPassed;
+                    }
+                }
               }
               const interestPending = totalAccruedInterest - interestPaid;
 
@@ -220,18 +219,17 @@ function LendingsTable({ lendings, today }: { lendings: Lending[], today: Date |
               const startDate = toDate(lending.dateGiven);
               let totalAccruedInterest = 0;
               if (today) {
-                  const daysElapsed = differenceInDays(today, startDate);
-                  if (daysElapsed > 0) {
-                      if (lending.interestType === 'Monthly') {
-                          const monthlyRate = lending.interestRate / 100;
-                          // Calculate time in months, using average days per year for precision
-                          const timeInMonths = daysElapsed / (365.25 / 12);
-                          totalAccruedInterest = lending.principal * monthlyRate * timeInMonths;
-                      } else { // Yearly
-                          const yearlyRate = lending.interestRate / 100;
-                          // Calculate time in years
-                          const timeInYears = daysElapsed / 365.25;
-                          totalAccruedInterest = lending.principal * yearlyRate * timeInYears;
+                  if (lending.interestType === 'Monthly') {
+                      const monthlyRate = lending.interestRate / 100;
+                      const monthsPassed = differenceInMonths(today, startDate);
+                      if (monthsPassed > 0) {
+                          totalAccruedInterest = lending.principal * monthlyRate * monthsPassed;
+                      }
+                  } else { // Yearly
+                      const yearlyRate = lending.interestRate / 100;
+                      const yearsPassed = differenceInYears(today, startDate);
+                      if (yearsPassed > 0) {
+                          totalAccruedInterest = lending.principal * yearlyRate * yearsPassed;
                       }
                   }
               }

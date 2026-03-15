@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useRef, useMemo } from 'react';
@@ -13,7 +12,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { format, isSameDay } from 'date-fns';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 
 type DailyReportProps = {
     records: StorageRecord[];
@@ -264,55 +262,44 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
     };
     
     return (
-        <Dialog>
-            <Card>
-                <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                    <div className="flex-1">
-                        <CardTitle>Daily Summary Report</CardTitle>
-                        <CardDescription>A summary of all transactions for a selected day.</CardDescription>
-                    </div>
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-                        <Popover>
-                            <PopoverTrigger asChild>
-                              <Button
-                                id="date"
-                                variant={"outline"}
-                                className="w-full sm:w-[260px] justify-start text-left font-normal"
-                              >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {selectedDate ? format(selectedDate, "LLL dd, y") : <span>Pick a date</span>}
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="end">
-                              <Calendar
-                                initialFocus
-                                mode="single"
-                                selected={selectedDate}
-                                onSelect={(date) => date && setSelectedDate(date)}
-                              />
-                            </PopoverContent>
-                        </Popover>
-                         <DialogTrigger asChild>
-                            <Button>View Report</Button>
-                        </DialogTrigger>
-                    </div>
-                </CardHeader>
-                <CardContent>
-                   <p className="text-sm text-muted-foreground">Select a date and click "View Report" to generate a printable summary.</p>
-                </CardContent>
-            </Card>
-            <DialogContent className="max-w-4xl p-0">
-                <div ref={reportRef} className="p-4">
-                     <DailySummaryContent dailyData={dailyData} customers={customers} selectedDate={selectedDate} />
+        <Card>
+            <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="flex-1">
+                    <CardTitle>Daily Summary Report</CardTitle>
+                    <CardDescription>A summary of all transactions for a selected day.</CardDescription>
                 </div>
-                <DialogFooter className="p-4 border-t">
-                    <DialogClose asChild><Button variant="outline">Close</Button></DialogClose>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button
+                            id="date"
+                            variant={"outline"}
+                            className="w-full sm:w-[260px] justify-start text-left font-normal"
+                            >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {selectedDate ? format(selectedDate, "LLL dd, y") : <span>Pick a date</span>}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="end">
+                            <Calendar
+                            initialFocus
+                            mode="single"
+                            selected={selectedDate}
+                            onSelect={(date) => date && setSelectedDate(date)}
+                            />
+                        </PopoverContent>
+                    </Popover>
                     <Button onClick={handleDownloadPdf} disabled={isGenerating}>
                         {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                        Print PDF
+                        Download Report
                     </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+                </div>
+            </CardHeader>
+            <CardContent>
+                <div className="p-4 border rounded-md">
+                    <DailySummaryContent dailyData={dailyData} customers={customers} selectedDate={selectedDate} ref={reportRef} />
+                </div>
+            </CardContent>
+        </Card>
     );
 }

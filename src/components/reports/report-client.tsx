@@ -13,7 +13,6 @@ import { useDoc } from '@/firebase/firestore/use-doc';
 import { useFirestore } from '@/firebase/provider';
 import { doc } from 'firebase/firestore';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 
 export function ReportClient({ records, customers, unloadingRecords, initialCustomerId }: { records: StorageRecord[], customers: Customer[], unloadingRecords: UnloadingRecord[], initialCustomerId?: string }) {
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>(initialCustomerId || '');
@@ -88,65 +87,51 @@ export function ReportClient({ records, customers, unloadingRecords, initialCust
     };
 
     return (
-        <Dialog>
-            <Card>
-                <CardHeader>
-                    <CardTitle>
-                        Customer Statement of Account
-                    </CardTitle>
-                     <CardDescription>Select a customer to generate a detailed statement of their account activity.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                     <div className="flex items-center gap-4 w-full md:w-auto">
-                        <Select onValueChange={setSelectedCustomerId} value={selectedCustomerId}>
-                            <SelectTrigger className="w-full md:w-[280px]">
-                                <SelectValue placeholder="Select a customer..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {customers.map(customer => (
-                                    <SelectItem key={customer.id} value={customer.id}>
-                                        {customer.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <DialogTrigger asChild>
-                            <Button disabled={!selectedCustomerId}>View Statement</Button>
-                        </DialogTrigger>
-                    </div>
-                    {!selectedCustomerId && (
-                        <div className="text-center text-muted-foreground py-16">
-                            <UserSearch className="mx-auto h-12 w-12" />
-                            <p className="mt-4">
-                                Please select a customer to generate their statement.
-                            </p>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-
-            <DialogContent className="max-w-6xl p-0">
-                 {loadingWarehouseInfo && <div className="p-8 text-center">Loading statement...</div>}
+        <Card>
+            <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="flex-1">
+                    <CardTitle>Customer Statement of Account</CardTitle>
+                    <CardDescription>Select a customer to generate a detailed statement of their account activity.</CardDescription>
+                </div>
+                 <div className="flex items-center gap-4 w-full md:w-auto">
+                    <Select onValueChange={setSelectedCustomerId} value={selectedCustomerId}>
+                        <SelectTrigger className="w-full md:w-[280px]">
+                            <SelectValue placeholder="Select a customer..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {customers.map(customer => (
+                                <SelectItem key={customer.id} value={customer.id}>
+                                    {customer.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <Button onClick={handleDownloadPdf} disabled={!selectedCustomerId || isGenerating}>
+                        {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                        Download
+                    </Button>
+                </div>
+            </CardHeader>
+            <CardContent>
+                {loadingWarehouseInfo && <div className="p-8 text-center">Loading statement...</div>}
                 {!loadingWarehouseInfo && statementCustomer ? (
-                    <div ref={statementReportRef} className="p-4 max-h-[80vh] overflow-y-auto">
+                    <div ref={statementReportRef}>
                         <CustomerStatement 
-                          customer={statementCustomer} 
-                          records={statementRecords} 
-                          unloadingRecords={statementUnloadingRecords} 
-                          warehouseInfo={warehouseInfo}
+                            customer={statementCustomer} 
+                            records={statementRecords} 
+                            unloadingRecords={statementUnloadingRecords} 
+                            warehouseInfo={warehouseInfo}
                         />
                     </div>
                 ) : (
-                    <div className="p-8 text-center text-muted-foreground">Please select a customer.</div>
+                    <div className="text-center text-muted-foreground py-16">
+                        <UserSearch className="mx-auto h-12 w-12" />
+                        <p className="mt-4">
+                            Please select a customer to generate their statement.
+                        </p>
+                    </div>
                 )}
-                 <DialogFooter className="p-4 border-t">
-                    <DialogClose asChild><Button variant="outline">Close</Button></DialogClose>
-                    <Button onClick={handleDownloadPdf} disabled={isGenerating || !selectedCustomerId}>
-                        {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                        Print PDF
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+            </CardContent>
+        </Card>
     );
 }

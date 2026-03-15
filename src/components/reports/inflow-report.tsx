@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef, useMemo } from 'react';
@@ -12,7 +11,6 @@ import html2canvas from 'html2canvas';
 import { InflowReportTable } from './inflow-report-table';
 import { toDate } from '@/lib/utils';
 import { useDateFilter } from '@/firebase/provider';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 
 type InflowReportProps = {
     records: StorageRecord[];
@@ -93,39 +91,34 @@ export function InflowReport({ records, customers }: InflowReportProps) {
     const title = `Inflow Register ${customer ? `for ${customer.name}` : ''}`;
 
     return (
-        <Dialog>
-            <Card>
-                <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                    <div className="flex-1">
-                        <CardTitle>Inflow Register</CardTitle>
-                        <CardDescription>A log of all items received into storage.</CardDescription>
-                    </div>
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto flex-wrap">
-                        <Select onValueChange={setSelectedCustomerId} value={selectedCustomerId}>
-                            <SelectTrigger className="w-full sm:w-auto">
-                                <SelectValue placeholder="All Customers" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Customers</SelectItem>
-                                {customers.map(customer => (
-                                    <SelectItem key={customer.id} value={customer.id}>
-                                        {customer.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <DialogTrigger asChild>
-                            <Button>View Report</Button>
-                        </DialogTrigger>
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-sm text-muted-foreground">Select a customer and date range, then click "View Report" to generate.</p>
-                </CardContent>
-            </Card>
-
-            <DialogContent className="max-w-6xl p-0">
-                 <div ref={reportRef} className="p-4 max-h-[80vh] overflow-y-auto">
+        <Card>
+            <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="flex-1">
+                    <CardTitle>Inflow Register</CardTitle>
+                    <CardDescription>A log of all items received into storage.</CardDescription>
+                </div>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto flex-wrap">
+                    <Select onValueChange={setSelectedCustomerId} value={selectedCustomerId}>
+                        <SelectTrigger className="w-full sm:w-auto">
+                            <SelectValue placeholder="All Customers" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Customers</SelectItem>
+                            {customers.map(customer => (
+                                <SelectItem key={customer.id} value={customer.id}>
+                                    {customer.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <Button onClick={handleDownloadPdf} disabled={isGenerating}>
+                        {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                        Download
+                    </Button>
+                </div>
+            </CardHeader>
+            <CardContent>
+                <div ref={reportRef}>
                     <InflowReportTable 
                         records={inflowRecords} 
                         customers={customers}
@@ -133,14 +126,7 @@ export function InflowReport({ records, customers }: InflowReportProps) {
                         allRecords={records}
                     />
                 </div>
-                <DialogFooter className="p-4 border-t">
-                    <DialogClose asChild><Button variant="outline">Close</Button></DialogClose>
-                    <Button onClick={handleDownloadPdf} disabled={isGenerating}>
-                        {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                        Print PDF
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+            </CardContent>
+        </Card>
     );
 }

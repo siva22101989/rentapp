@@ -7,7 +7,7 @@ import { formatCurrency, toDate } from "@/lib/utils";
 import { useMemo, useState, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Expense, StorageRecord, UnloadingRecord, WarehouseInfo, Borrowing, Lending, OtherIncome } from "@/lib/definitions";
-import { format, differenceInCalendarMonths } from "date-fns";
+import { format, differenceInCalendarMonths, differenceInCalendarYears } from "date-fns";
 import { ExpenseActionsMenu } from "@/components/expenses/expense-actions-menu";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { useFirestore, useDateFilter } from "@/firebase/provider";
@@ -115,14 +115,17 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
     return activeBorrowings.map(borrowing => {
         const loanDate = toDate(borrowing.dateTaken);
         let totalInterest = 0;
-        const monthsPassed = differenceInCalendarMonths(new Date(), loanDate);
         
-        if (monthsPassed > 0) {
-            if (borrowing.interestType === 'Monthly') {
+        if (borrowing.interestType === 'Monthly') {
+            const monthsPassed = differenceInCalendarMonths(new Date(), loanDate);
+            if (monthsPassed > 0) {
                 totalInterest = borrowing.principal * (borrowing.interestRate / 100) * monthsPassed;
-            } else if (borrowing.interestType === 'Yearly') {
+            }
+        } else if (borrowing.interestType === 'Yearly') {
+            const yearsPassed = differenceInCalendarYears(new Date(), loanDate);
+            if (yearsPassed > 0) {
                 const yearlyRate = borrowing.interestRate / 100;
-                totalInterest = borrowing.principal * yearlyRate * (monthsPassed / 12);
+                totalInterest = borrowing.principal * yearlyRate * yearsPassed;
             }
         }
 
@@ -191,14 +194,17 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
     return activeLendings.map(lending => {
         const loanDate = toDate(lending.dateGiven);
         let totalInterest = 0;
-        const monthsPassed = differenceInCalendarMonths(new Date(), loanDate);
-
-        if (monthsPassed > 0) {
-            if (lending.interestType === 'Monthly') {
+        
+        if (lending.interestType === 'Monthly') {
+            const monthsPassed = differenceInCalendarMonths(new Date(), loanDate);
+            if (monthsPassed > 0) {
                 totalInterest = lending.principal * (lending.interestRate / 100) * monthsPassed;
-            } else if (lending.interestType === 'Yearly') {
+            }
+        } else if (lending.interestType === 'Yearly') {
+            const yearsPassed = differenceInCalendarYears(new Date(), loanDate);
+            if (yearsPassed > 0) {
                 const yearlyRate = lending.interestRate / 100;
-                totalInterest = lending.principal * yearlyRate * (monthsPassed / 12);
+                totalInterest = lending.principal * yearlyRate * yearsPassed;
             }
         }
         

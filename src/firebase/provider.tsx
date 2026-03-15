@@ -50,22 +50,19 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
 
 export function useFirebase() {
   const context = useContext(FirebaseContext);
-  if (!context) {
-    throw new Error('useFirebase must be used within a FirebaseProvider');
-  }
   return context;
 }
 
 export function useAuth() {
-  return useFirebase().auth;
+  return useFirebase()?.auth;
 }
 
 export function useFirestore() {
-  return useFirebase().firestore;
+  return useFirebase()?.firestore;
 }
 
 export function useFirebaseApp() {
-  return useFirebase().firebaseApp;
+  return useFirebase()?.firebaseApp;
 }
 
 

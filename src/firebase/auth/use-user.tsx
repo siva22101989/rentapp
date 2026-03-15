@@ -17,12 +17,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      setUser(user);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
+    if (auth) {
+      const unsubscribe = auth.onAuthStateChanged((user) => {
+        setUser(user);
+        setLoading(false);
+      });
+      return () => unsubscribe();
+    } else {
+      setLoading(true);
+    }
   }, [auth]);
 
   return (

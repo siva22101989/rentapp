@@ -88,8 +88,8 @@ function DashboardHeader({ activeRecordsCount, occupancy }: { activeRecordsCount
                         your storage is {occupancy.toFixed(1)}% full.
                     </p>
                 </div>
-                <div className="flex items-center gap-4">
-                    <Card className="p-4 w-[150px] bg-background/50">
+                <div className="grid w-full grid-cols-2 items-center gap-4 md:w-auto">
+                    <Card className="p-4 bg-background/50">
                         <CardHeader className="p-0 flex-row items-center gap-2 text-muted-foreground">
                             <TrendingUp size={16} />
                             <CardTitle>Active Records</CardTitle>
@@ -98,7 +98,7 @@ function DashboardHeader({ activeRecordsCount, occupancy }: { activeRecordsCount
                             <p className="text-3xl font-bold">{activeRecordsCount}</p>
                         </CardContent>
                     </Card>
-                    <Card className="p-4 w-[150px] bg-background/50">
+                    <Card className="p-4 bg-background/50">
                         <CardHeader className="p-0 flex-row items-center gap-2 text-muted-foreground">
                             <Warehouse size={16} />
                             <CardTitle>Occupancy</CardTitle>

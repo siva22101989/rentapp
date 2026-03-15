@@ -65,7 +65,7 @@ function DateFilters() {
     return (
         <div className="flex items-center gap-2">
             <Select value={financialYear} onValueChange={handleFinancialYearChange}>
-                <SelectTrigger className="w-[150px] h-8 text-xs">
+                <SelectTrigger className="w-[130px] h-8 text-xs">
                     <SelectValue placeholder="Select FY" />
                 </SelectTrigger>
                 <SelectContent>

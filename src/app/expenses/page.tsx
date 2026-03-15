@@ -462,5 +462,3 @@ export default function ExpensesPage() {
     </AppLayout>
   );
 }
-
-    

@@ -126,11 +126,14 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
             }
         }
 
-        const principalPaid = (borrowing.payments || []).filter(p => p.type === 'principal').reduce((acc, p) => acc + p.amount, 0);
-        const principalDue = borrowing.principal - principalPaid;
+        const principalPayments = (borrowing.payments || []).filter(p => p.type === 'principal').reduce((acc, p) => acc + p.amount, 0);
+        const interestPayments = (borrowing.payments || []).filter(p => p.type === 'interest').reduce((acc, p) => acc + p.amount, 0);
+
+        const interestOverpayment = Math.max(0, interestPayments - totalInterest);
+        const effectivePrincipalPaid = principalPayments + interestOverpayment;
         
-        const interestPaid = (borrowing.payments || []).filter(p => p.type === 'interest').reduce((acc, p) => acc + p.amount, 0);
-        const interestDue = totalInterest - interestPaid;
+        const interestDue = Math.max(0, totalInterest - interestPayments);
+        const principalDue = borrowing.principal - effectivePrincipalPaid;
 
         return {
             ...borrowing,
@@ -200,10 +203,13 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
         }
         
         const principalReceived = (lending.payments || []).filter(p => p.type === 'principal').reduce((acc, p) => acc + p.amount, 0);
-        const principalDue = lending.principal - principalReceived;
-
         const interestReceived = (lending.payments || []).filter(p => p.type === 'interest').reduce((acc, p) => acc + p.amount, 0);
-        const interestDue = totalInterest - interestReceived;
+
+        const interestOverpayment = Math.max(0, interestReceived - totalInterest);
+        const effectivePrincipalReceived = principalReceived + interestOverpayment;
+
+        const interestDue = Math.max(0, totalInterest - interestReceived);
+        const principalDue = lending.principal - effectivePrincipalReceived;
         
         return {
             ...lending,

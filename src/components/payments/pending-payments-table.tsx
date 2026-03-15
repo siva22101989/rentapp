@@ -112,19 +112,28 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords }: {
             const pdf = new jsPDF('l', 'mm', 'a4'); // Landscape
             const pdfWidth = pdf.internal.pageSize.getWidth();
             const pdfHeight = pdf.internal.pageSize.getHeight();
-            const imgWidth = canvas.width;
-            const imgHeight = canvas.height;
+            
+            const imgProps= pdf.getImageProperties(imgData);
+            const imgWidth = imgProps.width;
+            const imgHeight = imgProps.height;
+            
             const ratio = imgWidth / imgHeight;
-            let widthInPdf = pdfWidth - 20;
-            let heightInPdf = widthInPdf / ratio;
-            if (heightInPdf > pdfHeight - 20) {
-                heightInPdf = pdfHeight - 20;
-                widthInPdf = heightInPdf * ratio;
-            }
-            const x = (pdfWidth - widthInPdf) / 2;
-            const y = 10;
+            const widthInPdf = pdfWidth;
+            const heightInPdf = widthInPdf / ratio;
+            
+            let position = 0;
+            let heightLeft = heightInPdf;
 
-            pdf.addImage(imgData, 'PNG', x, y, widthInPdf, heightInPdf);
+            pdf.addImage(imgData, 'PNG', 0, position, widthInPdf, heightInPdf);
+            heightLeft -= pdfHeight;
+
+            while (heightLeft > 0) {
+                position = position - pdfHeight;
+                pdf.addPage();
+                pdf.addImage(imgData, 'PNG', 0, position, widthInPdf, heightInPdf);
+                heightLeft -= pdfHeight;
+            }
+            
             pdf.save(`pending-dues-report-${Date.now()}.pdf`);
         } catch (error) {
             console.error('Error generating PDF:', error);

@@ -1,3 +1,4 @@
+
 'use client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Scale, Banknote } from "lucide-react";
@@ -190,21 +191,30 @@ export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecor
     try {
         const canvas = await html2canvas(element, { scale: 2, useCORS: true, windowWidth: element.scrollWidth, windowHeight: element.scrollHeight });
         const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pdf = new jsPDF('p', 'mm', 'a4'); // Portrait
         const pdfWidth = pdf.internal.pageSize.getWidth();
         const pdfHeight = pdf.internal.pageSize.getHeight();
-        const imgWidth = canvas.width;
-        const imgHeight = canvas.height;
-        const ratio = imgWidth / imgHeight;
-        let widthInPdf = pdfWidth - 20;
-        let heightInPdf = widthInPdf / ratio;
-        if (heightInPdf > pdfHeight - 20) {
-            heightInPdf = pdfHeight - 20;
-            widthInPdf = heightInPdf * ratio;
+        
+        const imgProps= pdf.getImageProperties(imgData);
+        const imgWidth = imgProps.width;
+        const imgHeight = imgProps.height;
+        
+        const ratio = imgWidth / pdfWidth;
+        const canvasHeight = imgHeight / ratio;
+        
+        let position = 0;
+        let heightLeft = canvasHeight;
+
+        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, canvasHeight);
+        heightLeft -= pdfHeight;
+
+        while (heightLeft > 0) {
+            position = position - pdfHeight;
+            pdf.addPage();
+            pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, canvasHeight);
+            heightLeft -= pdfHeight;
         }
-        const x = (pdfWidth - widthInPdf) / 2;
-        const y = 10;
-        pdf.addImage(imgData, 'PNG', x, y, widthInPdf, heightInPdf);
+
         pdf.save(`profit-loss-report-${Date.now()}.pdf`);
     } catch (error) {
         console.error('Error generating PDF:', error);

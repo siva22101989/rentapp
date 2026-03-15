@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useMemo } from 'react';
@@ -59,19 +60,27 @@ export function InflowReport({ records, customers }: InflowReportProps) {
             const pdf = new jsPDF('l', 'mm', 'a4'); // Landscape
             const pdfWidth = pdf.internal.pageSize.getWidth();
             const pdfHeight = pdf.internal.pageSize.getHeight();
-            const imgWidth = canvas.width;
-            const imgHeight = canvas.height;
-            const ratio = imgWidth / imgHeight;
-            let widthInPdf = pdfWidth - 20;
-            let heightInPdf = widthInPdf / ratio;
-            if (heightInPdf > pdfHeight - 20) {
-                heightInPdf = pdfHeight - 20;
-                widthInPdf = heightInPdf * ratio;
-            }
-            const x = (pdfWidth - widthInPdf) / 2;
-            const y = 10;
+            
+            const imgProps= pdf.getImageProperties(imgData);
+            const imgWidth = imgProps.width;
+            const imgHeight = imgProps.height;
 
-            pdf.addImage(imgData, 'PNG', x, y, widthInPdf, heightInPdf);
+            const ratio = imgWidth / pdfWidth;
+            const canvasHeight = imgHeight / ratio;
+            
+            let position = 0;
+            let heightLeft = canvasHeight;
+
+            pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, canvasHeight);
+            heightLeft -= pdfHeight;
+
+            while (heightLeft > 0) {
+                position = position - pdfHeight;
+                pdf.addPage();
+                pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, canvasHeight);
+                heightLeft -= pdfHeight;
+            }
+
             pdf.save(`inflow-report-${Date.now()}.pdf`);
         } catch (error) {
             console.error('Error generating PDF:', error);

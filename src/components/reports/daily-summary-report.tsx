@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useRef, useMemo } from 'react';
@@ -234,22 +235,24 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
             const pdf = new jsPDF('p', 'mm', 'a4'); // Portrait
             const pdfWidth = pdf.internal.pageSize.getWidth();
             const pdfHeight = pdf.internal.pageSize.getHeight();
-            const imgWidth = canvas.width;
-            const imgHeight = canvas.height;
-            const ratio = imgWidth / imgHeight;
-            let widthInPdf = pdfWidth;
-            let heightInPdf = widthInPdf / ratio;
+            
+            const imgProps= pdf.getImageProperties(imgData);
+            const imgWidth = imgProps.width;
+            const imgHeight = imgProps.height;
+
+            const ratio = imgWidth / pdfWidth;
+            const canvasHeight = imgHeight / ratio;
             
             let position = 0;
-            let heightLeft = heightInPdf;
+            let heightLeft = canvasHeight;
 
-            pdf.addImage(imgData, 'PNG', 0, position, widthInPdf, heightInPdf);
+            pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, canvasHeight);
             heightLeft -= pdfHeight;
 
             while (heightLeft > 0) {
                 position = position - pdfHeight;
                 pdf.addPage();
-                pdf.addImage(imgData, 'PNG', 0, position, widthInPdf, heightInPdf);
+                pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, canvasHeight);
                 heightLeft -= pdfHeight;
             }
             pdf.save(`daily-summary-${format(selectedDate, 'yyyy-MM-dd')}.pdf`);

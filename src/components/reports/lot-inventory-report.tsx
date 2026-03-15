@@ -31,7 +31,7 @@ function LotInventoryTable({ groupedLots, customers, title }: { groupedLots: Gro
         return customers.find(c => c.id === customerId)?.name ?? 'Unknown';
     }
 
-    const lotNames = Object.keys(groupedLots).sort();
+    const lotNames = Object.keys(groupedLots).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
     
     if (lotNames.length === 0) {
         return (
@@ -59,6 +59,7 @@ function LotInventoryTable({ groupedLots, customers, title }: { groupedLots: Gro
                 <TableHeader>
                     <TableRow>
                         <TableHead className="w-[150px]">Lot No.</TableHead>
+                        <TableHead>Patti No.</TableHead>
                         <TableHead>Customer</TableHead>
                         <TableHead>Commodity</TableHead>
                         <TableHead>Inflow Date</TableHead>
@@ -69,12 +70,13 @@ function LotInventoryTable({ groupedLots, customers, title }: { groupedLots: Gro
                     {lotNames.map(lotName => (
                         <React.Fragment key={lotName}>
                             <TableRow className="bg-secondary hover:bg-secondary">
-                                <TableCell colSpan={4} className="font-bold">{lotName || 'Unassigned'}</TableCell>
+                                <TableCell colSpan={5} className="font-bold">{lotName || 'Unassigned'}</TableCell>
                                 <TableCell className="text-right font-bold font-mono">{groupedLots[lotName].totalBags}</TableCell>
                             </TableRow>
                             {groupedLots[lotName].records.map(record => (
                                 <TableRow key={record.id}>
                                     <TableCell></TableCell>
+                                    <TableCell>{record.id}</TableCell>
                                     <TableCell>{getCustomerName(record.customerId)}</TableCell>
                                     <TableCell>{record.commodityDescription}</TableCell>
                                     <TableCell>{format(toDate(record.storageStartDate), 'dd MMM yyyy')}</TableCell>
@@ -135,19 +137,26 @@ export function LotInventoryReport({ records, customers }: LotInventoryReportPro
             const pdf = new jsPDF('p', 'mm', 'a4'); // Portrait
             const pdfWidth = pdf.internal.pageSize.getWidth();
             const pdfHeight = pdf.internal.pageSize.getHeight();
-            const imgWidth = canvas.width;
-            const imgHeight = canvas.height;
-            const ratio = imgWidth / imgHeight;
-            let widthInPdf = pdfWidth - 20; // 10mm margin on each side
-            let heightInPdf = widthInPdf / ratio;
-            if (heightInPdf > pdfHeight - 20) { // If it's too tall, scale down
-                heightInPdf = pdfHeight - 20;
-                widthInPdf = heightInPdf * ratio;
-            }
-            const x = (pdfWidth - widthInPdf) / 2;
-            const y = 10; // 10mm top margin
 
-            pdf.addImage(imgData, 'PNG', x, y, widthInPdf, heightInPdf);
+            const imgProps= pdf.getImageProperties(imgData);
+            const imgWidth = imgProps.width;
+            const imgHeight = imgProps.height;
+
+            const ratio = imgWidth / pdfWidth;
+            const canvasHeight = imgHeight / ratio;
+            
+            let position = 0;
+            let heightLeft = canvasHeight;
+
+            pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, canvasHeight);
+            heightLeft -= pdfHeight;
+
+            while (heightLeft > 0) {
+                position = position - pdfHeight;
+                pdf.addPage();
+                pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, canvasHeight);
+                heightLeft -= pdfHeight;
+            }
             pdf.save(`lot-inventory-report-${Date.now()}.pdf`);
         } catch (error) {
             console.error('Error generating PDF:', error);

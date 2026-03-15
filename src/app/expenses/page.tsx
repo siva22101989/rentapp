@@ -124,8 +124,8 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
         } else if (borrowing.interestType === 'Yearly') {
             const yearsPassed = differenceInCalendarYears(new Date(), loanDate);
             if (yearsPassed > 0) {
-                const yearlyRate = borrowing.interestRate / 100;
-                totalInterest = borrowing.principal * yearlyRate * yearsPassed;
+                // The user intends the rate to be monthly, so for yearly calculation, multiply by 12.
+                totalInterest = borrowing.principal * (borrowing.interestRate / 100) * 12 * yearsPassed;
             }
         }
 
@@ -203,8 +203,9 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
         } else if (lending.interestType === 'Yearly') {
             const yearsPassed = differenceInCalendarYears(new Date(), loanDate);
             if (yearsPassed > 0) {
-                const yearlyRate = lending.interestRate / 100;
-                totalInterest = lending.principal * yearlyRate * yearsPassed;
+                // The user intends the rate to be monthly, so for yearly calculation, multiply by 12.
+                const monthlyRate = lending.interestRate / 100;
+                totalInterest = lending.principal * monthlyRate * 12 * yearsPassed;
             }
         }
         

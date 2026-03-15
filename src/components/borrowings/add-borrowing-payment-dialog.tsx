@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -39,7 +40,7 @@ export function AddBorrowingPaymentDialog({ borrowing, children }: AddBorrowingP
     resolver: zodResolver(PaymentSchema),
     defaultValues: {
         paymentDate: new Date().toISOString().split('T')[0],
-        paymentAmount: undefined,
+        paymentAmount: '',
         paymentType: 'principal',
     },
   });
@@ -48,7 +49,7 @@ export function AddBorrowingPaymentDialog({ borrowing, children }: AddBorrowingP
     if (open) {
       form.reset({
         paymentDate: new Date().toISOString().split('T')[0],
-        paymentAmount: undefined,
+        paymentAmount: '',
         paymentType: 'principal',
       });
     }
@@ -113,7 +114,7 @@ export function AddBorrowingPaymentDialog({ borrowing, children }: AddBorrowingP
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel>Payment Amount</FormLabel>
-                            <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} /></FormControl>
+                            <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} /></FormControl>
                             <FormMessage />
                         </FormItem>
                     )}

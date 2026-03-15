@@ -37,9 +37,19 @@ export function AddBorrowingPaymentDialog({ borrowing, children }: AddBorrowingP
     resolver: zodResolver(PaymentSchema),
     defaultValues: {
         paymentDate: new Date().toISOString().split('T')[0],
-        paymentAmount: undefined,
+        paymentAmount: '' as any,
     },
   });
+
+  const onOpenChange = (open: boolean) => {
+    if (open) {
+      form.reset({
+        paymentDate: new Date().toISOString().split('T')[0],
+        paymentAmount: '' as any,
+      });
+    }
+    setIsOpen(open);
+  };
 
   const onSubmit = (data: PaymentFormData) => {
     if (!firestore) {
@@ -107,7 +117,7 @@ export function AddBorrowingPaymentDialog({ borrowing, children }: AddBorrowingP
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <Form {...form}>
@@ -136,7 +146,7 @@ export function AddBorrowingPaymentDialog({ borrowing, children }: AddBorrowingP
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel>Payment Amount</FormLabel>
-                            <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} /></FormControl>
+                            <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} /></FormControl>
                             <FormMessage />
                         </FormItem>
                     )}

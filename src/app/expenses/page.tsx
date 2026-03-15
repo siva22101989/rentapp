@@ -7,7 +7,7 @@ import { formatCurrency, toDate } from "@/lib/utils";
 import { useMemo, useState, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Expense, StorageRecord, UnloadingRecord, WarehouseInfo, Borrowing, Lending, OtherIncome } from "@/lib/definitions";
-import { format } from "date-fns";
+import { format, differenceInCalendarMonths } from "date-fns";
 import { ExpenseActionsMenu } from "@/components/expenses/expense-actions-menu";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { useFirestore, useDateFilter } from "@/firebase/provider";
@@ -108,6 +108,36 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
   if (borrowings.length === 0) {
     return null;
   }
+  
+  const borrowingsWithInterest = useMemo(() => {
+    const now = new Date();
+    return borrowings.map(borrowing => {
+        const loanDate = toDate(borrowing.dateTaken);
+        const monthsPassed = differenceInCalendarMonths(now, loanDate);
+        let totalInterest = 0;
+
+        if (monthsPassed >= 0) {
+            if (borrowing.interestType === 'Monthly') {
+                totalInterest = borrowing.principal * (borrowing.interestRate / 100) * monthsPassed;
+            } else if (borrowing.interestType === 'Yearly') {
+                const yearsPassed = Math.floor(monthsPassed / 12);
+                totalInterest = borrowing.principal * (borrowing.interestRate / 100) * 12 * (yearsPassed + 1);
+            }
+        }
+
+        const principalPaid = (borrowing.payments || [])
+            .filter(p => p.type === 'principal')
+            .reduce((acc, p) => acc + p.amount, 0);
+        const principalDue = borrowing.principal - principalPaid;
+
+        return {
+            ...borrowing,
+            principalDue,
+            totalInterest,
+        };
+    });
+  }, [borrowings]);
+  
   return (
     <Card>
       <CardHeader>
@@ -120,30 +150,24 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
               <TableHead>Lender</TableHead>
               <TableHead>Principal</TableHead>
               <TableHead>Interest</TableHead>
+              <TableHead className="text-right">Total Interest</TableHead>
               <TableHead className="text-right">Principal Due</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {borrowings.map((borrowing) => {
-              const principalPaid = (borrowing.payments || [])
-                .filter(p => p.type === 'principal')
-                .reduce((acc, p) => acc + p.amount, 0);
-
-              const balance = borrowing.principal - principalPaid;
-
-              return (
+            {borrowingsWithInterest.map((borrowing) => (
                 <TableRow key={borrowing.id}>
                   <TableCell className="font-medium">{borrowing.lenderName}</TableCell>
                   <TableCell className="font-mono">{formatCurrency(borrowing.principal)}</TableCell>
                   <TableCell>{borrowing.interestRate}% {borrowing.interestType}</TableCell>
-                  <TableCell className="text-right font-mono">{formatCurrency(balance)}</TableCell>
+                  <TableCell className="text-right font-mono">{formatCurrency(borrowing.totalInterest)}</TableCell>
+                  <TableCell className="text-right font-mono">{formatCurrency(borrowing.principalDue)}</TableCell>
                   <TableCell>
                     <BorrowingActionsMenu borrowing={borrowing} />
                   </TableCell>
                 </TableRow>
-              );
-            })}
+            ))}
           </TableBody>
         </Table>
       </CardContent>
@@ -155,6 +179,36 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
   if (lendings.length === 0) {
     return null;
   }
+  
+  const lendingsWithInterest = useMemo(() => {
+    const now = new Date();
+    return lendings.map(lending => {
+        const loanDate = toDate(lending.dateGiven);
+        const monthsPassed = differenceInCalendarMonths(now, loanDate);
+        let totalInterest = 0;
+
+        if (monthsPassed >= 0) {
+            if (lending.interestType === 'Monthly') {
+                totalInterest = lending.principal * (lending.interestRate / 100) * monthsPassed;
+            } else if (lending.interestType === 'Yearly') {
+                const yearsPassed = Math.floor(monthsPassed / 12);
+                totalInterest = lending.principal * (lending.interestRate / 100) * 12 * (yearsPassed + 1);
+            }
+        }
+        
+        const principalReceived = (lending.payments || [])
+            .filter(p => p.type === 'principal')
+            .reduce((acc, p) => acc + p.amount, 0);
+        const principalDue = lending.principal - principalReceived;
+        
+        return {
+            ...lending,
+            principalDue,
+            totalInterest
+        };
+    });
+  }, [lendings]);
+  
   return (
     <Card>
       <CardHeader>
@@ -167,30 +221,24 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
               <TableHead>Borrower</TableHead>
               <TableHead>Principal</TableHead>
               <TableHead>Interest</TableHead>
+              <TableHead className="text-right">Total Interest</TableHead>
               <TableHead className="text-right">Principal Due</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {lendings.map((lending) => {
-              const principalReceived = (lending.payments || [])
-                .filter(p => p.type === 'principal')
-                .reduce((acc, p) => acc + p.amount, 0);
-
-              const balance = lending.principal - principalReceived;
-
-              return (
+            {lendingsWithInterest.map((lending) => (
                 <TableRow key={lending.id}>
                   <TableCell className="font-medium">{lending.borrowerName}</TableCell>
                   <TableCell className="font-mono">{formatCurrency(lending.principal)}</TableCell>
                   <TableCell>{lending.interestRate}% {lending.interestType}</TableCell>
-                  <TableCell className="text-right font-mono">{formatCurrency(balance)}</TableCell>
+                  <TableCell className="text-right font-mono">{formatCurrency(lending.totalInterest)}</TableCell>
+                  <TableCell className="text-right font-mono">{formatCurrency(lending.principalDue)}</TableCell>
                   <TableCell>
                     <LendingActionsMenu lending={lending} />
                   </TableCell>
                 </TableRow>
-              );
-            })}
+            ))}
           </TableBody>
         </Table>
       </CardContent>

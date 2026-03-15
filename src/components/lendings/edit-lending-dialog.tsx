@@ -25,6 +25,7 @@ import type { Lending } from '@/lib/definitions';
 import { format } from 'date-fns';
 import { toDate } from '@/lib/utils';
 import { updateLending } from '@/lib/data';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 const LendingSchema = z.object({
   borrowerName: z.string().min(2, 'Borrower name is required.'),
@@ -32,6 +33,7 @@ const LendingSchema = z.object({
   interestRate: z.coerce.number().nonnegative('Interest rate must be non-negative.'),
   dateGiven: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date" }),
   interestType: z.enum(['Monthly', 'Yearly'], { required_error: 'Interest type is required.' }),
+  status: z.enum(['Active', 'Paid Off']).optional(),
 });
 
 type LendingFormData = z.infer<typeof LendingSchema>;
@@ -50,6 +52,7 @@ export function EditLendingDialog({ lending, children }: { lending: Lending; chi
       interestRate: lending.interestRate,
       dateGiven: format(toDate(lending.dateGiven), 'yyyy-MM-dd'),
       interestType: lending.interestType,
+      status: lending.status || 'Active',
     },
   });
 
@@ -160,6 +163,23 @@ export function EditLendingDialog({ lending, children }: { lending: Lending; chi
                   )}
                 />
               </div>
+               <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl>
+                        <SelectContent>
+                          <SelectItem value="Active">Active</SelectItem>
+                          <SelectItem value="Paid Off">Paid Off</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
             </div>
             <DialogFooter>
               <DialogClose asChild><Button variant="outline" type="button">Cancel</Button></DialogClose>

@@ -62,6 +62,7 @@ export function AddBorrowingDialog() {
         const newBorrowing = {
           ...data,
           dateTaken: new Date(data.dateTaken),
+          status: 'Active' as const,
         };
         await addDoc(collection(firestore, 'borrowings'), cleanForFirestore(newBorrowing));
         toast({ title: 'Success', description: 'Borrowing record added successfully.' });

@@ -62,6 +62,7 @@ export function AddLendingDialog() {
         const newLending = {
           ...data,
           dateGiven: new Date(data.dateGiven),
+          status: 'Active' as const,
         };
         await addDoc(collection(firestore, 'lendings'), cleanForFirestore(newLending));
         toast({ title: 'Success', description: 'Lending record added successfully.' });

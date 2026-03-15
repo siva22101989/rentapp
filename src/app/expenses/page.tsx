@@ -166,8 +166,8 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
                   <TableCell className="font-medium">{borrowing.lenderName}</TableCell>
                   <TableCell className="font-mono">{formatCurrency(borrowing.principal)}</TableCell>
                   <TableCell>{borrowing.interestRate}% {borrowing.interestType}</TableCell>
-                  <TableCell className="text-right font-mono">{formatCurrency(borrowing.interestDue)}</TableCell>
-                  <TableCell className="text-right font-mono">{formatCurrency(borrowing.principalDue)}</TableCell>
+                  <TableCell className="text-right font-mono text-destructive">{formatCurrency(borrowing.interestDue)}</TableCell>
+                  <TableCell className="text-right font-mono text-destructive">{formatCurrency(borrowing.principalDue)}</TableCell>
                   <TableCell>
                     <BorrowingActionsMenu borrowing={borrowing} />
                   </TableCell>
@@ -242,8 +242,8 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
                   <TableCell className="font-medium">{lending.borrowerName}</TableCell>
                   <TableCell className="font-mono">{formatCurrency(lending.principal)}</TableCell>
                   <TableCell>{lending.interestRate}% {lending.interestType}</TableCell>
-                  <TableCell className="text-right font-mono">{formatCurrency(lending.interestDue)}</TableCell>
-                  <TableCell className="text-right font-mono">{formatCurrency(lending.principalDue)}</TableCell>
+                  <TableCell className="text-right font-mono text-green-600">{formatCurrency(lending.interestDue)}</TableCell>
+                  <TableCell className="text-right font-mono text-green-600">{formatCurrency(lending.principalDue)}</TableCell>
                   <TableCell>
                     <LendingActionsMenu lending={lending} />
                   </TableCell>

@@ -76,7 +76,7 @@ function DashboardHeader({ activeRecordsCount, occupancy }: { activeRecordsCount
 
     return (
         <Card className="mb-6">
-            <CardContent className="p-6 flex flex-col md:flex-row items-center gap-6">
+            <CardContent className="p-4 md:p-6 flex flex-col md:flex-row items-center gap-4 md:gap-6">
                 <div className="flex-1">
                     <p className="text-sm font-medium text-primary flex items-center gap-2">
                         <Package size={16} />
@@ -117,7 +117,7 @@ function DashboardHeader({ activeRecordsCount, occupancy }: { activeRecordsCount
 function DashboardHeaderSkeleton() {
     return (
          <Card className="mb-6">
-            <CardContent className="p-6 flex flex-col md:flex-row items-center gap-6">
+            <CardContent className="p-4 md:p-6 flex flex-col md:flex-row items-center gap-6">
                 <div className="flex-1 space-y-2">
                     <Skeleton className="h-5 w-48" />
                     <Skeleton className="h-9 w-64" />

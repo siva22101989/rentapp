@@ -160,7 +160,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
   }
 
   return (
-    <div ref={ref} className="bg-white p-6 printable-area text-foreground font-sans text-sm">
+    <div ref={ref} className="bg-white p-2 sm:p-4 md:p-6 printable-area text-foreground font-sans text-sm">
         {/* Header */}
         <header className="text-center mb-4">
             <h1 className="text-xl font-bold text-primary">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</h1>

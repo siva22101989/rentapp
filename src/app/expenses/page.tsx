@@ -110,19 +110,17 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
   }
   
   const borrowingsWithInterest = useMemo(() => {
-    const now = new Date();
     return borrowings.map(borrowing => {
         const loanDate = toDate(borrowing.dateTaken);
-        const monthsPassed = differenceInCalendarMonths(now, loanDate);
         let totalInterest = 0;
 
-        if (monthsPassed >= 0) {
-            if (borrowing.interestType === 'Monthly') {
+        if (borrowing.interestType === 'Monthly') {
+            const monthsPassed = differenceInCalendarMonths(new Date(), loanDate);
+            if (monthsPassed > 0) {
                 totalInterest = borrowing.principal * (borrowing.interestRate / 100) * monthsPassed;
-            } else if (borrowing.interestType === 'Yearly') {
-                const yearsPassed = Math.floor(monthsPassed / 12);
-                totalInterest = borrowing.principal * (borrowing.interestRate / 100) * 12 * (yearsPassed + 1);
             }
+        } else if (borrowing.interestType === 'Yearly') {
+            totalInterest = borrowing.principal * (borrowing.interestRate / 100) * 12;
         }
 
         const principalPaid = (borrowing.payments || [])
@@ -181,19 +179,17 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
   }
   
   const lendingsWithInterest = useMemo(() => {
-    const now = new Date();
     return lendings.map(lending => {
         const loanDate = toDate(lending.dateGiven);
-        const monthsPassed = differenceInCalendarMonths(now, loanDate);
         let totalInterest = 0;
 
-        if (monthsPassed >= 0) {
-            if (lending.interestType === 'Monthly') {
+        if (lending.interestType === 'Monthly') {
+            const monthsPassed = differenceInCalendarMonths(new Date(), loanDate);
+            if (monthsPassed > 0) {
                 totalInterest = lending.principal * (lending.interestRate / 100) * monthsPassed;
-            } else if (lending.interestType === 'Yearly') {
-                const yearsPassed = Math.floor(monthsPassed / 12);
-                totalInterest = lending.principal * (lending.interestRate / 100) * 12 * (yearsPassed + 1);
             }
+        } else if (lending.interestType === 'Yearly') {
+            totalInterest = lending.principal * (lending.interestRate / 100) * 12;
         }
         
         const principalReceived = (lending.payments || [])
@@ -364,7 +360,7 @@ export default function ExpensesPage() {
         </div>
         <div className="flex items-center gap-2 flex-wrap mt-3">
             <AddIncomeDialog />
-            <AddExpenseDialog />
+            <AddExpenseDialog borrowings={borrowings || []} />
             <Separator orientation="vertical" className="h-6" />
             <AddLendingDialog />
             <AddBorrowingDialog />

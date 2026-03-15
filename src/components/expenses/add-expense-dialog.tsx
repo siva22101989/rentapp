@@ -15,29 +15,38 @@ import {
   DialogClose,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { expenseCategories } from '@/lib/definitions';
+import { expenseCategories, type Borrowing, type Payment } from '@/lib/definitions';
 import { Textarea } from '../ui/textarea';
 import { useFirestore } from '@/firebase/provider';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
-import { addDoc, collection } from 'firebase/firestore';
-import { cleanForFirestore } from '@/lib/utils';
+import { doc, writeBatch, arrayUnion, collection } from 'firebase/firestore';
+import { cleanForFirestore, formatCurrency } from '@/lib/utils';
 
 const ExpenseSchema = z.object({
   description: z.string().min(2, 'Description is required.'),
   amount: z.coerce.number().positive('Amount must be a positive number.'),
   date: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
   category: z.enum(expenseCategories, { required_error: 'Category is required.' }),
+  borrowingId: z.string().optional(),
+}).superRefine((data, ctx) => {
+    if ((data.category === 'Interest Paid' || data.category === 'Principal Repayment') && !data.borrowingId) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Please select the loan account for this payment.',
+            path: ['borrowingId'],
+        });
+    }
 });
+
 
 type ExpenseFormData = z.infer<typeof ExpenseSchema>;
 
-export function AddExpenseDialog() {
+export function AddExpenseDialog({ borrowings }: { borrowings: Borrowing[] }) {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -50,8 +59,12 @@ export function AddExpenseDialog() {
       amount: '',
       date: new Date().toISOString().split('T')[0],
       category: undefined,
+      borrowingId: undefined,
     },
   });
+
+  const selectedCategory = form.watch('category');
+  const isLoanPayment = selectedCategory === 'Interest Paid' || selectedCategory === 'Principal Repayment';
 
   const onSubmit = (data: ExpenseFormData) => {
     if (!firestore) {
@@ -61,12 +74,36 @@ export function AddExpenseDialog() {
 
     startTransition(async () => {
       try {
+        const batch = writeBatch(firestore);
+        
         const newExpense = {
-          ...data,
+          description: data.description,
+          amount: data.amount,
           date: new Date(data.date),
+          category: data.category,
         };
-        await addDoc(collection(firestore, 'expenses'), cleanForFirestore(newExpense));
-        toast({ title: 'Success', description: 'Expense added successfully.' });
+        const expenseRef = doc(collection(firestore, 'expenses'));
+        batch.set(expenseRef, cleanForFirestore(newExpense));
+
+        if (data.borrowingId && isLoanPayment) {
+            const borrowingRef = doc(firestore, 'borrowings', data.borrowingId);
+            const newPayment: Payment = {
+              amount: data.amount,
+              date: new Date(data.date),
+              type: data.category === 'Interest Paid' ? 'interest' : 'principal',
+            };
+            batch.update(borrowingRef, {
+                payments: arrayUnion(cleanForFirestore(newPayment))
+            });
+        }
+
+        await batch.commit();
+        
+        const successMessage = isLoanPayment 
+            ? "Loan payment recorded as an expense."
+            : "Expense added successfully.";
+        toast({ title: 'Success', description: successMessage });
+
         setIsOpen(false);
         form.reset();
       } catch (error) {
@@ -84,7 +121,7 @@ export function AddExpenseDialog() {
           Add Expense
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-sm">
+      <DialogContent className="sm:max-w-md">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <DialogHeader>
@@ -93,7 +130,7 @@ export function AddExpenseDialog() {
                 Enter the details for the new expense.
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-2 py-4">
+            <div className="grid gap-4 py-4">
               <FormField
                 control={form.control}
                 name="date"
@@ -131,6 +168,36 @@ export function AddExpenseDialog() {
                   </FormItem>
                 )}
               />
+
+              {isLoanPayment && (
+                <FormField
+                  control={form.control}
+                  name="borrowingId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Loan Account (Borrowing)</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select loan to pay against" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {borrowings
+                            .filter(b => b.status !== 'Paid Off')
+                            .map(b => (
+                            <SelectItem key={b.id} value={b.id}>
+                              {b.lenderName} ({formatCurrency(b.principal)})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
               <FormField
                 control={form.control}
                 name="description"

@@ -204,8 +204,7 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
             const yearsPassed = differenceInCalendarYears(new Date(), loanDate);
             if (yearsPassed > 0) {
                 // The user intends the rate to be monthly, so for yearly calculation, multiply by 12.
-                const monthlyRate = lending.interestRate / 100;
-                totalInterest = lending.principal * monthlyRate * 12 * yearsPassed;
+                totalInterest = lending.principal * (lending.interestRate / 100) * 12 * yearsPassed;
             }
         }
         

@@ -118,7 +118,10 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
         const monthsPassed = differenceInCalendarMonths(new Date(), loanDate);
         
         if (monthsPassed > 0) {
-            totalInterest = borrowing.principal * (borrowing.interestRate / 100) * monthsPassed;
+            const monthlyRate = borrowing.interestType === 'Yearly'
+                ? borrowing.interestRate / 12
+                : borrowing.interestRate;
+            totalInterest = borrowing.principal * (monthlyRate / 100) * monthsPassed;
         }
 
         const principalPayments = (borrowing.payments || []).filter(p => p.type === 'principal').reduce((acc, p) => acc + p.amount, 0);
@@ -189,7 +192,10 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
         const monthsPassed = differenceInCalendarMonths(new Date(), loanDate);
         
         if (monthsPassed > 0) {
-            totalInterest = lending.principal * (lending.interestRate / 100) * monthsPassed;
+            const monthlyRate = lending.interestType === 'Yearly'
+                ? lending.interestRate / 12
+                : lending.interestRate;
+            totalInterest = lending.principal * (monthlyRate / 100) * monthsPassed;
         }
         
         const principalReceived = (lending.payments || []).filter(p => p.type === 'principal').reduce((acc, p) => acc + p.amount, 0);

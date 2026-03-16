@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -188,7 +187,7 @@ export function AddExpenseDialog({ borrowings }: { borrowings: Borrowing[] }) {
                             <SelectValue placeholder="Select loan to pay against" />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent>
+                        <SelectContent className="w-auto min-w-[var(--radix-select-trigger-width)]">
                           {borrowings
                             .filter(b => b.status !== 'Paid Off')
                             .map(b => (

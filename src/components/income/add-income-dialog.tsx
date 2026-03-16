@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -188,7 +187,7 @@ export function AddIncomeDialog({ lendings }: { lendings: Lending[] }) {
                             <SelectValue placeholder="Select loan account" />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent>
+                        <SelectContent className="w-auto min-w-[var(--radix-select-trigger-width)]">
                           {lendings
                             .filter(l => l.status !== 'Paid Off')
                             .map(l => (

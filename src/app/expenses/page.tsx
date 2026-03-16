@@ -123,10 +123,16 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
         for (const payment of allPayments) {
             const dateOfPayment = payment.date;
             
-            const months = differenceInCalendarMonths(dateOfPayment, lastDate);
-            if (months > 0) {
-                const monthlyRate = borrowing.interestType === 'Yearly' ? borrowing.interestRate / 12 : borrowing.interestRate;
-                accruedInterest += principal * (monthlyRate / 100) * months;
+            if (borrowing.interestType === 'Yearly') {
+                const years = differenceInCalendarYears(dateOfPayment, lastDate);
+                if (years > 0) {
+                    accruedInterest += principal * (borrowing.interestRate / 100) * years;
+                }
+            } else { // Monthly
+                const months = differenceInCalendarMonths(dateOfPayment, lastDate);
+                if (months > 0) {
+                    accruedInterest += principal * (borrowing.interestRate / 100) * months;
+                }
             }
             
             // Unified payment application logic
@@ -147,10 +153,16 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
 
         // Calculate final interest from last payment to today
         const today = new Date();
-        const finalMonths = differenceInCalendarMonths(today, lastDate);
-        if (finalMonths > 0) {
-            const monthlyRate = borrowing.interestType === 'Yearly' ? borrowing.interestRate / 12 : borrowing.interestRate;
-            accruedInterest += principal * (monthlyRate / 100) * finalMonths;
+        if (borrowing.interestType === 'Yearly') {
+            const finalYears = differenceInCalendarYears(today, lastDate);
+            if (finalYears > 0) {
+                accruedInterest += principal * (borrowing.interestRate / 100) * finalYears;
+            }
+        } else { // Monthly
+            const finalMonths = differenceInCalendarMonths(today, lastDate);
+            if (finalMonths > 0) {
+                accruedInterest += principal * (borrowing.interestRate / 100) * finalMonths;
+            }
         }
         
         return {
@@ -215,10 +227,16 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
         for (const payment of allPayments) {
             const dateOfPayment = payment.date;
             
-            const months = differenceInCalendarMonths(dateOfPayment, lastDate);
-            if (months > 0) {
-                const monthlyRate = lending.interestType === 'Yearly' ? lending.interestRate / 12 : lending.interestRate;
-                accruedInterest += principal * (monthlyRate / 100) * months;
+            if (lending.interestType === 'Yearly') {
+                const years = differenceInCalendarYears(dateOfPayment, lastDate);
+                if (years > 0) {
+                    accruedInterest += principal * (lending.interestRate / 100) * years;
+                }
+            } else { // Monthly
+                const months = differenceInCalendarMonths(dateOfPayment, lastDate);
+                if (months > 0) {
+                    accruedInterest += principal * (lending.interestRate / 100) * months;
+                }
             }
             
             // Unified payment application logic
@@ -239,10 +257,16 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
 
         // Calculate final interest from last payment to today
         const today = new Date();
-        const finalMonths = differenceInCalendarMonths(today, lastDate);
-        if (finalMonths > 0) {
-            const monthlyRate = lending.interestType === 'Yearly' ? lending.interestRate / 12 : lending.interestRate;
-            accruedInterest += principal * (monthlyRate / 100) * finalMonths;
+        if (lending.interestType === 'Yearly') {
+            const finalYears = differenceInCalendarYears(today, lastDate);
+            if (finalYears > 0) {
+                accruedInterest += principal * (lending.interestRate / 100) * finalYears;
+            }
+        } else { // Monthly
+            const finalMonths = differenceInCalendarMonths(today, lastDate);
+            if (finalMonths > 0) {
+                accruedInterest += principal * (lending.interestRate / 100) * finalMonths;
+            }
         }
         
         return {

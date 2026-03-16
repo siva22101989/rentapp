@@ -1,3 +1,4 @@
+
 import type { Timestamp } from 'firebase/firestore';
 
 export type Customer = {
@@ -26,7 +27,7 @@ export type Lot = {
 export type Payment = {
   amount: number;
   date: Date | Timestamp;
-  type?: 'rent' | 'hamali' | 'other' | 'unloading' | 'discount' | 'interest' | 'principal';
+  type?: 'rent' | 'hamali' | 'other' | 'unloading' | 'discount' | 'repayment';
 };
 
 export type Outflow = {
@@ -70,7 +71,7 @@ export type StorageRecord = {
   hamaliDetails?: HamaliChargeItem[];
 };
 
-export const expenseCategories = ["Worker Salary", "Petrol", "Maintenance", "Utilities", "Hamali", "EMI for Godown", "Interest Paid", "Principal Repayment", "Other"] as const;
+export const expenseCategories = ["Worker Salary", "Petrol", "Maintenance", "Utilities", "Hamali", "EMI for Godown", "Loan Repayment", "Other"] as const;
 
 export type ExpenseCategory = typeof expenseCategories[number];
 
@@ -104,7 +105,7 @@ export type Lending = {
   status?: 'Active' | 'Paid Off';
 };
 
-export const incomeCategories = ["Interest Received", "Principal Received", "Other"] as const;
+export const incomeCategories = ["Loan Payment Received", "Other"] as const;
 export type IncomeCategory = typeof incomeCategories[number];
 
 export type OtherIncome = {

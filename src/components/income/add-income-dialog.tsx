@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -33,7 +34,7 @@ const IncomeSchema = z.object({
   category: z.enum(incomeCategories, { required_error: 'Category is required.' }),
   lendingId: z.string().optional(),
 }).superRefine((data, ctx) => {
-    if ((data.category === 'Interest Received' || data.category === 'Principal Received') && !data.lendingId) {
+    if (data.category === 'Loan Payment Received' && !data.lendingId) {
         ctx.addIssue({
             code: z.ZodIssueCode.custom,
             message: 'Please select the loan account for this payment.',
@@ -63,7 +64,7 @@ export function AddIncomeDialog({ lendings }: { lendings: Lending[] }) {
   });
 
   const selectedCategory = form.watch('category');
-  const isLoanPayment = selectedCategory === 'Interest Received' || selectedCategory === 'Principal Received';
+  const isLoanPayment = selectedCategory === 'Loan Payment Received';
 
   const onSubmit = (data: IncomeFormData) => {
     if (!firestore) {
@@ -89,7 +90,7 @@ export function AddIncomeDialog({ lendings }: { lendings: Lending[] }) {
             const newPayment: Payment = {
               amount: data.amount,
               date: new Date(data.date),
-              type: data.category === 'Interest Received' ? 'interest' : 'principal',
+              type: 'repayment',
             };
             batch.update(lendingRef, {
                 payments: arrayUnion(cleanForFirestore(newPayment))

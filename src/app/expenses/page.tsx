@@ -1,3 +1,4 @@
+
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { AddExpenseDialog } from "@/components/expenses/add-expense-dialog";
@@ -134,16 +135,17 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
                 }
             }
             
-            // Apply payment
-            if (payment.type === 'interest') {
-                accruedInterest -= payment.amount;
-                // If interest is overpaid, reduce principal
-                if(accruedInterest < 0) {
-                    principal += accruedInterest; // accruedInterest is negative here
-                    accruedInterest = 0;
-                }
-            } else if (payment.type === 'principal') {
-                principal -= payment.amount;
+            // Unified payment application logic
+            let paymentAmount = payment.amount;
+
+            // First, apply payment to any outstanding interest
+            const interestPayment = Math.min(paymentAmount, accruedInterest);
+            accruedInterest -= interestPayment;
+            paymentAmount -= interestPayment;
+
+            // Then, apply any remaining payment to the principal
+            if (paymentAmount > 0) {
+                principal -= paymentAmount;
             }
 
             lastDate = dateOfPayment;
@@ -237,16 +239,17 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
                 }
             }
             
-            // Apply payment
-            if (payment.type === 'interest') {
-                accruedInterest -= payment.amount;
-                // If interest is overpaid, reduce principal
-                if(accruedInterest < 0) {
-                    principal += accruedInterest; // accruedInterest is negative here
-                    accruedInterest = 0;
-                }
-            } else if (payment.type === 'principal') {
-                principal -= payment.amount;
+            // Unified payment application logic
+            let paymentAmount = payment.amount;
+
+            // First, apply payment to any outstanding interest
+            const interestPayment = Math.min(paymentAmount, accruedInterest);
+            accruedInterest -= interestPayment;
+            paymentAmount -= interestPayment;
+
+            // Then, apply any remaining payment to the principal
+            if (paymentAmount > 0) {
+                principal -= paymentAmount;
             }
 
             lastDate = dateOfPayment;

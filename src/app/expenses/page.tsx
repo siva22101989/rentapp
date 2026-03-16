@@ -369,7 +369,7 @@ export default function ExpensesPage() {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap mt-3">
-            <AddIncomeDialog />
+            <AddIncomeDialog lendings={lendings || []} />
             <AddExpenseDialog borrowings={borrowings || []} />
             <Separator orientation="vertical" className="h-6" />
             <AddLendingDialog />

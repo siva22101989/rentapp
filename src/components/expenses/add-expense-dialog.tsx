@@ -56,7 +56,7 @@ export function AddExpenseDialog({ borrowings }: { borrowings: Borrowing[] }) {
     resolver: zodResolver(ExpenseSchema),
     defaultValues: {
       description: '',
-      amount: '',
+      amount: undefined,
       date: new Date().toISOString().split('T')[0],
       category: undefined,
       borrowingId: undefined,
@@ -105,7 +105,13 @@ export function AddExpenseDialog({ borrowings }: { borrowings: Borrowing[] }) {
         toast({ title: 'Success', description: successMessage });
 
         setIsOpen(false);
-        form.reset();
+        form.reset({
+          description: '',
+          amount: undefined,
+          date: new Date().toISOString().split('T')[0],
+          category: undefined,
+          borrowingId: undefined,
+        });
       } catch (error) {
         console.error(error);
         toast({ title: 'Error', description: 'Failed to add expense.', variant: 'destructive' });

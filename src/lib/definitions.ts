@@ -104,7 +104,7 @@ export type Lending = {
   status?: 'Active' | 'Paid Off';
 };
 
-export const incomeCategories = ["Interest Received", "Other"] as const;
+export const incomeCategories = ["Interest Received", "Principal Received", "Other"] as const;
 export type IncomeCategory = typeof incomeCategories[number];
 
 export type OtherIncome = {

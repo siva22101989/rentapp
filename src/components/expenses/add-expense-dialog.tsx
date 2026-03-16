@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -76,8 +75,16 @@ export function AddExpenseDialog({ borrowings }: { borrowings: Borrowing[] }) {
       try {
         const batch = writeBatch(firestore);
         
+        let finalDescription = data.description;
+        if (data.borrowingId && isLoanPayment) {
+            const borrowing = borrowings.find(b => b.id === data.borrowingId);
+            if (borrowing) {
+                finalDescription = `Payment to ${borrowing.lenderName}: ${data.description}`;
+            }
+        }
+
         const newExpense = {
-          description: data.description,
+          description: finalDescription,
           amount: data.amount,
           date: new Date(data.date),
           category: data.category,

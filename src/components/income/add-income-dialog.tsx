@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -76,8 +75,16 @@ export function AddIncomeDialog({ lendings }: { lendings: Lending[] }) {
       try {
         const batch = writeBatch(firestore);
         
+        let finalDescription = data.description;
+        if (data.lendingId && isLoanPayment) {
+            const lending = lendings.find(l => l.id === data.lendingId);
+            if (lending) {
+                finalDescription = `Payment from ${lending.borrowerName}: ${data.description}`;
+            }
+        }
+
         const newIncome = {
-          description: data.description,
+          description: finalDescription,
           amount: data.amount,
           date: new Date(data.date),
           category: data.category,

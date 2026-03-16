@@ -136,11 +136,13 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
         
         const interestDue = Math.max(0, totalInterest - interestPayments);
         const principalDue = borrowing.principal - effectivePrincipalPaid;
+        const totalDue = principalDue + interestDue;
 
         return {
             ...borrowing,
             principalDue,
             interestDue,
+            totalDue,
         };
     });
   }, [activeBorrowings]);
@@ -156,8 +158,8 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
             <TableRow>
               <TableHead>Lender</TableHead>
               <TableHead className="hidden sm:table-cell">Principal Due</TableHead>
-              <TableHead className="hidden md:table-cell">Interest</TableHead>
-              <TableHead className="text-right">Interest Due</TableHead>
+              <TableHead className="hidden md:table-cell">Interest Due</TableHead>
+              <TableHead className="text-right">Total Due</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -166,8 +168,8 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
                 <TableRow key={borrowing.id}>
                   <TableCell className="font-medium">{borrowing.lenderName}</TableCell>
                   <TableCell className="font-mono hidden sm:table-cell text-destructive">{formatCurrency(borrowing.principalDue)}</TableCell>
-                  <TableCell className="hidden md:table-cell">{borrowing.interestRate}% {borrowing.interestType}</TableCell>
-                  <TableCell className="text-right font-mono text-destructive">{formatCurrency(borrowing.interestDue)}</TableCell>
+                  <TableCell className="font-mono hidden md:table-cell text-destructive">{formatCurrency(borrowing.interestDue)}</TableCell>
+                  <TableCell className="text-right font-mono text-destructive font-bold">{formatCurrency(borrowing.totalDue)}</TableCell>
                   <TableCell>
                     <BorrowingActionsMenu borrowing={borrowing} />
                   </TableCell>
@@ -212,11 +214,13 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
 
         const interestDue = Math.max(0, totalInterest - interestReceived);
         const principalDue = lending.principal - effectivePrincipalReceived;
+        const totalDue = principalDue + interestDue;
         
         return {
             ...lending,
             principalDue,
             interestDue,
+            totalDue,
         };
     });
   }, [activeLendings]);
@@ -232,8 +236,8 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
             <TableRow>
               <TableHead>Borrower</TableHead>
               <TableHead className="hidden sm:table-cell">Principal Due</TableHead>
-              <TableHead className="hidden md:table-cell">Interest</TableHead>
-              <TableHead className="text-right">Interest Due</TableHead>
+              <TableHead className="hidden md:table-cell">Interest Due</TableHead>
+              <TableHead className="text-right">Total Due</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -242,8 +246,8 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
                 <TableRow key={lending.id}>
                   <TableCell className="font-medium">{lending.borrowerName}</TableCell>
                   <TableCell className="font-mono hidden sm:table-cell text-green-600">{formatCurrency(lending.principalDue)}</TableCell>
-                  <TableCell className="hidden md:table-cell">{lending.interestRate}% {lending.interestType}</TableCell>
-                  <TableCell className="text-right font-mono text-green-600">{formatCurrency(lending.interestDue)}</TableCell>
+                  <TableCell className="font-mono hidden md:table-cell text-green-600">{formatCurrency(lending.interestDue)}</TableCell>
+                  <TableCell className="text-right font-mono text-green-600 font-bold">{formatCurrency(lending.totalDue)}</TableCell>
                   <TableCell>
                     <LendingActionsMenu lending={lending} />
                   </TableCell>

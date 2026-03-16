@@ -68,16 +68,16 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
                             <p className="font-semibold">Unloading</p>
                             <p>{unloadingRecord ? format(toDate(unloadingRecord.unloadingDate), 'dd/MM/yy') : 'N/A'}</p>
                         </div>
-                            <div>
+                        <div>
                             <p className="font-semibold">Drying Start</p>
                             <p>{record.dryingStartDate ? format(toDate(record.dryingStartDate), 'dd/MM/yy') : 'N/A'}</p>
                         </div>
-                            <div>
+                        <div>
                             <p className="font-semibold">Storage Start</p>
                             <p>{record.dryingEndDate ? format(toDate(record.dryingEndDate), 'dd/MM/yy') : 'N/A'}</p>
                         </div>
                     </div>
-                        <p className="text-center mt-1"><span className="font-bold">Total Drying Days:</span> {dryingDays ?? 'N/A'}</p>
+                    <p className="text-center mt-1"><span className="font-bold">Total Drying Days:</span> {dryingDays ?? 'N/A'}</p>
                 </div>
 
                 <div className="mb-2 p-2 bg-gray-100 rounded-md text-black">
@@ -112,11 +112,12 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
                                 </TableRow>
                             ))
                         ) : (
-                            record.hamaliPayable > 0 &&
-                            <TableRow>
-                                <TableCell colSpan={2} className="py-1">Total Hamali Charges</TableCell>
-                                <TableCell className="text-right font-mono py-1">{formatCurrency(record.hamaliPayable)}</TableCell>
-                            </TableRow>
+                            record.hamaliPayable > 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={2} className="py-1">Total Hamali Charges</TableCell>
+                                    <TableCell className="text-right font-mono py-1">{formatCurrency(record.hamaliPayable)}</TableCell>
+                                </TableRow>
+                            ) : null
                         )}
                     </TableBody>
                     <TableFooter>
@@ -137,7 +138,6 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
                     </div>
                 </div>
             </div>
-        </div>
     );
     }
 

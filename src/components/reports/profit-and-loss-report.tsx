@@ -1,6 +1,7 @@
+
 'use client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Scale, Banknote } from "lucide-react";
+import { TrendingUp, TrendingDown, Scale, Banknote, FileText } from "lucide-react";
 import { formatCurrency, toDate } from "@/lib/utils";
 import { useMemo, useRef, useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -13,6 +14,7 @@ import { Button } from "../ui/button";
 import { Download, Loader2 } from "lucide-react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 function IncomesTable({ incomes }: { incomes: OtherIncome[] }) {
     if (incomes.length === 0) return null;
@@ -226,13 +228,58 @@ export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecor
     <Card>
         <CardHeader className="flex-row items-center justify-between">
             <CardTitle>Profit & Loss Summary</CardTitle>
-            <Button onClick={handleDownloadPdf} disabled={isGenerating}>
-                {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                Download PDF
-            </Button>
+            <Dialog>
+                <DialogTrigger asChild>
+                    <Button>
+                        <FileText className="mr-2 h-4 w-4" />
+                        Generate Report
+                    </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl">
+                    <DialogHeader>
+                        <DialogTitle>Profit & Loss Report</DialogTitle>
+                    </DialogHeader>
+                     <div className="max-h-[70vh] overflow-y-auto">
+                        <div ref={reportRef} className="p-4 space-y-4 printable-area">
+                            <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-4">
+                                <Card>
+                                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1"><CardTitle>Total Income</CardTitle><TrendingUp className="h-4 w-4 text-muted-foreground text-green-500" /></CardHeader>
+                                    <CardContent><div className="text-2xl font-bold text-green-600">{formatCurrency(periodIncome)}</div><p className="text-xs text-muted-foreground">Income received during the selected period.</p></CardContent>
+                                </Card>
+                                <Card>
+                                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1"><CardTitle>Total Expenses</CardTitle><TrendingDown className="h-4 w-4 text-muted-foreground text-red-500" /></CardHeader>
+                                    <CardContent><div className="text-2xl font-bold text-destructive">{formatCurrency(periodExpenses)}</div><p className="text-xs text-muted-foreground">Expenses recorded during the selected period.</p></CardContent>
+                                </Card>
+                                <Card>
+                                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1"><CardTitle>Interest on Capital</CardTitle><Banknote className="h-4 w-4 text-muted-foreground" /></CardHeader>
+                                    <CardContent><div className="text-2xl font-bold text-orange-600">{formatCurrency(interestOnCapital)}</div><p className="text-xs text-muted-foreground">on {formatCurrency(warehouseInfo?.capitalInvestment || 0)} @ {warehouseInfo?.annualInterestRate || 0}% p.a.</p></CardContent>
+                                </Card>
+                                <Card>
+                                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1"><CardTitle>Net Profit / Loss</CardTitle><Scale className="h-4 w-4 text-muted-foreground" /></CardHeader>
+                                    <CardContent><div className={`text-2xl font-bold ${periodBalance >= 0 ? 'text-primary' : 'text-destructive'}`}>{formatCurrency(periodBalance)}</div><p className="text-xs text-muted-foreground">Your net profit or loss for the selected period.</p></CardContent>
+                                </Card>
+                            </div>
+                            <div className="space-y-4">
+                                <BorrowingsTable borrowings={borrowings || []} />
+                                <LendingsTable lendings={lendings || []} />
+                                <Separator />
+                                <IncomesTable incomes={filteredIncomes} />
+                                <ExpensesTable expenses={filteredExpenses} />
+                            </div>
+                        </div>
+                    </div>
+                     <DialogFooter>
+                        <Button variant="outline" onClick={() => window.print()}>Print</Button>
+                        <Button onClick={handleDownloadPdf} disabled={isGenerating}>
+                            {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                            Save as PDF
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </CardHeader>
         <CardContent>
-            <div ref={reportRef} className="p-4 space-y-4">
+            <div className="p-4 space-y-4">
                 <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-4">
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1"><CardTitle>Total Income</CardTitle><TrendingUp className="h-4 w-4 text-muted-foreground text-green-500" /></CardHeader>
@@ -250,13 +297,6 @@ export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecor
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1"><CardTitle>Net Profit / Loss</CardTitle><Scale className="h-4 w-4 text-muted-foreground" /></CardHeader>
                         <CardContent><div className={`text-2xl font-bold ${periodBalance >= 0 ? 'text-primary' : 'text-destructive'}`}>{formatCurrency(periodBalance)}</div><p className="text-xs text-muted-foreground">Your net profit or loss for the selected period.</p></CardContent>
                     </Card>
-                </div>
-                <div className="space-y-4">
-                    <BorrowingsTable borrowings={borrowings || []} />
-                    <LendingsTable lendings={lendings || []} />
-                    <Separator />
-                    <IncomesTable incomes={filteredIncomes} />
-                    <ExpensesTable expenses={filteredExpenses} />
                 </div>
             </div>
         </CardContent>

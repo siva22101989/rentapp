@@ -15,11 +15,12 @@ import { Badge } from "@/components/ui/badge";
 import { AddPaymentDialog } from "@/components/payments/add-payment-dialog";
 import { formatCurrency } from "@/lib/utils";
 import { Button } from "../ui/button";
-import { Download, Loader2 } from "lucide-react";
+import { Download, Loader2, FileText } from "lucide-react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { PendingDuesReportTable } from "../reports/pending-dues-report-table";
 import { AddUnloadingPaymentDialog } from "../unloading/add-unloading-payment-dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 type PendingRecord = (StorageRecord | UnloadingRecord) & {
     recordType: 'storage' | 'unloading';
@@ -117,12 +118,11 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords }: {
             const imgWidth = imgProps.width;
             const imgHeight = imgProps.height;
             
-            const ratio = imgWidth / imgHeight;
-            const widthInPdf = pdfWidth;
-            const heightInPdf = widthInPdf / ratio;
+            const ratio = imgWidth / pdfWidth;
+            const canvasHeight = imgHeight / ratio;
             
             let position = 0;
-            let heightLeft = heightInPdf;
+            let heightLeft = canvasHeight;
 
             pdf.addImage(imgData, 'PNG', 0, position, widthInPdf, heightInPdf);
             heightLeft -= pdfHeight;
@@ -146,10 +146,35 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords }: {
         <Card>
             <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Outstanding Balances</CardTitle>
-                <Button onClick={handleDownloadPdf} disabled={isGenerating || pendingRecords.length === 0} size="sm">
-                    {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                    Download List
-                </Button>
+                <Dialog>
+                    <DialogTrigger asChild>
+                        <Button size="sm" disabled={pendingRecords.length === 0}>
+                            <FileText className="mr-2 h-4 w-4" />
+                            Generate Report
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-6xl">
+                        <DialogHeader>
+                            <DialogTitle>Pending Dues Report</DialogTitle>
+                        </DialogHeader>
+                        <div className="max-h-[70vh] overflow-y-auto">
+                            <div ref={reportRef} className="printable-area">
+                                <PendingDuesReportTable
+                                    records={pendingRecords as any[]}
+                                    customers={customers}
+                                    title="Pending Dues Report"
+                                />
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => window.print()}>Print</Button>
+                            <Button onClick={handleDownloadPdf} disabled={isGenerating}>
+                                {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                                Save as PDF
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </CardHeader>
             <CardContent>
                  <Table>
@@ -211,15 +236,6 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords }: {
                     </TableBody>
                  </Table>
             </CardContent>
-            <div className="hidden">
-                <div ref={reportRef}>
-                    <PendingDuesReportTable
-                        records={pendingRecords as any[]}
-                        customers={customers}
-                        title="Pending Dues Report"
-                    />
-                </div>
-            </div>
         </Card>
   );
 }

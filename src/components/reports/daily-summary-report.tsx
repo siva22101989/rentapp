@@ -1,10 +1,11 @@
+
 'use client';
 
 import React, { useState, useRef, useMemo } from 'react';
 import type { Customer, StorageRecord, UnloadingRecord, Expense, Payment } from "@/lib/definitions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { Download, Loader2, Calendar as CalendarIcon, TrendingUp, TrendingDown, Scale, ArrowDownToDot, ArrowUpFromDot } from 'lucide-react';
+import { Download, Loader2, Calendar as CalendarIcon, TrendingUp, TrendingDown, Scale, ArrowDownToDot, ArrowUpFromDot, FileText } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { toDate, formatCurrency } from '@/lib/utils';
@@ -12,6 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { format, isSameDay } from 'date-fns';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 type DailyReportProps = {
     records: StorageRecord[];
@@ -39,7 +41,7 @@ const DailySummaryContent = React.forwardRef<HTMLDivElement, { dailyData: DailyD
     const getCustomerName = (customerId: string) => customers.find(c => c.id === customerId)?.name ?? 'Unknown';
 
     return (
-        <div ref={ref} className="bg-white p-4 rounded-lg text-black">
+        <div ref={ref} className="bg-white p-4 rounded-lg text-black printable-area">
             <div className="mb-6 text-center">
                 <h2 className="text-xl font-bold">Daily Summary Report</h2>
                 <p className="text-muted-foreground">{format(selectedDate, 'EEEE, dd MMMM yyyy')}</p>
@@ -289,15 +291,56 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
                             />
                         </PopoverContent>
                     </Popover>
-                    <Button onClick={handleDownloadPdf} disabled={isGenerating}>
-                        {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                        Download Report
-                    </Button>
+                    <Dialog>
+                        <DialogTrigger asChild>
+                             <Button>
+                                <FileText className="mr-2 h-4 w-4" />
+                                Generate Report
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-4xl">
+                            <DialogHeader>
+                                <DialogTitle>Daily Summary Report</DialogTitle>
+                                <DialogDescription>{format(selectedDate, 'EEEE, dd MMMM yyyy')}</DialogDescription>
+                            </DialogHeader>
+                            <div className="max-h-[70vh] overflow-y-auto">
+                                <DailySummaryContent dailyData={dailyData} customers={customers} selectedDate={selectedDate} ref={reportRef} />
+                            </div>
+                            <DialogFooter>
+                                <Button variant="outline" onClick={() => window.print()}>Print</Button>
+                                <Button onClick={handleDownloadPdf} disabled={isGenerating}>
+                                    {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                                    Save as PDF
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
                 </div>
             </CardHeader>
             <CardContent>
                 <div className="p-4 border rounded-md">
-                    <DailySummaryContent dailyData={dailyData} customers={customers} selectedDate={selectedDate} ref={reportRef} />
+                    <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Income</CardTitle><TrendingUp className="h-4 w-4 text-green-500" /></CardHeader>
+                            <CardContent><div className="text-2xl font-bold text-green-600">{formatCurrency(dailyData.summary.totalIncome)}</div></CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Expenses</CardTitle><TrendingDown className="h-4 w-4 text-red-500" /></CardHeader>
+                            <CardContent><div className="text-2xl font-bold text-destructive">{formatCurrency(dailyData.summary.totalExpenses)}</div></CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Net Balance</CardTitle><Scale className="h-4 w-4 text-muted-foreground" /></CardHeader>
+                            <CardContent><div className={`text-2xl font-bold ${dailyData.summary.netBalance >= 0 ? 'text-primary' : 'text-destructive'}`}>{formatCurrency(dailyData.summary.netBalance)}</div></CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Bags In</CardTitle><ArrowDownToDot className="h-4 w-4 text-blue-500" /></CardHeader>
+                            <CardContent><div className="text-2xl font-bold">{dailyData.summary.totalInflowBags}</div></CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Bags Out</CardTitle><ArrowUpFromDot className="h-4 w-4 text-orange-500" /></CardHeader>
+                            <CardContent><div className="text-2xl font-bold">{dailyData.summary.totalOutflowBags}</div></CardContent>
+                        </Card>
+                    </div>
                 </div>
             </CardContent>
         </Card>

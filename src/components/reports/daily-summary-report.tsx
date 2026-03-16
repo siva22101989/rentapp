@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useRef, useMemo } from 'react';
-import type { Customer, StorageRecord, UnloadingRecord, Expense, Payment } from "@/lib/definitions";
+import type { Customer, StorageRecord, UnloadingRecord, Expense, Payment, OtherIncome } from "@/lib/definitions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { Download, Loader2, Calendar as CalendarIcon, TrendingUp, TrendingDown, Scale, ArrowDownToDot, ArrowUpFromDot, FileText } from 'lucide-react';
@@ -20,6 +20,7 @@ type DailyReportProps = {
     customers: Customer[];
     unloadingRecords: UnloadingRecord[];
     expenses: Expense[];
+    otherIncomes: OtherIncome[];
 }
 
 type DailyData = {
@@ -28,6 +29,7 @@ type DailyData = {
     unloadings: UnloadingRecord[];
     payments: (Payment & { customerName: string; recordId: string; description: string; })[];
     expenses: Expense[];
+    otherIncomes: OtherIncome[];
     summary: {
         totalIncome: number;
         totalExpenses: number;
@@ -112,14 +114,17 @@ const DailySummaryContent = React.forwardRef<HTMLDivElement, { dailyData: DailyD
                         </Table>
                     </section>
                 )}
-                {dailyData.payments.length > 0 && (
+                {(dailyData.payments.length > 0 || dailyData.otherIncomes.length > 0) && (
                      <section>
-                        <h3 className="font-semibold mb-2">Income (Payments Received)</h3>
+                        <h3 className="font-semibold mb-2">Income</h3>
                         <Table>
-                            <TableHeader><TableRow><TableHead className="text-black">Customer</TableHead><TableHead className="text-black">Description</TableHead><TableHead className="text-black">Ref ID</TableHead><TableHead className="text-right text-black">Amount</TableHead></TableRow></TableHeader>
+                            <TableHeader><TableRow><TableHead className="text-black">Customer/Source</TableHead><TableHead className="text-black">Description</TableHead><TableHead className="text-black">Ref ID</TableHead><TableHead className="text-right text-black">Amount</TableHead></TableRow></TableHeader>
                             <TableBody>
                                 {dailyData.payments.map((p, i) => (
                                     <TableRow key={`payment-${i}`}><TableCell>{p.customerName}</TableCell><TableCell>{p.description}</TableCell><TableCell>{p.recordId}</TableCell><TableCell className="text-right font-mono">{formatCurrency(p.amount)}</TableCell></TableRow>
+                                ))}
+                                {dailyData.otherIncomes.map((i, idx) => (
+                                    <TableRow key={`other-income-${idx}`}><TableCell>{i.category}</TableCell><TableCell>{i.description}</TableCell><TableCell>N/A</TableCell><TableCell className="text-right font-mono">{formatCurrency(i.amount)}</TableCell></TableRow>
                                 ))}
                             </TableBody>
                         </Table>
@@ -148,7 +153,7 @@ const DailySummaryContent = React.forwardRef<HTMLDivElement, { dailyData: DailyD
 DailySummaryContent.displayName = 'DailySummaryContent';
 
 
-export function DailySummaryReport({ records, customers, unloadingRecords, expenses }: DailyReportProps) {
+export function DailySummaryReport({ records, customers, unloadingRecords, expenses, otherIncomes }: DailyReportProps) {
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     const [isGenerating, setIsGenerating] = useState(false);
     
@@ -162,6 +167,7 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
             unloadings: [],
             payments: [],
             expenses: [],
+            otherIncomes: [],
             summary: {
                 totalIncome: 0,
                 totalExpenses: 0,
@@ -190,7 +196,7 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
         // Unloadings
         data.unloadings = unloadingRecords.filter(r => isSameDay(toDate(r.unloadingDate), date));
         
-        // Payments -> Income
+        // Income sources
         records.forEach(r => {
             (r.payments || []).forEach(p => {
                 if (isSameDay(toDate(p.date), date)) {
@@ -207,7 +213,9 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
                 }
             });
         });
-        
+        data.otherIncomes = otherIncomes.filter(i => isSameDay(toDate(i.date), date));
+        data.summary.totalIncome += data.otherIncomes.reduce((sum, i) => sum + i.amount, 0);
+
         // Expenses
         data.expenses = expenses.filter(e => isSameDay(toDate(e.date), date));
         data.summary.totalExpenses = data.expenses.reduce((sum, e) => sum + e.amount, 0);
@@ -217,7 +225,7 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
         
         return data;
 
-    }, [selectedDate, records, customers, unloadingRecords, expenses]);
+    }, [selectedDate, records, customers, unloadingRecords, expenses, otherIncomes]);
 
 
     const handleDownloadPdf = async () => {
@@ -318,29 +326,11 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
                 </div>
             </CardHeader>
             <CardContent>
-                <div className="p-4 border rounded-md">
-                    <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Income</CardTitle><TrendingUp className="h-4 w-4 text-green-500" /></CardHeader>
-                            <CardContent><div className="text-2xl font-bold text-green-600">{formatCurrency(dailyData.summary.totalIncome)}</div></CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Expenses</CardTitle><TrendingDown className="h-4 w-4 text-red-500" /></CardHeader>
-                            <CardContent><div className="text-2xl font-bold text-destructive">{formatCurrency(dailyData.summary.totalExpenses)}</div></CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Net Balance</CardTitle><Scale className="h-4 w-4 text-muted-foreground" /></CardHeader>
-                            <CardContent><div className={`text-2xl font-bold ${dailyData.summary.netBalance >= 0 ? 'text-primary' : 'text-destructive'}`}>{formatCurrency(dailyData.summary.netBalance)}</div></CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Bags In</CardTitle><ArrowDownToDot className="h-4 w-4 text-blue-500" /></CardHeader>
-                            <CardContent><div className="text-2xl font-bold">{dailyData.summary.totalInflowBags}</div></CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Bags Out</CardTitle><ArrowUpFromDot className="h-4 w-4 text-orange-500" /></CardHeader>
-                            <CardContent><div className="text-2xl font-bold">{dailyData.summary.totalOutflowBags}</div></CardContent>
-                        </Card>
-                    </div>
+                <div className="text-center text-muted-foreground py-16">
+                    <FileText className="mx-auto h-12 w-12" />
+                    <p className="mt-4">
+                        Pick a date and click "Generate Report" to view the daily summary.
+                    </p>
                 </div>
             </CardContent>
         </Card>

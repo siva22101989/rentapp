@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -62,7 +63,7 @@ export function CustomReportGenerator({
     const renderReport = () => {
         switch (selectedReport) {
             case 'daily-summary':
-                return <DailySummaryReport records={records} customers={customers} unloadingRecords={unloadingRecords} expenses={expenses} />;
+                return <DailySummaryReport records={records} customers={customers} unloadingRecords={unloadingRecords} expenses={expenses} otherIncomes={otherIncomes} />;
             case 'profit-and-loss':
                 return <ProfitAndLossReport 
                     allRecords={records}

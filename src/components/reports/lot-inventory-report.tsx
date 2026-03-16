@@ -1,15 +1,17 @@
+
 'use client';
 
 import React, { useState, useRef, useMemo } from 'react';
 import type { Customer, StorageRecord } from "@/lib/definitions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { Download, Loader2 } from 'lucide-react';
+import { Download, Loader2, FileText } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { toDate } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { format } from 'date-fns';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 
 type LotInventoryReportProps = {
     records: StorageRecord[];
@@ -174,19 +176,43 @@ export function LotInventoryReport({ records, customers }: LotInventoryReportPro
                     <CardDescription>A summary of active stock present in each lot.</CardDescription>
                 </div>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-                    <Button onClick={handleDownloadPdf} disabled={isGenerating}>
-                        {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                        Download
-                    </Button>
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Button>
+                                <FileText className="mr-2 h-4 w-4" />
+                                Generate Report
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-4xl">
+                            <DialogHeader>
+                                <DialogTitle>{title}</DialogTitle>
+                            </DialogHeader>
+                            <div className="max-h-[70vh] overflow-y-auto">
+                                <div ref={reportRef}>
+                                    <LotInventoryTable 
+                                        groupedLots={groupedLots} 
+                                        customers={customers}
+                                        title={title}
+                                    />
+                                </div>
+                            </div>
+                            <DialogFooter>
+                                <Button variant="outline" onClick={() => window.print()}>Print</Button>
+                                <Button onClick={handleDownloadPdf} disabled={isGenerating}>
+                                    {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                                    Save as PDF
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
                 </div>
             </CardHeader>
             <CardContent>
-                <div ref={reportRef}>
-                    <LotInventoryTable 
-                        groupedLots={groupedLots} 
-                        customers={customers}
-                        title={title}
-                    />
+                <div className="text-center text-muted-foreground py-16">
+                    <FileText className="mx-auto h-12 w-12" />
+                    <p className="mt-4">
+                        Click "Generate Report" to view the lot inventory.
+                    </p>
                 </div>
             </CardContent>
         </Card>

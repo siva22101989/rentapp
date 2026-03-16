@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useMemo } from 'react';
@@ -5,13 +6,14 @@ import type { Customer, StorageRecord, UnloadingRecord, Expense } from "@/lib/de
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from '@/components/ui/button';
-import { Download, Loader2 } from 'lucide-react';
+import { FileText, Loader2, Download } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { CustomerHamaliReportTable } from './customer-hamali-report-table';
 import { WorkerHamaliReportTable } from './worker-hamali-report-table';
 import { toDate } from '@/lib/utils';
 import { useDateFilter } from '@/firebase/provider';
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
 
 export type CustomerHamaliEvent = {
     date: Date;
@@ -264,27 +266,51 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
                             ))}
                         </SelectContent>
                     </Select>
-                    <Button onClick={handleDownloadPdf} disabled={isGenerating}>
-                        {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                        Download
-                    </Button>
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Button>
+                                <FileText className="mr-2 h-4 w-4" />
+                                Generate Report
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-6xl">
+                            <DialogHeader>
+                                <DialogTitle>{title}</DialogTitle>
+                            </DialogHeader>
+                            <div className="max-h-[70vh] overflow-y-auto">
+                                <div ref={reportRef}>
+                                    {reportView === 'customer' ? (
+                                        <CustomerHamaliReportTable 
+                                            events={customerHamaliEvents} 
+                                            customers={customers}
+                                            title={title}
+                                        />
+                                    ) : (
+                                        <WorkerHamaliReportTable 
+                                            events={workerHamaliEvents}
+                                            customers={customers}
+                                            title={title}
+                                        />
+                                    )}
+                                </div>
+                            </div>
+                             <DialogFooter>
+                                <Button variant="outline" onClick={() => window.print()}>Print</Button>
+                                <Button onClick={handleDownloadPdf} disabled={isGenerating}>
+                                    {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                                    Save as PDF
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
                 </div>
             </CardHeader>
             <CardContent>
-                <div ref={reportRef}>
-                    {reportView === 'customer' ? (
-                            <CustomerHamaliReportTable 
-                            events={customerHamaliEvents} 
-                            customers={customers}
-                            title={title}
-                        />
-                    ) : (
-                        <WorkerHamaliReportTable 
-                            events={workerHamaliEvents}
-                            customers={customers}
-                            title={title}
-                        />
-                    )}
+                <div className="text-center text-muted-foreground py-16">
+                    <FileText className="mx-auto h-12 w-12" />
+                    <p className="mt-4">
+                        Select filters and click "Generate Report" to view.
+                    </p>
                 </div>
             </CardContent>
         </Card>

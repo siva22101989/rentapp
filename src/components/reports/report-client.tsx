@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef } from 'react';
@@ -5,7 +6,7 @@ import type { Customer, StorageRecord, UnloadingRecord, WarehouseInfo } from "@/
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from '@/components/ui/button';
-import { Download, Loader2, UserSearch } from 'lucide-react';
+import { Download, Loader2, UserSearch, FileText } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { CustomerStatement } from './customer-statement';
@@ -13,6 +14,7 @@ import { useDoc } from '@/firebase/firestore/use-doc';
 import { useFirestore } from '@/firebase/provider';
 import { doc } from 'firebase/firestore';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 
 export function ReportClient({ records, customers, unloadingRecords, initialCustomerId }: { records: StorageRecord[], customers: Customer[], unloadingRecords: UnloadingRecord[], initialCustomerId?: string }) {
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>(initialCustomerId || '');
@@ -106,31 +108,50 @@ export function ReportClient({ records, customers, unloadingRecords, initialCust
                             ))}
                         </SelectContent>
                     </Select>
-                    <Button onClick={handleDownloadPdf} disabled={!selectedCustomerId || isGenerating}>
-                        {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                        Download
-                    </Button>
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Button disabled={!selectedCustomerId}>
+                                <FileText className="mr-2 h-4 w-4" />
+                                Generate Statement
+                            </Button>
+                        </DialogTrigger>
+                        {statementCustomer && (
+                            <DialogContent className="max-w-6xl">
+                                <DialogHeader>
+                                    <DialogTitle>Customer Statement</DialogTitle>
+                                    <DialogDescription>
+                                        A detailed statement of all transactions for {statementCustomer.name}.
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <div className="max-h-[70vh] overflow-y-auto">
+                                    <div ref={statementReportRef}>
+                                        <CustomerStatement 
+                                            customer={statementCustomer} 
+                                            records={statementRecords} 
+                                            unloadingRecords={statementUnloadingRecords} 
+                                            warehouseInfo={warehouseInfo}
+                                        />
+                                    </div>
+                                </div>
+                                <DialogFooter>
+                                    <Button variant="outline" onClick={() => window.print()}>Print</Button>
+                                    <Button onClick={handleDownloadPdf} disabled={isGenerating}>
+                                        {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                                        Save as PDF
+                                    </Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        )}
+                    </Dialog>
                 </div>
             </CardHeader>
             <CardContent>
-                {loadingWarehouseInfo && <div className="p-8 text-center">Loading statement...</div>}
-                {!loadingWarehouseInfo && statementCustomer ? (
-                    <div ref={statementReportRef}>
-                        <CustomerStatement 
-                            customer={statementCustomer} 
-                            records={statementRecords} 
-                            unloadingRecords={statementUnloadingRecords} 
-                            warehouseInfo={warehouseInfo}
-                        />
-                    </div>
-                ) : (
-                    <div className="text-center text-muted-foreground py-16">
-                        <UserSearch className="mx-auto h-12 w-12" />
-                        <p className="mt-4">
-                            Please select a customer to generate their statement.
-                        </p>
-                    </div>
-                )}
+                 <div className="text-center text-muted-foreground py-16">
+                    <UserSearch className="mx-auto h-12 w-12" />
+                    <p className="mt-4">
+                        Please select a customer and click "Generate Statement".
+                    </p>
+                </div>
             </CardContent>
         </Card>
     );

@@ -13,7 +13,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '../ui/button';
-import { Download, Loader2 } from 'lucide-react';
+import { Download, Loader2, Printer } from 'lucide-react';
 import { OutflowReceipt } from '../outflow/outflow-receipt';
 import type { Customer, StorageRecord, WarehouseInfo, Outflow } from '@/lib/definitions';
 
@@ -74,6 +74,10 @@ export function OutflowReceiptDialog({ record, customer, warehouseInfo, outflow,
     }
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
@@ -89,23 +93,27 @@ export function OutflowReceiptDialog({ record, customer, warehouseInfo, outflow,
                 warehouseInfo={warehouseInfo}
                 withdrawnBags={outflow.bagsWithdrawn}
                 finalRent={outflow.rentBilled}
-                paidNow={0} // Payment info isn't available on the outflow event, so default to 0 for the receipt.
+                paidNow={0} 
                 discount={outflow.discount || 0}
                 deliveryOrderNo={deliveryOrderNo}
                 deliveryOrderDate={deliveryOrderDate}
             />
         </div>
-        <DialogFooter className="sm:justify-end">
+        <DialogFooter className="sm:justify-end gap-2">
+          <Button variant="outline" onClick={handlePrint}>
+              <Printer className="mr-2 h-4 w-4" />
+              Print
+          </Button>
           <Button onClick={handleDownloadPdf} disabled={isGenerating}>
             {isGenerating ? (
                 <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Downloading...
+                    Saving...
                 </>
             ) : (
                 <>
                     <Download className="mr-2 h-4 w-4" />
-                    Download PDF
+                    Save as PDF
                 </>
             )}
           </Button>

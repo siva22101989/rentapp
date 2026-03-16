@@ -32,7 +32,7 @@ export function UnloadingTableActionsMenu({ record, customers, commodities }: Ac
                     <ViewUnloadingReceiptDialog record={record} customer={customer}>
                          <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                             <FileText className="mr-2 h-4 w-4" />
-                            View/Print Receipt
+                            View Receipt
                         </DropdownMenuItem>
                     </ViewUnloadingReceiptDialog>
                 )}

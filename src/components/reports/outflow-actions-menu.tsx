@@ -1,7 +1,7 @@
 
 'use client';
 
-import { MoreHorizontal, Download, Trash2, Pencil } from "lucide-react";
+import { MoreHorizontal, FileText, Trash2, Pencil } from "lucide-react";
 import { Button } from "../ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import type { Customer, StorageRecord, Outflow, WarehouseInfo } from "@/lib/definitions";
@@ -39,8 +39,8 @@ export function OutflowActionsMenu({ record, customer, warehouseInfo, outflow, o
                     deliveryOrderDate={deliveryOrderDate}
                 >
                     <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                        <Download className="mr-2 h-4 w-4" />
-                        Download Bill
+                        <FileText className="mr-2 h-4 w-4" />
+                        View Bill
                     </DropdownMenuItem>
                 </OutflowReceiptDialog>
 

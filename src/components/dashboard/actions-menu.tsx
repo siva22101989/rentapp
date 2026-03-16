@@ -1,7 +1,7 @@
 
 'use client';
 
-import { Download, MoreHorizontal, Trash2 } from "lucide-react";
+import { FileText, MoreHorizontal, Trash2 } from "lucide-react";
 import { Button } from "../ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import type { Customer, StorageRecord } from "@/lib/definitions";
@@ -13,7 +13,6 @@ import { DeleteRecordDialog } from "./delete-record-dialog";
 export function ActionsMenu({ record, customers, allRecords }: { record: StorageRecord, customers: Customer[], allRecords: StorageRecord[] }) {
     const customer = customers.find(c => c.id === record.customerId);
 
-    // Ensure record dates are Date objects before passing to children
     const safeRecord = {
         ...record,
         storageStartDate: toDate(record.storageStartDate),
@@ -38,8 +37,8 @@ export function ActionsMenu({ record, customers, allRecords }: { record: Storage
                 {customer && (
                     <BillReceiptDialog record={safeRecord} customer={customer}>
                         <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                            <Download className="mr-2 h-4 w-4" />
-                            Download Bill
+                            <FileText className="mr-2 h-4 w-4" />
+                            View Bill
                         </DropdownMenuItem>
                     </BillReceiptDialog>
                 )}

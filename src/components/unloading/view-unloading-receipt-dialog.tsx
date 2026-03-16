@@ -13,7 +13,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '../ui/button';
-import { Download, Loader2 } from 'lucide-react';
+import { Download, Loader2, Printer } from 'lucide-react';
 import { UnloadingReceipt } from './unloading-receipt';
 import type { Customer, UnloadingRecord, WarehouseInfo } from '@/lib/definitions';
 import { useDoc } from '@/firebase/firestore/use-doc';
@@ -84,6 +84,10 @@ export function ViewUnloadingReceiptDialog({
     }
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
@@ -96,17 +100,21 @@ export function ViewUnloadingReceiptDialog({
               <UnloadingReceipt ref={receiptRef} record={record} customer={customer} warehouseInfo={warehouseInfo} />
             )}
         </div>
-        <DialogFooter className="sm:justify-end">
+        <DialogFooter className="sm:justify-end gap-2">
+          <Button variant="outline" onClick={handlePrint}>
+              <Printer className="mr-2 h-4 w-4" />
+              Print
+          </Button>
           <Button onClick={handleDownloadPdf} disabled={isGenerating}>
             {isGenerating ? (
                 <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Downloading...
+                    Saving...
                 </>
             ) : (
                 <>
                     <Download className="mr-2 h-4 w-4" />
-                    Download PDF
+                    Save as PDF
                 </>
             )}
           </Button>

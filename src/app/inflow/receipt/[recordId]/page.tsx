@@ -9,7 +9,11 @@ import { useDoc } from "@/firebase/firestore/use-doc";
 import { useFirestore } from "@/firebase/provider";
 import { doc, getDoc } from "firebase/firestore";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { Download, Loader2, Printer } from "lucide-react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 export default function InflowReceiptPage() {
   const params = useParams();
@@ -18,6 +22,8 @@ export default function InflowReceiptPage() {
 
   const [unloadingRecord, setUnloadingRecord] = useState<UnloadingRecord | null>(null);
   const [loadingUnloading, setLoadingUnloading] = useState(true);
+  const receiptRef = useRef<HTMLDivElement>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const recordRef = useMemoFirebase(
     () => (firestore && recordId ? doc(firestore, 'storageRecords', recordId) : null),
@@ -46,7 +52,6 @@ export default function InflowReceiptPage() {
       
       setLoadingUnloading(true);
       
-      // Try fetching as a DryingRecord first (new flow)
       try {
         const dryingRef = doc(firestore, 'dryingRecords', record.dryingRecordId);
         const dryingSnap = await getDoc(dryingRef);
@@ -61,7 +66,6 @@ export default function InflowReceiptPage() {
             }
           }
         } else {
-          // Fallback: try fetching as an UnloadingRecord directly (old flow)
           const unloadingRef = doc(firestore, 'unloadingRecords', record.dryingRecordId);
           const unloadingSnap = await getDoc(unloadingRef);
           if (unloadingSnap.exists()) {
@@ -77,6 +81,50 @@ export default function InflowReceiptPage() {
     fetchUnloadingRecord();
   }, [firestore, record]);
 
+  const handleDownloadPdf = async () => {
+    const element = receiptRef.current;
+    if (!element) return;
+
+    setIsGenerating(true);
+
+    try {
+      const canvas = await html2canvas(element, { 
+        scale: 2, 
+        useCORS: true, 
+        backgroundColor: '#ffffff',
+        windowWidth: element.scrollWidth,
+        windowHeight: element.scrollHeight
+      });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = imgWidth / imgHeight;
+      let widthInPdf = pdfWidth - 20;
+      let heightInPdf = widthInPdf / ratio;
+
+      if (heightInPdf > pdfHeight - 20) {
+        heightInPdf = pdfHeight - 20;
+        widthInPdf = heightInPdf * ratio;
+      }
+
+      const x = (pdfWidth - widthInPdf) / 2;
+      const y = 10;
+
+      pdf.addImage(imgData, 'PNG', x, y, widthInPdf, heightInPdf);
+      pdf.save(`receipt-${recordId}.pdf`);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
 
   if (loadingRecord || loadingCustomer || loadingWarehouseInfo || loadingUnloading) {
     return <AppLayout><div>Loading...</div></AppLayout>;
@@ -91,9 +139,21 @@ export default function InflowReceiptPage() {
       <PageHeader
         title="Inflow Bill"
         description={`Details for storage bill ${record.id}`}
-      />
+      >
+        <Button variant="outline" onClick={handlePrint}>
+            <Printer className="mr-2 h-4 w-4" />
+            Print
+        </Button>
+        <Button onClick={handleDownloadPdf} disabled={isGenerating}>
+            {isGenerating ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
+            ) : (
+                <><Download className="mr-2 h-4 w-4" /> Save as PDF</>
+            )}
+        </Button>
+      </PageHeader>
       <div className="flex justify-center">
-        <InflowReceipt record={record} customer={customer} warehouseInfo={warehouseInfo} unloadingRecord={unloadingRecord || undefined} />
+        <InflowReceipt ref={receiptRef} record={record} customer={customer} warehouseInfo={warehouseInfo} unloadingRecord={unloadingRecord || undefined} />
       </div>
     </AppLayout>
   );

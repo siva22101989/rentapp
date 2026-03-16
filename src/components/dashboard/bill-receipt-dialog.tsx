@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useRef, useState, useMemo } from 'react';
+import { useRef, useState } from 'react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import {
@@ -12,7 +13,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '../ui/button';
-import { Download, Loader2 } from 'lucide-react';
+import { Download, Loader2, Printer } from 'lucide-react';
 import { InflowReceipt } from '../inflow/inflow-receipt';
 import type { Customer, StorageRecord, WarehouseInfo } from '@/lib/definitions';
 import { useDoc } from '@/firebase/firestore/use-doc';
@@ -83,6 +84,10 @@ export function BillReceiptDialog({
     }
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
@@ -95,17 +100,21 @@ export function BillReceiptDialog({
               <InflowReceipt ref={receiptRef} record={record} customer={customer} warehouseInfo={warehouseInfo} />
             )}
         </div>
-        <DialogFooter className="sm:justify-end">
+        <DialogFooter className="sm:justify-end gap-2">
+           <Button variant="outline" onClick={handlePrint}>
+              <Printer className="mr-2 h-4 w-4" />
+              Print
+          </Button>
           <Button onClick={handleDownloadPdf} disabled={isGenerating}>
             {isGenerating ? (
                 <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Downloading...
+                    Saving...
                 </>
             ) : (
                 <>
                     <Download className="mr-2 h-4 w-4" />
-                    Download PDF
+                    Save as PDF
                 </>
             )}
           </Button>

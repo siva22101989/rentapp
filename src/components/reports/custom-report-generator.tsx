@@ -114,7 +114,7 @@ export function CustomReportGenerator({
             <div>
                 <label htmlFor="report-type-select" className="text-sm font-medium text-muted-foreground">Select Report Type</label>
                 <Select onValueChange={setSelectedReport} value={selectedReport}>
-                    <SelectTrigger id="report-type-select" className="mt-1">
+                    <SelectTrigger id="report-type-select" className="mt-1 w-auto">
                         <SelectValue placeholder="Select a report type..." />
                     </SelectTrigger>
                     <SelectContent>

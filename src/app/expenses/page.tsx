@@ -113,36 +113,61 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
   
   const borrowingsWithInterest = useMemo(() => {
     return activeBorrowings.map(borrowing => {
-        const loanDate = toDate(borrowing.dateTaken);
-        let totalInterest = 0;
-        
-        if (borrowing.interestType === 'Yearly') {
-            const yearsPassed = differenceInCalendarYears(new Date(), loanDate);
-            if (yearsPassed > 0) {
-                totalInterest = borrowing.principal * ((borrowing.interestRate || 0) / 100) * yearsPassed;
+        let principal = borrowing.principal;
+        let accruedInterest = 0;
+        let lastDate = toDate(borrowing.dateTaken);
+
+        const allPayments = [...(borrowing.payments || []).map(p => ({...p, date: toDate(p.date)}))].sort((a,b) => a.date.getTime() - b.date.getTime());
+
+        for (const payment of allPayments) {
+            const dateOfPayment = payment.date;
+            
+            if (borrowing.interestType === 'Monthly') {
+                const months = differenceInCalendarMonths(dateOfPayment, lastDate);
+                if (months > 0) {
+                    accruedInterest += principal * (borrowing.interestRate / 100) * months;
+                }
+            } else { // Yearly
+                const years = differenceInCalendarYears(dateOfPayment, lastDate);
+                 if (years > 0) {
+                    accruedInterest += principal * (borrowing.interestRate / 100) * years;
+                }
             }
-        } else { // Monthly
-            const monthsPassed = differenceInCalendarMonths(new Date(), loanDate);
-            if (monthsPassed > 0) {
-                totalInterest = borrowing.principal * ((borrowing.interestRate || 0) / 100) * monthsPassed;
+            
+            // Apply payment
+            if (payment.type === 'interest') {
+                accruedInterest -= payment.amount;
+                // If interest is overpaid, reduce principal
+                if(accruedInterest < 0) {
+                    principal += accruedInterest; // accruedInterest is negative here
+                    accruedInterest = 0;
+                }
+            } else if (payment.type === 'principal') {
+                principal -= payment.amount;
             }
+
+            lastDate = dateOfPayment;
         }
 
-        const principalPayments = (borrowing.payments || []).filter(p => p.type === 'principal').reduce((acc, p) => acc + p.amount, 0);
-        const interestPayments = (borrowing.payments || []).filter(p => p.type === 'interest').reduce((acc, p) => acc + p.amount, 0);
-
-        const interestOverpayment = Math.max(0, interestPayments - totalInterest);
-        const effectivePrincipalPaid = principalPayments + interestOverpayment;
+        // Calculate final interest from last payment to today
+        const today = new Date();
+        if (borrowing.interestType === 'Monthly') {
+            const months = differenceInCalendarMonths(today, lastDate);
+            if (months > 0) {
+                accruedInterest += principal * (borrowing.interestRate / 100) * months;
+            }
+        } else { // Yearly
+             const years = differenceInCalendarYears(today, lastDate);
+            if (years > 0) {
+                accruedInterest += principal * (borrowing.interestRate / 100) * years;
+            }
+        }
         
-        const interestDue = Math.max(0, totalInterest - interestPayments);
-        const principalDue = borrowing.principal - effectivePrincipalPaid;
-        const totalDue = principalDue + interestDue;
-
         return {
             ...borrowing,
-            principalDue,
-            interestDue,
-            totalDue,
+            principalDue: principal,
+            interestDue: Math.max(0, accruedInterest),
+            totalDue: principal + Math.max(0, accruedInterest),
         };
     });
   }, [activeBorrowings]);
@@ -191,36 +216,61 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
   
   const lendingsWithInterest = useMemo(() => {
     return activeLendings.map(lending => {
-        const loanDate = toDate(lending.dateGiven);
-        let totalInterest = 0;
-        
-        if (lending.interestType === 'Yearly') {
-            const yearsPassed = differenceInCalendarYears(new Date(), loanDate);
-            if (yearsPassed > 0) {
-                totalInterest = lending.principal * ((lending.interestRate || 0) / 100) * yearsPassed;
+        let principal = lending.principal;
+        let accruedInterest = 0;
+        let lastDate = toDate(lending.dateGiven);
+
+        const allPayments = [...(lending.payments || []).map(p => ({...p, date: toDate(p.date)}))].sort((a,b) => a.date.getTime() - b.date.getTime());
+
+        for (const payment of allPayments) {
+            const dateOfPayment = payment.date;
+            
+            if (lending.interestType === 'Monthly') {
+                const months = differenceInCalendarMonths(dateOfPayment, lastDate);
+                if (months > 0) {
+                    accruedInterest += principal * (lending.interestRate / 100) * months;
+                }
+            } else { // Yearly
+                const years = differenceInCalendarYears(dateOfPayment, lastDate);
+                 if (years > 0) {
+                    accruedInterest += principal * (lending.interestRate / 100) * years;
+                }
             }
-        } else { // Monthly
-            const monthsPassed = differenceInCalendarMonths(new Date(), loanDate);
-            if (monthsPassed > 0) {
-                totalInterest = lending.principal * ((lending.interestRate || 0) / 100) * monthsPassed;
+            
+            // Apply payment
+            if (payment.type === 'interest') {
+                accruedInterest -= payment.amount;
+                // If interest is overpaid, reduce principal
+                if(accruedInterest < 0) {
+                    principal += accruedInterest; // accruedInterest is negative here
+                    accruedInterest = 0;
+                }
+            } else if (payment.type === 'principal') {
+                principal -= payment.amount;
+            }
+
+            lastDate = dateOfPayment;
+        }
+
+        // Calculate final interest from last payment to today
+        const today = new Date();
+        if (lending.interestType === 'Monthly') {
+            const months = differenceInCalendarMonths(today, lastDate);
+            if (months > 0) {
+                accruedInterest += principal * (lending.interestRate / 100) * months;
+            }
+        } else { // Yearly
+             const years = differenceInCalendarYears(today, lastDate);
+            if (years > 0) {
+                accruedInterest += principal * (lending.interestRate / 100) * years;
             }
         }
         
-        const principalReceived = (lending.payments || []).filter(p => p.type === 'principal').reduce((acc, p) => acc + p.amount, 0);
-        const interestReceived = (lending.payments || []).filter(p => p.type === 'interest').reduce((acc, p) => acc + p.amount, 0);
-
-        const interestOverpayment = Math.max(0, interestReceived - totalInterest);
-        const effectivePrincipalReceived = principalReceived + interestOverpayment;
-
-        const interestDue = Math.max(0, totalInterest - interestReceived);
-        const principalDue = lending.principal - effectivePrincipalReceived;
-        const totalDue = principalDue + interestDue;
-        
         return {
             ...lending,
-            principalDue,
-            interestDue,
-            totalDue,
+            principalDue: principal,
+            interestDue: Math.max(0, accruedInterest),
+            totalDue: principal + Math.max(0, accruedInterest),
         };
     });
   }, [activeLendings]);

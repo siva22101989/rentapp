@@ -121,5 +121,12 @@
     left: 0;
     top: 0;
     width: 100%;
+    color: black;
+  }
+  .print-no-break {
+    page-break-inside: avoid;
+  }
+  .print-hide {
+    display: none;
   }
 }

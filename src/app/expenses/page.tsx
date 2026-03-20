@@ -428,7 +428,7 @@ export default function ExpensesPage() {
     <AppLayout>
       <div>
         <div className="space-y-0.5">
-          <h1 className="text-xl font-bold tracking-tight font-headline">Profit & Loss</h1>
+          <h1 className="text-lg md:text-xl font-bold tracking-tight font-headline">Profit & Loss</h1>
           <p className="text-sm text-muted-foreground">
             Track your operational finances and view profit/loss for the selected period.
           </p>

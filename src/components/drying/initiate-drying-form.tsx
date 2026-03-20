@@ -412,7 +412,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                             </FormItem>
                         )}
                     />
-                     <div className="grid grid-cols-2 gap-4">
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <FormField
                             control={form.control}
                             name="dryingStartDate"
@@ -448,7 +448,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                            </div>
                         </div>
                     )}
-                     <div className="grid grid-cols-2 gap-4">
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <FormField
                             control={form.control}
                             name="bagsPacked"
@@ -490,7 +490,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                         />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <FormField
                             control={form.control}
                             name="customerHamaliPerBag"

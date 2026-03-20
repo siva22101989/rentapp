@@ -190,18 +190,27 @@ export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecor
     if (!element) return;
     setIsGenerating(true);
     try {
-        const canvas = await html2canvas(element, { scale: 2, useCORS: true, windowWidth: element.scrollWidth, windowHeight: element.scrollHeight });
+        const canvas = await html2canvas(element, { 
+            scale: 2, 
+            useCORS: true,
+            windowWidth: element.scrollWidth,
+            windowHeight: element.scrollHeight 
+        });
         const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF('p', 'mm', 'a4'); // Portrait
+        const imgWidth = canvas.width;
+        const imgHeight = canvas.height;
+
+        const pdf = new jsPDF({
+            orientation: 'p',
+            unit: 'px',
+            format: 'a4'
+        });
+
         const pdfWidth = pdf.internal.pageSize.getWidth();
         const pdfHeight = pdf.internal.pageSize.getHeight();
         
-        const imgProps= pdf.getImageProperties(imgData);
-        const imgWidth = imgProps.width;
-        const imgHeight = imgProps.height;
-        
-        const ratio = imgWidth / pdfWidth;
-        const canvasHeight = imgHeight / ratio;
+        const ratio = pdfWidth / imgWidth;
+        const canvasHeight = imgHeight * ratio;
         
         let position = 0;
         let heightLeft = canvasHeight;

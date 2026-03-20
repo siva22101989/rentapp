@@ -44,40 +44,37 @@ export function ReportClient({ records, customers, unloadingRecords, initialCust
                 scale: 2,
                 useCORS: true,
                 backgroundColor: '#ffffff',
+                windowWidth: element.scrollWidth,
+                windowHeight: element.scrollHeight
             });
 
             const imgData = canvas.toDataURL('image/png');
-            const pdf = new jsPDF('p', 'mm', 'a4');
+            const imgWidth = canvas.width;
+            const imgHeight = canvas.height;
+            
+            const pdf = new jsPDF({
+                orientation: 'p',
+                unit: 'px',
+                format: 'a4'
+            });
+
             const pdfWidth = pdf.internal.pageSize.getWidth();
             const pdfHeight = pdf.internal.pageSize.getHeight();
             
-            const imgProps= pdf.getImageProperties(imgData);
-            const imgWidth = imgProps.width;
-            const imgHeight = imgProps.height;
+            const ratio = pdfWidth / imgWidth;
+            const canvasHeight = imgHeight * ratio;
             
-            const ratio = imgWidth / imgHeight;
-            
-            let widthInPdf = pdfWidth; 
-            let heightInPdf = widthInPdf / ratio;
-            
-            if (heightInPdf < pdfHeight) {
-                // If it fits on one page, center it vertically
-                const y = (pdfHeight - heightInPdf) / 2;
-                pdf.addImage(imgData, 'PNG', 0, y, widthInPdf, heightInPdf);
-            } else {
-                // For multi-page, add page by page
-                let position = 0;
-                let heightLeft = heightInPdf;
+            let position = 0;
+            let heightLeft = canvasHeight;
 
-                pdf.addImage(imgData, 'PNG', 0, position, widthInPdf, heightInPdf);
+            pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, canvasHeight);
+            heightLeft -= pdfHeight;
+
+            while (heightLeft > 0) {
+                position = position - pdfHeight;
+                pdf.addPage();
+                pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, canvasHeight);
                 heightLeft -= pdfHeight;
-
-                while (heightLeft > 0) {
-                    position = position - pdfHeight;
-                    pdf.addPage();
-                    pdf.addImage(imgData, 'PNG', 0, position, widthInPdf, heightInPdf);
-                    heightLeft -= pdfHeight;
-                }
             }
             
             pdf.save(`statement-${selectedCustomerId}-${Date.now()}.pdf`);

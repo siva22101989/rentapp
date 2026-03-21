@@ -6,7 +6,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Loader2, Building2 } from 'lucide-react';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -90,125 +89,111 @@ export function WarehouseInfoForm() {
 
     if (loadingInfo) {
         return (
-            <Card className="w-full max-w-md mx-auto">
-                <CardHeader>
-                    <CardTitle>Warehouse Details</CardTitle>
-                    <CardDescription>Edit your warehouse name, address, and phone.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-20 w-full" />
-                </CardContent>
-                <CardFooter>
-                    <Skeleton className="h-10 w-24" />
-                </CardFooter>
-            </Card>
+            <div className="space-y-4">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-20 w-full" />
+                <div className="flex justify-end">
+                    <Skeleton className="h-10 w-32" />
+                </div>
+            </div>
         );
     }
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-        <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)}>
-                <CardHeader>
-                    <CardTitle>Warehouse Details</CardTitle>
-                    <CardDescription>Edit your warehouse name, address, and phone number. This information will appear on all receipts.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <FormField
-                        control={form.control}
-                        name="name"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Warehouse Name</FormLabel>
-                                <FormControl><Input placeholder="e.g., Sri Lakshmi Warehouse" {...field} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                     <FormField
-                        control={form.control}
-                        name="ownerName"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Owner Name (Proprietor)</FormLabel>
-                                <FormControl><Input placeholder="e.g., John Doe" {...field} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="phone"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Phone Number</FormLabel>
-                                <FormControl><Input placeholder="e.g., 9160606633" {...field} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                     <FormField
-                        control={form.control}
-                        name="email"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Email Address</FormLabel>
-                                <FormControl><Input type="email" placeholder="e.g., contact@warehouse.com" {...field} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="addressLine1"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Address Line 1</FormLabel>
-                                <FormControl><Input placeholder="e.g., Survey No. 165,237/2" {...field} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="addressLine2"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Address Line 2</FormLabel>
-                                <FormControl><Input placeholder="e.g., Owk (M), Kurnool (Dt.), A.P." {...field} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="bankDetails"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Bank Details</FormLabel>
-                                <FormControl><Textarea placeholder="Bank Name, Account Number, IFSC Code" {...field} /></FormControl>
-                                <FormDescription>This will be displayed on customer statements for payment.</FormDescription>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                </CardContent>
-                <CardFooter>
-                    <Button type="submit" disabled={isPending}>
-                        {isPending ? (
-                            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
-                        ) : (
-                            <><Building2 className="mr-2 h-4 w-4" /> Save Details</>
-                        )}
-                    </Button>
-                </CardFooter>
-            </form>
-        </Form>
-    </Card>
+    <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Warehouse Name</FormLabel>
+                        <FormControl><Input placeholder="e.g., Sri Lakshmi Warehouse" {...field} /></FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
+             <FormField
+                control={form.control}
+                name="ownerName"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Owner Name (Proprietor)</FormLabel>
+                        <FormControl><Input placeholder="e.g., John Doe" {...field} /></FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
+            <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Phone Number</FormLabel>
+                        <FormControl><Input placeholder="e.g., 9160606633" {...field} /></FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
+             <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Email Address</FormLabel>
+                        <FormControl><Input type="email" placeholder="e.g., contact@warehouse.com" {...field} /></FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
+            <FormField
+                control={form.control}
+                name="addressLine1"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Address Line 1</FormLabel>
+                        <FormControl><Input placeholder="e.g., Survey No. 165,237/2" {...field} /></FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
+            <FormField
+                control={form.control}
+                name="addressLine2"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Address Line 2</FormLabel>
+                        <FormControl><Input placeholder="e.g., Owk (M), Kurnool (Dt.), A.P." {...field} /></FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
+            <FormField
+                control={form.control}
+                name="bankDetails"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Bank Details</FormLabel>
+                        <FormControl><Textarea placeholder="Bank Name, Account Number, IFSC Code" {...field} /></FormControl>
+                        <FormDescription>This will be displayed on customer statements for payment.</FormDescription>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
+             <div className="flex justify-end">
+                <Button type="submit" disabled={isPending}>
+                    {isPending ? (
+                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
+                    ) : (
+                        <><Building2 className="mr-2 h-4 w-4" /> Save Details</>
+                    )}
+                </Button>
+            </div>
+        </form>
+    </Form>
   );
 }

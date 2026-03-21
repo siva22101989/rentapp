@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useTransition, useState, useRef } from 'react';
@@ -17,19 +18,17 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { cleanForFirestore } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 import type { Customer } from '@/lib/definitions';
-import { WarehouseInfoForm } from './warehouse-info-form';
 
 // Collections to clear for testing purposes (preserving setup data)
-const TRANSACTIONAL_COLLECTIONS = ['customers', 'storageRecords', 'expenses', 'unloadingRecords', 'dryingRecords'];
+const TRANSACTIONAL_COLLECTIONS = ['customers', 'storageRecords', 'expenses', 'unloadingRecords', 'dryingRecords', 'borrowings', 'lendings', 'otherIncomes'];
 // All collections for full backup
-const ALL_DATA_COLLECTIONS = ['customers', 'storageRecords', 'expenses', 'unloadingRecords', 'dryingRecords', 'commodities', 'lots'];
+const ALL_DATA_COLLECTIONS = ['customers', 'storageRecords', 'expenses', 'unloadingRecords', 'dryingRecords', 'commodities', 'lots', 'borrowings', 'lendings', 'otherIncomes', 'settings'];
 
-export function SettingsClient() {
+export function DataSettings() {
   const [isClearingCache, startClearingCacheTransition] = useTransition();
   const [isClearingDb, startClearingDbTransition] = useTransition();
   const [isExporting, startExportingTransition] = useTransition();
@@ -45,11 +44,8 @@ export function SettingsClient() {
   const handleClearCache = () => {
     startClearingCacheTransition(() => {
         try {
-            // Clear local and session storage
             localStorage.clear();
             sessionStorage.clear();
-
-            // Clear Cache API
             if ('caches' in window) {
                 caches.keys().then((names) => {
                     for (const name of names) {
@@ -57,17 +53,13 @@ export function SettingsClient() {
                     }
                 });
             }
-
             toast({
                 title: 'Cache Cleared',
                 description: 'Local storage, session storage, and browser cache have been cleared. The page will now reload.',
             });
-
-            // Hard reload the page
             setTimeout(() => {
                 window.location.reload();
             }, 1500);
-
         } catch (error: any) {
             toast({
                 title: 'Error',
@@ -110,7 +102,7 @@ export function SettingsClient() {
             const deletedCount = await clearData(TRANSACTIONAL_COLLECTIONS);
             toast({
                 title: 'Transactional Data Cleared',
-                description: `Successfully deleted transactional data (customers, records, etc.). Commodities and lots were not affected. Total documents removed: ${deletedCount}. The page will now reload.`,
+                description: `Successfully cleared transactional data. Commodities and lots were not affected. Total documents removed: ${deletedCount}. The page will now reload.`,
             });
             setTimeout(() => {
                 window.location.reload();
@@ -299,75 +291,73 @@ export function SettingsClient() {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-        <WarehouseInfoForm />
-        
-        <div className="space-y-8 w-full max-w-md mx-auto">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Data Management</CardTitle>
-                    <CardDescription>
-                        Import data from an Excel file (CSV) or export all current data to a JSON backup.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div>
-                        <h4 className="text-sm font-medium mb-2">Step 1: Download Sample Excel File</h4>
-                        <p className="text-xs text-muted-foreground px-2 mb-2">
-                            Download the sample file and fill it with your customer and storage information.
-                        </p>
-                        <Button asChild size="sm" variant="secondary" className="w-full justify-start">
-                            <Link href="/all-data-template.csv" download>
-                                <FileText className="mr-2 h-4 w-4" />
-                                Download Sample Excel File (.csv)
-                            </Link>
-                        </Button>
-                    </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-6">
+        <Card>
+            <CardHeader>
+                <CardTitle>Data Management</CardTitle>
+                <CardDescription>
+                    Import data from an Excel file (CSV) or export all current data to a JSON backup.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div>
+                    <h4 className="text-sm font-medium mb-2">Step 1: Download Sample Excel File</h4>
+                    <p className="text-xs text-muted-foreground px-2 mb-2">
+                        Download the sample file and fill it with your customer and storage information.
+                    </p>
+                    <Button asChild size="sm" variant="secondary" className="w-full justify-start">
+                        <Link href="/all-data-template.csv" download>
+                            <FileText className="mr-2 h-4 w-4" />
+                            Download Sample Excel File (.csv)
+                        </Link>
+                    </Button>
+                </div>
 
-                    <Separator />
+                <Separator />
 
-                    <div>
-                        <h4 className="text-sm font-medium mb-2">Step 2: Import Your File</h4>
-                        <div className="space-y-2">
-                            <Button onClick={handleImportClick} disabled={isImporting} className="w-full justify-start" variant="outline">
-                                {isImporting ? (
-                                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Importing...</>
-                                ) : (
-                                    <><Upload className="mr-2 h-4 w-4" /> Import from Excel File (.csv)</>
-                                )}
-                            </Button>
-                            <p className="text-xs text-muted-foreground px-2 mt-2">
-                                This will **overwrite all existing data** (customers, records, etc.) with the content from your file.
-                            </p>
-                        </div>
-                    </div>
-
-                    <Separator />
-                    
-                    <div>
-                        <h4 className="text-sm font-medium mb-2">Backup</h4>
-                        <p className="text-xs text-muted-foreground px-2 mb-2">
-                            Export all data from the database into a single JSON file for safekeeping.
-                        </p>
-                        <Button onClick={handleExportData} disabled={isExporting} className="w-full justify-start" variant="outline">
-                            {isExporting ? (
-                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Exporting...</>
+                <div>
+                    <h4 className="text-sm font-medium mb-2">Step 2: Import Your File</h4>
+                    <div className="space-y-2">
+                        <Button onClick={handleImportClick} disabled={isImporting} className="w-full justify-start" variant="outline">
+                            {isImporting ? (
+                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Importing...</>
                             ) : (
-                                <><Download className="mr-2 h-4 w-4" /> Export All Data as JSON</>
+                                <><Upload className="mr-2 h-4 w-4" /> Import from Excel File (.csv)</>
                             )}
                         </Button>
+                        <p className="text-xs text-muted-foreground px-2 mt-2">
+                            This will **overwrite all existing data** (customers, records, etc.) with the content from your file.
+                        </p>
                     </div>
+                </div>
 
-                    <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleFileChange}
-                        className="hidden"
-                        accept=".csv"
-                    />
-                </CardContent>
-            </Card>
+                <Separator />
+                
+                <div>
+                    <h4 className="text-sm font-medium mb-2">Backup</h4>
+                    <p className="text-xs text-muted-foreground px-2 mb-2">
+                        Export all data from the database into a single JSON file for safekeeping.
+                    </p>
+                    <Button onClick={handleExportData} disabled={isExporting} className="w-full justify-start" variant="outline">
+                        {isExporting ? (
+                            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Exporting...</>
+                        ) : (
+                            <><Download className="mr-2 h-4 w-4" /> Export All Data as JSON</>
+                        )}
+                    </Button>
+                </div>
 
+                <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    className="hidden"
+                    accept=".csv"
+                />
+            </CardContent>
+        </Card>
+        
+        <div className="space-y-8">
             <Card className="w-full border-orange-500/50">
                 <CardHeader>
                     <CardTitle className="text-orange-600">Clear Local Data</CardTitle>
@@ -376,19 +366,31 @@ export function SettingsClient() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Button onClick={handleClearCache} disabled={isClearingCache} size="lg" variant="outline" className="text-orange-600 border-orange-500 hover:bg-orange-50 hover:text-orange-700">
-                        {isClearingCache ? (
-                            <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Clearing...
-                            </>
-                        ) : (
-                            <>
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Clear Cache and Reload
-                            </>
-                        )}
-                    </Button>
+                     <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button size="lg" variant="outline" className="text-orange-600 border-orange-500 hover:bg-orange-50 hover:text-orange-700">
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Clear Cache and Reload
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    This action will clear all locally stored application data from your browser and reload the page.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                    onClick={handleClearCache}
+                                    disabled={isClearingCache}
+                                >
+                                    {isClearingCache ? 'Clearing...' : 'Yes, clear cache'}
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                 </CardContent>
             </Card>
             
@@ -396,7 +398,7 @@ export function SettingsClient() {
                 <CardHeader>
                     <CardTitle className="text-destructive">Clear Transactional Data</CardTitle>
                     <CardDescription>
-                        This will permanently delete all transactional data (customers, records, expenses) but will keep your setup data (Commodities, Lots).
+                        This will permanently delete all transactional data but will keep your setup data (Commodities, Lots).
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -411,7 +413,7 @@ export function SettingsClient() {
                             <AlertDialogHeader>
                                 <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                    This action is permanent and cannot be undone. All customers, storage records, unloading/drying records, and expenses will be deleted. Your Commodities and Lots will not be affected.
+                                    This action is permanent and cannot be undone. All customers, storage records, and expenses will be deleted. Your Commodities and Lots will not be affected.
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -422,10 +424,7 @@ export function SettingsClient() {
                                     disabled={isClearingDb}
                                 >
                                     {isClearingDb ? (
-                                        <>
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            Deleting...
-                                        </>
+                                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Deleting...</>
                                     ) : (
                                         'Yes, delete transactional data'
                                     )}
@@ -453,10 +452,7 @@ export function SettingsClient() {
                         disabled={isImporting}
                     >
                         {isImporting ? (
-                            <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Importing...
-                            </>
+                            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Importing...</>
                         ) : (
                             'Yes, overwrite and import'
                         )}

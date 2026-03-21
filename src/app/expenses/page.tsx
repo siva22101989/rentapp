@@ -63,7 +63,7 @@ function ExpensesTable({ expenses }: { expenses: Expense[] }) {
   if (expenses.length === 0) {
     return (
       <Card>
-        <CardContent className="p-2 text-center text-muted-foreground">
+        <CardContent className="p-6 text-center text-muted-foreground">
           No expenses recorded for the selected period.
         </CardContent>
       </Card>
@@ -172,8 +172,8 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
             <TableRow>
               <TableHead>Lender</TableHead>
               <TableHead className="hidden sm:table-cell">Rate</TableHead>
-              <TableHead className="hidden md:table-cell">Principal Due</TableHead>
-              <TableHead className="hidden md:table-cell">Interest Due</TableHead>
+              <TableHead>Principal Due</TableHead>
+              <TableHead>Interest Due</TableHead>
               <TableHead className="text-right">Total Due</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
@@ -183,8 +183,8 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
                 <TableRow key={borrowing.id}>
                   <TableCell className="font-medium">{borrowing.lenderName}</TableCell>
                   <TableCell className="hidden sm:table-cell">{borrowing.interestRate}% {borrowing.interestType}</TableCell>
-                  <TableCell className="font-mono hidden md:table-cell text-destructive">{formatCurrency(borrowing.principalDue)}</TableCell>
-                  <TableCell className="font-mono hidden md:table-cell text-destructive">{formatCurrency(borrowing.interestDue)}</TableCell>
+                  <TableCell className="font-mono text-destructive">{formatCurrency(borrowing.principalDue)}</TableCell>
+                  <TableCell className="font-mono text-destructive">{formatCurrency(borrowing.interestDue)}</TableCell>
                   <TableCell className="text-right font-mono text-destructive font-bold">{formatCurrency(borrowing.totalDue)}</TableCell>
                   <TableCell>
                     <BorrowingActionsMenu borrowing={borrowing} />
@@ -265,8 +265,8 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
             <TableRow>
               <TableHead>Borrower</TableHead>
               <TableHead className="hidden sm:table-cell">Rate</TableHead>
-              <TableHead className="hidden md:table-cell">Principal Due</TableHead>
-              <TableHead className="hidden md:table-cell">Interest Due</TableHead>
+              <TableHead>Principal Due</TableHead>
+              <TableHead>Interest Due</TableHead>
               <TableHead className="text-right">Total Due</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
@@ -276,8 +276,8 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
                 <TableRow key={lending.id}>
                   <TableCell className="font-medium">{lending.borrowerName}</TableCell>
                   <TableCell className="hidden sm:table-cell">{lending.interestRate}% {lending.interestType}</TableCell>
-                  <TableCell className="font-mono hidden md:table-cell text-green-600">{formatCurrency(lending.principalDue)}</TableCell>
-                  <TableCell className="font-mono hidden md:table-cell text-green-600">{formatCurrency(lending.interestDue)}</TableCell>
+                  <TableCell className="font-mono text-green-600">{formatCurrency(lending.principalDue)}</TableCell>
+                  <TableCell className="font-mono text-green-600">{formatCurrency(lending.interestDue)}</TableCell>
                   <TableCell className="text-right font-mono text-green-600 font-bold">{formatCurrency(lending.totalDue)}</TableCell>
                   <TableCell>
                     <LendingActionsMenu lending={lending} />
@@ -400,7 +400,7 @@ export default function ExpensesPage() {
   
   return (
     <AppLayout>
-      <div>
+      <div className="mb-4">
         <div className="space-y-0.5">
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight font-headline">Profit & Loss</h1>
           <p className="text-sm text-muted-foreground">
@@ -421,7 +421,7 @@ export default function ExpensesPage() {
       <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
         <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle>Total Income</CardTitle>
+                <CardTitle className="text-sm font-medium">Total Income</CardTitle>
                 <TrendingUp className="h-4 w-4 text-muted-foreground text-green-500" />
             </CardHeader>
             <CardContent>
@@ -433,7 +433,7 @@ export default function ExpensesPage() {
         </Card>
         <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle>Total Expenses</CardTitle>
+                <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
                  <TrendingDown className="h-4 w-4 text-muted-foreground text-red-500" />
             </CardHeader>
             <CardContent>
@@ -445,7 +445,7 @@ export default function ExpensesPage() {
         </Card>
          <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle>Interest on Capital</CardTitle>
+                <CardTitle className="text-sm font-medium">Interest on Capital</CardTitle>
                 <Banknote className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -457,7 +457,7 @@ export default function ExpensesPage() {
         </Card>
          <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle>Estimated Rent Due</CardTitle>
+                <CardTitle className="text-sm font-medium">Estimated Rent Due</CardTitle>
                 <IndianRupee className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -469,7 +469,7 @@ export default function ExpensesPage() {
         </Card>
         <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle>Net Profit / Loss</CardTitle>
+                <CardTitle className="text-sm font-medium">Net Profit / Loss</CardTitle>
                  <Scale className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -490,3 +490,5 @@ export default function ExpensesPage() {
     </AppLayout>
   );
 }
+
+    

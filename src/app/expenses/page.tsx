@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Scale, Banknote, IndianRupee } from "lucide-react";
 import { formatCurrency, toDate } from "@/lib/utils";
 import { useMemo, useState, useEffect } from "react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Expense, StorageRecord, UnloadingRecord, WarehouseInfo, Borrowing, Lending, OtherIncome } from "@/lib/definitions";
 import { format, differenceInCalendarMonths, differenceInCalendarYears } from "date-fns";
 import { ExpenseActionsMenu } from "@/components/expenses/expense-actions-menu";
@@ -112,8 +112,8 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
     return null;
   }
   
-  const borrowingsWithInterest = useMemo(() => {
-    return activeBorrowings.map(borrowing => {
+  const { borrowingsWithInterest, totals } = useMemo(() => {
+    const calculatedBorrowings = activeBorrowings.map(borrowing => {
         let principal = borrowing.principal;
         let accruedInterest = 0;
         let lastDate = toDate(borrowing.dateTaken);
@@ -162,6 +162,16 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
             monthsPassed: totalMonths,
         };
     });
+
+    const totals = calculatedBorrowings.reduce((acc, curr) => {
+        acc.principalDue += curr.principalDue;
+        acc.interestDue += curr.interestDue;
+        acc.totalDue += curr.totalDue;
+        return acc;
+    }, { principalDue: 0, interestDue: 0, totalDue: 0 });
+
+    return { borrowingsWithInterest: calculatedBorrowings, totals };
+
   }, [activeBorrowings]);
   
   return (
@@ -199,6 +209,15 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
                 </TableRow>
             ))}
           </TableBody>
+            <TableFooter>
+                <TableRow>
+                    <TableCell colSpan={4} className="text-right font-bold">Totals</TableCell>
+                    <TableCell className="font-mono font-bold text-destructive">{formatCurrency(totals.principalDue)}</TableCell>
+                    <TableCell className="font-mono font-bold text-destructive">{formatCurrency(totals.interestDue)}</TableCell>
+                    <TableCell className="text-right font-mono font-bold text-destructive">{formatCurrency(totals.totalDue)}</TableCell>
+                    <TableCell />
+                </TableRow>
+            </TableFooter>
         </Table>
       </CardContent>
     </Card>
@@ -212,8 +231,8 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
     return null;
   }
   
-  const lendingsWithInterest = useMemo(() => {
-    return activeLendings.map(lending => {
+  const { lendingsWithInterest, totals } = useMemo(() => {
+    const calculatedLendings = activeLendings.map(lending => {
         let principal = lending.principal;
         let accruedInterest = 0;
         let lastDate = toDate(lending.dateGiven);
@@ -262,6 +281,16 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
             monthsPassed: totalMonths,
         };
     });
+
+    const totals = calculatedLendings.reduce((acc, curr) => {
+        acc.principalDue += curr.principalDue;
+        acc.interestDue += curr.interestDue;
+        acc.totalDue += curr.totalDue;
+        return acc;
+    }, { principalDue: 0, interestDue: 0, totalDue: 0 });
+    
+    return { lendingsWithInterest: calculatedLendings, totals };
+
   }, [activeLendings]);
   
   return (
@@ -299,6 +328,15 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
                 </TableRow>
             ))}
           </TableBody>
+           <TableFooter>
+                <TableRow>
+                    <TableCell colSpan={4} className="text-right font-bold">Totals</TableCell>
+                    <TableCell className="font-mono font-bold text-green-600">{formatCurrency(totals.principalDue)}</TableCell>
+                    <TableCell className="font-mono font-bold text-green-600">{formatCurrency(totals.interestDue)}</TableCell>
+                    <TableCell className="text-right font-mono font-bold text-green-600">{formatCurrency(totals.totalDue)}</TableCell>
+                    <TableCell />
+                </TableRow>
+            </TableFooter>
         </Table>
       </CardContent>
     </Card>

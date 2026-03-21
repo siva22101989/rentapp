@@ -19,8 +19,8 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
     return null;
   }
   
-  const borrowingsWithInterest = useMemo(() => {
-    return activeBorrowings.map(borrowing => {
+  const { borrowingsWithInterest, totals } = useMemo(() => {
+    const calculatedBorrowings = activeBorrowings.map(borrowing => {
         let principal = borrowing.principal;
         let accruedInterest = 0;
         let lastDate = toDate(borrowing.dateTaken);
@@ -64,6 +64,15 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
             monthsPassed: totalMonths,
         };
     });
+
+     const totals = calculatedBorrowings.reduce((acc, curr) => {
+        acc.principalDue += curr.principalDue;
+        acc.interestDue += curr.interestDue;
+        acc.totalDue += curr.totalDue;
+        return acc;
+    }, { principalDue: 0, interestDue: 0, totalDue: 0 });
+
+    return { borrowingsWithInterest: calculatedBorrowings, totals };
   }, [activeBorrowings]);
 
   if (borrowingsWithInterest.length === 0) return null;
@@ -95,6 +104,14 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
                 </TableRow>
             ))}
           </TableBody>
+           <TableFooter>
+                <TableRow>
+                    <TableCell colSpan={4} className="text-right font-bold">Totals</TableCell>
+                    <TableCell className="text-right font-mono font-bold text-red-600">{formatCurrency(totals.principalDue)}</TableCell>
+                    <TableCell className="text-right font-mono font-bold text-red-600">{formatCurrency(totals.interestDue)}</TableCell>
+                    <TableCell className="text-right font-mono font-bold text-red-600">{formatCurrency(totals.totalDue)}</TableCell>
+                </TableRow>
+            </TableFooter>
         </Table>
       </CardContent>
     </Card>
@@ -106,8 +123,8 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
   
   if (activeLendings.length === 0) return null;
   
-  const lendingsWithInterest = useMemo(() => {
-    return activeLendings.map(lending => {
+  const { lendingsWithInterest, totals } = useMemo(() => {
+    const calculatedLendings = activeLendings.map(lending => {
         let principal = lending.principal;
         let accruedInterest = 0;
         let lastDate = toDate(lending.dateGiven);
@@ -151,6 +168,15 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
             monthsPassed: totalMonths,
         };
     });
+
+     const totals = calculatedLendings.reduce((acc, curr) => {
+        acc.principalDue += curr.principalDue;
+        acc.interestDue += curr.interestDue;
+        acc.totalDue += curr.totalDue;
+        return acc;
+    }, { principalDue: 0, interestDue: 0, totalDue: 0 });
+
+    return { lendingsWithInterest: calculatedLendings, totals };
   }, [activeLendings]);
 
   if (lendingsWithInterest.length === 0) return null;
@@ -182,6 +208,14 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
                 </TableRow>
             ))}
           </TableBody>
+           <TableFooter>
+                <TableRow>
+                    <TableCell colSpan={4} className="text-right font-bold">Totals</TableCell>
+                    <TableCell className="text-right font-mono font-bold text-green-600">{formatCurrency(totals.principalDue)}</TableCell>
+                    <TableCell className="text-right font-mono font-bold text-green-600">{formatCurrency(totals.interestDue)}</TableCell>
+                    <TableCell className="text-right font-mono font-bold text-green-600">{formatCurrency(totals.totalDue)}</TableCell>
+                </TableRow>
+            </TableFooter>
         </Table>
       </CardContent>
     </Card>

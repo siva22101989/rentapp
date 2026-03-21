@@ -123,16 +123,12 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
         for (const payment of allPayments) {
             const dateOfPayment = payment.date;
             
-            if (borrowing.interestType === 'Yearly') {
-                const years = differenceInCalendarYears(dateOfPayment, lastDate);
-                if (years > 0) {
-                    accruedInterest += principal * (borrowing.interestRate / 100) * years;
-                }
-            } else { // Monthly
-                const months = differenceInCalendarMonths(dateOfPayment, lastDate);
-                if (months > 0) {
-                    accruedInterest += principal * (borrowing.interestRate / 100) * months;
-                }
+            const months = differenceInCalendarMonths(dateOfPayment, lastDate);
+            if (months > 0) {
+                const monthlyRate = (borrowing.interestType === 'Yearly')
+                    ? (borrowing.interestRate / 100) / 12
+                    : (borrowing.interestRate / 100);
+                accruedInterest += principal * monthlyRate * months;
             }
             
             // Unified payment application logic
@@ -153,16 +149,12 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
 
         // Calculate final interest from last payment to today
         const today = new Date();
-        if (borrowing.interestType === 'Yearly') {
-            const finalYears = differenceInCalendarYears(today, lastDate);
-            if (finalYears > 0) {
-                accruedInterest += principal * (borrowing.interestRate / 100) * finalYears;
-            }
-        } else { // Monthly
-            const finalMonths = differenceInCalendarMonths(today, lastDate);
-            if (finalMonths > 0) {
-                accruedInterest += principal * (borrowing.interestRate / 100) * finalMonths;
-            }
+        const finalMonths = differenceInCalendarMonths(today, lastDate);
+        if (finalMonths > 0) {
+            const monthlyRate = (borrowing.interestType === 'Yearly')
+                ? (borrowing.interestRate / 100) / 12
+                : (borrowing.interestRate / 100);
+            accruedInterest += principal * monthlyRate * finalMonths;
         }
         
         return {
@@ -229,16 +221,12 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
         for (const payment of allPayments) {
             const dateOfPayment = payment.date;
             
-            if (lending.interestType === 'Yearly') {
-                const years = differenceInCalendarYears(dateOfPayment, lastDate);
-                if (years > 0) {
-                    accruedInterest += principal * (lending.interestRate / 100) * years;
-                }
-            } else { // Monthly
-                const months = differenceInCalendarMonths(dateOfPayment, lastDate);
-                if (months > 0) {
-                    accruedInterest += principal * (lending.interestRate / 100) * months;
-                }
+            const months = differenceInCalendarMonths(dateOfPayment, lastDate);
+            if (months > 0) {
+                const monthlyRate = (lending.interestType === 'Yearly')
+                    ? (lending.interestRate / 100) / 12
+                    : (lending.interestRate / 100);
+                accruedInterest += principal * monthlyRate * months;
             }
             
             // Unified payment application logic
@@ -259,16 +247,12 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
 
         // Calculate final interest from last payment to today
         const today = new Date();
-        if (lending.interestType === 'Yearly') {
-            const finalYears = differenceInCalendarYears(today, lastDate);
-            if (finalYears > 0) {
-                accruedInterest += principal * (lending.interestRate / 100) * finalYears;
-            }
-        } else { // Monthly
-            const finalMonths = differenceInCalendarMonths(today, lastDate);
-            if (finalMonths > 0) {
-                accruedInterest += principal * (lending.interestRate / 100) * finalMonths;
-            }
+        const finalMonths = differenceInCalendarMonths(today, lastDate);
+        if (finalMonths > 0) {
+            const monthlyRate = (lending.interestType === 'Yearly')
+                ? (lending.interestRate / 100) / 12
+                : (lending.interestRate / 100);
+            accruedInterest += principal * monthlyRate * finalMonths;
         }
         
         return {
@@ -428,12 +412,12 @@ export default function ExpensesPage() {
     <AppLayout>
       <div>
         <div className="space-y-0.5">
-          <h1 className="text-lg md:text-xl font-bold tracking-tight font-headline">Profit & Loss</h1>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight font-headline">Profit & Loss</h1>
           <p className="text-sm text-muted-foreground">
             Track your operational finances and view profit/loss for the selected period.
           </p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap mt-3">
+        <div className="flex items-center gap-2 flex-wrap mt-4">
             <AddIncomeDialog lendings={lendings || []} />
             <AddExpenseDialog borrowings={borrowings || []} />
             <Separator orientation="vertical" className="h-6" />
@@ -444,9 +428,9 @@ export default function ExpensesPage() {
         </div>
       </div>
 
-      <div className="grid gap-2 md:grid-cols-3 lg:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
         <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle>Total Income</CardTitle>
                 <TrendingUp className="h-4 w-4 text-muted-foreground text-green-500" />
             </CardHeader>
@@ -458,7 +442,7 @@ export default function ExpensesPage() {
             </CardContent>
         </Card>
         <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle>Total Expenses</CardTitle>
                  <TrendingDown className="h-4 w-4 text-muted-foreground text-red-500" />
             </CardHeader>
@@ -470,7 +454,7 @@ export default function ExpensesPage() {
             </CardContent>
         </Card>
          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle>Interest on Capital</CardTitle>
                 <Banknote className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
@@ -482,7 +466,7 @@ export default function ExpensesPage() {
             </CardContent>
         </Card>
          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle>Estimated Rent Due</CardTitle>
                 <IndianRupee className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
@@ -494,7 +478,7 @@ export default function ExpensesPage() {
             </CardContent>
         </Card>
         <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle>Net Profit / Loss</CardTitle>
                  <Scale className="h-4 w-4 text-muted-foreground" />
             </CardHeader>

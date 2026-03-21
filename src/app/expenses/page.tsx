@@ -152,11 +152,14 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
             accruedInterest += principal * monthlyRate * finalMonths;
         }
         
+        const totalMonths = differenceInCalendarMonths(today, toDate(borrowing.dateTaken));
+
         return {
             ...borrowing,
             principalDue: principal,
             interestDue: Math.max(0, accruedInterest),
             totalDue: principal + Math.max(0, accruedInterest),
+            monthsPassed: totalMonths,
         };
     });
   }, [activeBorrowings]);
@@ -171,6 +174,8 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
           <TableHeader>
             <TableRow>
               <TableHead>Lender</TableHead>
+              <TableHead>Date Taken</TableHead>
+              <TableHead>Months</TableHead>
               <TableHead className="hidden sm:table-cell">Monthly Rate</TableHead>
               <TableHead>Principal Due</TableHead>
               <TableHead>Interest Due</TableHead>
@@ -182,6 +187,8 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
             {borrowingsWithInterest.map((borrowing) => (
                 <TableRow key={borrowing.id}>
                   <TableCell className="font-medium">{borrowing.lenderName}</TableCell>
+                  <TableCell>{format(toDate(borrowing.dateTaken), 'dd MMM yyyy')}</TableCell>
+                  <TableCell className="text-center">{borrowing.monthsPassed}</TableCell>
                   <TableCell className="hidden sm:table-cell">{borrowing.interestRate}%</TableCell>
                   <TableCell className="font-mono text-destructive">{formatCurrency(borrowing.principalDue)}</TableCell>
                   <TableCell className="font-mono text-destructive">{formatCurrency(borrowing.interestDue)}</TableCell>
@@ -245,11 +252,14 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
             accruedInterest += principal * monthlyRate * finalMonths;
         }
         
+        const totalMonths = differenceInCalendarMonths(today, toDate(lending.dateGiven));
+
         return {
             ...lending,
             principalDue: principal,
             interestDue: Math.max(0, accruedInterest),
             totalDue: principal + Math.max(0, accruedInterest),
+            monthsPassed: totalMonths,
         };
     });
   }, [activeLendings]);
@@ -264,6 +274,8 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
           <TableHeader>
             <TableRow>
               <TableHead>Borrower</TableHead>
+              <TableHead>Date Given</TableHead>
+              <TableHead>Months</TableHead>
               <TableHead className="hidden sm:table-cell">Monthly Rate</TableHead>
               <TableHead>Principal Due</TableHead>
               <TableHead>Interest Due</TableHead>
@@ -275,6 +287,8 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
             {lendingsWithInterest.map((lending) => (
                 <TableRow key={lending.id}>
                   <TableCell className="font-medium">{lending.borrowerName}</TableCell>
+                  <TableCell>{format(toDate(lending.dateGiven), 'dd MMM yyyy')}</TableCell>
+                  <TableCell className="text-center">{lending.monthsPassed}</TableCell>
                   <TableCell className="hidden sm:table-cell">{lending.interestRate}%</TableCell>
                   <TableCell className="font-mono text-green-600">{formatCurrency(lending.principalDue)}</TableCell>
                   <TableCell className="font-mono text-green-600">{formatCurrency(lending.interestDue)}</TableCell>

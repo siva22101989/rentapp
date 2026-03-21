@@ -33,7 +33,6 @@ const LendingSchema = z.object({
   principal: z.coerce.number().positive('Principal amount must be positive.'),
   interestRate: z.coerce.number().nonnegative('Interest rate must be non-negative.'),
   dateGiven: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date" }),
-  interestType: z.enum(['Monthly', 'Yearly'], { required_error: 'Interest type is required.' }),
   status: z.enum(['Active', 'Paid Off']).optional(),
 });
 
@@ -52,7 +51,6 @@ export function EditLendingDialog({ lending, children }: { lending: Lending; chi
       principal: lending.principal,
       interestRate: lending.interestRate,
       dateGiven: format(toDate(lending.dateGiven), 'yyyy-MM-dd'),
-      interestType: lending.interestType,
       status: lending.status || 'Active',
     },
   });
@@ -125,45 +123,17 @@ export function EditLendingDialog({ lending, children }: { lending: Lending; chi
                   </FormItem>
                 )}
               />
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="interestRate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Interest Rate (%)</FormLabel>
-                      <FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ''} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="interestType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Interest Type</FormLabel>
-                      <FormControl>
-                        <RadioGroup
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                          className="flex items-center space-x-4 pt-2"
-                        >
-                          <FormItem className="flex items-center space-x-2 space-y-0">
-                            <FormControl><RadioGroupItem value="Monthly" /></FormControl>
-                            <FormLabel className="font-normal">Monthly</FormLabel>
-                          </FormItem>
-                          <FormItem className="flex items-center space-x-2 space-y-0">
-                            <FormControl><RadioGroupItem value="Yearly" /></FormControl>
-                            <FormLabel className="font-normal">Yearly</FormLabel>
-                          </FormItem>
-                        </RadioGroup>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+              <FormField
+                control={form.control}
+                name="interestRate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Monthly Interest Rate (%)</FormLabel>
+                    <FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ''} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
                <FormField
                   control={form.control}
                   name="status"

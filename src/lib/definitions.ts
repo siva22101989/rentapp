@@ -89,7 +89,6 @@ export type Borrowing = {
   principal: number;
   interestRate: number;
   dateTaken: Date | Timestamp;
-  interestType: 'Monthly' | 'Yearly';
   payments?: Payment[];
   status?: 'Active' | 'Paid Off';
 };
@@ -100,7 +99,6 @@ export type Lending = {
   principal: number;
   interestRate: number;
   dateGiven: Date | Timestamp;
-  interestType: 'Monthly' | 'Yearly';
   payments?: Payment[];
   status?: 'Active' | 'Paid Off';
 };

@@ -171,7 +171,7 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
           <TableHeader>
             <TableRow>
               <TableHead>Lender</TableHead>
-              <TableHead className="hidden sm:table-cell">Rate</TableHead>
+              <TableHead className="hidden sm:table-cell">Monthly Rate</TableHead>
               <TableHead>Principal Due</TableHead>
               <TableHead>Interest Due</TableHead>
               <TableHead className="text-right">Total Due</TableHead>
@@ -182,7 +182,7 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
             {borrowingsWithInterest.map((borrowing) => (
                 <TableRow key={borrowing.id}>
                   <TableCell className="font-medium">{borrowing.lenderName}</TableCell>
-                  <TableCell className="hidden sm:table-cell">{borrowing.interestRate}% {borrowing.interestType}</TableCell>
+                  <TableCell className="hidden sm:table-cell">{borrowing.interestRate}%</TableCell>
                   <TableCell className="font-mono text-destructive">{formatCurrency(borrowing.principalDue)}</TableCell>
                   <TableCell className="font-mono text-destructive">{formatCurrency(borrowing.interestDue)}</TableCell>
                   <TableCell className="text-right font-mono text-destructive font-bold">{formatCurrency(borrowing.totalDue)}</TableCell>
@@ -264,7 +264,7 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
           <TableHeader>
             <TableRow>
               <TableHead>Borrower</TableHead>
-              <TableHead className="hidden sm:table-cell">Rate</TableHead>
+              <TableHead className="hidden sm:table-cell">Monthly Rate</TableHead>
               <TableHead>Principal Due</TableHead>
               <TableHead>Interest Due</TableHead>
               <TableHead className="text-right">Total Due</TableHead>
@@ -275,7 +275,7 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
             {lendingsWithInterest.map((lending) => (
                 <TableRow key={lending.id}>
                   <TableCell className="font-medium">{lending.borrowerName}</TableCell>
-                  <TableCell className="hidden sm:table-cell">{lending.interestRate}% {lending.interestType}</TableCell>
+                  <TableCell className="hidden sm:table-cell">{lending.interestRate}%</TableCell>
                   <TableCell className="font-mono text-green-600">{formatCurrency(lending.principalDue)}</TableCell>
                   <TableCell className="font-mono text-green-600">{formatCurrency(lending.interestDue)}</TableCell>
                   <TableCell className="text-right font-mono text-green-600 font-bold">{formatCurrency(lending.totalDue)}</TableCell>

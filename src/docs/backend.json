@@ -1,0 +1,520 @@
+
+{
+  "entities": {
+    "customer": {
+      "title": "Customer",
+      "description": "Represents a customer of the warehouse.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The full name of the customer."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "The email address of the customer."
+        },
+        "phone": {
+          "type": "string",
+          "description": "The phone number of the customer."
+        },
+        "address": {
+          "type": "string",
+          "description": "The physical address of the customer."
+        },
+        "fatherName": {
+            "type": "string",
+            "description": "The father's name of the customer."
+        },
+        "village": {
+            "type": "string",
+            "description": "The village of the customer."
+        }
+      },
+      "required": ["name", "phone"]
+    },
+    "commodity": {
+      "title": "Commodity",
+      "description": "Represents a type of commodity with specific rent rates.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the commodity (e.g., Paddy, Maize)."
+        },
+        "rate6Months": {
+          "type": "number",
+          "description": "The rent rate per bag for a 6-month period."
+        },
+        "rate1Year": {
+          "type": "number",
+          "description": "The rent rate per bag for a 1-year period."
+        }
+      },
+      "required": ["name", "rate6Months", "rate1Year"]
+    },
+    "lot": {
+      "title": "Lot",
+      "description": "Represents a specific storage location within the warehouse.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The unique identifier for the lot (e.g., A1/Top)."
+        },
+        "capacity": {
+          "type": "number",
+          "description": "The storage capacity of the lot in bags."
+        }
+      },
+      "required": ["name"]
+    },
+    "storageRecord": {
+      "title": "Storage Record",
+      "description": "Represents a record of items being stored by a customer.",
+      "type": "object",
+      "properties": {
+        "customerId": {
+          "type": "string",
+          "description": "The ID of the customer who owns these items."
+        },
+        "commodityDescription": {
+          "type": "string",
+          "description": "A description of the commodity being stored."
+        },
+        "location": {
+          "type": "string",
+          "description": "The location within the warehouse where the items are stored (Lot No.)."
+        },
+        "bagsStored": {
+          "type": "number",
+          "description": "The number of bags being stored."
+        },
+        "storageStartDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The date when the storage period began."
+        },
+        "storageEndDate": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "The date when the storage period ended. Null if still active."
+        },
+        "billingCycle": {
+          "type": "string",
+          "enum": ["6-Month Initial", "1-Year Rollover", "1-Year Renewal", "Completed"],
+          "description": "The current billing cycle for the record."
+        },
+        "payments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/entities/payment"
+          }
+        },
+        "hamaliPayable": {
+          "type": "number",
+          "description": "The total hamali (loading/unloading) charges payable."
+        },
+        "totalRentBilled": {
+            "type": "number",
+            "description": "The total rent amount that has been billed for this record."
+        },
+        "lorryTractorNo": {
+            "type": "string",
+            "description": "The Lorry or Tractor number for the delivery."
+        },
+        "weight": {
+            "type": "number",
+            "description": "The weight of the stored items."
+        },
+        "inflowType": {
+            "type": "string",
+            "enum": ["Direct", "Plot"],
+            "description": "The type of inflow, either Direct from the vehicle or from a Plot."
+        },
+        "dryingRecordId": {
+            "type": "string",
+            "description": "The ID of the associated drying record, if inflow type is 'Plot'."
+        },
+        "khataAmount": {
+            "type": "number",
+            "description": "The amount for vehicle weightbridge (Khata)."
+        },
+        "hamaliDetails": {
+            "type": "array",
+            "description": "A detailed breakdown of hamali charges.",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "description": { "type": "string" },
+                    "bags": { "type": "number" },
+                    "rate": { "type": "number" },
+                    "amount": { "type": "number" }
+                }
+            }
+        }
+      },
+      "required": [
+        "customerId",
+        "commodityDescription",
+        "location",
+        "bagsStored",
+        "storageStartDate",
+        "billingCycle"
+      ]
+    },
+    "payment": {
+      "title": "Payment",
+      "description": "Represents a payment made towards a storage record.",
+      "type": "object",
+      "properties": {
+        "amount": {
+          "type": "number",
+          "description": "The amount of the payment."
+        },
+        "date": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The date the payment was made."
+        },
+        "type": {
+            "type": "string",
+            "enum": ["rent", "hamali", "other", "unloading", "discount", "interest", "principal"],
+            "description": "The type of payment."
+        }
+      },
+      "required": ["amount", "date"]
+    },
+    "expense": {
+        "title": "Expense",
+        "description": "Represents an operational expense.",
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "A description of the expense."
+          },
+          "amount": {
+            "type": "number",
+            "description": "The amount of the expense."
+          },
+          "category": {
+            "type": "string",
+            "enum": ["Worker Salary", "Petrol", "Maintenance", "Utilities", "Hamali", "Other"],
+            "description": "The category of the expense."
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The date the expense was incurred."
+          }
+        },
+        "required": ["description", "amount", "category", "date"]
+    },
+    "borrowing": {
+      "title": "Borrowing",
+      "description": "Represents a loan taken from an individual or entity.",
+      "type": "object",
+      "properties": {
+        "lenderName": {
+          "type": "string",
+          "description": "The name of the person or entity from whom the money was borrowed."
+        },
+        "principal": {
+          "type": "number",
+          "description": "The original amount of money borrowed."
+        },
+        "interestRate": {
+          "type": "number",
+          "description": "The monthly interest rate in percent (e.g., 2 for 2%)."
+        },
+        "dateTaken": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The date the loan was taken."
+        },
+        "payments": {
+          "type": "array",
+          "items": { "$ref": "#/entities/payment" }
+        },
+        "status": {
+            "type": "string",
+            "enum": ["Active", "Paid Off"],
+            "description": "The current status of the loan."
+        }
+      },
+      "required": [
+        "lenderName",
+        "principal",
+        "interestRate",
+        "dateTaken"
+      ]
+    },
+    "lending": {
+      "title": "Lending",
+      "description": "Represents a loan given to an individual or entity.",
+      "type": "object",
+      "properties": {
+        "borrowerName": {
+          "type": "string",
+          "description": "The name of the person or entity to whom the money was lent."
+        },
+        "principal": {
+          "type": "number",
+          "description": "The original amount of money lent."
+        },
+        "interestRate": {
+          "type": "number",
+          "description": "The monthly interest rate in percent (e.g., 2 for 2%)."
+        },
+        "dateGiven": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The date the loan was given."
+        },
+        "payments": {
+          "type": "array",
+          "items": { "$ref": "#/entities/payment" }
+        },
+        "status": {
+            "type": "string",
+            "enum": ["Active", "Paid Off"],
+            "description": "The current status of the loan."
+        }
+      },
+      "required": [
+        "borrowerName",
+        "principal",
+        "interestRate",
+        "dateGiven"
+      ]
+    },
+    "otherIncome": {
+      "title": "Other Income",
+      "description": "Represents miscellaneous income not from storage rent or hamali.",
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "A description of the income source."
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount of income received."
+        },
+        "category": {
+          "type": "string",
+          "enum": ["Interest Received", "Other"],
+          "description": "The category of the income."
+        },
+        "date": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The date the income was received."
+        }
+      },
+      "required": ["description", "amount", "category", "date"]
+    },
+    "unloadingRecord": {
+      "title": "Unloading Record",
+      "description": "Represents a record of items being unloaded from a vehicle.",
+      "type": "object",
+      "properties": {
+        "customerId": {
+          "type": "string",
+          "description": "The ID of the customer who owns these items."
+        },
+        "commodityDescription": {
+          "type": "string",
+          "description": "A description of the commodity being unloaded."
+        },
+        "lorryTractorNo": {
+          "type": "string",
+          "description": "The Lorry or Tractor number for the delivery."
+        },
+        "unloadingDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The date when the unloading took place."
+        },
+        "bagsUnloaded": {
+          "type": "number",
+          "description": "The number of bags being unloaded."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Unloading", "Drying", "Packing", "Billed"],
+          "description": "The current status of the process."
+        },
+        "hamaliPerBag": {
+          "type": "number",
+          "description": "The hamali charge per bag for this unloading event."
+        },
+        "totalHamali": {
+          "type": "number",
+          "description": "The total hamali charge for this unloading event."
+        },
+        "billNo": {
+            "type": "string",
+            "description": "The bill number associated with this unloading record."
+        }
+      },
+      "required": [
+        "customerId",
+        "commodityDescription",
+        "unloadingDate",
+        "bagsUnloaded",
+        "status",
+        "hamaliPerBag",
+        "totalHamali"
+      ]
+    },
+    "dryingRecord": {
+      "title": "Drying Record",
+      "description": "Represents the entire drying process for a commodity, from unloading to billing.",
+      "type": "object",
+      "properties": {
+        "unloadingRecordId": {
+          "type": "string",
+          "description": "The ID of the source unloading record."
+        },
+        "customerId": {
+          "type": "string",
+          "description": "The ID of the customer who owns these items."
+        },
+        "commodityDescription": {
+          "type": "string",
+          "description": "A description of the commodity being processed."
+        },
+        "bagsForDrying": {
+          "type": "number",
+          "description": "The number of bags sent for drying."
+        },
+        "bagsPacked": {
+          "type": "number",
+          "description": "The number of bags after packing is complete."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Drying", "Packing", "Billed"],
+          "description": "The current stage of the drying process."
+        },
+        "dryingStartDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The date the drying process began."
+        },
+        "packingDate": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "The date packing was completed. Null if not yet packed."
+        },
+        "billingDate": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "The date the process was billed. Null if not yet billed."
+        },
+        "hamaliPerBag": {
+          "type": "number",
+          "description": "The hamali charge per bag for the drying process."
+        },
+        "totalDryingHamali": {
+          "type": "number",
+          "description": "The total hamali charge for this drying process."
+        }
+      },
+      "required": [
+        "unloadingRecordId",
+        "customerId",
+        "commodityDescription",
+        "bagsForDrying",
+        "status",
+        "dryingStartDate",
+        "hamaliPerBag",
+        "totalDryingHamali"
+      ]
+    },
+    "warehouseInfo": {
+      "title": "Warehouse Info",
+      "description": "General information about the warehouse.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the warehouse."
+        },
+        "phone": {
+          "type": "string",
+          "description": "Primary contact phone number."
+        },
+        "addressLine1": {
+          "type": "string",
+          "description": "Address Line 1."
+        },
+        "addressLine2": {
+          "type": "string",
+          "description": "Address Line 2 (e.g., City, State, ZIP)."
+        },
+        "capitalInvestment": {
+          "type": "number",
+          "description": "The total capital invested in the business."
+        },
+        "annualInterestRate": {
+          "type": "number",
+          "description": "The annual interest rate used to calculate cost of capital."
+        }
+      },
+      "required": ["name"]
+    }
+  },
+  "auth": {
+    "providers": ["google.com", "password"]
+  },
+  "firestore": {
+    "/customers/{customerId}": {
+      "schema": "customer",
+      "description": "Stores individual customer documents."
+    },
+    "/commodities/{commodityId}": {
+      "schema": "commodity",
+      "description": "Stores documents for different types of commodities and their rent rates."
+    },
+    "/lots/{lotId}": {
+      "schema": "lot",
+      "description": "Stores documents for each storage lot in the warehouse."
+    },
+    "/storageRecords/{recordId}": {
+      "schema": "storageRecord",
+      "description": "Stores individual storage records."
+    },
+    "/expenses/{expenseId}": {
+        "schema": "expense",
+        "description": "Stores individual expense documents."
+    },
+    "/borrowings/{borrowingId}": {
+      "schema": "borrowing",
+      "description": "Stores individual borrowing/loan records."
+    },
+    "/lendings/{lendingId}": {
+      "schema": "lending",
+      "description": "Stores individual lending/loan records."
+    },
+    "/otherIncomes/{incomeId}": {
+      "schema": "otherIncome",
+      "description": "Stores individual miscellaneous income records."
+    },
+    "/unloadingRecords/{unloadingId}": {
+      "schema": "unloadingRecord",
+      "description": "Stores records of the unloading process."
+    },
+    "/dryingRecords/{dryingId}": {
+      "schema": "dryingRecord",
+      "description": "Stores records of the drying process."
+    },
+    "/settings/{settingId}": {
+      "schema": "warehouseInfo",
+      "description": "Stores application settings, like warehouse details."
+    }
+  }
+}

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, forwardRef } from 'react';
@@ -161,7 +160,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
     <div ref={ref} className="bg-white p-4 sm:p-6 printable-area text-foreground font-sans text-sm">
         <header className="text-center mb-4">
             <h1 className="text-xl font-bold text-primary">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</h1>
-            <p className="text-xs text-muted-foreground">{warehouseInfo?.addressLine1}, {warehouseInfo?.addressLine2}</p>
+            <p className="text-xs text-muted-foreground">{warehouseInfo?.addressLine1 || ''}{warehouseInfo?.addressLine1 && warehouseInfo?.addressLine2 ? ', ' : ''}{warehouseInfo?.addressLine2 || ''}</p>
             <p className="text-xs text-muted-foreground">Phone: {warehouseInfo?.phone}</p>
         </header>
 

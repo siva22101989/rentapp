@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, forwardRef } from 'react';
@@ -202,7 +203,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 <TableHeader>
                     <TableRow className="border-b-2 border-border">
                         <TableHead className="h-auto p-1.5 font-semibold text-muted-foreground">Date</TableHead>
-                        <TableHead className="h-auto p-1.5 font-semibold text-muted-foreground">Description</TableHead>
+                        <TableHead className="h-auto p-1.5 font-semibold text-muted-foreground">Particulars</TableHead>
                         <TableHead className="h-auto p-1.5 font-semibold text-muted-foreground">Bill/DO No.</TableHead>
                         <TableHead className="h-auto p-1.5 font-semibold text-muted-foreground">Lot No.</TableHead>
                         <TableHead className="h-auto p-1.5 text-right font-semibold text-muted-foreground">Bags Rcvd</TableHead>

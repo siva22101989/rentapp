@@ -227,20 +227,12 @@
         },
         "interestRate": {
           "type": "number",
-          "description": "The interest rate in percent (e.g., 2 for 2%)."
+          "description": "The monthly interest rate in percent (e.g., 2 for 2%)."
         },
         "dateTaken": {
           "type": "string",
           "format": "date-time",
           "description": "The date the loan was taken."
-        },
-        "interestType": {
-          "type": "string",
-          "enum": [
-            "Monthly",
-            "Yearly"
-          ],
-          "description": "The type of interest calculation."
         },
         "payments": {
           "type": "array",
@@ -256,8 +248,7 @@
         "lenderName",
         "principal",
         "interestRate",
-        "dateTaken",
-        "interestType"
+        "dateTaken"
       ]
     },
     "lending": {
@@ -275,20 +266,12 @@
         },
         "interestRate": {
           "type": "number",
-          "description": "The interest rate in percent (e.g., 2 for 2%)."
+          "description": "The monthly interest rate in percent (e.g., 2 for 2%)."
         },
         "dateGiven": {
           "type": "string",
           "format": "date-time",
           "description": "The date the loan was given."
-        },
-        "interestType": {
-          "type": "string",
-          "enum": [
-            "Monthly",
-            "Yearly"
-          ],
-          "description": "The type of interest calculation."
         },
         "payments": {
           "type": "array",
@@ -304,8 +287,7 @@
         "borrowerName",
         "principal",
         "interestRate",
-        "dateGiven",
-        "interestType"
+        "dateGiven"
       ]
     },
     "otherIncome": {
@@ -484,6 +466,26 @@
         }
       },
       "required": ["name"]
+    },
+    "smsInfo": {
+      "title": "SMS Info",
+      "description": "Settings for the SMS provider (Twilio).",
+      "type": "object",
+      "properties": {
+        "twilioAccountSid": {
+          "type": "string",
+          "description": "Twilio Account SID."
+        },
+        "twilioAuthToken": {
+          "type": "string",
+          "description": "Twilio Auth Token."
+        },
+        "twilioPhoneNumber": {
+          "type": "string",
+          "description": "The Twilio phone number to send messages from."
+        }
+      },
+      "required": ["twilioAccountSid", "twilioAuthToken", "twilioPhoneNumber"]
     }
   },
   "auth": {
@@ -533,6 +535,10 @@
     "/settings/{settingId}": {
       "schema": "warehouseInfo",
       "description": "Stores application settings, like warehouse details."
+    },
+    "/settings/sms": {
+      "schema": "smsInfo",
+      "description": "Stores SMS provider configuration."
     }
   }
 }

@@ -171,3 +171,10 @@ export type DryingRecord = {
   hamaliCharges?: HamaliCharge[];
   totalDryingWorkerHamali?: number;
 };
+
+export type SmsInfo = {
+  id: string;
+  twilioAccountSid: string;
+  twilioAuthToken: string;
+  twilioPhoneNumber: string;
+};

@@ -8,6 +8,7 @@ import { WarehouseSettings } from "./warehouse-settings";
 import { CropsRatesSettings } from "./crops-rates-settings";
 import { DataSettings } from "./data-settings";
 import { Card, CardContent } from "../ui/card";
+import { SmsSettings } from "./sms-settings";
 
 const tabs = [
     { value: "profile", label: "Profile", icon: User },
@@ -48,7 +49,7 @@ export function SettingsLayout() {
                  <Card className="mt-6"><CardContent className="p-8 text-center text-muted-foreground">Notifications settings are not available yet.</CardContent></Card>
             </TabsContent>
              <TabsContent value="sms">
-                <Card className="mt-6"><CardContent className="p-8 text-center text-muted-foreground">SMS settings are not available yet.</CardContent></Card>
+                <SmsSettings />
             </TabsContent>
              <TabsContent value="billing">
                 <Card className="mt-6"><CardContent className="p-8 text-center text-muted-foreground">Billing settings are not available yet.</CardContent></Card>

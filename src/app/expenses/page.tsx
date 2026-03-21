@@ -117,6 +117,7 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
         let principal = borrowing.principal;
         let accruedInterest = 0;
         let lastDate = toDate(borrowing.dateTaken);
+        const monthlyRate = borrowing.interestRate / 100;
 
         const allPayments = [...(borrowing.payments || []).map(p => ({...p, date: toDate(p.date)}))].sort((a,b) => a.date.getTime() - b.date.getTime());
 
@@ -125,9 +126,6 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
             
             const months = differenceInCalendarMonths(dateOfPayment, lastDate);
             if (months > 0) {
-                const monthlyRate = (borrowing.interestType === 'Yearly')
-                    ? (borrowing.interestRate / 100) / 12
-                    : (borrowing.interestRate / 100);
                 accruedInterest += principal * monthlyRate * months;
             }
             
@@ -151,9 +149,6 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
         const today = new Date();
         const finalMonths = differenceInCalendarMonths(today, lastDate);
         if (finalMonths > 0) {
-            const monthlyRate = (borrowing.interestType === 'Yearly')
-                ? (borrowing.interestRate / 100) / 12
-                : (borrowing.interestRate / 100);
             accruedInterest += principal * monthlyRate * finalMonths;
         }
         
@@ -215,6 +210,7 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
         let principal = lending.principal;
         let accruedInterest = 0;
         let lastDate = toDate(lending.dateGiven);
+        const monthlyRate = lending.interestRate / 100;
 
         const allPayments = [...(lending.payments || []).map(p => ({...p, date: toDate(p.date)}))].sort((a,b) => a.date.getTime() - b.date.getTime());
 
@@ -223,9 +219,6 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
             
             const months = differenceInCalendarMonths(dateOfPayment, lastDate);
             if (months > 0) {
-                const monthlyRate = (lending.interestType === 'Yearly')
-                    ? (lending.interestRate / 100) / 12
-                    : (lending.interestRate / 100);
                 accruedInterest += principal * monthlyRate * months;
             }
             
@@ -249,9 +242,6 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
         const today = new Date();
         const finalMonths = differenceInCalendarMonths(today, lastDate);
         if (finalMonths > 0) {
-            const monthlyRate = (lending.interestType === 'Yearly')
-                ? (lending.interestRate / 100) / 12
-                : (lending.interestRate / 100);
             accruedInterest += principal * monthlyRate * finalMonths;
         }
         

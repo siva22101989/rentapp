@@ -1,26 +1,13 @@
 
 'use client';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useMemo, useRef, useState } from "react";
 import type { Customer, StorageRecord, UnloadingRecord } from "@/lib/definitions";
-import { Badge } from "@/components/ui/badge";
-import { AddPaymentDialog } from "@/components/payments/add-payment-dialog";
-import { formatCurrency } from "@/lib/utils";
 import { Button } from "../ui/button";
-import { Download, Loader2, FileText } from "lucide-react";
+import { Download, Loader2, Printer } from "lucide-react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { PendingDuesReportTable } from "../reports/pending-dues-report-table";
-import { AddUnloadingPaymentDialog } from "../unloading/add-unloading-payment-dialog";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type PendingRecord = (StorageRecord | UnloadingRecord) & {
     recordType: 'storage' | 'unloading';
@@ -93,10 +80,6 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords }: {
 
         return allDues.filter(record => record.balanceDue > 0.5); // Use a small buffer for floating point issues
     }, [records, unloadingRecords]);
-    
-    const getCustomerName = (customerId: string) => {
-        return customers?.find(c => c.id === customerId)?.name ?? 'Unknown';
-    }
 
     const handleDownloadPdf = async () => {
         const element = reportRef.current;
@@ -120,7 +103,6 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords }: {
             });
 
             const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = pdf.internal.pageSize.getHeight();
             
             const ratio = pdfWidth / imgWidth;
             const canvasHeight = imgHeight * ratio;
@@ -129,13 +111,13 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords }: {
             let heightLeft = canvasHeight;
 
             pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, canvasHeight);
-            heightLeft -= pdfHeight;
+            heightLeft -= pdf.internal.pageSize.getHeight();
 
             while (heightLeft > 0) {
-                position = position - pdfHeight;
+                position = position - pdf.internal.pageSize.getHeight();
                 pdf.addPage();
                 pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, canvasHeight);
-                heightLeft -= pdfHeight;
+                heightLeft -= pdf.internal.pageSize.getHeight();
             }
             
             pdf.save(`pending-dues-report-${Date.now()}.pdf`);
@@ -145,100 +127,33 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords }: {
             setIsGenerating(false);
         }
     };
+    
+    const handlePrint = () => {
+        window.print();
+    };
 
-  return (
+    return (
         <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-row items-center justify-between print-hide">
                 <CardTitle>Outstanding Balances</CardTitle>
-                <Dialog>
-                    <DialogTrigger asChild>
-                        <Button size="sm" disabled={pendingRecords.length === 0}>
-                            <FileText className="mr-2 h-4 w-4" />
-                            Generate Report
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-6xl">
-                        <DialogHeader>
-                            <DialogTitle>Pending Dues Report</DialogTitle>
-                        </DialogHeader>
-                        <div className="max-h-[70vh] overflow-y-auto">
-                            <div ref={reportRef} className="printable-area">
-                                <PendingDuesReportTable
-                                    records={pendingRecords as any[]}
-                                    customers={customers}
-                                    title="Pending Dues Report"
-                                />
-                            </div>
-                        </div>
-                        <DialogFooter>
-                            <Button variant="outline" onClick={() => window.print()}>Print</Button>
-                            <Button onClick={handleDownloadPdf} disabled={isGenerating}>
-                                {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                                Save as PDF
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+                <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={handlePrint}>
+                        <Printer className="mr-2 h-4 w-4" /> Print
+                    </Button>
+                    <Button size="sm" onClick={handleDownloadPdf} disabled={isGenerating}>
+                        {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                        Download PDF
+                    </Button>
+                </div>
             </CardHeader>
             <CardContent>
-                 <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Record ID</TableHead>
-                            <TableHead>Customer</TableHead>
-                            <TableHead className="hidden sm:table-cell">Status</TableHead>
-                            <TableHead className="text-right hidden md:table-cell">Bags</TableHead>
-                            <TableHead className="text-right hidden lg:table-cell">Total Billed</TableHead>
-                            <TableHead className="text-right hidden md:table-cell">Hamali Pending</TableHead>
-                            <TableHead className="text-right hidden md:table-cell">Rent Pending</TableHead>
-                            <TableHead className="text-right">Total Due</TableHead>
-                            <TableHead className="w-[100px] text-right"></TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {pendingRecords.map((record) => {
-                            const customerName = getCustomerName(record.customerId);
-                            const recordId = record.recordType === 'storage' ? record.id : (record as UnloadingRecord).billNo || record.id;
-                            const status = record.recordType === 'storage' 
-                                ? ((record as StorageRecord).storageEndDate ? 'Completed' : 'Active') 
-                                : `Unloading Bill`;
-
-                            const bags = record.recordType === 'storage' ? (record as StorageRecord).bagsIn : (record as UnloadingRecord).bagsUnloaded;
-
-                            return (
-                            <TableRow key={`${record.recordType}-${record.id}`}>
-                                <TableCell className="font-medium">{recordId}</TableCell>
-                                <TableCell>{customerName}</TableCell>
-                                <TableCell className="hidden sm:table-cell">
-                                    <Badge variant={status === 'Active' ? "default" : "secondary"} className={status === 'Active' ? 'bg-green-100 text-green-800' : ''}>
-                                        {status}
-                                    </Badge>
-                                </TableCell>
-                                <TableCell className="text-right font-mono hidden md:table-cell">{bags || 0}</TableCell>
-                                <TableCell className="text-right font-mono hidden lg:table-cell">{formatCurrency(record.totalBilled)}</TableCell>
-                                <TableCell className="text-right font-mono text-orange-600 hidden md:table-cell">{formatCurrency(record.hamaliPending)}</TableCell>
-                                <TableCell className="text-right font-mono text-blue-600 hidden md:table-cell">{formatCurrency(record.rentPending)}</TableCell>
-                                <TableCell className="text-right font-mono text-destructive">{formatCurrency(record.balanceDue)}</TableCell>
-                                <TableCell className="text-right">
-                                    {record.recordType === 'storage' ? (
-                                        <AddPaymentDialog record={record as any} />
-                                     ) : (
-                                         <AddUnloadingPaymentDialog record={record as any}>
-                                            <Button size="sm">Add Payment</Button>
-                                        </AddUnloadingPaymentDialog>
-                                     )}
-                                </TableCell>
-                            </TableRow>
-                        )})}
-                         {pendingRecords.length === 0 && (
-                            <TableRow>
-                                <TableCell colSpan={9} className="text-center text-muted-foreground">
-                                    No outstanding balances found.
-                                </TableCell>
-                            </TableRow>
-                        )}
-                    </TableBody>
-                 </Table>
+                <div ref={reportRef}>
+                    <PendingDuesReportTable
+                        records={pendingRecords as any[]}
+                        customers={customers}
+                        title="Pending Dues Report"
+                    />
+                </div>
             </CardContent>
         </Card>
   );

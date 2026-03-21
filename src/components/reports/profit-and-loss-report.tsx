@@ -8,10 +8,9 @@ import type { Expense, StorageRecord, UnloadingRecord, WarehouseInfo, Borrowing,
 import { format, differenceInCalendarMonths, differenceInCalendarYears } from "date-fns";
 import { useDateFilter } from "@/firebase/provider";
 import { Button } from "../ui/button";
-import { Download, Loader2, FileText } from "lucide-react";
+import { Download, Loader2, Printer } from "lucide-react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
   const activeBorrowings = useMemo(() => (borrowings || []).filter(b => b.status !== 'Paid Off'), [borrowings]);
@@ -298,117 +297,102 @@ export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecor
     }
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
     <Card>
-        <CardHeader className="flex-row items-center justify-between">
+        <CardHeader className="flex-row items-center justify-between print-hide">
             <div className="flex-1">
                 <CardTitle>Profit & Loss Statement</CardTitle>
-                <CardDescription>Generate a P&L statement for the selected financial period.</CardDescription>
+                <CardDescription>A P&L statement for the selected financial period.</CardDescription>
             </div>
-            <Dialog>
-                <DialogTrigger asChild>
-                    <Button>
-                        <FileText className="mr-2 h-4 w-4" />
-                        Generate Statement
-                    </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-4xl">
-                    <DialogHeader>
-                        <DialogTitle>Profit & Loss Statement</DialogTitle>
-                    </DialogHeader>
-                     <div className="max-h-[70vh] overflow-y-auto">
-                        <div ref={reportRef} className="p-4 space-y-6 bg-white text-black printable-area">
-                            <div className="text-center">
-                                <h2 className="text-xl font-bold">{warehouseInfo?.name || "Srilakshmi Warehouse"}</h2>
-                                <h3 className="text-lg font-semibold">Profit & Loss Statement</h3>
-                                <p className="text-sm text-gray-500">
-                                    For the period: {dateRange?.from ? format(dateRange.from, 'dd MMM yyyy') : 'Start of time'} to {dateRange?.to ? format(dateRange.to, 'dd MMM yyyy') : 'Today'}
-                                </p>
-                            </div>
-                            
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="text-black">Particulars</TableHead>
-                                        <TableHead className="text-right text-black">Amount</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    <TableRow className="bg-gray-100 hover:bg-gray-100">
-                                        <TableCell colSpan={2} className="font-bold">Income</TableCell>
-                                    </TableRow>
-                                    {filteredIncomes.map((income) => (
-                                        <TableRow key={`inc-${income.id}`}>
-                                            <TableCell className="pl-6">{income.description}</TableCell>
-                                            <TableCell className="text-right font-mono">{formatCurrency(income.amount)}</TableCell>
-                                        </TableRow>
-                                    ))}
-                                    <TableRow>
-                                        <TableCell colSpan={2} className="h-4" />
-                                    </TableRow>
-                                    <TableRow className="border-y bg-gray-50">
-                                        <TableCell className="font-semibold text-right">Total Income</TableCell>
-                                        <TableCell className="text-right font-mono font-semibold">{formatCurrency(periodIncome)}</TableCell>
-                                    </TableRow>
-                                    <TableRow>
-                                        <TableCell colSpan={2} className="h-8" />
-                                    </TableRow>
-
-                                    <TableRow className="bg-gray-100 hover:bg-gray-100">
-                                        <TableCell colSpan={2} className="font-bold">Expenses</TableCell>
-                                    </TableRow>
-                                    {filteredExpenses.map((expense) => (
-                                        <TableRow key={`exp-${expense.id}`}>
-                                            <TableCell className="pl-6">{expense.description}</TableCell>
-                                            <TableCell className="text-right font-mono text-red-600">({formatCurrency(expense.amount)})</TableCell>
-                                        </TableRow>
-                                    ))}
-                                    {interestOnCapital > 0 && (
-                                        <TableRow key="exp-capital">
-                                            <TableCell className="pl-6">Interest on Capital (Notional)</TableCell>
-                                            <TableCell className="text-right font-mono text-red-600">({formatCurrency(interestOnCapital)})</TableCell>
-                                        </TableRow>
-                                    )}
-                                    <TableRow>
-                                        <TableCell colSpan={2} className="h-4" />
-                                    </TableRow>
-                                    <TableRow className="border-y bg-gray-50">
-                                        <TableCell className="font-semibold text-right">Total Expenses</TableCell>
-                                        <TableCell className="text-right font-mono font-semibold text-red-600">({formatCurrency(periodExpenses)})</TableCell>
-                                    </TableRow>
-                                </TableBody>
-                                <TableFooter>
-                                    <TableRow className="text-lg bg-gray-200 hover:bg-gray-200">
-                                        <TableCell className="font-bold">{periodBalance >= 0 ? 'Net Profit' : 'Net Loss'}</TableCell>
-                                        <TableCell className={`text-right font-bold font-mono ${periodBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                            {formatCurrency(periodBalance)}
-                                        </TableCell>
-                                    </TableRow>
-                                </TableFooter>
-                            </Table>
-
-                            <div className="space-y-4 pt-8 print-no-break">
-                                <BorrowingsTable borrowings={borrowings || []} />
-                                <LendingsTable lendings={lendings || []} />
-                            </div>
-                        </div>
-                    </div>
-                     <DialogFooter>
-                        <Button variant="outline" onClick={() => window.print()}>Print</Button>
-                        <Button onClick={handleDownloadPdf} disabled={isGenerating}>
-                            {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                            Save as PDF
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+             <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={handlePrint}>
+                    <Printer className="mr-2 h-4 w-4" /> Print
+                </Button>
+                <Button onClick={handleDownloadPdf} disabled={isGenerating}>
+                    {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                    Download PDF
+                </Button>
+            </div>
         </CardHeader>
         <CardContent>
-            <div className="text-center text-muted-foreground py-16">
-                <FileText className="mx-auto h-12 w-12" />
-                <p className="mt-4">
-                    Click "Generate Statement" to view the Profit & Loss report for the selected period.
-                </p>
+            <div ref={reportRef} className="p-4 space-y-6 bg-white text-black printable-area">
+                <div className="text-center">
+                    <h2 className="text-xl font-bold">{warehouseInfo?.name || "Srilakshmi Warehouse"}</h2>
+                    <h3 className="text-lg font-semibold">Profit & Loss Statement</h3>
+                    <p className="text-sm text-gray-500">
+                        For the period: {dateRange?.from ? format(dateRange.from, 'dd MMM yyyy') : 'Start of time'} to {dateRange?.to ? format(dateRange.to, 'dd MMM yyyy') : 'Today'}
+                    </p>
+                </div>
+                
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead className="text-black">Particulars</TableHead>
+                            <TableHead className="text-right text-black">Amount</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        <TableRow className="bg-gray-100 hover:bg-gray-100">
+                            <TableCell colSpan={2} className="font-bold">Income</TableCell>
+                        </TableRow>
+                        {filteredIncomes.map((income) => (
+                            <TableRow key={`inc-${income.id}`}>
+                                <TableCell className="pl-6">{income.description}</TableCell>
+                                <TableCell className="text-right font-mono">{formatCurrency(income.amount)}</TableCell>
+                            </TableRow>
+                        ))}
+                        <TableRow>
+                            <TableCell colSpan={2} className="h-4" />
+                        </TableRow>
+                        <TableRow className="border-y bg-gray-50">
+                            <TableCell className="font-semibold text-right">Total Income</TableCell>
+                            <TableCell className="text-right font-mono font-semibold">{formatCurrency(periodIncome)}</TableCell>
+                        </TableRow>
+                        <TableRow>
+                            <TableCell colSpan={2} className="h-8" />
+                        </TableRow>
+
+                        <TableRow className="bg-gray-100 hover:bg-gray-100">
+                            <TableCell colSpan={2} className="font-bold">Expenses</TableCell>
+                        </TableRow>
+                        {filteredExpenses.map((expense) => (
+                            <TableRow key={`exp-${expense.id}`}>
+                                <TableCell className="pl-6">{expense.description}</TableCell>
+                                <TableCell className="text-right font-mono text-red-600">({formatCurrency(expense.amount)})</TableCell>
+                            </TableRow>
+                        ))}
+                        {interestOnCapital > 0 && (
+                            <TableRow key="exp-capital">
+                                <TableCell className="pl-6">Interest on Capital (Notional)</TableCell>
+                                <TableCell className="text-right font-mono text-red-600">({formatCurrency(interestOnCapital)})</TableCell>
+                            </TableRow>
+                        )}
+                        <TableRow>
+                            <TableCell colSpan={2} className="h-4" />
+                        </TableRow>
+                        <TableRow className="border-y bg-gray-50">
+                            <TableCell className="font-semibold text-right">Total Expenses</TableCell>
+                            <TableCell className="text-right font-mono font-semibold text-red-600">({formatCurrency(periodExpenses)})</TableCell>
+                        </TableRow>
+                    </TableBody>
+                    <TableFooter>
+                        <TableRow className="text-lg bg-gray-200 hover:bg-gray-200">
+                            <TableCell className="font-bold">{periodBalance >= 0 ? 'Net Profit' : 'Net Loss'}</TableCell>
+                            <TableCell className={`text-right font-bold font-mono ${periodBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {formatCurrency(periodBalance)}
+                            </TableCell>
+                        </TableRow>
+                    </TableFooter>
+                </Table>
+
+                <div className="space-y-4 pt-8 print-no-break">
+                    <BorrowingsTable borrowings={borrowings || []} />
+                    <LendingsTable lendings={lendings || []} />
+                </div>
             </div>
         </CardContent>
     </Card>

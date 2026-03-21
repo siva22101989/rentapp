@@ -5,13 +5,12 @@ import React, { useState, useRef, useMemo } from 'react';
 import type { Customer, StorageRecord } from "@/lib/definitions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { Download, Loader2, FileText } from 'lucide-react';
+import { Download, Loader2, Printer } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { toDate } from '@/lib/utils';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from 'date-fns';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 
 type LotInventoryReportProps = {
     records: StorageRecord[];
@@ -145,7 +144,6 @@ export function LotInventoryReport({ records, customers }: LotInventoryReportPro
             });
 
             const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = pdf.internal.pageSize.getHeight();
             
             const ratio = pdfWidth / imgWidth;
             const canvasHeight = imgHeight * ratio;
@@ -154,13 +152,13 @@ export function LotInventoryReport({ records, customers }: LotInventoryReportPro
             let heightLeft = canvasHeight;
 
             pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, canvasHeight);
-            heightLeft -= pdfHeight;
+            heightLeft -= pdf.internal.pageSize.getHeight();
 
             while (heightLeft > 0) {
-                position = position - pdfHeight;
+                position = position - pdf.internal.pageSize.getHeight();
                 pdf.addPage();
                 pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, canvasHeight);
-                heightLeft -= pdfHeight;
+                heightLeft -= pdf.internal.pageSize.getHeight();
             }
             pdf.save(`lot-inventory-report-${Date.now()}.pdf`);
         } catch (error) {
@@ -170,53 +168,36 @@ export function LotInventoryReport({ records, customers }: LotInventoryReportPro
         }
     };
 
+    const handlePrint = () => {
+        window.print();
+    };
+
     const title = `Lot-wise Inventory Report`;
 
     return (
         <Card>
-            <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4 print-hide">
                 <div className="flex-1">
                     <CardTitle>Lot Inventory Report</CardTitle>
                     <CardDescription>A summary of active stock present in each lot.</CardDescription>
                 </div>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-                    <Dialog>
-                        <DialogTrigger asChild>
-                            <Button>
-                                <FileText className="mr-2 h-4 w-4" />
-                                Generate Report
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-4xl">
-                            <DialogHeader>
-                                <DialogTitle>{title}</DialogTitle>
-                            </DialogHeader>
-                            <div className="max-h-[70vh] overflow-y-auto">
-                                <div ref={reportRef}>
-                                    <LotInventoryTable 
-                                        groupedLots={groupedLots} 
-                                        customers={customers}
-                                        title={title}
-                                    />
-                                </div>
-                            </div>
-                            <DialogFooter>
-                                <Button variant="outline" onClick={() => window.print()}>Print</Button>
-                                <Button onClick={handleDownloadPdf} disabled={isGenerating}>
-                                    {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                                    Save as PDF
-                                </Button>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
+                    <Button variant="outline" onClick={handlePrint}>
+                        <Printer className="mr-2 h-4 w-4" /> Print
+                    </Button>
+                    <Button onClick={handleDownloadPdf} disabled={isGenerating}>
+                        {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                        Download PDF
+                    </Button>
                 </div>
             </CardHeader>
             <CardContent>
-                <div className="text-center text-muted-foreground py-16">
-                    <FileText className="mx-auto h-12 w-12" />
-                    <p className="mt-4">
-                        Click "Generate Report" to view the lot inventory.
-                    </p>
+                <div ref={reportRef}>
+                    <LotInventoryTable 
+                        groupedLots={groupedLots} 
+                        customers={customers}
+                        title={title}
+                    />
                 </div>
             </CardContent>
         </Card>

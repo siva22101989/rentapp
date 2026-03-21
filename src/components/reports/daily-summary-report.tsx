@@ -5,7 +5,7 @@ import React, { useState, useRef, useMemo } from 'react';
 import type { Customer, StorageRecord, UnloadingRecord, Expense, Payment, OtherIncome } from "@/lib/definitions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { Download, Loader2, Calendar as CalendarIcon, TrendingUp, TrendingDown, Scale, ArrowDownToDot, ArrowUpFromDot, FileText } from 'lucide-react';
+import { Download, Loader2, Calendar as CalendarIcon, TrendingUp, TrendingDown, Scale, ArrowDownToDot, ArrowUpFromDot, Printer } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { toDate, formatCurrency } from '@/lib/utils';
@@ -13,7 +13,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { format, isSameDay } from 'date-fns';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 type DailyReportProps = {
     records: StorageRecord[];
@@ -250,7 +249,6 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
             });
 
             const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = pdf.internal.pageSize.getHeight();
             
             const ratio = pdfWidth / imgWidth;
             const canvasHeight = imgHeight * ratio;
@@ -259,13 +257,13 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
             let heightLeft = canvasHeight;
 
             pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, canvasHeight);
-            heightLeft -= pdfHeight;
+            heightLeft -= pdf.internal.pageSize.getHeight();
 
             while (heightLeft > 0) {
-                position = position - pdfHeight;
+                position = position - pdf.internal.pageSize.getHeight();
                 pdf.addPage();
                 pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, canvasHeight);
-                heightLeft -= pdfHeight;
+                heightLeft -= pdf.internal.pageSize.getHeight();
             }
             pdf.save(`daily-summary-${format(selectedDate, 'yyyy-MM-dd')}.pdf`);
         } catch (error) {
@@ -274,10 +272,14 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
             setIsGenerating(false);
         }
     };
+
+    const handlePrint = () => {
+        window.print();
+    };
     
     return (
         <Card>
-            <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4 print-hide">
                 <div className="flex-1">
                     <CardTitle>Daily Summary Report</CardTitle>
                     <CardDescription>A summary of all transactions for a selected day.</CardDescription>
@@ -303,39 +305,18 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
                             />
                         </PopoverContent>
                     </Popover>
-                    <Dialog>
-                        <DialogTrigger asChild>
-                             <Button>
-                                <FileText className="mr-2 h-4 w-4" />
-                                Generate Report
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-4xl">
-                            <DialogHeader>
-                                <DialogTitle>Daily Summary Report</DialogTitle>
-                                <DialogDescription>{format(selectedDate, 'EEEE, dd MMMM yyyy')}</DialogDescription>
-                            </DialogHeader>
-                            <div className="max-h-[70vh] overflow-y-auto">
-                                <DailySummaryContent dailyData={dailyData} customers={customers} selectedDate={selectedDate} ref={reportRef} />
-                            </div>
-                            <DialogFooter>
-                                <Button variant="outline" onClick={() => window.print()}>Print</Button>
-                                <Button onClick={handleDownloadPdf} disabled={isGenerating}>
-                                    {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                                    Save as PDF
-                                </Button>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
+                    <Button variant="outline" onClick={handlePrint}>
+                        <Printer className="mr-2 h-4 w-4" />
+                        Print
+                    </Button>
+                    <Button onClick={handleDownloadPdf} disabled={isGenerating}>
+                        {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                        Download PDF
+                    </Button>
                 </div>
             </CardHeader>
             <CardContent>
-                <div className="text-center text-muted-foreground py-16">
-                    <FileText className="mx-auto h-12 w-12" />
-                    <p className="mt-4">
-                        Pick a date and click "Generate Report" to view the daily summary.
-                    </p>
-                </div>
+                <DailySummaryContent dailyData={dailyData} customers={customers} selectedDate={selectedDate} ref={reportRef} />
             </CardContent>
         </Card>
     );

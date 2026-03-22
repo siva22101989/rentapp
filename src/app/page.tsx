@@ -34,7 +34,6 @@ const navItems: NavItem[] = [
   { href: '/customers', label: 'Customers', description: 'View and manage customers.', icon: Users },
   { href: '/reports', label: 'Reports', description: 'See all transactions.', icon: FileText },
   { href: '/expenses', label: 'Profit & Loss', description: 'Track income, expenses, and net profit.', icon: Scale },
-  { href: '/settings', label: 'Settings', description: 'Manage warehouse info, commodities, lots, and data.', icon: Settings },
 ];
 
 function NavCard({ item }: { item: NavItem }) {

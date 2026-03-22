@@ -71,7 +71,7 @@ export type StorageRecord = {
   hamaliDetails?: HamaliChargeItem[];
 };
 
-export const expenseCategories = ["Worker Salary", "Petrol", "Maintenance", "Utilities", "Hamali", "EMI for Godown", "Loan Repayment", "Other"] as const;
+export const expenseCategories = ["Worker Salary", "Petrol", "Maintenance", "Utilities", "Current Bill", "Hamali", "EMI for Godown", "Loan Repayment", "Other"] as const;
 
 export type ExpenseCategory = typeof expenseCategories[number];
 

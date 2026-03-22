@@ -1,3 +1,4 @@
+
 'use client';
 
 import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
@@ -6,8 +7,14 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import type { Borrowing } from "@/lib/definitions";
 import { EditBorrowingDialog } from "./edit-borrowing-dialog";
 import { DeleteBorrowingDialog } from "./delete-borrowing-dialog";
+import { useAppUser } from "@/firebase/auth/use-user";
 
 export function BorrowingActionsMenu({ borrowing }: { borrowing: Borrowing }) {
+    const appUser = useAppUser();
+    const canEdit = appUser?.role === 'owner';
+
+    if (!canEdit) return null;
+
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>

@@ -1,3 +1,4 @@
+
 'use client';
 import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { Button } from "../ui/button";
@@ -5,8 +6,13 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import type { Lending } from "@/lib/definitions";
 import { EditLendingDialog } from "./edit-lending-dialog";
 import { DeleteLendingDialog } from "./delete-lending-dialog";
+import { useAppUser } from "@/firebase/auth/use-user";
 
 export function LendingActionsMenu({ lending }: { lending: Lending }) {
+    const appUser = useAppUser();
+    const canEdit = appUser?.role === 'owner';
+    if (!canEdit) return null;
+
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>

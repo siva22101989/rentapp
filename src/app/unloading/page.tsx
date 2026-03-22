@@ -11,9 +11,12 @@ import { AddCustomerDialog } from "@/components/customers/add-customer-dialog";
 import { AddUnloadingRecordForm } from "@/components/unloading/add-unloading-form";
 import { useMemo } from "react";
 import { UnloadingRecordsTable } from "@/components/unloading/unloading-records-table";
+import { useAppUser } from "@/firebase/auth/use-user";
 
 export default function UnloadingPage() {
   const firestore = useFirestore();
+  const appUser = useAppUser();
+  const canAdd = appUser?.role === 'owner' || appUser?.role === 'biller';
 
   const customersQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'customers') : null),
@@ -52,14 +55,16 @@ export default function UnloadingPage() {
         title="Unloading Process"
         description="Manage the process of unloading goods from vehicles."
       >
-        <AddCustomerDialog />
+        {canAdd && <AddCustomerDialog />}
       </PageHeader>
 
       <div className="grid gap-8 lg:grid-cols-3">
-          <div className="lg:col-span-1">
-            <AddUnloadingRecordForm customers={customers || []} commodities={commodities || []} nextBillNo={nextBillNo} />
-          </div>
-          <div className="lg:col-span-2">
+          {canAdd && (
+            <div className="lg:col-span-1">
+              <AddUnloadingRecordForm customers={customers || []} commodities={commodities || []} nextBillNo={nextBillNo} />
+            </div>
+          )}
+          <div className={canAdd ? "lg:col-span-2" : "lg:col-span-3"}>
             <UnloadingRecordsTable 
               unloadingRecords={unloadingRecords || []} 
               customers={customers || []}

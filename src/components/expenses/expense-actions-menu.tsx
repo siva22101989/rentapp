@@ -7,8 +7,13 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import type { Expense } from "@/lib/definitions";
 import { EditExpenseDialog } from "./edit-expense-dialog";
 import { DeleteExpenseDialog } from "./delete-expense-dialog";
+import { useAppUser } from "@/firebase/auth/use-user";
 
 export function ExpenseActionsMenu({ expense }: { expense: Expense }) {
+    const appUser = useAppUser();
+    const canEdit = appUser?.role === 'owner';
+    if (!canEdit) return null;
+
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>

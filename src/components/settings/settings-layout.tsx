@@ -9,23 +9,42 @@ import { CropsRatesSettings } from "./crops-rates-settings";
 import { DataSettings } from "./data-settings";
 import { Card, CardContent } from "../ui/card";
 import { SmsSettings } from "./sms-settings";
+import { useAppUser } from "@/firebase/auth/use-user";
 
-const tabs = [
-    { value: "profile", label: "Profile", icon: User },
-    { value: "warehouse", label: "Warehouse", icon: Warehouse },
-    { value: "crops_rates", label: "Crops & Rates", icon: Wheat },
-    { value: "data", label: "Data", icon: Database },
-    { value: "notifications", label: "Notifications", icon: Bell },
-    { value: "sms", label: "SMS", icon: MessageSquare },
-    { value: "billing", label: "Billing", icon: CreditCard },
+const allTabs = [
+    { value: "profile", label: "Profile", icon: User, roles: ['owner', 'supervisor', 'biller'] },
+    { value: "warehouse", label: "Warehouse", icon: Warehouse, roles: ['owner'] },
+    { value: "crops_rates", label: "Crops & Rates", icon: Wheat, roles: ['owner'] },
+    { value: "data", label: "Data", icon: Database, roles: ['owner'] },
+    { value: "sms", label: "SMS", icon: MessageSquare, roles: ['owner'] },
+    { value: "notifications", label: "Notifications", icon: Bell, roles: ['owner', 'supervisor', 'biller'] },
+    { value: "billing", label: "Billing", icon: CreditCard, roles: ['owner'] },
 ];
 
 export function SettingsLayout() {
+    const appUser = useAppUser();
+
+    const accessibleTabs = allTabs.filter(tab => appUser && tab.roles.includes(appUser.role));
+    
+    if (!appUser) {
+        return null;
+    }
+    
+    if (accessibleTabs.length === 0) {
+        return (
+             <Card className="mt-6">
+                <CardContent className="p-8 text-center text-muted-foreground">
+                    You do not have permission to view any settings.
+                </CardContent>
+            </Card>
+        );
+    }
+
     return (
-        <Tabs defaultValue="profile" className="w-full">
+        <Tabs defaultValue={accessibleTabs[0].value} className="w-full">
             <div className="overflow-x-auto">
                 <TabsList className="grid w-full grid-cols-3 sm:w-auto sm:grid-cols-7 h-auto p-1">
-                    {tabs.map((tab) => (
+                    {accessibleTabs.map((tab) => (
                         <TabsTrigger key={tab.value} value={tab.value} className="text-xs sm:text-sm">
                             <tab.icon className="mr-1 h-4 w-4" />
                             {tab.label}

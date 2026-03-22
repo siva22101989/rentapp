@@ -178,3 +178,12 @@ export type SmsInfo = {
   twilioAuthToken: string;
   twilioPhoneNumber: string;
 };
+
+export const userRoles = ["owner", "supervisor", "biller"] as const;
+export type UserRole = (typeof userRoles)[number];
+
+export type AppUser = {
+  id: string;
+  email: string;
+  role: UserRole;
+};

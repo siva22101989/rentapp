@@ -1,25 +1,18 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { GoogleAuthProvider, signInWithPopup, User } from 'firebase/auth';
-import { useAuth } from '@/firebase/provider';
+import { useAuth, useFirestore } from '@/firebase/provider';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Logo } from '@/components/layout/logo';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Link from 'next/link';
-
-// IMPORTANT: Manage your team's access here.
-// Add the Google email addresses of everyone who needs to use this app.
-// Make sure all emails are in lowercase.
-const AUTHORIZED_EMAILS = [
-  'owner@example.com',       // Replace with the owner's email
-  'supervisor@example.com',  // Replace with a supervisor's email
-  'biller@example.com',      // Replace with a biller's email
-];
-
+import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
+import { cleanForFirestore } from '@/lib/utils';
 
 function GoogleIcon() {
     return (
@@ -34,6 +27,7 @@ function GoogleIcon() {
 
 export default function LoginPage() {
   const auth = useAuth();
+  const firestore = useFirestore();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,14 +37,36 @@ export default function LoginPage() {
     setIsLoading(true);
     setError(null);
     setUnauthorizedDomain(null);
-    if (auth) {
+    if (auth && firestore) {
       const provider = new GoogleAuthProvider();
       try {
         const result = await signInWithPopup(auth, provider);
         const user = result.user;
 
-        // Check if the user is authorized
-        if (!user.email || !AUTHORIZED_EMAILS.includes(user.email.toLowerCase())) {
+        if (!user.email) {
+            await auth.signOut();
+            setError("Your Google account does not have an email address associated with it.");
+            setIsLoading(false);
+            return;
+        }
+        
+        const userEmail = user.email.toLowerCase();
+        const usersRef = collection(firestore, 'users');
+
+        // Check if there are any users in the collection at all.
+        const allUsersSnapshot = await getDocs(usersRef);
+        if (allUsersSnapshot.empty) {
+            // This is the first user ever signing in. Make them the owner.
+            await addDoc(usersRef, cleanForFirestore({ email: userEmail, role: 'owner' }));
+            router.push('/');
+            return;
+        }
+
+        // Check if the user exists in our users collection
+        const q = query(usersRef, where('email', '==', userEmail));
+        const userQuerySnapshot = await getDocs(q);
+
+        if (userQuerySnapshot.empty) {
             await auth.signOut();
             setError("You are not authorized to access this application. Please contact the administrator.");
             setIsLoading(false);
@@ -97,7 +113,7 @@ export default function LoginPage() {
                     {unauthorizedDomain}
                 </pre>
                 <Button asChild size="sm">
-                    <Link href="https://console.firebase.google.com/project/vocal-byte-457809-n2/authentication/settings" target="_blank" rel="noopener noreferrer">
+                    <Link href="https://console.firebase.google.com/project/_/authentication/settings" target="_blank" rel="noopener noreferrer">
                         Open Firebase Auth Settings
                     </Link>
                 </Button>

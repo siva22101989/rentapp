@@ -9,6 +9,7 @@ import { AddUnloadingPaymentDialog } from "./add-unloading-payment-dialog";
 import { EditUnloadingRecordDialog } from "./edit-unloading-record-dialog";
 import { DeleteUnloadingRecordDialog } from "./delete-unloading-record-dialog";
 import { ViewUnloadingReceiptDialog } from "./view-unloading-receipt-dialog";
+import { useAppUser } from "@/firebase/auth/use-user";
 
 type ActionsMenuProps = {
     record: UnloadingRecord & { hamaliPending: number; };
@@ -17,8 +18,14 @@ type ActionsMenuProps = {
 }
 
 export function UnloadingTableActionsMenu({ record, customers, commodities }: ActionsMenuProps) {
+    const appUser = useAppUser();
+    const canEdit = appUser?.role === 'owner' || appUser?.role === 'biller';
+    const canDelete = appUser?.role === 'owner';
+    
     const customer = customers.find(c => c.id === record.customerId);
     
+    if (!canEdit) return null;
+
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -53,14 +60,17 @@ export function UnloadingTableActionsMenu({ record, customers, commodities }: Ac
                     </AddUnloadingPaymentDialog>
                 )}
                 
-                <DropdownMenuSeparator />
-
-                <DeleteUnloadingRecordDialog recordId={record.id}>
-                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive focus:bg-destructive/10">
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete
-                    </DropdownMenuItem>
-                </DeleteUnloadingRecordDialog>
+                {canDelete && (
+                    <>
+                        <DropdownMenuSeparator />
+                        <DeleteUnloadingRecordDialog recordId={record.id}>
+                            <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                            </DropdownMenuItem>
+                        </DeleteUnloadingRecordDialog>
+                    </>
+                )}
             </DropdownMenuContent>
         </DropdownMenu>
     );

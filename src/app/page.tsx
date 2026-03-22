@@ -15,6 +15,7 @@ import type { StorageRecord, Lot } from "@/lib/definitions";
 import { useMemo, useState, useEffect } from "react";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAppUser } from "@/firebase/auth/use-user";
 
 
 type NavItem = {
@@ -22,18 +23,20 @@ type NavItem = {
   label: string;
   description: string;
   icon: LucideIcon;
+  roles: ('owner' | 'supervisor' | 'biller')[];
 };
 
 const navItems: NavItem[] = [
-  { href: '/inflow', label: 'Inflow', description: 'Add new items to storage.', icon: ArrowDownToDot },
-  { href: '/unloading', label: 'Unloading Process', description: 'Manage item unloading.', icon: ArrowDownFromLine },
-  { href: '/drying', label: 'Drying Process', description: 'Manage item drying.', icon: Wind },
-  { href: '/outflow', label: 'Outflow', description: 'Process item withdrawals.', icon: ArrowUpFromDot },
-  { href: '/storage', label: 'Storage', description: 'View all active storage.', icon: Archive },
-  { href: '/payments/pending', label: 'Payments', description: 'Manage pending payments.', icon: IndianRupee },
-  { href: '/customers', label: 'Customers', description: 'View and manage customers.', icon: Users },
-  { href: '/reports', label: 'Reports', description: 'See all transactions.', icon: FileText },
-  { href: '/expenses', label: 'Profit & Loss', description: 'Track income, expenses, and net profit.', icon: Scale },
+  { href: '/inflow', label: 'Inflow', description: 'Add new items to storage.', icon: ArrowDownToDot, roles: ['owner', 'biller'] },
+  { href: '/unloading', label: 'Unloading Process', description: 'Manage item unloading.', icon: ArrowDownFromLine, roles: ['owner', 'biller'] },
+  { href: '/drying', label: 'Drying Process', description: 'Manage item drying.', icon: Wind, roles: ['owner', 'biller'] },
+  { href: '/outflow', label: 'Outflow', description: 'Process item withdrawals.', icon: ArrowUpFromDot, roles: ['owner', 'biller'] },
+  { href: '/storage', label: 'Storage', description: 'View all active storage.', icon: Archive, roles: ['owner', 'supervisor', 'biller'] },
+  { href: '/payments/pending', label: 'Payments', description: 'Manage pending payments.', icon: IndianRupee, roles: ['owner', 'biller'] },
+  { href: '/customers', label: 'Customers', description: 'View and manage customers.', icon: Users, roles: ['owner', 'supervisor', 'biller'] },
+  { href: '/reports', label: 'Reports', description: 'See all transactions.', icon: FileText, roles: ['owner', 'supervisor'] },
+  { href: '/expenses', label: 'Profit & Loss', description: 'Track income, expenses, and net profit.', icon: Scale, roles: ['owner'] },
+  { href: '/settings', label: 'Settings', description: 'Manage warehouse and team.', icon: Settings, roles: ['owner'] },
 ];
 
 function NavCard({ item }: { item: NavItem }) {
@@ -133,6 +136,7 @@ function DashboardHeaderSkeleton() {
 
 export default function DashboardPage() {
     const firestore = useFirestore();
+    const appUser = useAppUser();
 
     const recordsQuery = useMemoFirebase(
       () => (firestore ? collection(firestore, 'storageRecords') : null),
@@ -162,6 +166,11 @@ export default function DashboardPage() {
         return { activeRecordsCount, occupancy };
     }, [allRecords, allLots]);
 
+    const accessibleNavItems = useMemo(() => {
+        if (!appUser) return [];
+        return navItems.filter(item => item.roles.includes(appUser.role));
+    }, [appUser]);
+
   return (
     <AppLayout>
       {loadingRecords || loadingLots ? (
@@ -170,7 +179,7 @@ export default function DashboardPage() {
           <DashboardHeader activeRecordsCount={activeRecordsCount} occupancy={occupancy} />
       )}
       <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-        {navItems.map((item) => (
+        {accessibleNavItems.map((item) => (
           <NavCard key={item.href} item={item} />
         ))}
       </div>

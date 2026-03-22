@@ -23,6 +23,7 @@ import { Separator } from "@/components/ui/separator";
 import { calculateFinalRent } from "@/lib/billing";
 import { BorrowingActionsMenu } from "@/components/borrowings/borrowing-actions-menu";
 import { LendingActionsMenu } from "@/components/lendings/lending-actions-menu";
+import { useAppUser } from "@/firebase/auth/use-user";
 
 function IncomesTable({ incomes }: { incomes: OtherIncome[] }) {
     if (incomes.length === 0) {
@@ -60,6 +61,9 @@ function IncomesTable({ incomes }: { incomes: OtherIncome[] }) {
 }
 
 function ExpensesTable({ expenses }: { expenses: Expense[] }) {
+  const appUser = useAppUser();
+  const canEdit = appUser?.role === 'owner';
+
   if (expenses.length === 0) {
     return (
       <Card>
@@ -86,7 +90,7 @@ function ExpensesTable({ expenses }: { expenses: Expense[] }) {
               <TableHead>Category</TableHead>
               <TableHead>Description</TableHead>
               <TableHead className="text-right">Amount</TableHead>
-              <TableHead className="w-[50px]"></TableHead>
+              {canEdit && <TableHead className="w-[50px]"></TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -96,9 +100,11 @@ function ExpensesTable({ expenses }: { expenses: Expense[] }) {
                 <TableCell>{expense.category}</TableCell>
                 <TableCell className="font-medium">{expense.description}</TableCell>
                 <TableCell className="text-right font-mono">{formatCurrency(expense.amount)}</TableCell>
-                <TableCell>
-                  <ExpenseActionsMenu expense={expense} />
-                </TableCell>
+                {canEdit && (
+                  <TableCell>
+                    <ExpenseActionsMenu expense={expense} />
+                  </TableCell>
+                )}
               </TableRow>
             ))}
           </TableBody>
@@ -109,6 +115,8 @@ function ExpensesTable({ expenses }: { expenses: Expense[] }) {
 }
 
 function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
+  const appUser = useAppUser();
+  const canEdit = appUser?.role === 'owner';
   const activeBorrowings = useMemo(() => (borrowings || []).filter(b => b.status !== 'Paid Off'), [borrowings]);
 
   if (activeBorrowings.length === 0) {
@@ -169,7 +177,7 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
               <TableHead>Interest</TableHead>
               <TableHead className="text-right">Yearly Interest</TableHead>
               <TableHead className="text-right px-6">Principal</TableHead>
-              <TableHead className="w-[50px]"></TableHead>
+              {canEdit && <TableHead className="w-[50px]"></TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -180,9 +188,11 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
                   <TableCell>{borrowing.interestRate}% Monthly</TableCell>
                   <TableCell className="text-right font-mono text-destructive">{formatCurrency(borrowing.interestDue)}</TableCell>
                   <TableCell className="text-right font-mono text-destructive px-6">{formatCurrency(borrowing.principalDue)}</TableCell>
-                  <TableCell>
-                    <BorrowingActionsMenu borrowing={borrowing} />
-                  </TableCell>
+                  {canEdit && (
+                    <TableCell>
+                      <BorrowingActionsMenu borrowing={borrowing} />
+                    </TableCell>
+                  )}
                 </TableRow>
             ))}
           </TableBody>
@@ -192,6 +202,8 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
 }
 
 function LendingsTable({ lendings }: { lendings: Lending[] }) {
+  const appUser = useAppUser();
+  const canEdit = appUser?.role === 'owner';
   const activeLendings = useMemo(() => (lendings || []).filter(l => l.status !== 'Paid Off'), [lendings]);
   
   if (activeLendings.length === 0) {
@@ -253,7 +265,7 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
               <TableHead>Interest</TableHead>
               <TableHead className="text-right">Yearly Interest Income</TableHead>
               <TableHead className="text-right px-6">Principal</TableHead>
-              <TableHead className="w-[50px]"></TableHead>
+              {canEdit && <TableHead className="w-[50px]"></TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -264,9 +276,11 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
                   <TableCell>{lending.interestRate}% Monthly</TableCell>
                   <TableCell className="text-right font-mono text-green-600">{formatCurrency(lending.interestDue)}</TableCell>
                   <TableCell className="text-right font-mono text-green-600 px-6">{formatCurrency(lending.principalDue)}</TableCell>
-                  <TableCell>
-                    <LendingActionsMenu lending={lending} />
-                  </TableCell>
+                  {canEdit && (
+                    <TableCell>
+                      <LendingActionsMenu lending={lending} />
+                    </TableCell>
+                  )}
                 </TableRow>
             ))}
           </TableBody>
@@ -279,6 +293,8 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
 export default function ExpensesPage() {
   const firestore = useFirestore();
   const { dateRange, financialYear } = useDateFilter();
+  const appUser = useAppUser();
+  const canEdit = appUser?.role === 'owner';
   
   const warehouseInfoRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'settings', 'main') : null),
@@ -391,15 +407,17 @@ export default function ExpensesPage() {
             Track your operational finances and view profit/loss for the selected period.
           </p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap mt-4">
-            <AddIncomeDialog lendings={lendings || []} />
-            <AddExpenseDialog borrowings={borrowings || []} />
-            <Separator orientation="vertical" className="h-6" />
-            <AddLendingDialog />
-            <AddBorrowingDialog />
-            <Separator orientation="vertical" className="h-6" />
-            <ManageInvestmentDialog initialData={warehouseInfo} />
-        </div>
+        {canEdit && (
+            <div className="flex items-center gap-2 flex-wrap mt-4">
+                <AddIncomeDialog lendings={lendings || []} />
+                <AddExpenseDialog borrowings={borrowings || []} />
+                <Separator orientation="vertical" className="h-6" />
+                <AddLendingDialog />
+                <AddBorrowingDialog />
+                <Separator orientation="vertical" className="h-6" />
+                <ManageInvestmentDialog initialData={warehouseInfo} />
+            </div>
+        )}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 mb-6">

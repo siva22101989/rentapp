@@ -14,7 +14,7 @@ import { BillingSettings } from "./billing-settings";
 
 const allTabs = [
     { value: "profile", label: "Profile", icon: User, roles: ['super-admin', 'owner', 'supervisor', 'biller'] },
-    { value: "manage_warehouses", label: "Manage Warehouses", icon: CreditCard, roles: ['super-admin'] },
+    { value: "billing", label: "Billing", icon: CreditCard, roles: ['super-admin', 'owner'] },
     { value: "warehouse", label: "My Warehouse", icon: Warehouse, roles: ['owner', 'super-admin'] },
     { value: "crops_rates", label: "Crops & Rates", icon: Wheat, roles: ['owner', 'super-admin'] },
     { value: "data", label: "Data", icon: Database, roles: ['owner', 'super-admin'] },
@@ -56,7 +56,7 @@ export function SettingsLayout() {
             <TabsContent value="profile">
                 <ProfileSettings />
             </TabsContent>
-             <TabsContent value="manage_warehouses">
+             <TabsContent value="billing">
                 <BillingSettings />
             </TabsContent>
             <TabsContent value="warehouse">

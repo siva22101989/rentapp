@@ -7,7 +7,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { Logo } from './logo';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, LogOut, Calendar as CalendarIcon, X } from 'lucide-react';
-import { useUser } from '@/firebase/auth/use-user';
+import { useUserContext } from '@/firebase/auth/use-user';
 import { useAuth, useDateFilter } from '@/firebase/provider';
 import { Loader2 } from 'lucide-react';
 import {
@@ -84,7 +84,7 @@ function DateFilters() {
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, loading } = useUser();
+  const { user, loading } = useUserContext();
   const auth = useAuth();
   
   const isDashboard = pathname === '/';

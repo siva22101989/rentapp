@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useUser } from "@/firebase/auth/use-user";
+import { useUserContext } from "@/firebase/auth/use-user";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../ui/card";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
@@ -11,7 +11,7 @@ import { Badge } from "../ui/badge";
 import { Skeleton } from "../ui/skeleton";
 
 export function ProfileSettings() {
-    const { user, loading } = useUser();
+    const { user, appUser, loading } = useUserContext();
 
     if (loading) {
         return (
@@ -42,7 +42,7 @@ export function ProfileSettings() {
                         <CardTitle>Personal Information</CardTitle>
                         <CardDescription>Manage your personal details and account settings.</CardDescription>
                     </div>
-                    <Badge variant="outline">super_admin</Badge>
+                    <Badge variant="outline" className="capitalize">{appUser?.role}</Badge>
                 </div>
             </CardHeader>
             <CardContent className="space-y-6">

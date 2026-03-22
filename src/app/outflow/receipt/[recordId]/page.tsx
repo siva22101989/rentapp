@@ -52,6 +52,14 @@ export default function OutflowReceiptPage() {
   const { data: warehouseInfo, loading: loadingWarehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
 
+  if (loadingRecord || loadingCustomer || loadingWarehouseInfo) {
+    return <AppLayout><div>Loading...</div></AppLayout>;
+  }
+
+  if (!record || !customer) {
+    notFound();
+  }
+
   const latestOutflow = record?.outflows && record.outflows.length > 0
     ? record.outflows[record.outflows.length - 1]
     : null;
@@ -125,14 +133,6 @@ export default function OutflowReceiptPage() {
     window.print();
   };
 
-  if (loadingRecord || loadingCustomer || loadingWarehouseInfo) {
-    return <AppLayout><div>Loading...</div></AppLayout>;
-  }
-
-  if (!record || !customer) {
-    notFound();
-  }
-  
   return (
     <AppLayout>
       <PageHeader

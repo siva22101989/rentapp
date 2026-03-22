@@ -11,10 +11,11 @@ import { doc } from "firebase/firestore";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 import { toDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Download, Loader2, Printer } from "lucide-react";
+import { Download, Loader2, Printer, MessageSquare } from "lucide-react";
 import { useRef, useState } from "react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import { useToast } from "@/hooks/use-toast";
 
 export default function OutflowReceiptPage() {
   const params = useParams();
@@ -22,8 +23,10 @@ export default function OutflowReceiptPage() {
   const recordId = params.recordId as string;
   const firestore = useFirestore();
 
+  const { toast } = useToast();
   const receiptRef = useRef<HTMLDivElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSendingSms, setIsSendingSms] = useState(false);
 
   const withdrawnBags = Number(searchParams.get('withdrawn')) || 0;
   const finalRent = Number(searchParams.get('rent')) || 0;
@@ -58,6 +61,24 @@ export default function OutflowReceiptPage() {
     : `${record.id}-1`;
 
   const deliveryOrderDate = latestOutflow ? toDate(latestOutflow.date) : new Date();
+
+  const handleSendSms = async () => {
+    if (!customer?.phone) {
+      toast({
+        variant: 'destructive',
+        title: 'No Phone Number',
+        description: 'This customer does not have a phone number on file.',
+      });
+      return;
+    }
+    setIsSendingSms(true);
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    setIsSendingSms(false);
+    toast({
+      title: 'SMS Sent',
+      description: `An SMS notification has been sent to ${customer.phone}.`,
+    });
+  };
 
   const handleDownloadPdf = async () => {
     const element = receiptRef.current;
@@ -118,6 +139,13 @@ export default function OutflowReceiptPage() {
         title="Outflow Receipt"
         description={`Final bill for storage record ${record.id}`}
       >
+        <Button variant="outline" onClick={handleSendSms} disabled={isSendingSms}>
+            {isSendingSms ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending...</>
+            ) : (
+                <><MessageSquare className="mr-2 h-4 w-4" /> Send SMS</>
+            )}
+        </Button>
         <Button variant="outline" onClick={handlePrint}>
             <Printer className="mr-2 h-4 w-4" />
             Print

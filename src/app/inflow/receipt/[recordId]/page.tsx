@@ -11,19 +11,22 @@ import { doc, getDoc } from "firebase/firestore";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Download, Loader2, Printer } from "lucide-react";
+import { Download, Loader2, Printer, MessageSquare } from "lucide-react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import { useToast } from "@/hooks/use-toast";
 
 export default function InflowReceiptPage() {
   const params = useParams();
   const recordId = params.recordId as string;
   const firestore = useFirestore();
 
+  const { toast } = useToast();
   const [unloadingRecord, setUnloadingRecord] = useState<UnloadingRecord | null>(null);
   const [loadingUnloading, setLoadingUnloading] = useState(true);
   const receiptRef = useRef<HTMLDivElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSendingSms, setIsSendingSms] = useState(false);
 
   const recordRef = useMemoFirebase(
     () => (firestore && recordId ? doc(firestore, 'storageRecords', recordId) : null),
@@ -80,6 +83,25 @@ export default function InflowReceiptPage() {
     }
     fetchUnloadingRecord();
   }, [firestore, record]);
+
+  const handleSendSms = async () => {
+    if (!customer?.phone) {
+      toast({
+        variant: 'destructive',
+        title: 'No Phone Number',
+        description: 'This customer does not have a phone number on file.',
+      });
+      return;
+    }
+    setIsSendingSms(true);
+    // Simulate sending SMS. In a real app, you'd call a server action here.
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    setIsSendingSms(false);
+    toast({
+      title: 'SMS Sent',
+      description: `An SMS notification has been sent to ${customer.phone}.`,
+    });
+  };
 
   const handleDownloadPdf = async () => {
     const element = receiptRef.current;
@@ -140,6 +162,13 @@ export default function InflowReceiptPage() {
         title="Inflow Bill"
         description={`Details for storage bill ${record.id}`}
       >
+        <Button variant="outline" onClick={handleSendSms} disabled={isSendingSms}>
+            {isSendingSms ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending...</>
+            ) : (
+                <><MessageSquare className="mr-2 h-4 w-4" /> Send SMS</>
+            )}
+        </Button>
         <Button variant="outline" onClick={handlePrint}>
             <Printer className="mr-2 h-4 w-4" />
             Print

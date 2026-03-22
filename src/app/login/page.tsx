@@ -11,9 +11,15 @@ import { Logo } from '@/components/layout/logo';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Link from 'next/link';
 
-// IMPORTANT: Replace 'your-email@example.com' with your own Google email address.
-// Only emails in this list will be allowed to access the application.
-const AUTHORIZED_EMAILS = ['your-email@example.com'];
+// IMPORTANT: Manage your team's access here.
+// Add the Google email addresses of everyone who needs to use this app.
+// Make sure all emails are in lowercase.
+const AUTHORIZED_EMAILS = [
+  'owner@example.com',       // Replace with the owner's email
+  'supervisor@example.com',  // Replace with a supervisor's email
+  'biller@example.com',      // Replace with a biller's email
+];
+
 
 function GoogleIcon() {
     return (

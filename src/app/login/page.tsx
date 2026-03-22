@@ -11,8 +11,6 @@ import { Loader2, AlertCircle } from 'lucide-react';
 import { Logo } from '@/components/layout/logo';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Link from 'next/link';
-import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
-import { cleanForFirestore } from '@/lib/utils';
 
 function GoogleIcon() {
     return (
@@ -27,7 +25,6 @@ function GoogleIcon() {
 
 export default function LoginPage() {
   const auth = useAuth();
-  const firestore = useFirestore();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,42 +34,12 @@ export default function LoginPage() {
     setIsLoading(true);
     setError(null);
     setUnauthorizedDomain(null);
-    if (auth && firestore) {
+    if (auth) {
       const provider = new GoogleAuthProvider();
       try {
-        const result = await signInWithPopup(auth, provider);
-        const user = result.user;
-
-        if (!user.email) {
-            await auth.signOut();
-            setError("Your Google account does not have an email address associated with it.");
-            setIsLoading(false);
-            return;
-        }
-        
-        const userEmail = user.email.toLowerCase();
-        const usersRef = collection(firestore, 'users');
-
-        // Check if there are any users in the collection at all.
-        const allUsersSnapshot = await getDocs(usersRef);
-        if (allUsersSnapshot.empty) {
-            // This is the first user ever signing in. Make them the owner.
-            await addDoc(usersRef, cleanForFirestore({ email: userEmail, role: 'owner' }));
-            router.push('/');
-            return;
-        }
-
-        // Check if the user exists in our users collection
-        const q = query(usersRef, where('email', '==', userEmail));
-        const userQuerySnapshot = await getDocs(q);
-
-        if (userQuerySnapshot.empty) {
-            await auth.signOut();
-            setError("You are not authorized to access this application. Please contact the administrator.");
-            setIsLoading(false);
-            return;
-        }
-
+        await signInWithPopup(auth, provider);
+        // On successful sign-in, redirect to the dashboard.
+        // The UserProvider will handle authorization checks.
         router.push('/');
       } catch (error: any) {
         if (error.code === 'auth/unauthorized-domain') {

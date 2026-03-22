@@ -5,7 +5,8 @@ import { useState, useEffect, createContext, useContext, ReactNode } from 'react
 import { type User } from 'firebase/auth';
 import { useAuth, useFirestore } from '@/firebase/provider';
 import type { AppUser } from '@/lib/definitions';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
+import { cleanForFirestore } from '@/lib/utils';
 
 interface UserContextType {
   user: User | null;
@@ -23,33 +24,57 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (auth && firestore) {
-      const unsubscribe = auth.onAuthStateChanged(async (fbUser) => {
-        if (fbUser && fbUser.email) {
-          // User is logged in, now get their role from Firestore.
-          const usersRef = collection(firestore, 'users');
-          const q = query(usersRef, where('email', '==', fbUser.email.toLowerCase()));
-          const querySnapshot = await getDocs(q);
-          if (!querySnapshot.empty) {
-            const userDoc = querySnapshot.docs[0];
-            setAppUser({ id: userDoc.id, ...userDoc.data() } as AppUser);
-          } else {
-            // This case should be handled by login page, but as a fallback:
-            setAppUser(null);
-            // Optional: sign out user if they have no role?
-            // await auth.signOut();
-          }
-           setUser(fbUser);
-        } else {
-          setAppUser(null);
-          setUser(null);
-        }
-        setLoading(false);
-      });
-      return () => unsubscribe();
-    } else {
+    if (!auth || !firestore) {
       setLoading(true);
+      return;
     }
+
+    const unsubscribe = auth.onAuthStateChanged(async (fbUser) => {
+      setLoading(true);
+      if (fbUser && fbUser.email) {
+        // User is authenticated, check if they are authorized in our app.
+        const usersRef = collection(firestore, 'users');
+        
+        // Check if there are any users in the collection at all.
+        const allUsersSnapshot = await getDocs(usersRef);
+
+        if (allUsersSnapshot.empty) {
+          // This is the first user ever. Make them an owner.
+          const userDocData = { email: fbUser.email.toLowerCase(), role: 'owner' as const };
+          try {
+            const newUserDocRef = await addDoc(usersRef, cleanForFirestore(userDocData));
+            setAppUser({ id: newUserDocRef.id, ...userDocData });
+            setUser(fbUser);
+          } catch (e) {
+            console.error("Failed to create first user:", e);
+            await auth.signOut(); // Sign out on failure
+          }
+        } else {
+          // Users exist. Check if the current user is one of them.
+          const q = query(usersRef, where('email', '==', fbUser.email.toLowerCase()));
+          const userQuerySnapshot = await getDocs(q);
+
+          if (!userQuerySnapshot.empty) {
+            // User is authorized.
+            const userDoc = userQuerySnapshot.docs[0];
+            setAppUser({ id: userDoc.id, ...userDoc.data() } as AppUser);
+            setUser(fbUser);
+          } else {
+            // User is authenticated with Firebase but not in our app's user list.
+            // This is an unauthorized user. Sign them out.
+            await auth.signOut();
+            // The next onAuthStateChanged event will clear the user/appUser state.
+          }
+        }
+      } else {
+        // User is not logged in.
+        setUser(null);
+        setAppUser(null);
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, [auth, firestore]);
 
   return (

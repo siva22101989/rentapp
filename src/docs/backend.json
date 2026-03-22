@@ -201,7 +201,7 @@
           },
           "category": {
             "type": "string",
-            "enum": ["Worker Salary", "Petrol", "Maintenance", "Utilities", "Hamali", "Other"],
+            "enum": ["Worker Salary", "Petrol", "Maintenance", "Utilities", "Current Bill", "Hamali", "EMI for Godown", "Loan Repayment", "Other"],
             "description": "The category of the expense."
           },
           "date": {
@@ -466,12 +466,72 @@
         }
       },
       "required": ["name"]
+    },
+    "smsInfo": {
+      "title": "SMS Info",
+      "description": "Settings for the SMS provider (Twilio).",
+      "type": "object",
+      "properties": {
+        "twilioAccountSid": {
+          "type": "string",
+          "description": "Twilio Account SID."
+        },
+        "twilioAuthToken": {
+          "type": "string",
+          "description": "Twilio Auth Token."
+        },
+        "twilioPhoneNumber": {
+          "type": "string",
+          "description": "The Twilio phone number to send messages from."
+        }
+      },
+      "required": ["twilioAccountSid", "twilioAuthToken", "twilioPhoneNumber"]
+    },
+    "appUser": {
+      "title": "App User",
+      "description": "Defines an application user and their role.",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "The user's email address (lowercase)."
+        },
+        "role": {
+          "type": "string",
+          "enum": ["super-admin", "owner", "supervisor", "biller"],
+          "description": "The assigned role for the user."
+        },
+        "warehouseId": {
+          "type": "string",
+          "description": "The ID of the warehouse account this user belongs to."
+        }
+      },
+      "required": ["email", "role"]
+    },
+    "managedWarehouse": {
+      "title": "Managed Warehouse",
+      "description": "Represents a tenant warehouse managed by the super-admin.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Name of the subscribed warehouse." },
+        "ownerName": { "type": "string", "description": "Name of the warehouse owner." },
+        "ownerEmail": { "type": "string", "format": "email", "description": "Email of the owner, used for login." },
+        "subscriptionStatus": { "type": "string", "enum": ["active", "trial", "expired"], "description": "Current status of the subscription." },
+        "yearlyAmount": { "type": "number", "description": "The yearly subscription fee." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "The date the subscription was created." }
+      },
+      "required": ["name", "ownerEmail", "yearlyAmount"]
     }
   },
   "auth": {
     "providers": ["google.com", "password"]
   },
   "firestore": {
+    "/users/{userId}": {
+      "schema": "appUser",
+      "description": "Stores user roles and information."
+    },
     "/customers/{customerId}": {
       "schema": "customer",
       "description": "Stores individual customer documents."
@@ -515,6 +575,14 @@
     "/settings/{settingId}": {
       "schema": "warehouseInfo",
       "description": "Stores application settings, like warehouse details."
+    },
+    "/settings/sms": {
+      "schema": "smsInfo",
+      "description": "Stores SMS provider configuration."
+    },
+    "/managedWarehouses/{warehouseId}": {
+      "schema": "managedWarehouse",
+      "description": "Stores subscription records for warehouses managed by the super-admin."
     }
   }
 }

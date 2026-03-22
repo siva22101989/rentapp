@@ -39,8 +39,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
         const allUsersSnapshot = await getDocs(usersRef);
 
         if (allUsersSnapshot.empty) {
-          // This is the first user ever. Make them an owner.
-          const userDocData = { email: fbUser.email.toLowerCase(), role: 'owner' as const };
+          // This is the first user ever. Make them a super-admin.
+          const userDocData = { email: fbUser.email.toLowerCase(), role: 'super-admin' as const };
           try {
             const newUserDocRef = await addDoc(usersRef, cleanForFirestore(userDocData));
             setAppUser({ id: newUserDocRef.id, ...userDocData });

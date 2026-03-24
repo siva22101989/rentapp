@@ -1,4 +1,3 @@
-
 'use client';
 
 import { AppLayout } from "@/components/layout/app-layout";
@@ -36,7 +35,6 @@ const navItems: NavItem[] = [
   { href: '/customers', label: 'Customers', description: 'View and manage customers.', icon: Users, roles: ['owner', 'supervisor', 'biller'] },
   { href: '/reports', label: 'Reports', description: 'See all transactions.', icon: FileText, roles: ['owner', 'supervisor'] },
   { href: '/expenses', label: 'Profit & Loss', description: 'Track income, expenses, and net profit.', icon: Scale, roles: ['owner'] },
-  { href: '/settings', label: 'Settings', description: 'Manage warehouse and team.', icon: Settings, roles: ['owner'] },
 ];
 
 function NavCard({ item }: { item: NavItem }) {

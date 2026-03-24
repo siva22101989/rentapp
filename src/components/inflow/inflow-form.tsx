@@ -7,7 +7,6 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Customer, Payment, Commodity, Lot, StorageRecord } from '@/lib/definitions';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
@@ -43,12 +42,13 @@ export function InflowForm({ customers, commodities, lots, records, nextSerialNu
     const [hamali, setHamali] = useState(0);
     const [hamaliPaid, setHamaliPaid] = useState<number | ''>('');
     const [selectedCustomerId, setSelectedCustomerId] = useState('');
-    const [commodityDescription, setCommodityDescription] = useState('');
+    const [selectedCommodity, setSelectedCommodity] = useState('');
     const [weight, setWeight] = useState<number | ''>('');
     const [khataAmount, setKhataAmount] = useState<number | ''>('');
     const [selectedLot, setSelectedLot] = useState('');
 
     const customerOptions = customers.map(c => ({ value: c.id, label: c.name }));
+    const commodityOptions = commodities.map(c => ({ value: c.name, label: c.name }));
 
     const lotOccupancy = useMemo(() => {
         const occupancy: { [lotName: string]: number } = {};
@@ -59,6 +59,20 @@ export function InflowForm({ customers, commodities, lots, records, nextSerialNu
         });
         return occupancy;
     }, [records]);
+    
+    const lotOptions = useMemo(() => {
+        return lots
+            .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
+            .map(lot => {
+                const occupied = lotOccupancy[lot.name] || 0;
+                const capacity = lot.capacity ? ` / ${lot.capacity}` : '';
+                return ({
+                    value: lot.name,
+                    label: `${lot.name} (${occupied}${capacity} bags)`
+                })
+            });
+    }, [lots, lotOccupancy]);
+
 
     useEffect(() => {
         const bagsValue = bags || 0;
@@ -182,44 +196,27 @@ export function InflowForm({ customers, commodities, lots, records, nextSerialNu
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="commodityDescription">Product</Label>
-                            <Select 
-                                name="commodityDescription" 
-                                required 
-                                onValueChange={setCommodityDescription} 
-                                value={commodityDescription}
-                            >
-                                <SelectTrigger id="commodityDescription">
-                                    <SelectValue placeholder="Select a product" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {commodities.map(commodity => (
-                                        <SelectItem key={commodity.id} value={commodity.name}>
-                                            {commodity.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                             <Combobox
+                                options={commodityOptions}
+                                value={selectedCommodity}
+                                onChange={setSelectedCommodity}
+                                placeholder="Select a product..."
+                                searchPlaceholder="Search products..."
+                                emptyPlaceholder="No products found."
+                            />
+                            <input type="hidden" name="commodityDescription" value={selectedCommodity} />
                         </div>
                          <div className="space-y-2">
                             <Label htmlFor="location">Lot No.</Label>
-                            <Select name="location" required onValueChange={setSelectedLot} value={selectedLot}>
-                                <SelectTrigger id="location">
-                                    <SelectValue placeholder="Select a lot" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {lots
-                                        .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
-                                        .map(lot => {
-                                            const occupied = lotOccupancy[lot.name] || 0;
-                                            const capacity = lot.capacity ? ` / ${lot.capacity}` : '';
-                                            return (
-                                                <SelectItem key={lot.id} value={lot.name}>
-                                                    {lot.name} ({occupied}{capacity} bags)
-                                                </SelectItem>
-                                            )
-                                    })}
-                                </SelectContent>
-                            </Select>
+                             <Combobox
+                                options={lotOptions}
+                                value={selectedLot}
+                                onChange={setSelectedLot}
+                                placeholder="Select a lot..."
+                                searchPlaceholder="Search lots..."
+                                emptyPlaceholder="No lots found."
+                            />
+                            <input type="hidden" name="location" value={selectedLot} />
                         </div>
                     </div>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -20,7 +20,6 @@ import { formatCurrency, cleanForFirestore, toDate } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 import { Combobox } from '../ui/combobox';
 import { differenceInDays, format } from 'date-fns';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 const InitiateDryingSchema = z.object({
   unloadingRecordId: z.string().min(1, 'An unloading bill is required.'),
@@ -84,6 +83,20 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
         });
         return occupancy;
     }, [storageRecords]);
+
+    const lotOptions = useMemo(() => {
+        return lots
+            .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
+            .map(lot => {
+                const occupied = lotOccupancy[lot.name] || 0;
+                const capacity = lot.capacity ? ` / ${lot.capacity}` : '';
+                return ({
+                    value: lot.name,
+                    label: `${lot.name} (${occupied}${capacity} bags)`
+                })
+            });
+    }, [lots, lotOccupancy]);
+
 
     const unloadingQueueOptions = useMemo(() => {
         const customerMap = new Map(customers.map(c => [c.id, c.name]));
@@ -464,26 +477,17 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                             control={form.control}
                             name="lotNo"
                             render={({ field }) => (
-                            <FormItem>
+                            <FormItem className="flex flex-col">
                                 <FormLabel>Storage Location (Lot No.)</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!selectedUnloadingRecord}>
-                                    <FormControl>
-                                        <SelectTrigger><SelectValue placeholder="Select a lot" /></SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        {lots
-                                            ?.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
-                                            .map(lot => {
-                                                const occupied = lotOccupancy[lot.name] || 0;
-                                                const capacity = lot.capacity ? ` / ${lot.capacity}` : '';
-                                                return (
-                                                    <SelectItem key={lot.id} value={lot.name}>
-                                                        {lot.name} ({occupied}{capacity} bags)
-                                                    </SelectItem>
-                                                )
-                                        })}
-                                    </SelectContent>
-                                </Select>
+                                 <Combobox
+                                    options={lotOptions || []}
+                                    value={field.value}
+                                    onChange={field.onChange}
+                                    placeholder="Select a lot..."
+                                    searchPlaceholder="Search lots..."
+                                    emptyPlaceholder="No lots found."
+                                    disabled={!selectedUnloadingRecord}
+                                />
                                 <FormMessage />
                             </FormItem>
                             )}

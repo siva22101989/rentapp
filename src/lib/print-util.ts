@@ -54,7 +54,7 @@ export function printElement(element: HTMLElement, documentTitle: string) {
                   width: 210mm; /* A4 width */
                   min-height: 297mm; /* A4 height */
                   margin: 2rem auto;
-                  padding: 1in;
+                  padding: 0.75in; /* Adjusted for a broader content area */
                   box-sizing: border-box;
                   box-shadow: 0 0 15px rgba(0,0,0,0.2);
                   background: white;
@@ -87,10 +87,6 @@ export function printElement(element: HTMLElement, documentTitle: string) {
                 /* Hide any elements that should not be printed from the report content itself */
                 .print-hide {
                     display: none !important;
-                }
-                 /* Minimal resets to preserve app styling */
-                body {
-                   background-image: none !important; /* Remove background pattern */
                 }
             }
         `;

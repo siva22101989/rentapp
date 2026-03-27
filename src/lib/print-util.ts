@@ -69,7 +69,7 @@ export function printElement(element: HTMLElement, documentTitle: string) {
                 }
                 body {
                     margin: 0 !important;
-                    background-color: #fff !important;
+                    background: #fff !important;
                     -webkit-print-color-adjust: exact !important;
                     color-adjust: exact !important;
                 }
@@ -88,16 +88,9 @@ export function printElement(element: HTMLElement, documentTitle: string) {
                 .print-hide {
                     display: none !important;
                 }
-                 /* General Resets for clean print */
-                .card, div[class*="card"] {
-                    border: none !important;
-                    box-shadow: none !important;
-                    background-color: transparent !important;
-                    padding: 0 !important;
-                    margin: 0 !important;
-                }
-                 h1,h2,h3,h4,p,span,div,td,th {
-                    color: black !important;
+                 /* Minimal resets to preserve app styling */
+                body {
+                   background-image: none !important; /* Remove background pattern */
                 }
             }
         `;

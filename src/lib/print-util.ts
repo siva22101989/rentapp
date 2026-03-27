@@ -2,27 +2,25 @@
 export function printElement(element: HTMLElement, documentTitle: string) {
     const html = element.innerHTML;
     const newWindow = window.open('', '_blank', 'height=800,width=800');
-    
+
     if (newWindow) {
-        newWindow.document.write('<html><head>');
-        newWindow.document.write(`<title>${documentTitle}</title>`);
-        
-        // Copy main stylesheet link
-        const links = Array.from(document.getElementsByTagName('link'));
-        links.forEach(link => {
-             if (link.rel === 'stylesheet') {
-                newWindow.document.write(link.outerHTML);
-            }
+        // Copy all stylesheets and style tags from the parent document
+        const styles = Array.from(document.head.querySelectorAll('link[rel="stylesheet"], style'));
+        styles.forEach(style => {
+            newWindow.document.head.appendChild(style.cloneNode(true));
         });
 
-        // Inject all necessary styles for preview and print
-        newWindow.document.write(`
-            <style>
-                /* Screen-only styles for the preview window */
+        newWindow.document.title = documentTitle;
+
+        // Custom styles for the print preview window
+        const printPreviewStyles = newWindow.document.createElement('style');
+        printPreviewStyles.innerHTML = `
+            /* Screen-only styles for the preview window */
+            @media screen {
                 body {
                     margin: 0;
                     font-family: sans-serif;
-                    background-color: #e0e0e0;
+                    background-color: #f1f5f9; /* A lighter gray */
                 }
                 .print-controls {
                     position: sticky;
@@ -30,25 +28,27 @@ export function printElement(element: HTMLElement, documentTitle: string) {
                     display: flex;
                     justify-content: center;
                     gap: 1rem;
-                    padding: 1rem;
-                    background-color: #4a5568;
-                    border-bottom: 1px solid #2d3748;
+                    padding: 0.75rem;
+                    background-color: #334155; /* Darker blue-gray */
                     z-index: 1000;
                     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
                 }
                 .print-controls button {
-                    font-size: 1rem;
-                    padding: 0.5rem 1.5rem;
-                    border-radius: 0.5rem;
-                    border: 1px solid #718096;
+                    font-size: 0.875rem;
+                    padding: 0.5rem 1rem;
+                    border-radius: 0.375rem;
+                    border: none;
                     cursor: pointer;
-                    background-color: #f7fafc;
-                    color: #2d3748;
+                    background-color: #f8fafc;
+                    color: #1e293b;
                     font-weight: 600;
                     transition: background-color 0.2s;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 0.5rem;
                 }
                 .print-controls button:hover {
-                    background-color: #edf2f7;
+                    background-color: #e2e8f0;
                 }
                 .print-content-wrapper {
                   width: 210mm; /* A4 width */
@@ -56,61 +56,73 @@ export function printElement(element: HTMLElement, documentTitle: string) {
                   margin: 2rem auto;
                   padding: 1in;
                   box-sizing: border-box;
-                  box-shadow: 0 0 10px rgba(0,0,0,0.15);
+                  box-shadow: 0 0 15px rgba(0,0,0,0.2);
                   background: white;
                 }
+            }
 
-                /* Print-only styles */
-                @media print {
-                    @page {
-                        size: A4;
-                        margin: 0.75in;
-                    }
-                    body {
-                        margin: 0;
-                        -webkit-print-color-adjust: exact !important;
-                        color-adjust: exact !important;
-                    }
-                    .print-controls {
-                        display: none !important;
-                    }
-                    .print-content-wrapper {
-                        box-shadow: none !important;
-                        margin: 0 !important;
-                        padding: 0 !important;
-                        border: none !important;
-                        width: 100% !important;
-                        min-height: 0 !important;
-                    }
+            /* Print-only styles */
+            @media print {
+                @page {
+                    size: A4;
+                    margin: 0.75in;
                 }
-            </style>
-        `);
+                body {
+                    margin: 0 !important;
+                    background-color: #fff !important;
+                    -webkit-print-color-adjust: exact !important;
+                    color-adjust: exact !important;
+                }
+                .print-controls {
+                    display: none !important;
+                }
+                .print-content-wrapper {
+                    box-shadow: none !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    border: none !important;
+                    width: 100% !important;
+                    min-height: 0 !important;
+                }
+                /* Hide any elements that should not be printed from the report content itself */
+                .print-hide {
+                    display: none !important;
+                }
+                 /* General Resets for clean print */
+                .card, div[class*="card"] {
+                    border: none !important;
+                    box-shadow: none !important;
+                    background-color: transparent !important;
+                    padding: 0 !important;
+                    margin: 0 !important;
+                }
+                 h1,h2,h3,h4,p,span,div,td,th {
+                    color: black !important;
+                }
+            }
+        `;
+        newWindow.document.head.appendChild(printPreviewStyles);
 
-        newWindow.document.write('</head><body>');
-        
-        // Add the control buttons
-        newWindow.document.write(`
+
+        // Add the control buttons and content wrapper to the body
+        newWindow.document.body.innerHTML = `
             <div class="print-controls">
                 <button id="print-btn">🖨️ Print</button>
                 <button id="save-pdf-btn">📄 Save as PDF</button>
             </div>
-        `);
-        
-        // Wrap the report content
-        newWindow.document.write(`<div class="print-content-wrapper">${html}</div>`);
+            <div class="print-content-wrapper">${html}</div>
+        `;
 
         // Add script to handle button clicks
-        newWindow.document.write(`
-            <script>
-                document.getElementById('print-btn').addEventListener('click', function() { window.print(); });
-                document.getElementById('save-pdf-btn').addEventListener('click', function() { window.print(); });
-            </script>
-        `);
-
-        newWindow.document.write('</body></html>');
+        const script = newWindow.document.createElement('script');
+        script.innerHTML = `
+            document.getElementById('print-btn').addEventListener('click', function() { window.print(); });
+            document.getElementById('save-pdf-btn').addEventListener('click', function() { window.print(); });
+        `;
+        newWindow.document.body.appendChild(script);
         
         newWindow.document.close();
-        
+
         newWindow.onload = () => {
             newWindow.focus();
         };

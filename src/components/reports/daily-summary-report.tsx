@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useRef, useMemo } from 'react';
@@ -42,50 +43,38 @@ const DailySummaryContent = React.forwardRef<HTMLDivElement, { dailyData: DailyD
     return (
         <div ref={ref} className="bg-white p-4 rounded-lg text-black printable-area">
             <div className="mb-6 text-center">
-                <h2 className="text-xl font-bold">Daily Summary Report</h2>
-                <p className="text-muted-foreground">{format(selectedDate, 'EEEE, dd MMMM yyyy')}</p>
+                <h2 className="text-xl font-bold">SRI LAKSHMI WAREHOUSE</h2>
+                <h3 className="font-semibold">Daily Summary Report</h3>
+                <p className="text-sm text-gray-500">{format(selectedDate, 'EEEE, dd MMMM yyyy')}</p>
             </div>
 
-            {/* Summary Cards */}
-            <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5 mb-6">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Income</CardTitle><TrendingUp className="h-4 w-4 text-green-500" /></CardHeader>
-                    <CardContent><div className="text-2xl font-bold text-green-600">{formatCurrency(dailyData.summary.totalIncome)}</div></CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Expenses</CardTitle><TrendingDown className="h-4 w-4 text-red-500" /></CardHeader>
-                    <CardContent><div className="text-2xl font-bold text-destructive">{formatCurrency(dailyData.summary.totalExpenses)}</div></CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Net Balance</CardTitle><Scale className="h-4 w-4 text-muted-foreground" /></CardHeader>
-                    <CardContent><div className={`text-2xl font-bold ${dailyData.summary.netBalance >= 0 ? 'text-primary' : 'text-destructive'}`}>{formatCurrency(dailyData.summary.netBalance)}</div></CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Bags In</CardTitle><ArrowDownToDot className="h-4 w-4 text-blue-500" /></CardHeader>
-                    <CardContent><div className="text-2xl font-bold">{dailyData.summary.totalInflowBags}</div></CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Bags Out</CardTitle><ArrowUpFromDot className="h-4 w-4 text-orange-500" /></CardHeader>
-                    <CardContent><div className="text-2xl font-bold">{dailyData.summary.totalOutflowBags}</div></CardContent>
-                </Card>
+            {/* Summary List */}
+            <div className="space-y-2 mb-6">
+                <div className="flex justify-between items-center p-3 border rounded-lg">
+                    <div className="flex items-center gap-2"><TrendingUp className="h-4 w-4 text-green-500" /><span className="text-sm font-medium">Total Income</span></div>
+                    <div className="text-sm font-semibold font-mono text-green-600">{formatCurrency(dailyData.summary.totalIncome)}</div>
+                </div>
+                <div className="flex justify-between items-center p-3 border rounded-lg">
+                    <div className="flex items-center gap-2"><TrendingDown className="h-4 w-4 text-red-500" /><span className="text-sm font-medium">Total Expenses</span></div>
+                    <div className="text-sm font-semibold font-mono text-destructive">{formatCurrency(dailyData.summary.totalExpenses)}</div>
+                </div>
+                <div className="flex justify-between items-center p-3 border rounded-lg">
+                    <div className="flex items-center gap-2"><Scale className="h-4 w-4 text-gray-500" /><span className="text-sm font-medium">Net Balance</span></div>
+                    <div className={`text-sm font-semibold font-mono ${dailyData.summary.netBalance >= 0 ? 'text-primary' : 'text-destructive'}`}>{formatCurrency(dailyData.summary.netBalance)}</div>
+                </div>
+                 <div className="flex justify-between items-center p-3 border rounded-lg">
+                    <div className="flex items-center gap-2"><ArrowDownToDot className="h-4 w-4 text-blue-500" /><span className="text-sm font-medium">Bags In</span></div>
+                    <div className="text-sm font-semibold font-mono">{dailyData.summary.totalInflowBags}</div>
+                </div>
+                 <div className="flex justify-between items-center p-3 border rounded-lg">
+                    <div className="flex items-center gap-2"><ArrowUpFromDot className="h-4 w-4 text-orange-500" /><span className="text-sm font-medium">Bags Out</span></div>
+                    <div className="text-sm font-semibold font-mono">{dailyData.summary.totalOutflowBags}</div>
+                </div>
             </div>
 
-            {/* Detailed Tables */}
+            {/* Outflows Table */}
             <div className="space-y-6">
-                {dailyData.inflows.length > 0 && (
-                    <section>
-                        <h3 className="font-semibold mb-2">Inflows</h3>
-                        <Table>
-                            <TableHeader><TableRow><TableHead className="text-black">Record ID</TableHead><TableHead className="text-black">Customer</TableHead><TableHead className="text-black">Commodity</TableHead><TableHead className="text-right text-black">Bags</TableHead></TableRow></TableHeader>
-                            <TableBody>
-                                {dailyData.inflows.map(rec => (
-                                    <TableRow key={`in-${rec.id}`}><TableCell>{rec.id}</TableCell><TableCell>{getCustomerName(rec.customerId)}</TableCell><TableCell>{rec.commodityDescription}</TableCell><TableCell className="text-right font-mono">{rec.bagsIn}</TableCell></TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </section>
-                )}
-                 {dailyData.outflows.length > 0 && (
+                {dailyData.outflows.length > 0 && (
                     <section>
                         <h3 className="font-semibold mb-2">Outflows</h3>
                         <Table>
@@ -98,52 +87,10 @@ const DailySummaryContent = React.forwardRef<HTMLDivElement, { dailyData: DailyD
                         </Table>
                     </section>
                 )}
-                 {dailyData.unloadings.length > 0 && (
-                    <section>
-                        <h3 className="font-semibold mb-2">Unloadings</h3>
-                        <Table>
-                            <TableHeader><TableRow><TableHead className="text-black">Bill No.</TableHead><TableHead className="text-black">Customer</TableHead><TableHead className="text-black">Commodity</TableHead><TableHead className="text-right text-black">Bags Unloaded</TableHead></TableRow></TableHeader>
-                            <TableBody>
-                                {dailyData.unloadings.map(rec => (
-                                    <TableRow key={`unloading-${rec.id}`}><TableCell>{rec.billNo}</TableCell><TableCell>{getCustomerName(rec.customerId)}</TableCell><TableCell>{rec.commodityDescription}</TableCell><TableCell className="text-right font-mono">{rec.bagsUnloaded}</TableCell></TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </section>
-                )}
-                {(dailyData.payments.length > 0 || dailyData.otherIncomes.length > 0) && (
-                     <section>
-                        <h3 className="font-semibold mb-2">Income</h3>
-                        <Table>
-                            <TableHeader><TableRow><TableHead className="text-black">Customer/Source</TableHead><TableHead className="text-black">Description</TableHead><TableHead className="text-black">Ref ID</TableHead><TableHead className="text-right text-black">Amount</TableHead></TableRow></TableHeader>
-                            <TableBody>
-                                {dailyData.payments.map((p, i) => (
-                                    <TableRow key={`payment-${i}`}><TableCell>{p.customerName}</TableCell><TableCell>{p.description}</TableCell><TableCell>{p.recordId}</TableCell><TableCell className="text-right font-mono">{formatCurrency(p.amount)}</TableCell></TableRow>
-                                ))}
-                                {dailyData.otherIncomes.map((i, idx) => (
-                                    <TableRow key={`other-income-${idx}`}><TableCell>{i.category}</TableCell><TableCell>{i.description}</TableCell><TableCell>N/A</TableCell><TableCell className="text-right font-mono">{formatCurrency(i.amount)}</TableCell></TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </section>
-                )}
-                {dailyData.expenses.length > 0 && (
-                     <section>
-                        <h3 className="font-semibold mb-2">Expenses</h3>
-                        <Table>
-                            <TableHeader><TableRow><TableHead className="text-black">Category</TableHead><TableHead className="text-black">Description</TableHead><TableHead className="text-right text-black">Amount</TableHead></TableRow></TableHeader>
-                            <TableBody>
-                                {dailyData.expenses.map(exp => (
-                                    <TableRow key={`exp-${exp.id}`}><TableCell>{exp.category}</TableCell><TableCell>{exp.description}</TableCell><TableCell className="text-right font-mono">{formatCurrency(exp.amount)}</TableCell></TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </section>
+                 {(dailyData.inflows.length + dailyData.outflows.length + dailyData.payments.length + dailyData.expenses.length) === 0 && (
+                    <div className="text-center py-16 text-gray-500">No transactions recorded for this day.</div>
                 )}
             </div>
-            {(dailyData.inflows.length + dailyData.outflows.length + dailyData.payments.length + dailyData.expenses.length) === 0 && (
-                <div className="text-center py-16 text-muted-foreground">No transactions recorded for this day.</div>
-            )}
         </div>
     );
 });

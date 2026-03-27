@@ -69,7 +69,6 @@ export function printElement(element: HTMLElement, documentTitle: string) {
                 }
                 body {
                     margin: 0 !important;
-                    background: #fff !important;
                     -webkit-print-color-adjust: exact !important;
                     color-adjust: exact !important;
                 }
@@ -77,14 +76,15 @@ export function printElement(element: HTMLElement, documentTitle: string) {
                     display: none !important;
                 }
                 .print-content-wrapper {
+                    /* Reset wrapper styles for actual printing */
                     box-shadow: none !important;
                     margin: 0 !important;
-                    padding: 0 !important;
                     border: none !important;
+                    padding: 0 !important;
                     width: 100% !important;
                     min-height: 0 !important;
+                    background: transparent !important;
                 }
-                /* Hide any elements that should not be printed from the report content itself */
                 .print-hide {
                     display: none !important;
                 }

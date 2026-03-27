@@ -41,35 +41,60 @@ const DailySummaryContent = React.forwardRef<HTMLDivElement, { dailyData: DailyD
     const getCustomerName = (customerId: string) => customers.find(c => c.id === customerId)?.name ?? 'Unknown';
 
     return (
-        <div ref={ref} className="bg-white p-4 rounded-lg text-black printable-area">
+        <div ref={ref} className="bg-white p-4 text-black printable-area">
             <div className="mb-6 text-center">
                 <h2 className="text-xl font-bold">SRI LAKSHMI WAREHOUSE</h2>
                 <h3 className="font-semibold">Daily Summary Report</h3>
                 <p className="text-sm text-gray-500">{format(selectedDate, 'EEEE, dd MMMM yyyy')}</p>
             </div>
 
-            {/* Summary List */}
-            <div className="space-y-2 mb-6">
-                <div className="flex justify-between items-center p-3 border rounded-lg">
-                    <div className="flex items-center gap-2"><TrendingUp className="h-4 w-4 text-green-500" /><span className="text-sm font-medium">Total Income</span></div>
-                    <div className="text-sm font-semibold font-mono text-green-600">{formatCurrency(dailyData.summary.totalIncome)}</div>
-                </div>
-                <div className="flex justify-between items-center p-3 border rounded-lg">
-                    <div className="flex items-center gap-2"><TrendingDown className="h-4 w-4 text-red-500" /><span className="text-sm font-medium">Total Expenses</span></div>
-                    <div className="text-sm font-semibold font-mono text-destructive">{formatCurrency(dailyData.summary.totalExpenses)}</div>
-                </div>
-                <div className="flex justify-between items-center p-3 border rounded-lg">
-                    <div className="flex items-center gap-2"><Scale className="h-4 w-4 text-gray-500" /><span className="text-sm font-medium">Net Balance</span></div>
-                    <div className={`text-sm font-semibold font-mono ${dailyData.summary.netBalance >= 0 ? 'text-primary' : 'text-destructive'}`}>{formatCurrency(dailyData.summary.netBalance)}</div>
-                </div>
-                 <div className="flex justify-between items-center p-3 border rounded-lg">
-                    <div className="flex items-center gap-2"><ArrowDownToDot className="h-4 w-4 text-blue-500" /><span className="text-sm font-medium">Bags In</span></div>
-                    <div className="text-sm font-semibold font-mono">{dailyData.summary.totalInflowBags}</div>
-                </div>
-                 <div className="flex justify-between items-center p-3 border rounded-lg">
-                    <div className="flex items-center gap-2"><ArrowUpFromDot className="h-4 w-4 text-orange-500" /><span className="text-sm font-medium">Bags Out</span></div>
-                    <div className="text-sm font-semibold font-mono">{dailyData.summary.totalOutflowBags}</div>
-                </div>
+            {/* Summary Cards */}
+            <div className="grid grid-cols-1 gap-4 mb-6">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Total Income</CardTitle>
+                        <TrendingUp className="h-4 w-4 text-green-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-green-600">{formatCurrency(dailyData.summary.totalIncome)}</div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
+                        <TrendingDown className="h-4 w-4 text-red-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-destructive">{formatCurrency(dailyData.summary.totalExpenses)}</div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Net Balance</CardTitle>
+                        <Scale className="h-4 w-4 text-gray-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className={`text-2xl font-bold ${dailyData.summary.netBalance >= 0 ? 'text-primary' : 'text-destructive'}`}>{formatCurrency(dailyData.summary.netBalance)}</div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Bags In</CardTitle>
+                        <ArrowDownToDot className="h-4 w-4 text-blue-500" />
+                    </CardHeader>
+                    <CardContent>
+                         <div className="text-2xl font-bold">{dailyData.summary.totalInflowBags}</div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Bags Out</CardTitle>
+                        <ArrowUpFromDot className="h-4 w-4 text-orange-500" />
+                    </CardHeader>
+                    <CardContent>
+                         <div className="text-2xl font-bold">{dailyData.summary.totalOutflowBags}</div>
+                    </CardContent>
+                </Card>
             </div>
 
             {/* Outflows Table */}

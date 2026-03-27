@@ -13,10 +13,6 @@ import { printElement } from "@/lib/print-util";
 function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
   const activeBorrowings = useMemo(() => (borrowings || []).filter(b => b.status !== 'Paid Off'), [borrowings]);
 
-  if (activeBorrowings.length === 0) {
-    return null;
-  }
-  
   const { borrowingsWithInterest, totals } = useMemo(() => {
     const calculatedBorrowings = activeBorrowings.map(borrowing => {
         let principal = borrowing.principal;
@@ -96,18 +92,18 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
                   <TableCell>{format(toDate(borrowing.dateTaken), 'dd MMM yyyy')}</TableCell>
                   <TableCell className="text-center">{borrowing.monthsPassed}</TableCell>
                   <TableCell>{borrowing.interestRate}%</TableCell>
-                  <TableCell className="text-right font-mono text-red-600">{formatCurrency(borrowing.principalDue)}</TableCell>
-                  <TableCell className="text-right font-mono text-red-600">{formatCurrency(borrowing.interestDue)}</TableCell>
-                  <TableCell className="text-right font-mono font-bold text-red-600">{formatCurrency(borrowing.totalDue)}</TableCell>
+                  <TableCell className="text-right font-mono text-destructive">{formatCurrency(borrowing.principalDue)}</TableCell>
+                  <TableCell className="text-right font-mono text-destructive">{formatCurrency(borrowing.interestDue)}</TableCell>
+                  <TableCell className="text-right font-mono font-bold text-destructive">{formatCurrency(borrowing.totalDue)}</TableCell>
                 </TableRow>
             ))}
           </TableBody>
            <TableFooter>
                 <TableRow>
                     <TableCell colSpan={4} className="text-right font-bold">Totals</TableCell>
-                    <TableCell className="text-right font-mono font-bold text-red-600">{formatCurrency(totals.principalDue)}</TableCell>
-                    <TableCell className="text-right font-mono font-bold text-red-600">{formatCurrency(totals.interestDue)}</TableCell>
-                    <TableCell className="text-right font-mono font-bold text-red-600">{formatCurrency(totals.totalDue)}</TableCell>
+                    <TableCell className="text-right font-mono font-bold text-destructive">{formatCurrency(totals.principalDue)}</TableCell>
+                    <TableCell className="text-right font-mono font-bold text-destructive">{formatCurrency(totals.interestDue)}</TableCell>
+                    <TableCell className="text-right font-mono font-bold text-destructive">{formatCurrency(totals.totalDue)}</TableCell>
                 </TableRow>
             </TableFooter>
         </Table>
@@ -345,13 +341,13 @@ export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecor
                         {filteredExpenses.map((expense) => (
                             <TableRow key={`exp-${expense.id}`}>
                                 <TableCell className="pl-6">{expense.description}</TableCell>
-                                <TableCell className="text-right font-mono text-red-600">({formatCurrency(expense.amount)})</TableCell>
+                                <TableCell className="text-right font-mono text-destructive">({formatCurrency(expense.amount)})</TableCell>
                             </TableRow>
                         ))}
                         {interestOnCapital > 0 && (
                             <TableRow key="exp-capital">
                                 <TableCell className="pl-6">Interest on Capital (Notional)</TableCell>
-                                <TableCell className="text-right font-mono text-red-600">({formatCurrency(interestOnCapital)})</TableCell>
+                                <TableCell className="text-right font-mono text-destructive">({formatCurrency(interestOnCapital)})</TableCell>
                             </TableRow>
                         )}
                         <TableRow>
@@ -359,13 +355,13 @@ export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecor
                         </TableRow>
                         <TableRow className="border-y bg-gray-50">
                             <TableCell className="font-semibold text-right">Total Expenses</TableCell>
-                            <TableCell className="text-right font-mono font-semibold text-red-600">({formatCurrency(periodExpenses)})</TableCell>
+                            <TableCell className="text-right font-mono font-semibold text-destructive">({formatCurrency(periodExpenses)})</TableCell>
                         </TableRow>
                     </TableBody>
                     <TableFooter>
                         <TableRow className="text-lg bg-gray-200 hover:bg-gray-200">
                             <TableCell className="font-bold">{periodBalance >= 0 ? 'Net Profit' : 'Net Loss'}</TableCell>
-                            <TableCell className={`text-right font-bold font-mono ${periodBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            <TableCell className={`text-right font-bold font-mono ${periodBalance >= 0 ? 'text-green-600' : 'text-destructive'}`}>
                                 {formatCurrency(periodBalance)}
                             </TableCell>
                         </TableRow>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef } from 'react';
@@ -6,7 +5,7 @@ import type { Customer, StorageRecord, UnloadingRecord, WarehouseInfo } from "@/
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from '@/components/ui/button';
-import { Download, Printer } from 'lucide-react';
+import { Printer } from 'lucide-react';
 import { CustomerStatement } from './customer-statement';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { useFirestore } from '@/firebase/provider';
@@ -57,12 +56,9 @@ export function ReportClient({ records, customers, unloadingRecords, initialCust
                         </SelectContent>
                     </Select>
                     <div className="flex items-center gap-2">
-                        <Button variant="outline" onClick={handleGenerate} disabled={!selectedCustomerId}>
-                            <Printer className="mr-2 h-4 w-4" /> Print
-                        </Button>
                         <Button onClick={handleGenerate} disabled={!selectedCustomerId}>
-                            <Download className="mr-2 h-4 w-4" />
-                            Download PDF
+                            <Printer className="mr-2 h-4 w-4" />
+                            Print / Save PDF
                         </Button>
                     </div>
                 </div>

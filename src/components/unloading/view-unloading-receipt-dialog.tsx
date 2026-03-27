@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useRef, useState } from 'react';
@@ -11,7 +10,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '../ui/button';
-import { Download, Printer } from 'lucide-react';
+import { Printer } from 'lucide-react';
 import { UnloadingReceipt } from './unloading-receipt';
 import type { Customer, UnloadingRecord, WarehouseInfo } from '@/lib/definitions';
 import { useDoc } from '@/firebase/firestore/use-doc';
@@ -60,13 +59,9 @@ export function ViewUnloadingReceiptDialog({
             )}
         </div>
         <DialogFooter className="sm:justify-end gap-2">
-          <Button variant="outline" onClick={handleGenerate}>
-              <Printer className="mr-2 h-4 w-4" />
-              Print
-          </Button>
           <Button onClick={handleGenerate}>
-              <Download className="mr-2 h-4 w-4" />
-              Download PDF
+              <Printer className="mr-2 h-4 w-4" />
+              Print / Save PDF
           </Button>
         </DialogFooter>
       </DialogContent>

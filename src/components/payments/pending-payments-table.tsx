@@ -1,9 +1,8 @@
-
 'use client';
 import { useMemo, useRef, useState } from "react";
 import type { Customer, StorageRecord, UnloadingRecord } from "@/lib/definitions";
 import { Button } from "../ui/button";
-import { Download, Loader2, Printer } from "lucide-react";
+import { Loader2, Printer } from "lucide-react";
 import { PendingDuesReportTable } from "../reports/pending-dues-report-table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { printElement } from "@/lib/print-util";
@@ -90,12 +89,9 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords }: {
             <CardHeader className="flex flex-row items-center justify-between print-hide">
                 <CardTitle>Outstanding Balances</CardTitle>
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={handleGenerate}>
-                        <Printer className="mr-2 h-4 w-4" /> Print
-                    </Button>
                     <Button size="sm" onClick={handleGenerate}>
-                        <Download className="mr-2 h-4 w-4" />
-                        Download PDF
+                        <Printer className="mr-2 h-4 w-4" />
+                        Print / Save PDF
                     </Button>
                 </div>
             </CardHeader>

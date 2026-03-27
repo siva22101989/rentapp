@@ -1,4 +1,3 @@
-
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
@@ -10,7 +9,7 @@ import { useFirestore } from "@/firebase/provider";
 import { doc } from "firebase/firestore";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 import { Button } from "@/components/ui/button";
-import { Download, Loader2, Printer, MessageSquare } from "lucide-react";
+import { Loader2, Printer, MessageSquare } from "lucide-react";
 import { useRef, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { printElement } from "@/lib/print-util";
@@ -88,13 +87,9 @@ export default function UnloadingReceiptPage() {
                 <><MessageSquare className="mr-2 h-4 w-4" /> Send SMS</>
             )}
         </Button>
-        <Button variant="outline" onClick={handleGenerate}>
-            <Printer className="mr-2 h-4 w-4" />
-            Print
-        </Button>
         <Button onClick={handleGenerate}>
-            <Download className="mr-2 h-4 w-4" />
-            Download PDF
+            <Printer className="mr-2 h-4 w-4" />
+            Print / Save PDF
         </Button>
       </PageHeader>
       <div className="flex justify-center">

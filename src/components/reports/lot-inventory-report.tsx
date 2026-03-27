@@ -1,11 +1,10 @@
-
 'use client';
 
 import React, { useState, useRef, useMemo } from 'react';
 import type { Customer, StorageRecord } from "@/lib/definitions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { Download, Printer } from 'lucide-react';
+import { Printer } from 'lucide-react';
 import { toDate } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from 'date-fns';
@@ -136,12 +135,8 @@ export function LotInventoryReport({ records, customers }: LotInventoryReportPro
                     <CardDescription>A summary of active stock present in each lot.</CardDescription>
                 </div>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-                    <Button variant="outline" onClick={handleGenerate}>
-                        <Printer className="mr-2 h-4 w-4" /> Print
-                    </Button>
                     <Button onClick={handleGenerate}>
-                        <Download className="mr-2 h-4 w-4" />
-                        Download PDF
+                        <Printer className="mr-2 h-4 w-4" /> Print / Save PDF
                     </Button>
                 </div>
             </CardHeader>

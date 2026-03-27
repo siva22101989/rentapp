@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef, useMemo } from 'react';
@@ -6,7 +5,7 @@ import type { Customer, StorageRecord, UnloadingRecord, Payment } from "@/lib/de
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from '@/components/ui/button';
-import { Printer, Download } from 'lucide-react';
+import { Printer } from 'lucide-react';
 import { PaymentReportTable, type PaymentEvent } from './payment-report-table';
 import { toDate } from '@/lib/utils';
 import { useDateFilter } from '@/firebase/provider';
@@ -104,12 +103,8 @@ export function PaymentReport({ records, unloadingRecords, customers }: PaymentR
                             ))}
                         </SelectContent>
                     </Select>
-                     <Button variant="outline" onClick={handleGenerate}>
-                        <Printer className="mr-2 h-4 w-4" /> Print
-                    </Button>
                     <Button onClick={handleGenerate}>
-                        <Download className="mr-2 h-4 w-4" />
-                        Download PDF
+                        <Printer className="mr-2 h-4 w-4" /> Print / Save PDF
                     </Button>
                 </div>
             </CardHeader>

@@ -1,11 +1,10 @@
-
 'use client';
 
 import React, { useState, useRef, useMemo } from 'react';
 import type { Customer, StorageRecord, UnloadingRecord, Expense, Payment, OtherIncome } from "@/lib/definitions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { Download, Calendar as CalendarIcon, TrendingUp, TrendingDown, Scale, ArrowDownToDot, ArrowUpFromDot, Printer } from 'lucide-react';
+import { Calendar as CalendarIcon, TrendingUp, TrendingDown, Scale, ArrowDownToDot, ArrowUpFromDot, Printer } from 'lucide-react';
 import { toDate, formatCurrency } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -259,12 +258,9 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
                             />
                         </PopoverContent>
                     </Popover>
-                    <Button variant="outline" onClick={handleGenerate}>
-                        <Printer className="mr-2 h-4 w-4" /> Print
-                    </Button>
                     <Button onClick={handleGenerate}>
-                        <Download className="mr-2 h-4 w-4" />
-                        Download PDF
+                        <Printer className="mr-2 h-4 w-4" />
+                        Print / Save PDF
                     </Button>
                 </div>
             </CardHeader>

@@ -1,3 +1,4 @@
+
 export function printElement(element: HTMLElement, documentTitle: string) {
     const html = element.innerHTML;
     const newWindow = window.open('', '_blank', 'height=800,width=800');
@@ -84,16 +85,28 @@ export function printElement(element: HTMLElement, documentTitle: string) {
 
         newWindow.document.write('</head><body>');
         
-        // Add the control buttons
+        // Add the control buttons with IDs
         newWindow.document.write(`
             <div class="print-controls">
-                <button onclick="window.print()">🖨️ Print</button>
-                <button onclick="window.print()">📄 Save as PDF</button>
+                <button id="print-btn">🖨️ Print</button>
+                <button id="save-pdf-btn">📄 Save as PDF</button>
             </div>
         `);
         
         // Wrap the content in a container that looks like a page
         newWindow.document.write(`<div class="print-content-wrapper">${html}</div>`);
+
+        // Add script to handle button clicks
+        newWindow.document.write(`
+            <script>
+                document.getElementById('print-btn').addEventListener('click', function() {
+                    window.print();
+                });
+                document.getElementById('save-pdf-btn').addEventListener('click', function() {
+                    window.print();
+                });
+            </script>
+        `);
 
         newWindow.document.write('</body></html>');
         
@@ -102,5 +115,7 @@ export function printElement(element: HTMLElement, documentTitle: string) {
         newWindow.onload = () => {
             newWindow.focus();
         };
+    } else {
+        alert('Could not open print window. Please disable your pop-up blocker and try again.');
     }
 }

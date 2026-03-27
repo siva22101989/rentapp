@@ -2,8 +2,6 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 import {
   Dialog,
   DialogContent,
@@ -13,13 +11,14 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '../ui/button';
-import { Download, Loader2, Printer } from 'lucide-react';
+import { Download, Printer } from 'lucide-react';
 import { InflowReceipt } from '../inflow/inflow-receipt';
 import type { Customer, StorageRecord, WarehouseInfo } from '@/lib/definitions';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { useFirestore } from '@/firebase/provider';
 import { doc } from 'firebase/firestore';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
+import { printElement } from '@/lib/print-util';
 
 export function BillReceiptDialog({
   record,
@@ -31,7 +30,6 @@ export function BillReceiptDialog({
   children: React.ReactNode;
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
   const receiptRef = useRef<HTMLDivElement>(null);
   const firestore = useFirestore();
 
@@ -42,50 +40,13 @@ export function BillReceiptDialog({
   const { data: warehouseInfo, loading: loadingWarehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
 
-  const handleDownloadPdf = async () => {
+  const handleGenerate = () => {
     const element = receiptRef.current;
-    if (!element) return;
-
-    setIsGenerating(true);
-
-    try {
-        const canvas = await html2canvas(element, {
-            scale: 2,
-            useCORS: true,
-            backgroundColor: '#ffffff',
-            windowWidth: element.scrollWidth,
-            windowHeight: element.scrollHeight
-        });
-        
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = pdf.internal.pageSize.getHeight();
-        
-        const imgProps = pdf.getImageProperties(imgData);
-        const imgWidth = imgProps.width;
-        const imgHeight = imgProps.height;
-        
-        const ratio = Math.min((pdfWidth - 10) / imgWidth, (pdfHeight - 10) / imgHeight);
-        
-        const widthInPdf = imgWidth * ratio;
-        const heightInPdf = imgHeight * ratio;
-        
-        const x = (pdfWidth - widthInPdf) / 2;
-        const y = (pdfHeight - heightInPdf) / 2;
-
-        pdf.addImage(imgData, 'PNG', x, y, widthInPdf, heightInPdf);
-        pdf.save(`bill-${record.id}.pdf`);
-    } catch (error) {
-        console.error('Error generating PDF:', error);
-    } finally {
-        setIsGenerating(false);
-        setIsOpen(false);
-    }
-  };
-
-  const handlePrint = () => {
-    window.print();
+    if (!element) {
+        alert("Receipt content is not available.");
+        return;
+    };
+    printElement(element, `Bill for Record ${record.id}`);
   };
 
   return (
@@ -101,22 +62,13 @@ export function BillReceiptDialog({
             )}
         </div>
         <DialogFooter className="sm:justify-end gap-2">
-           <Button variant="outline" onClick={handlePrint}>
+           <Button variant="outline" onClick={handleGenerate}>
               <Printer className="mr-2 h-4 w-4" />
               Print
           </Button>
-          <Button onClick={handleDownloadPdf} disabled={isGenerating}>
-            {isGenerating ? (
-                <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                </>
-            ) : (
-                <>
-                    <Download className="mr-2 h-4 w-4" />
-                    Save as PDF
-                </>
-            )}
+          <Button onClick={handleGenerate}>
+              <Download className="mr-2 h-4 w-4" />
+              Download PDF
           </Button>
         </DialogFooter>
       </DialogContent>

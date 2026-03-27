@@ -2,15 +2,14 @@
 'use client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { formatCurrency, toDate } from "@/lib/utils";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import type { Expense, StorageRecord, UnloadingRecord, WarehouseInfo, Borrowing, Lending, OtherIncome } from "@/lib/definitions";
-import { format, differenceInCalendarMonths, differenceInCalendarYears } from "date-fns";
+import { format, differenceInCalendarMonths } from "date-fns";
 import { useDateFilter } from "@/firebase/provider";
 import { Button } from "../ui/button";
-import { Download, Loader2, Printer } from "lucide-react";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
+import { Download, Printer } from "lucide-react";
+import { printElement } from "@/lib/print-util";
 
 function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
   const activeBorrowings = useMemo(() => (borrowings || []).filter(b => b.status !== 'Paid Off'), [borrowings]);
@@ -234,7 +233,6 @@ type ProfitAndLossReportProps = {
 
 export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecords, otherIncomes, warehouseInfo, borrowings, lendings }: ProfitAndLossReportProps) {
   const { dateRange, financialYear } = useDateFilter();
-  const [isGenerating, setIsGenerating] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
 
   const { periodIncome, periodExpenses, periodBalance, filteredExpenses, filteredIncomes, interestOnCapital } = useMemo(() => {
@@ -284,55 +282,10 @@ export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecor
     };
   }, [allRecords, allExpenses, allUnloadingRecords, otherIncomes, dateRange, warehouseInfo, financialYear]);
 
-  const handleDownloadPdf = async () => {
+  const handleGenerate = () => {
     const element = reportRef.current;
     if (!element) return;
-    setIsGenerating(true);
-    try {
-        const canvas = await html2canvas(element, { 
-            scale: 2, 
-            useCORS: true,
-            windowWidth: element.scrollWidth,
-            windowHeight: element.scrollHeight 
-        });
-        const imgData = canvas.toDataURL('image/png');
-        const imgWidth = canvas.width;
-        const imgHeight = canvas.height;
-
-        const pdf = new jsPDF({
-            orientation: 'p',
-            unit: 'px',
-            format: 'a4'
-        });
-
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        
-        const ratio = pdfWidth / imgWidth;
-        const canvasHeight = imgHeight * ratio;
-
-        let position = 0;
-        let heightLeft = canvasHeight;
-
-        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, canvasHeight);
-        heightLeft -= pdf.internal.pageSize.getHeight();
-
-        while (heightLeft > 0) {
-            position = position - pdf.internal.pageSize.getHeight();
-            pdf.addPage();
-            pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, canvasHeight);
-            heightLeft -= pdf.internal.pageSize.getHeight();
-        }
-
-        pdf.save(`profit-loss-report-${Date.now()}.pdf`);
-    } catch (error) {
-        console.error('Error generating PDF:', error);
-    } finally {
-        setIsGenerating(false);
-    }
-  };
-
-  const handlePrint = () => {
-    window.print();
+    printElement(element, "Profit & Loss Report");
   };
 
   return (
@@ -343,11 +296,11 @@ export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecor
                 <CardDescription>A P&L statement for the selected financial period.</CardDescription>
             </div>
              <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={handlePrint}>
+                <Button variant="outline" onClick={handleGenerate}>
                     <Printer className="mr-2 h-4 w-4" /> Print
                 </Button>
-                <Button onClick={handleDownloadPdf} disabled={isGenerating}>
-                    {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                <Button onClick={handleGenerate}>
+                    <Download className="mr-2 h-4 w-4" />
                     Download PDF
                 </Button>
             </div>
@@ -432,5 +385,3 @@ export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecor
     </Card>
   );
 }
-
-    

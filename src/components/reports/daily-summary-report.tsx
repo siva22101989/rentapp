@@ -5,14 +5,13 @@ import React, { useState, useRef, useMemo } from 'react';
 import type { Customer, StorageRecord, UnloadingRecord, Expense, Payment, OtherIncome } from "@/lib/definitions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { Download, Loader2, Calendar as CalendarIcon, TrendingUp, TrendingDown, Scale, ArrowDownToDot, ArrowUpFromDot, Printer } from 'lucide-react';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import { Download, Calendar as CalendarIcon, TrendingUp, TrendingDown, Scale, ArrowDownToDot, ArrowUpFromDot, Printer } from 'lucide-react';
 import { toDate, formatCurrency } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format, isSameDay } from 'date-fns';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { printElement } from '@/lib/print-util';
 
 type DailyReportProps = {
     records: StorageRecord[];
@@ -154,7 +153,6 @@ DailySummaryContent.displayName = 'DailySummaryContent';
 
 export function DailySummaryReport({ records, customers, unloadingRecords, expenses, otherIncomes }: DailyReportProps) {
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-    const [isGenerating, setIsGenerating] = useState(false);
     
     const reportRef = useRef<HTMLDivElement>(null);
 
@@ -227,54 +225,10 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
     }, [selectedDate, records, customers, unloadingRecords, expenses, otherIncomes]);
 
 
-    const handleDownloadPdf = async () => {
+    const handleGenerate = () => {
         const element = reportRef.current;
         if (!element) return;
-        setIsGenerating(true);
-        try {
-            const canvas = await html2canvas(element, { 
-                scale: 2, 
-                useCORS: true,
-                windowWidth: element.scrollWidth,
-                windowHeight: element.scrollHeight
-            });
-            const imgData = canvas.toDataURL('image/png');
-            const imgWidth = canvas.width;
-            const imgHeight = canvas.height;
-
-            const pdf = new jsPDF({
-                orientation: 'p',
-                unit: 'px',
-                format: 'a4'
-            });
-
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            
-            const ratio = pdfWidth / imgWidth;
-            const canvasHeight = imgHeight * ratio;
-
-            let position = 0;
-            let heightLeft = canvasHeight;
-
-            pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, canvasHeight);
-            heightLeft -= pdf.internal.pageSize.getHeight();
-
-            while (heightLeft > 0) {
-                position = position - pdf.internal.pageSize.getHeight();
-                pdf.addPage();
-                pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, canvasHeight);
-                heightLeft -= pdf.internal.pageSize.getHeight();
-            }
-            pdf.save(`daily-summary-${format(selectedDate, 'yyyy-MM-dd')}.pdf`);
-        } catch (error) {
-            console.error('Error generating PDF:', error);
-        } finally {
-            setIsGenerating(false);
-        }
-    };
-
-    const handlePrint = () => {
-        window.print();
+        printElement(element, `Daily Summary Report - ${format(selectedDate, 'yyyy-MM-dd')}`);
     };
     
     return (
@@ -305,12 +259,11 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
                             />
                         </PopoverContent>
                     </Popover>
-                    <Button variant="outline" onClick={handlePrint}>
-                        <Printer className="mr-2 h-4 w-4" />
-                        Print
+                    <Button variant="outline" onClick={handleGenerate}>
+                        <Printer className="mr-2 h-4 w-4" /> Print
                     </Button>
-                    <Button onClick={handleDownloadPdf} disabled={isGenerating}>
-                        {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                    <Button onClick={handleGenerate}>
+                        <Download className="mr-2 h-4 w-4" />
                         Download PDF
                     </Button>
                 </div>

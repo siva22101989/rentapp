@@ -6,18 +6,16 @@ import type { Customer, StorageRecord, UnloadingRecord, WarehouseInfo } from "@/
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from '@/components/ui/button';
-import { Download, Loader2, Printer } from 'lucide-react';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import { Download, Printer } from 'lucide-react';
 import { CustomerStatement } from './customer-statement';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { useFirestore } from '@/firebase/provider';
 import { doc } from 'firebase/firestore';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
+import { printElement } from '@/lib/print-util';
 
 export function ReportClient({ records, customers, unloadingRecords, initialCustomerId }: { records: StorageRecord[], customers: Customer[], unloadingRecords: UnloadingRecord[], initialCustomerId?: string }) {
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>(initialCustomerId || '');
-    const [isGenerating, setIsGenerating] = useState(false);
     const firestore = useFirestore();
     
     const statementReportRef = useRef<HTMLDivElement>(null);
@@ -32,59 +30,10 @@ export function ReportClient({ records, customers, unloadingRecords, initialCust
     );
     const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
-    const handleDownloadPdf = async () => {
+    const handleGenerate = () => {
         const element = statementReportRef.current;
-        if (!element) return;
-
-        setIsGenerating(true);
-
-        try {
-            const canvas = await html2canvas(element, {
-                scale: 2,
-                useCORS: true,
-                backgroundColor: '#ffffff',
-                windowWidth: element.scrollWidth,
-                windowHeight: element.scrollHeight
-            });
-
-            const imgData = canvas.toDataURL('image/png');
-            const imgWidth = canvas.width;
-            const imgHeight = canvas.height;
-            
-            const pdf = new jsPDF({
-                orientation: 'p',
-                unit: 'px',
-                format: 'a4'
-            });
-
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            
-            const ratio = pdfWidth / imgWidth;
-            const canvasHeight = imgHeight * ratio;
-            
-            let position = 0;
-            let heightLeft = canvasHeight;
-
-            pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, canvasHeight);
-            heightLeft -= pdf.internal.pageSize.getHeight();
-
-            while (heightLeft > 0) {
-                position = position - pdf.internal.pageSize.getHeight();
-                pdf.addPage();
-                pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, canvasHeight);
-                heightLeft -= pdf.internal.pageSize.getHeight();
-            }
-            
-            pdf.save(`statement-${selectedCustomerId}-${Date.now()}.pdf`);
-        } catch (error) {
-            console.error('Error generating PDF:', error);
-        } finally {
-            setIsGenerating(false);
-        }
-    };
-    
-    const handlePrint = () => {
-        window.print();
+        if (!element || !statementCustomer) return;
+        printElement(element, `Statement for ${statementCustomer.name}`);
     };
 
     return (
@@ -108,11 +57,11 @@ export function ReportClient({ records, customers, unloadingRecords, initialCust
                         </SelectContent>
                     </Select>
                     <div className="flex items-center gap-2">
-                        <Button variant="outline" onClick={handlePrint} disabled={!selectedCustomerId}>
+                        <Button variant="outline" onClick={handleGenerate} disabled={!selectedCustomerId}>
                             <Printer className="mr-2 h-4 w-4" /> Print
                         </Button>
-                        <Button onClick={handleDownloadPdf} disabled={isGenerating || !selectedCustomerId}>
-                            {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                        <Button onClick={handleGenerate} disabled={!selectedCustomerId}>
+                            <Download className="mr-2 h-4 w-4" />
                             Download PDF
                         </Button>
                     </div>

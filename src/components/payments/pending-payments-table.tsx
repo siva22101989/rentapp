@@ -4,10 +4,9 @@ import { useMemo, useRef, useState } from "react";
 import type { Customer, StorageRecord, UnloadingRecord } from "@/lib/definitions";
 import { Button } from "../ui/button";
 import { Download, Loader2, Printer } from "lucide-react";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 import { PendingDuesReportTable } from "../reports/pending-dues-report-table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { printElement } from "@/lib/print-util";
 
 type PendingRecord = (StorageRecord | UnloadingRecord) & {
     recordType: 'storage' | 'unloading';
@@ -20,7 +19,6 @@ type PendingRecord = (StorageRecord | UnloadingRecord) & {
 
 export function PendingPaymentsTable({ records, customers, unloadingRecords }: { records: StorageRecord[], customers: Customer[], unloadingRecords: UnloadingRecord[] }) {
 
-    const [isGenerating, setIsGenerating] = useState(false);
     const reportRef = useRef<HTMLDivElement>(null);
 
     const pendingRecords = useMemo(() => {
@@ -81,55 +79,10 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords }: {
         return allDues.filter(record => record.balanceDue > 0.5); // Use a small buffer for floating point issues
     }, [records, unloadingRecords]);
 
-    const handleDownloadPdf = async () => {
+    const handleGenerate = () => {
         const element = reportRef.current;
         if (!element) return;
-        setIsGenerating(true);
-        try {
-            const canvas = await html2canvas(element, { 
-                scale: 2, 
-                useCORS: true,
-                windowWidth: element.scrollWidth,
-                windowHeight: element.scrollHeight
-            });
-            const imgData = canvas.toDataURL('image/png');
-            const imgWidth = canvas.width;
-            const imgHeight = canvas.height;
-
-            const pdf = new jsPDF({
-                orientation: 'l',
-                unit: 'px',
-                format: 'a4'
-            });
-
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            
-            const ratio = pdfWidth / imgWidth;
-            const canvasHeight = imgHeight * ratio;
-
-            let position = 0;
-            let heightLeft = canvasHeight;
-
-            pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, canvasHeight);
-            heightLeft -= pdf.internal.pageSize.getHeight();
-
-            while (heightLeft > 0) {
-                position = position - pdf.internal.pageSize.getHeight();
-                pdf.addPage();
-                pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, canvasHeight);
-                heightLeft -= pdf.internal.pageSize.getHeight();
-            }
-            
-            pdf.save(`pending-dues-report-${Date.now()}.pdf`);
-        } catch (error) {
-            console.error('Error generating PDF:', error);
-        } finally {
-            setIsGenerating(false);
-        }
-    };
-    
-    const handlePrint = () => {
-        window.print();
+        printElement(element, "Pending Dues Report");
     };
 
     return (
@@ -137,11 +90,11 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords }: {
             <CardHeader className="flex flex-row items-center justify-between print-hide">
                 <CardTitle>Outstanding Balances</CardTitle>
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={handlePrint}>
+                    <Button variant="outline" size="sm" onClick={handleGenerate}>
                         <Printer className="mr-2 h-4 w-4" /> Print
                     </Button>
-                    <Button size="sm" onClick={handleDownloadPdf} disabled={isGenerating}>
-                        {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                    <Button size="sm" onClick={handleGenerate}>
+                        <Download className="mr-2 h-4 w-4" />
                         Download PDF
                     </Button>
                 </div>

@@ -6,12 +6,11 @@ import type { Customer, StorageRecord, Outflow } from "@/lib/definitions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from '@/components/ui/button';
-import { Printer, Loader2, Download } from 'lucide-react';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import { Printer, Download } from 'lucide-react';
 import { OutflowReportTable, type OutflowEvent } from './outflow-report-table';
 import { toDate } from '@/lib/utils';
 import { useDateFilter } from '@/firebase/provider';
+import { printElement } from '@/lib/print-util';
 
 type OutflowReportProps = {
     records: StorageRecord[];
@@ -20,7 +19,6 @@ type OutflowReportProps = {
 
 export function OutflowReport({ records, customers }: OutflowReportProps) {
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>('all');
-    const [isGenerating, setIsGenerating] = useState(false);
     
     const reportRef = useRef<HTMLDivElement>(null);
     const { dateRange } = useDateFilter();
@@ -60,55 +58,12 @@ export function OutflowReport({ records, customers }: OutflowReportProps) {
     }, [records, selectedCustomerId, dateRange]);
 
 
-    const handleDownloadPdf = async () => {
+    const handleGenerate = () => {
         const element = reportRef.current;
         if (!element) return;
-        setIsGenerating(true);
-        try {
-            const canvas = await html2canvas(element, { 
-                scale: 2, 
-                useCORS: true,
-                windowWidth: element.scrollWidth,
-                windowHeight: element.scrollHeight
-            });
-            const imgData = canvas.toDataURL('image/png');
-            const imgWidth = canvas.width;
-            const imgHeight = canvas.height;
-
-            const pdf = new jsPDF({
-                orientation: 'l',
-                unit: 'px',
-                format: 'a4'
-            });
-
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            
-            const ratio = pdfWidth / imgWidth;
-            const canvasHeight = imgHeight * ratio;
-            
-            let position = 0;
-            let heightLeft = canvasHeight;
-
-            pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, canvasHeight);
-            heightLeft -= pdf.internal.pageSize.getHeight();
-
-            while (heightLeft > 0) {
-                position = position - pdf.internal.pageSize.getHeight();
-                pdf.addPage();
-                pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, canvasHeight);
-                heightLeft -= pdf.internal.pageSize.getHeight();
-            }
-
-            pdf.save(`outflow-report-${Date.now()}.pdf`);
-        } catch (error) {
-            console.error('Error generating PDF:', error);
-        } finally {
-            setIsGenerating(false);
-        }
-    };
-
-    const handlePrint = () => {
-        window.print();
+        const customer = customers.find(c => c.id === selectedCustomerId);
+        const title = `Outflow Register ${customer ? `for ${customer.name}` : ''}`;
+        printElement(element, title);
     };
     
     const customer = customers.find(c => c.id === selectedCustomerId);
@@ -135,11 +90,11 @@ export function OutflowReport({ records, customers }: OutflowReportProps) {
                             ))}
                         </SelectContent>
                     </Select>
-                     <Button variant="outline" onClick={handlePrint}>
+                     <Button variant="outline" onClick={handleGenerate}>
                         <Printer className="mr-2 h-4 w-4" /> Print
                     </Button>
-                    <Button onClick={handleDownloadPdf} disabled={isGenerating}>
-                        {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                    <Button onClick={handleGenerate}>
+                        <Download className="mr-2 h-4 w-4" />
                         Download PDF
                     </Button>
                 </div>

@@ -12,9 +12,8 @@ import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 import { Button } from "@/components/ui/button";
 import { Download, Loader2, Printer, MessageSquare } from "lucide-react";
 import { useRef, useState } from "react";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 import { useToast } from "@/hooks/use-toast";
+import { printElement } from "@/lib/print-util";
 
 export default function UnloadingReceiptPage() {
   const params = useParams();
@@ -23,7 +22,6 @@ export default function UnloadingReceiptPage() {
 
   const { toast } = useToast();
   const receiptRef = useRef<HTMLDivElement>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
   const [isSendingSms, setIsSendingSms] = useState(false);
 
   const recordRef = useMemoFirebase(
@@ -63,51 +61,12 @@ export default function UnloadingReceiptPage() {
     });
   };
 
-  const handleDownloadPdf = async () => {
+  const handleGenerate = () => {
     const element = receiptRef.current;
     if (!element) return;
-
-    setIsGenerating(true);
-
-    try {
-      const canvas = await html2canvas(element, { 
-        scale: 2, 
-        useCORS: true, 
-        backgroundColor: '#ffffff',
-        windowWidth: element.scrollWidth,
-        windowHeight: element.scrollHeight
-      });
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = canvas.width;
-      const imgHeight = canvas.height;
-      const ratio = imgWidth / imgHeight;
-      let widthInPdf = pdfWidth - 20;
-      let heightInPdf = widthInPdf / ratio;
-
-      if (heightInPdf > pdfHeight - 20) {
-        heightInPdf = pdfHeight - 20;
-        widthInPdf = heightInPdf * ratio;
-      }
-
-      const x = (pdfWidth - widthInPdf) / 2;
-      const y = 10;
-
-      pdf.addImage(imgData, 'PNG', x, y, widthInPdf, heightInPdf);
-      pdf.save(`unloading-bill-${record?.billNo}.pdf`);
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-    } finally {
-      setIsGenerating(false);
-    }
+    printElement(element, `Unloading Bill ${record?.billNo}`);
   };
   
-  const handlePrint = () => {
-    window.print();
-  };
-
   if (loadingRecord || loadingCustomer || loadingWarehouseInfo) {
     return <AppLayout><div>Loading...</div></AppLayout>;
   }
@@ -129,16 +88,13 @@ export default function UnloadingReceiptPage() {
                 <><MessageSquare className="mr-2 h-4 w-4" /> Send SMS</>
             )}
         </Button>
-        <Button variant="outline" onClick={handlePrint}>
+        <Button variant="outline" onClick={handleGenerate}>
             <Printer className="mr-2 h-4 w-4" />
             Print
         </Button>
-        <Button onClick={handleDownloadPdf} disabled={isGenerating}>
-            {isGenerating ? (
-                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
-            ) : (
-                <><Download className="mr-2 h-4 w-4" /> Save as PDF</>
-            )}
+        <Button onClick={handleGenerate}>
+            <Download className="mr-2 h-4 w-4" />
+            Download PDF
         </Button>
       </PageHeader>
       <div className="flex justify-center">

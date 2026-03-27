@@ -5,12 +5,11 @@ import React, { useState, useRef, useMemo } from 'react';
 import type { Customer, StorageRecord } from "@/lib/definitions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { Download, Loader2, Printer } from 'lucide-react';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import { Download, Printer } from 'lucide-react';
 import { toDate } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from 'date-fns';
+import { printElement } from '@/lib/print-util';
 
 type LotInventoryReportProps = {
     records: StorageRecord[];
@@ -93,7 +92,6 @@ function LotInventoryTable({ groupedLots, customers, title }: { groupedLots: Gro
 
 
 export function LotInventoryReport({ records, customers }: LotInventoryReportProps) {
-    const [isGenerating, setIsGenerating] = useState(false);
     const reportRef = useRef<HTMLDivElement>(null);
 
     const groupedLots = useMemo(() => {
@@ -122,54 +120,10 @@ export function LotInventoryReport({ records, customers }: LotInventoryReportPro
         return lots;
     }, [records, customers]);
 
-    const handleDownloadPdf = async () => {
+    const handleGenerate = () => {
         const element = reportRef.current;
         if (!element) return;
-        setIsGenerating(true);
-        try {
-            const canvas = await html2canvas(element, { 
-                scale: 2, 
-                useCORS: true,
-                windowWidth: element.scrollWidth,
-                windowHeight: element.scrollHeight
-            });
-            const imgData = canvas.toDataURL('image/png');
-            const imgWidth = canvas.width;
-            const imgHeight = canvas.height;
-
-            const pdf = new jsPDF({
-                orientation: 'p',
-                unit: 'px',
-                format: 'a4'
-            });
-
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            
-            const ratio = pdfWidth / imgWidth;
-            const canvasHeight = imgHeight * ratio;
-
-            let position = 0;
-            let heightLeft = canvasHeight;
-
-            pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, canvasHeight);
-            heightLeft -= pdf.internal.pageSize.getHeight();
-
-            while (heightLeft > 0) {
-                position = position - pdf.internal.pageSize.getHeight();
-                pdf.addPage();
-                pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, canvasHeight);
-                heightLeft -= pdf.internal.pageSize.getHeight();
-            }
-            pdf.save(`lot-inventory-report-${Date.now()}.pdf`);
-        } catch (error) {
-            console.error('Error generating PDF:', error);
-        } finally {
-            setIsGenerating(false);
-        }
-    };
-
-    const handlePrint = () => {
-        window.print();
+        printElement(element, "Lot Inventory Report");
     };
 
     const title = `Lot-wise Inventory Report`;
@@ -182,11 +136,11 @@ export function LotInventoryReport({ records, customers }: LotInventoryReportPro
                     <CardDescription>A summary of active stock present in each lot.</CardDescription>
                 </div>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-                    <Button variant="outline" onClick={handlePrint}>
+                    <Button variant="outline" onClick={handleGenerate}>
                         <Printer className="mr-2 h-4 w-4" /> Print
                     </Button>
-                    <Button onClick={handleDownloadPdf} disabled={isGenerating}>
-                        {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                    <Button onClick={handleGenerate}>
+                        <Download className="mr-2 h-4 w-4" />
                         Download PDF
                     </Button>
                 </div>

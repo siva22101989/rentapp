@@ -2,8 +2,6 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 import {
   Dialog,
   DialogContent,
@@ -13,9 +11,10 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '../ui/button';
-import { Download, Loader2, Printer } from 'lucide-react';
+import { Download, Printer } from 'lucide-react';
 import { OutflowReceipt } from '../outflow/outflow-receipt';
 import type { Customer, StorageRecord, WarehouseInfo, Outflow } from '@/lib/definitions';
+import { printElement } from '@/lib/print-util';
 
 type OutflowReceiptDialogProps = {
   record: StorageRecord;
@@ -29,53 +28,13 @@ type OutflowReceiptDialogProps = {
 
 export function OutflowReceiptDialog({ record, customer, warehouseInfo, outflow, children, deliveryOrderNo, deliveryOrderDate }: OutflowReceiptDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
   const receiptRef = useRef<HTMLDivElement>(null);
 
-  const handleDownloadPdf = async () => {
+  const handleGenerate = () => {
     const element = receiptRef.current;
     if (!element) return;
-
-    setIsGenerating(true);
-
-    try {
-        const canvas = await html2canvas(element, {
-            scale: 2,
-            useCORS: true,
-            backgroundColor: '#ffffff',
-            windowWidth: element.scrollWidth,
-            windowHeight: element.scrollHeight
-        });
-        
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = pdf.internal.pageSize.getHeight();
-        
-        const imgProps = pdf.getImageProperties(imgData);
-        const imgWidth = imgProps.width;
-        const imgHeight = imgProps.height;
-        
-        const ratio = Math.min((pdfWidth - 10) / imgWidth, (pdfHeight - 10) / imgHeight);
-        
-        const widthInPdf = imgWidth * ratio;
-        const heightInPdf = imgHeight * ratio;
-        
-        const x = (pdfWidth - widthInPdf) / 2;
-        const y = (pdfHeight - heightInPdf) / 2;
-
-        pdf.addImage(imgData, 'PNG', x, y, widthInPdf, heightInPdf);
-        pdf.save(`outflow-bill-${deliveryOrderNo}.pdf`);
-    } catch (error) {
-        console.error('Error generating PDF:', error);
-    } finally {
-        setIsGenerating(false);
-        setIsOpen(false);
-    }
-  };
-
-  const handlePrint = () => {
-    window.print();
+    printElement(element, `Outflow Bill ${deliveryOrderNo}`);
+    setIsOpen(false);
   };
 
   return (
@@ -100,22 +59,13 @@ export function OutflowReceiptDialog({ record, customer, warehouseInfo, outflow,
             />
         </div>
         <DialogFooter className="sm:justify-end gap-2">
-          <Button variant="outline" onClick={handlePrint}>
+          <Button variant="outline" onClick={handleGenerate}>
               <Printer className="mr-2 h-4 w-4" />
               Print
           </Button>
-          <Button onClick={handleDownloadPdf} disabled={isGenerating}>
-            {isGenerating ? (
-                <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                </>
-            ) : (
-                <>
-                    <Download className="mr-2 h-4 w-4" />
-                    Save as PDF
-                </>
-            )}
+          <Button onClick={handleGenerate}>
+              <Download className="mr-2 h-4 w-4" />
+              Download PDF
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -119,6 +119,19 @@ export function InflowForm({ customers, commodities, lots, records, nextSerialNu
             return;
         }
 
+        const receiptWindow = window.open('', '_blank');
+        if (!receiptWindow) {
+            toast({
+                title: "Pop-up Blocked",
+                description: "Please allow pop-ups for this website to view the receipt.",
+                variant: 'destructive',
+                duration: 10000,
+            });
+            return;
+        }
+        receiptWindow.document.write('<html><head><title>Loading Receipt...</title><style>body { font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; } .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; } @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style></head><body><div class="loader"></div></body></html>');
+
+
         startTransition(async () => {
             try {
                 const weightValue = Number(weight) || 0;
@@ -162,12 +175,13 @@ export function InflowForm({ customers, commodities, lots, records, nextSerialNu
                 await setDoc(newRecordRef, cleanForFirestore(rawRecord));
 
                 const receiptUrl = `/inflow/receipt/${nextSerialNumber}`;
-                window.open(receiptUrl, '_blank');
+                receiptWindow.location.href = receiptUrl;
                 
                 toast({ title: 'Success', description: 'Inflow record created successfully.' });
                 resetForm();
                 
             } catch (error) {
+                receiptWindow.close();
                 console.error(error);
                 toast({ title: 'Error', description: 'Failed to create inflow record.', variant: 'destructive' });
             }

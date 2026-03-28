@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useTransition, useState, useEffect } from 'react';
@@ -40,32 +41,11 @@ const getLocalDateTimeForInput = () => {
     return localDate.toISOString().slice(0, 16);
 };
 
-const SuccessDisplay = ({ recordId, onReset, billNo }: { recordId: string, onReset: () => void, billNo: string }) => (
-    <Card>
-        <CardHeader className="items-center text-center">
-            <CheckCircle className="h-16 w-16 text-green-500 mb-2" />
-            <CardTitle className="text-2xl">Success!</CardTitle>
-            <CardDescription>Unloading record <span className="font-bold">#{billNo}</span> has been created.</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-            <Button asChild size="lg">
-                <Link href={`/unloading/receipt/${recordId}`} target="_blank">
-                    <FileText className="mr-2" /> View & Print Bill
-                </Link>
-            </Button>
-            <Button variant="outline" onClick={onReset}>
-                <PlusCircle className="mr-2" /> Add Another Unloading Record
-            </Button>
-        </CardContent>
-    </Card>
-);
 
 export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: { customers: Customer[], commodities: Commodity[], nextBillNo: string }) {
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
     const firestore = useFirestore();
-    const [lastCreatedId, setLastCreatedId] = useState<string | null>(null);
-    const [lastBillNo, setLastBillNo] = useState<string>('');
 
     const form = useForm<UnloadingFormData>({
         resolver: zodResolver(UnloadingRecordSchema),
@@ -101,6 +81,19 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
             return;
         }
 
+        const receiptWindow = window.open('', '_blank');
+        if (!receiptWindow) {
+            toast({
+                title: "Pop-up Blocked",
+                description: "Please allow pop-ups for this website to view the receipt.",
+                variant: 'destructive',
+                duration: 10000,
+            });
+            return;
+        }
+        receiptWindow.document.write('<html><head><title>Loading Receipt...</title><style>body { font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; } .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; } @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style></head><body><div class="loader"></div></body></html>');
+
+
         startTransition(async () => {
             try {
                 const totalHamali = data.bagsUnloaded * data.hamaliPerBag;
@@ -113,29 +106,20 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
                     workerHamaliPayable: totalHamali,
                 };
                 const docRef = await addDoc(collection(firestore, 'unloadingRecords'), cleanForFirestore(rawRecord));
+                
                 toast({ title: 'Success', description: 'Unloading record added.' });
-                setLastBillNo(nextBillNo);
-                setLastCreatedId(docRef.id);
+                
+                const receiptUrl = `/unloading/receipt/${docRef.id}`;
+                receiptWindow.location.href = receiptUrl;
+                
+                form.reset();
             } catch (error) {
+                receiptWindow.close();
                 console.error(error);
                 toast({ title: 'Error', description: 'Failed to add unloading record.', variant: 'destructive' });
             }
         });
     };
-
-    if (lastCreatedId) {
-        return (
-            <SuccessDisplay 
-                recordId={lastCreatedId}
-                billNo={lastBillNo}
-                onReset={() => {
-                    form.reset();
-                    setLastCreatedId(null);
-                    setLastBillNo('');
-                }} 
-            />
-        );
-    }
 
   return (
     <Card>

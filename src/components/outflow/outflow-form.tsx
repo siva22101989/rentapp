@@ -141,6 +141,22 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
             return;
         }
 
+        let receiptWindow: Window | null = null;
+        if (!isMultiLotWithdrawal) {
+            receiptWindow = window.open('', '_blank');
+            if (!receiptWindow) {
+                toast({
+                    title: "Pop-up Blocked",
+                    description: "Please allow pop-ups for this website to view the receipt.",
+                    variant: 'destructive',
+                    duration: 10000,
+                });
+                return;
+            }
+            receiptWindow.document.write('<html><head><title>Loading Receipt...</title><style>body { font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; } .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; } @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style></head><body><div class="loader"></div></body></html>');
+        }
+
+
         startTransition(async () => {
             try {
                 const batch = writeBatch(firestore);
@@ -194,7 +210,7 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                 } else {
                     const [recordId, bags] = withdrawalEntries[0];
                     const record = records.find(r => r.id === recordId);
-                    if (!record) {
+                    if (!record || !receiptWindow) {
                         toast({ title: 'Error', description: 'Could not find the processed record after submission.', variant: 'destructive' });
                         return;
                     }
@@ -202,13 +218,14 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                     const { rent: rentForThisWithdrawal } = calculateFinalRent({ ...record, storageStartDate: toDate(record.storageStartDate) }, withdrawalDate, bagsToWithdraw);
                     
                     const url = `/outflow/receipt/${recordId}?withdrawn=${bagsToWithdraw}&rent=${rentForThisWithdrawal}&paidNow=${Number(amountPaidNow) || 0}&discount=${discountAmount}`;
-                    window.open(url, '_blank');
+                    receiptWindow.location.href = url;
                     
                     toast({ title: 'Success', description: 'Withdrawal processed successfully. Receipt opened in a new tab.' });
                     resetForm();
                 }
 
             } catch (error) {
+                if (receiptWindow) receiptWindow.close();
                 console.error("Outflow failed:", error);
                 toast({ title: 'Error', description: 'Failed to process outflow.', variant: 'destructive' });
             }

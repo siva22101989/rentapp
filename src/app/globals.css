@@ -107,6 +107,24 @@
   input[type=number] {
     -moz-appearance: textfield;
   }
+
+  @media print {
+    body * {
+      visibility: hidden;
+    }
+    .printable-area, .printable-area * {
+      visibility: visible;
+    }
+    .printable-area {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+    }
+    .print-hide {
+        display: none;
+    }
+  }
 }
 
 @layer utilities {

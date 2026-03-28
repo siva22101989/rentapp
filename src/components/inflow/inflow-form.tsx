@@ -12,7 +12,7 @@ import { Loader2 } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { formatCurrency, cleanForFirestore } from '@/lib/utils';
 import { useFirestore } from '@/firebase/provider';
-import { addDoc, collection, doc } from 'firebase/firestore';
+import { doc, setDoc, collection } from 'firebase/firestore';
 import { Combobox } from '../ui/combobox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { PrintHeader } from '../shared/print-header';
@@ -35,7 +35,7 @@ function SubmitButton({ isPending }: { isPending: boolean }) {
     );
 }
 
-export function InflowForm({ customers, commodities, lots, records }: { customers: Customer[], commodities: Commodity[], lots: Lot[], records: StorageRecord[] }) {
+export function InflowForm({ customers, commodities, lots, records, nextId }: { customers: Customer[], commodities: Commodity[], lots: Lot[], records: StorageRecord[], nextId: string }) {
     const { toast } = useToast();
     const firestore = useFirestore();
     const [isPending, startTransition] = useTransition();
@@ -170,7 +170,8 @@ export function InflowForm({ customers, commodities, lots, records }: { customer
                     khataAmount: Number(khataAmount) || 0
                 };
 
-                const docRef = await addDoc(collection(firestore, "storageRecords"), cleanForFirestore(rawRecord));
+                const docRef = doc(firestore, "storageRecords", nextId);
+                await setDoc(docRef, cleanForFirestore(rawRecord));
                 
                 toast({ title: 'Success', description: 'Inflow record created successfully.' });
 
@@ -321,11 +322,13 @@ export function InflowForm({ customers, commodities, lots, records }: { customer
             <DialogContent className="max-w-3xl">
                  <PrintHeader title={`Inflow Bill #${receiptRecord.id}`} />
                  <div className="max-h-[70vh] overflow-y-auto p-1">
-                    <InflowReceipt
-                        record={receiptRecord}
-                        customer={customers.find(c => c.id === receiptRecord.customerId)!}
-                        warehouseInfo={warehouseInfo}
-                    />
+                    <div className="printable-area">
+                        <InflowReceipt
+                            record={receiptRecord}
+                            customer={customers.find(c => c.id === receiptRecord.customerId)!}
+                            warehouseInfo={warehouseInfo}
+                        />
+                    </div>
                  </div>
             </DialogContent>
         </Dialog>

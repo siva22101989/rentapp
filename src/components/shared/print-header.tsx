@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Printer, FileDown } from 'lucide-react';
@@ -9,7 +10,7 @@ export function PrintHeader({ title }: { title: string }) {
     };
 
     return (
-        <div className="print-header p-4 bg-gray-100 border-b flex items-center justify-between sticky top-0 z-10">
+        <div className="p-4 bg-gray-100 border-b flex items-center justify-between sticky top-0 z-10 print-hide">
             <h1 className="text-lg font-semibold">{title}</h1>
             <div className="flex items-center gap-2">
                 <Button variant="outline" onClick={handlePrint}>

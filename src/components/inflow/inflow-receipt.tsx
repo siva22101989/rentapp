@@ -142,13 +142,12 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
     }
 
     return (
-        <div ref={ref} className="printable-area bg-white p-4 border border-black font-sans text-xs" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+        <div ref={ref} className="bg-white p-4 border-2 border-blue-800 font-sans text-xs" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
             <div className="text-center mb-4">
                 <p className="text-xs">Cell: {warehouseInfo?.phone || 'N/A'}</p>
                 <h1 className="text-lg font-bold text-blue-900">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</h1>
                 <p className="text-xs">{warehouseInfo?.addressLine1 || 'Address Line 1'}</p>
                 <p className="text-xs">{warehouseInfo?.addressLine2 || 'Address Line 2'}</p>
-                {warehouseInfo?.email && <p className="text-xs">{warehouseInfo.email}</p>}
             </div>
             
             <h2 className="text-sm font-bold underline text-center mb-2">GODOWN RECEIPT</h2>

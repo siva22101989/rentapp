@@ -38,6 +38,17 @@ export default function InflowPage() {
   );
   const { data: lots, loading: loadingLots } = useCollection<Lot>(lotsQuery);
 
+  const nextId = useMemo(() => {
+    if (!records) return '1';
+    // This logic finds the highest numeric ID and adds 1.
+    // It's safer than using array length if records are ever deleted.
+    const maxId = records.reduce((max, r) => {
+        const idNum = parseInt(r.id, 10);
+        return isNaN(idNum) ? max : Math.max(max, idNum);
+    }, 0);
+    return (maxId + 1).toString();
+  }, [records]);
+
 
   if (loadingCustomers || loadingRecords || loadingCommodities || loadingLots) {
     return <AppLayout><div>Loading...</div></AppLayout>;
@@ -56,6 +67,7 @@ export default function InflowPage() {
         commodities={commodities || []}
         lots={lots || []}
         records={records || []}
+        nextId={nextId}
       />
     </AppLayout>
   );

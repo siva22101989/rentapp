@@ -23,7 +23,7 @@ export default function InflowReceiptPage() {
   const [unloadingRecord, setUnloadingRecord] = useState<UnloadingRecord | null>(null);
   const [loadingUnloading, setLoadingUnloading] = useState(true);
 
-  // Fetch record with retry logic to solve race condition
+  // Fetch record with a robust polling mechanism to solve race condition
   useEffect(() => {
     if (!firestore || !recordId) {
       setLoadingRecord(false);
@@ -32,31 +32,33 @@ export default function InflowReceiptPage() {
 
     const recordRef = doc(firestore, 'storageRecords', recordId);
     let attempts = 0;
-    const maxAttempts = 5;
-    const delay = 500; // ms
+    const maxAttempts = 10; // Increased attempts
+    const delay = 500;    // 500ms delay
 
-    const fetchRecord = async () => {
-      try {
-        const docSnap = await getDoc(recordRef);
-        if (docSnap.exists()) {
-          setRecord({ id: docSnap.id, ...docSnap.data() } as StorageRecord);
-          setLoadingRecord(false);
-        } else {
-          attempts++;
-          if (attempts < maxAttempts) {
-            setTimeout(fetchRecord, delay);
-          } else {
-            console.error(`Document ${recordId} not found after ${maxAttempts} attempts.`);
-            setRecord(null);
+    const intervalId = setInterval(async () => {
+        try {
+            const docSnap = await getDoc(recordRef);
+            if (docSnap.exists()) {
+                clearInterval(intervalId);
+                setRecord({ id: docSnap.id, ...docSnap.data() } as StorageRecord);
+                setLoadingRecord(false);
+            } else {
+                attempts++;
+                if (attempts >= maxAttempts) {
+                    clearInterval(intervalId);
+                    console.error(`Document ${recordId} not found after ${maxAttempts} attempts.`);
+                    setRecord(null);
+                    setLoadingRecord(false);
+                }
+            }
+        } catch (e) {
+            console.error("Error fetching storage record:", e);
+            clearInterval(intervalId);
             setLoadingRecord(false);
-          }
         }
-      } catch (e) {
-        console.error("Error fetching storage record:", e);
-        setLoadingRecord(false);
-      }
-    };
-    fetchRecord();
+    }, delay);
+
+    return () => clearInterval(intervalId);
   }, [firestore, recordId]);
 
   // Fetch customer after record is available

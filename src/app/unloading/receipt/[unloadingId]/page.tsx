@@ -21,7 +21,7 @@ export default function UnloadingReceiptPage() {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [loadingCustomer, setLoadingCustomer] = useState(true);
 
-  // Fetch record with retry logic to solve race condition
+  // Fetch record with a robust polling mechanism to solve race condition
   useEffect(() => {
     if (!firestore || !unloadingId) {
       setLoadingRecord(false);
@@ -30,20 +30,20 @@ export default function UnloadingReceiptPage() {
 
     const recordRef = doc(firestore, 'unloadingRecords', unloadingId);
     let attempts = 0;
-    const maxAttempts = 5;
-    const delay = 500; // ms
+    const maxAttempts = 10;
+    const delay = 500;
 
-    const fetchRecord = async () => {
+    const intervalId = setInterval(async () => {
       try {
         const docSnap = await getDoc(recordRef);
         if (docSnap.exists()) {
+          clearInterval(intervalId);
           setRecord({ id: docSnap.id, ...docSnap.data() } as UnloadingRecord);
           setLoadingRecord(false);
         } else {
           attempts++;
-          if (attempts < maxAttempts) {
-            setTimeout(fetchRecord, delay);
-          } else {
+          if (attempts >= maxAttempts) {
+            clearInterval(intervalId);
             console.error(`Document ${unloadingId} not found after ${maxAttempts} attempts.`);
             setRecord(null);
             setLoadingRecord(false);
@@ -51,10 +51,12 @@ export default function UnloadingReceiptPage() {
         }
       } catch (e) {
         console.error("Error fetching unloading record:", e);
+        clearInterval(intervalId);
         setLoadingRecord(false);
       }
-    };
-    fetchRecord();
+    }, delay);
+
+    return () => clearInterval(intervalId);
   }, [firestore, unloadingId]);
 
   // Fetch customer after record is available

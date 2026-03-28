@@ -56,7 +56,6 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
     const firestore = useFirestore();
-    const router = useRouter();
 
     const form = useForm<DryingFormData>({
         resolver: zodResolver(InitiateDryingSchema),
@@ -325,27 +324,12 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                 });
                 
                 await batch.commit();
-
-                // Poll to confirm data is written before redirecting
-                let docIsReady = false;
-                for (let i = 0; i < 10; i++) { // Poll for up to 3 seconds
-                    const docSnap = await getDoc(newStorageRecordRef);
-                    if (docSnap.exists()) {
-                        docIsReady = true;
-                        break;
-                    }
-                    await new Promise(resolve => setTimeout(resolve, 300));
-                }
-
+                
                 toast({ title: 'Success', description: `Storage record ${nextSerialNumber} created from plot.` });
 
-                if (docIsReady) {
-                    router.push(`/inflow/receipt/${nextSerialNumber}`);
-                } else {
-                    setTimeout(() => {
-                        router.push(`/inflow/receipt/${nextSerialNumber}`);
-                    }, 500);
-                }
+                const receiptUrl = `/inflow/receipt/${nextSerialNumber}`;
+                window.open(receiptUrl, '_blank');
+                form.reset();
                 
             } catch (error) {
                 console.error(error);

@@ -1,6 +1,5 @@
 'use client';
-import { AppLayout } from "@/components/layout/app-layout";
-import { PageHeader } from "@/components/shared/page-header";
+import { PrintHeader } from "@/components/shared/print-header";
 import { UnloadingReceipt } from "@/components/unloading/unloading-receipt";
 import { notFound, useParams } from "next/navigation";
 import type { Customer, UnloadingRecord, WarehouseInfo } from "@/lib/definitions";
@@ -8,18 +7,12 @@ import { useDoc } from "@/firebase/firestore/use-doc";
 import { useFirestore } from "@/firebase/provider";
 import { doc } from "firebase/firestore";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
-import { Button } from "@/components/ui/button";
-import { Loader2, MessageSquare } from "lucide-react";
-import { useState } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
 
 export default function UnloadingReceiptPage() {
   const params = useParams();
   const unloadingId = params.unloadingId as string;
   const firestore = useFirestore();
-
-  const { toast } = useToast();
-  const [isSendingSms, setIsSendingSms] = useState(false);
 
   const recordRef = useMemoFirebase(
     () => (firestore && unloadingId ? doc(firestore, 'unloadingRecords', unloadingId) : null),
@@ -38,28 +31,13 @@ export default function UnloadingReceiptPage() {
     [firestore]
   );
   const { data: warehouseInfo, loading: loadingWarehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
-
-
-  const handleSendSms = async () => {
-    if (!customer?.phone) {
-      toast({
-        variant: 'destructive',
-        title: 'No Phone Number',
-        description: 'This customer does not have a phone number on file.',
-      });
-      return;
-    }
-    setIsSendingSms(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setIsSendingSms(false);
-    toast({
-      title: 'SMS Sent',
-      description: `An SMS notification has been sent to ${customer.phone}.`,
-    });
-  };
   
   if (loadingRecord || loadingCustomer || loadingWarehouseInfo) {
-    return <AppLayout><div>Loading...</div></AppLayout>;
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-gray-50">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
   if (!record || !customer) {
@@ -67,22 +45,11 @@ export default function UnloadingReceiptPage() {
   }
   
   return (
-    <AppLayout>
-      <PageHeader
-        title="Unloading Bill"
-        description={`Details for Unloading Bill No. ${record.billNo}`}
-      >
-        <Button variant="outline" onClick={handleSendSms} disabled={isSendingSms}>
-            {isSendingSms ? (
-                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending...</>
-            ) : (
-                <><MessageSquare className="mr-2 h-4 w-4" /> Send SMS</>
-            )}
-        </Button>
-      </PageHeader>
-      <div className="flex justify-center">
+    <div className="bg-gray-100 min-h-screen">
+      <PrintHeader title={`Unloading Bill #${record.billNo}`} />
+      <main className="p-4 sm:p-8 flex justify-center">
         <UnloadingReceipt record={record} customer={customer} warehouseInfo={warehouseInfo} />
-      </div>
-    </AppLayout>
+      </main>
+    </div>
   );
 }

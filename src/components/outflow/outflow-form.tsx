@@ -2,7 +2,6 @@
 'use client';
 
 import { useEffect, useState, useTransition, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
 import { useFirestore } from '@/firebase/provider';
 import { doc, updateDoc, arrayUnion, type Firestore, Timestamp, getDoc, writeBatch } from 'firebase/firestore';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -18,6 +17,7 @@ import { calculateFinalRent } from '@/lib/billing';
 import { format } from 'date-fns';
 import { toDate, cleanForFirestore, formatCurrency } from '@/lib/utils';
 import { Combobox } from '../ui/combobox';
+import { useRouter } from 'next/navigation';
 
 function SubmitButton({ isPending }: { isPending: boolean }) {
     return (
@@ -100,6 +100,14 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
         setTotalPendingHamali(runningHamali);
         setTotalBags(runningBags);
     }, [withdrawals, withdrawalDate, records]);
+
+    const resetForm = () => {
+        setSelectedCustomerId('');
+        setWithdrawals({});
+        setAmountPaidNow('');
+        setDiscount('');
+        setWithdrawalDate(new Date());
+    }
     
     const handleCustomerChange = (customerId: string) => {
         setSelectedCustomerId(customerId);
@@ -181,6 +189,7 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
 
                 if (isMultiLotWithdrawal) {
                     toast({ title: 'Success', description: `${withdrawalEntries.length} records processed. You can make a bulk payment from the Pending Payments page.`, duration: 7000 });
+                    resetForm();
                     router.push(`/reports?report=customer-statement&customerId=${selectedCustomerId}`);
                 } else {
                     const [recordId, bags] = withdrawalEntries[0];
@@ -192,8 +201,11 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                     const bagsToWithdraw = Number(bags);
                     const { rent: rentForThisWithdrawal } = calculateFinalRent({ ...record, storageStartDate: toDate(record.storageStartDate) }, withdrawalDate, bagsToWithdraw);
                     
-                    toast({ title: 'Success', description: 'Withdrawal processed successfully.' });
-                    router.push(`/outflow/receipt/${recordId}?withdrawn=${bagsToWithdraw}&rent=${rentForThisWithdrawal}&paidNow=${Number(amountPaidNow) || 0}&discount=${discountAmount}`);
+                    const url = `/outflow/receipt/${recordId}?withdrawn=${bagsToWithdraw}&rent=${rentForThisWithdrawal}&paidNow=${Number(amountPaidNow) || 0}&discount=${discountAmount}`;
+                    window.open(url, '_blank');
+                    
+                    toast({ title: 'Success', description: 'Withdrawal processed successfully. Receipt opened in a new tab.' });
+                    resetForm();
                 }
 
             } catch (error) {

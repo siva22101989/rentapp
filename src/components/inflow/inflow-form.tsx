@@ -2,7 +2,6 @@
 'use client';
 
 import { useTransition, useState, useEffect, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,7 +12,7 @@ import { Loader2 } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { formatCurrency, cleanForFirestore } from '@/lib/utils';
 import { useFirestore } from '@/firebase/provider';
-import { setDoc, doc, getDoc } from 'firebase/firestore';
+import { setDoc, doc } from 'firebase/firestore';
 import { Combobox } from '../ui/combobox';
 
 function SubmitButton({ isPending }: { isPending: boolean }) {
@@ -34,7 +33,6 @@ function SubmitButton({ isPending }: { isPending: boolean }) {
 export function InflowForm({ customers, commodities, lots, records, nextSerialNumber }: { customers: Customer[], commodities: Commodity[], lots: Lot[], records: StorageRecord[], nextSerialNumber: string }) {
     const { toast } = useToast();
     const firestore = useFirestore();
-    const router = useRouter();
     const [isPending, startTransition] = useTransition();
 
     const [bags, setBags] = useState<number | ''>('');
@@ -46,6 +44,9 @@ export function InflowForm({ customers, commodities, lots, records, nextSerialNu
     const [weight, setWeight] = useState<number | ''>('');
     const [khataAmount, setKhataAmount] = useState<number | ''>('');
     const [selectedLot, setSelectedLot] = useState('');
+    const [lorryTractorNo, setLorryTractorNo] = useState('');
+    const [storageStartDate, setStorageStartDate] = useState(new Date().toISOString().split('T')[0]);
+
 
     const customerOptions = customers.map(c => ({ value: c.id, label: c.name }));
     const commodityOptions = commodities.map(c => ({ value: c.name, label: c.name }));
@@ -82,28 +83,47 @@ export function InflowForm({ customers, commodities, lots, records, nextSerialNu
         setHamali(currentHamali);
 
     }, [bags, rate]);
+
+    const resetForm = () => {
+        setBags('');
+        setRate('');
+        setHamali(0);
+        setHamaliPaid('');
+        setSelectedCustomerId('');
+        setSelectedCommodity('');
+        setWeight('');
+        setKhataAmount('');
+        setSelectedLot('');
+        setLorryTractorNo('');
+        setStorageStartDate(new Date().toISOString().split('T')[0]);
+    };
     
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        const formData = new FormData(e.currentTarget);
         if (!firestore) {
             toast({ title: 'Error', description: 'Firestore not available', variant: 'destructive' });
             return;
         }
 
+        const bagsStored = Number(bags);
+         if (!bagsStored || bagsStored <= 0) {
+             toast({ title: 'Error', description: 'Number of bags must be a positive number.', variant: 'destructive' });
+             return;
+        }
+        if (!selectedCustomerId) {
+            toast({ title: 'Error', description: 'Please select a customer.', variant: 'destructive' });
+            return;
+        }
+         if (!selectedCommodity) {
+            toast({ title: 'Error', description: 'Please select a product.', variant: 'destructive' });
+            return;
+        }
+
         startTransition(async () => {
             try {
-                // Client-side validation could be added here for a better UX
-                const data = Object.fromEntries(formData.entries());
-
-                const bagsStored = Number(data.bagsStored);
-                 if (!bagsStored || bagsStored <= 0) {
-                     toast({ title: 'Error', description: 'Number of bags must be a positive number.', variant: 'destructive' });
-                     return;
-                }
-                const weightValue = Number(data.weight) || 0;
-                const hamaliRate = Number(data.hamaliRate) || 0;
-                const hamaliPaidAmount = Number(data.hamaliPaid) || 0;
+                const weightValue = Number(weight) || 0;
+                const hamaliRate = Number(rate) || 0;
+                const hamaliPaidAmount = Number(hamaliPaid) || 0;
 
                 const hamaliPayable = bagsStored * hamaliRate;
 
@@ -111,56 +131,41 @@ export function InflowForm({ customers, commodities, lots, records, nextSerialNu
                 if (hamaliPaidAmount > 0) {
                     payments.push({
                         amount: hamaliPaidAmount,
-                        date: new Date(data.storageStartDate as string),
+                        date: new Date(storageStartDate),
                         type: 'hamali'
                     });
                 }
                 
                 const rawRecord = {
                     id: nextSerialNumber,
-                    customerId: data.customerId,
-                    commodityDescription: data.commodityDescription,
-                    location: data.location,
+                    customerId: selectedCustomerId,
+                    commodityDescription: selectedCommodity,
+                    location: selectedLot,
                     bagsIn: bagsStored,
                     bagsOut: 0,
                     bagsStored,
-                    storageStartDate: new Date(data.storageStartDate as string),
+                    storageStartDate: new Date(storageStartDate),
                     storageEndDate: null,
                     billingCycle: '6-Month Initial' as const,
                     payments,
                     hamaliPayable,
                     workerHamaliPayable: hamaliPayable,
                     totalRentBilled: 0,
-                    lorryTractorNo: data.lorryTractorNo,
+                    lorryTractorNo: lorryTractorNo,
                     weight: weightValue,
                     inflowType: 'Direct' as const,
                     dryingRecordId: '',
-                    khataAmount: Number(data.khataAmount) || 0
+                    khataAmount: Number(khataAmount) || 0
                 };
 
                 const newRecordRef = doc(firestore, "storageRecords", nextSerialNumber);
                 await setDoc(newRecordRef, cleanForFirestore(rawRecord));
 
-                // Poll to confirm data is written before redirecting
-                let docIsReady = false;
-                for (let i = 0; i < 10; i++) { // Poll for up to 3 seconds
-                    const docSnap = await getDoc(newRecordRef);
-                    if (docSnap.exists()) {
-                        docIsReady = true;
-                        break;
-                    }
-                    await new Promise(resolve => setTimeout(resolve, 300));
-                }
-
+                const receiptUrl = `/inflow/receipt/${nextSerialNumber}`;
+                window.open(receiptUrl, '_blank');
+                
                 toast({ title: 'Success', description: 'Inflow record created successfully.' });
-
-                if (docIsReady) {
-                    router.push(`/inflow/receipt/${nextSerialNumber}`);
-                } else {
-                     setTimeout(() => {
-                        router.push(`/inflow/receipt/${nextSerialNumber}`);
-                     }, 500);
-                }
+                resetForm();
                 
             } catch (error) {
                 console.error(error);
@@ -190,7 +195,6 @@ export function InflowForm({ customers, commodities, lots, records, nextSerialNu
                             searchPlaceholder="Search customers..."
                             emptyPlaceholder="No customer found."
                         />
-                        <input type="hidden" name="customerId" value={selectedCustomerId} />
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -204,7 +208,6 @@ export function InflowForm({ customers, commodities, lots, records, nextSerialNu
                                 searchPlaceholder="Search products..."
                                 emptyPlaceholder="No products found."
                             />
-                            <input type="hidden" name="commodityDescription" value={selectedCommodity} />
                         </div>
                          <div className="space-y-2">
                             <Label htmlFor="location">Lot No.</Label>
@@ -216,13 +219,12 @@ export function InflowForm({ customers, commodities, lots, records, nextSerialNu
                                 searchPlaceholder="Search lots..."
                                 emptyPlaceholder="No lots found."
                             />
-                            <input type="hidden" name="location" value={selectedLot} />
                         </div>
                     </div>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="lorryTractorNo">Lorry / Tractor No. <span className="text-muted-foreground text-xs">(Optional)</span></Label>
-                            <Input id="lorryTractorNo" name="lorryTractorNo" placeholder="e.g., AP 21 1234" />
+                            <Input id="lorryTractorNo" name="lorryTractorNo" placeholder="e.g., AP 21 1234" value={lorryTractorNo} onChange={e => setLorryTractorNo(e.target.value)} />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="storageStartDate">Date</Label>
@@ -230,7 +232,8 @@ export function InflowForm({ customers, commodities, lots, records, nextSerialNu
                                 id="storageStartDate" 
                                 name="storageStartDate" 
                                 type="date"
-                                defaultValue={new Date().toISOString().split('T')[0]}
+                                value={storageStartDate}
+                                onChange={e => setStorageStartDate(e.target.value)}
                                 required 
                             />
                         </div>

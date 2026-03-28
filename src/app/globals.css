@@ -108,3 +108,9 @@
     -moz-appearance: textfield;
   }
 }
+
+@layer utilities {
+  .print-header {
+    @apply print:hidden;
+  }
+}

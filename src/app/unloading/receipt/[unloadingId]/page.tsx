@@ -9,10 +9,9 @@ import { useFirestore } from "@/firebase/provider";
 import { doc } from "firebase/firestore";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 import { Button } from "@/components/ui/button";
-import { Loader2, Printer, MessageSquare } from "lucide-react";
-import { useRef, useState } from "react";
+import { Loader2, MessageSquare } from "lucide-react";
+import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { printElement } from "@/lib/print-util";
 
 export default function UnloadingReceiptPage() {
   const params = useParams();
@@ -20,7 +19,6 @@ export default function UnloadingReceiptPage() {
   const firestore = useFirestore();
 
   const { toast } = useToast();
-  const receiptRef = useRef<HTMLDivElement>(null);
   const [isSendingSms, setIsSendingSms] = useState(false);
 
   const recordRef = useMemoFirebase(
@@ -59,12 +57,6 @@ export default function UnloadingReceiptPage() {
       description: `An SMS notification has been sent to ${customer.phone}.`,
     });
   };
-
-  const handleGenerate = () => {
-    const element = receiptRef.current;
-    if (!element) return;
-    printElement(element, `Unloading Bill ${record?.billNo}`);
-  };
   
   if (loadingRecord || loadingCustomer || loadingWarehouseInfo) {
     return <AppLayout><div>Loading...</div></AppLayout>;
@@ -87,13 +79,9 @@ export default function UnloadingReceiptPage() {
                 <><MessageSquare className="mr-2 h-4 w-4" /> Send SMS</>
             )}
         </Button>
-        <Button onClick={handleGenerate}>
-            <Printer className="mr-2 h-4 w-4" />
-            Print / Save PDF
-        </Button>
       </PageHeader>
       <div className="flex justify-center">
-        <UnloadingReceipt ref={receiptRef} record={record} customer={customer} warehouseInfo={warehouseInfo} />
+        <UnloadingReceipt record={record} customer={customer} warehouseInfo={warehouseInfo} />
       </div>
     </AppLayout>
   );

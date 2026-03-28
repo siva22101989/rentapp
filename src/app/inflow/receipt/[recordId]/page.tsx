@@ -8,11 +8,10 @@ import { useDoc } from "@/firebase/firestore/use-doc";
 import { useFirestore } from "@/firebase/provider";
 import { doc, getDoc } from "firebase/firestore";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Loader2, Printer, MessageSquare } from "lucide-react";
+import { Loader2, MessageSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { printElement } from "@/lib/print-util";
 
 export default function InflowReceiptPage() {
   const params = useParams();
@@ -22,7 +21,6 @@ export default function InflowReceiptPage() {
   const { toast } = useToast();
   const [unloadingRecord, setUnloadingRecord] = useState<UnloadingRecord | null>(null);
   const [loadingUnloading, setLoadingUnloading] = useState(true);
-  const receiptRef = useRef<HTMLDivElement>(null);
   const [isSendingSms, setIsSendingSms] = useState(false);
 
   const recordRef = useMemoFirebase(
@@ -100,12 +98,6 @@ export default function InflowReceiptPage() {
     });
   };
 
-  const handleGenerate = () => {
-    const element = receiptRef.current;
-    if (!element) return;
-    printElement(element, `Inflow Receipt ${recordId}`);
-  };
-
   if (loadingRecord || loadingCustomer || loadingWarehouseInfo || loadingUnloading) {
     return <AppLayout><div>Loading...</div></AppLayout>;
   }
@@ -127,13 +119,9 @@ export default function InflowReceiptPage() {
                 <><MessageSquare className="mr-2 h-4 w-4" /> Send SMS</>
             )}
         </Button>
-        <Button onClick={handleGenerate}>
-            <Printer className="mr-2 h-4 w-4" />
-            Print / Save PDF
-        </Button>
       </PageHeader>
       <div className="flex justify-center">
-        <InflowReceipt ref={receiptRef} record={record} customer={customer} warehouseInfo={warehouseInfo} unloadingRecord={unloadingRecord || undefined} />
+        <InflowReceipt record={record} customer={customer} warehouseInfo={warehouseInfo} unloadingRecord={unloadingRecord || undefined} />
       </div>
     </AppLayout>
   );

@@ -1,15 +1,12 @@
 'use client';
 
-import { useState, useRef, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import type { Customer, StorageRecord } from "@/lib/definitions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from '@/components/ui/button';
-import { Printer } from 'lucide-react';
 import { InflowReportTable } from './inflow-report-table';
 import { toDate } from '@/lib/utils';
 import { useDateFilter } from '@/firebase/provider';
-import { printElement } from '@/lib/print-util';
 
 type InflowReportProps = {
     records: StorageRecord[];
@@ -19,7 +16,6 @@ type InflowReportProps = {
 export function InflowReport({ records, customers }: InflowReportProps) {
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>('all');
     
-    const reportRef = useRef<HTMLDivElement>(null);
     const { dateRange } = useDateFilter();
 
     const inflowRecords = useMemo(() => {
@@ -40,21 +36,12 @@ export function InflowReport({ records, customers }: InflowReportProps) {
         return filteredRecords.sort((a,b) => toDate(b.storageStartDate).getTime() - toDate(a.storageStartDate).getTime());
     }, [records, selectedCustomerId, dateRange]);
 
-
-    const handleGenerate = () => {
-        const element = reportRef.current;
-        if (!element) return;
-        const customer = customers.find(c => c.id === selectedCustomerId);
-        const title = `Inflow Register ${customer ? `for ${customer.name}` : ''}`;
-        printElement(element, title);
-    };
-
     const customer = customers.find(c => c.id === selectedCustomerId);
     const title = `Inflow Register ${customer ? `for ${customer.name}` : ''}`;
 
     return (
         <Card>
-            <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4 print-hide">
+            <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div className="flex-1">
                     <CardTitle>Inflow Register</CardTitle>
                     <CardDescription>A log of all items received into storage.</CardDescription>
@@ -73,13 +60,10 @@ export function InflowReport({ records, customers }: InflowReportProps) {
                             ))}
                         </SelectContent>
                     </Select>
-                    <Button onClick={handleGenerate}>
-                        <Printer className="mr-2 h-4 w-4" /> Print / Save PDF
-                    </Button>
                 </div>
             </CardHeader>
             <CardContent>
-                <div ref={reportRef}>
+                <div>
                     <InflowReportTable 
                         records={inflowRecords} 
                         customers={customers}

@@ -10,10 +10,9 @@ import { doc } from "firebase/firestore";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 import { toDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Loader2, Printer, MessageSquare } from "lucide-react";
-import { useRef, useState } from "react";
+import { Loader2, MessageSquare } from "lucide-react";
+import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { printElement } from "@/lib/print-util";
 
 export default function OutflowReceiptPage() {
   const params = useParams();
@@ -22,7 +21,6 @@ export default function OutflowReceiptPage() {
   const firestore = useFirestore();
 
   const { toast } = useToast();
-  const receiptRef = useRef<HTMLDivElement>(null);
   const [isSendingSms, setIsSendingSms] = useState(false);
 
   const withdrawnBags = Number(searchParams.get('withdrawn')) || 0;
@@ -85,12 +83,6 @@ export default function OutflowReceiptPage() {
     });
   };
 
-  const handleGenerate = () => {
-    const element = receiptRef.current;
-    if (!element) return;
-    printElement(element, `Outflow Bill ${deliveryOrderNo}`);
-  };
-
   return (
     <AppLayout>
       <PageHeader
@@ -104,14 +96,9 @@ export default function OutflowReceiptPage() {
                 <><MessageSquare className="mr-2 h-4 w-4" /> Send SMS</>
             )}
         </Button>
-        <Button onClick={handleGenerate}>
-            <Printer className="mr-2 h-4 w-4" />
-            Print / Save PDF
-        </Button>
       </PageHeader>
       <div className="flex justify-center">
         <OutflowReceipt 
-            ref={receiptRef}
             record={record} 
             customer={customer}
             warehouseInfo={warehouseInfo}

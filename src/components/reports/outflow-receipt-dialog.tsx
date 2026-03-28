@@ -1,19 +1,15 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogFooter,
 } from '@/components/ui/dialog';
-import { Button } from '../ui/button';
-import { Printer } from 'lucide-react';
 import { OutflowReceipt } from '../outflow/outflow-receipt';
 import type { Customer, StorageRecord, WarehouseInfo, Outflow } from '@/lib/definitions';
-import { printElement } from '@/lib/print-util';
 
 type OutflowReceiptDialogProps = {
   record: StorageRecord;
@@ -27,14 +23,6 @@ type OutflowReceiptDialogProps = {
 
 export function OutflowReceiptDialog({ record, customer, warehouseInfo, outflow, children, deliveryOrderNo, deliveryOrderDate }: OutflowReceiptDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const receiptRef = useRef<HTMLDivElement>(null);
-
-  const handleGenerate = () => {
-    const element = receiptRef.current;
-    if (!element) return;
-    printElement(element, `Outflow Bill ${deliveryOrderNo}`);
-    setIsOpen(false);
-  };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -45,7 +33,6 @@ export function OutflowReceiptDialog({ record, customer, warehouseInfo, outflow,
         </DialogHeader>
         <div className="max-h-[70vh] overflow-y-auto p-2">
             <OutflowReceipt
-                ref={receiptRef}
                 record={record}
                 customer={customer}
                 warehouseInfo={warehouseInfo}
@@ -57,12 +44,6 @@ export function OutflowReceiptDialog({ record, customer, warehouseInfo, outflow,
                 deliveryOrderDate={deliveryOrderDate}
             />
         </div>
-        <DialogFooter className="sm:justify-end gap-2">
-          <Button onClick={handleGenerate}>
-              <Printer className="mr-2 h-4 w-4" />
-              Print / Save PDF
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

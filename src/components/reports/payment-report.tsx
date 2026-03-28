@@ -1,15 +1,12 @@
 'use client';
 
-import { useState, useRef, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import type { Customer, StorageRecord, UnloadingRecord, Payment } from "@/lib/definitions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from '@/components/ui/button';
-import { Printer } from 'lucide-react';
 import { PaymentReportTable, type PaymentEvent } from './payment-report-table';
 import { toDate } from '@/lib/utils';
 import { useDateFilter } from '@/firebase/provider';
-import { printElement } from '@/lib/print-util';
 
 type PaymentReportProps = {
     records: StorageRecord[];
@@ -20,7 +17,6 @@ type PaymentReportProps = {
 export function PaymentReport({ records, unloadingRecords, customers }: PaymentReportProps) {
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>('all');
     
-    const reportRef = useRef<HTMLDivElement>(null);
     const { dateRange } = useDateFilter();
 
     const paymentEvents = useMemo(() => {
@@ -71,20 +67,12 @@ export function PaymentReport({ records, unloadingRecords, customers }: PaymentR
     }, [records, unloadingRecords, selectedCustomerId, dateRange]);
 
 
-    const handleGenerate = () => {
-        const element = reportRef.current;
-        if (!element) return;
-        const customer = customers.find(c => c.id === selectedCustomerId);
-        const title = `Payment Register ${customer ? `for ${customer.name}` : ''}`;
-        printElement(element, title);
-    };
-
     const customer = customers.find(c => c.id === selectedCustomerId);
     const title = `Payment Register ${customer ? `for ${customer.name}` : ''}`;
 
     return (
         <Card>
-            <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4 print-hide">
+            <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div className="flex-1">
                     <CardTitle>Payment Register</CardTitle>
                     <CardDescription>A log of all payments received.</CardDescription>
@@ -103,13 +91,10 @@ export function PaymentReport({ records, unloadingRecords, customers }: PaymentR
                             ))}
                         </SelectContent>
                     </Select>
-                    <Button onClick={handleGenerate}>
-                        <Printer className="mr-2 h-4 w-4" /> Print / Save PDF
-                    </Button>
                 </div>
             </CardHeader>
             <CardContent>
-                <div ref={reportRef}>
+                <div>
                     <PaymentReportTable 
                         events={paymentEvents} 
                         customers={customers}

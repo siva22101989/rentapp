@@ -1,16 +1,13 @@
 'use client';
 
-import { useState, useRef, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import type { Customer, StorageRecord, UnloadingRecord, Expense } from "@/lib/definitions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from '@/components/ui/button';
-import { Printer } from 'lucide-react';
 import { CustomerHamaliReportTable } from './customer-hamali-report-table';
 import { WorkerHamaliReportTable } from './worker-hamali-report-table';
 import { toDate } from '@/lib/utils';
 import { useDateFilter } from '@/firebase/provider';
-import { printElement } from '@/lib/print-util';
 
 export type CustomerHamaliEvent = {
     date: Date;
@@ -35,7 +32,6 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
     const [reportView, setReportView] = useState<'customer' | 'worker'>('customer');
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>('all');
     
-    const reportRef = useRef<HTMLDivElement>(null);
     const { dateRange } = useDateFilter();
 
     const customerHamaliEvents = useMemo(() => {
@@ -185,19 +181,12 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
     }, [records, unloadingRecords, expenses, selectedCustomerId, dateRange]);
 
 
-    const handleGenerate = () => {
-        const element = reportRef.current;
-        if (!element) return;
-        const title = `Hamali ${reportView === 'customer' ? 'Customer' : 'Worker'} Ledger`;
-        printElement(element, title);
-    };
-
     const customer = customers.find(c => c.id === selectedCustomerId);
     const title = `Hamali ${reportView === 'customer' ? 'Customer' : 'Worker'} Ledger ${customer ? `for ${customer.name}` : ''}`;
 
     return (
         <Card>
-            <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4 print-hide">
+            <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div className="flex-1">
                     <CardTitle>Hamali Register</CardTitle>
                     <CardDescription>View ledgers for customer charges or worker payments.</CardDescription>
@@ -225,13 +214,10 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
                             ))}
                         </SelectContent>
                     </Select>
-                    <Button onClick={handleGenerate}>
-                        <Printer className="mr-2 h-4 w-4" /> Print / Save PDF
-                    </Button>
                 </div>
             </CardHeader>
             <CardContent>
-                <div ref={reportRef}>
+                <div>
                     {reportView === 'customer' ? (
                         <CustomerHamaliReportTable 
                             events={customerHamaliEvents} 

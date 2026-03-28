@@ -1,14 +1,11 @@
 'use client';
 
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import type { Customer, StorageRecord } from "@/lib/definitions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from '@/components/ui/button';
-import { Printer } from 'lucide-react';
 import { toDate } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from 'date-fns';
-import { printElement } from '@/lib/print-util';
 
 type LotInventoryReportProps = {
     records: StorageRecord[];
@@ -91,7 +88,6 @@ function LotInventoryTable({ groupedLots, customers, title }: { groupedLots: Gro
 
 
 export function LotInventoryReport({ records, customers }: LotInventoryReportProps) {
-    const reportRef = useRef<HTMLDivElement>(null);
 
     const groupedLots = useMemo(() => {
         const activeRecords = records.filter(r => r.storageEndDate === null && r.bagsStored > 0);
@@ -119,29 +115,18 @@ export function LotInventoryReport({ records, customers }: LotInventoryReportPro
         return lots;
     }, [records, customers]);
 
-    const handleGenerate = () => {
-        const element = reportRef.current;
-        if (!element) return;
-        printElement(element, "Lot Inventory Report");
-    };
-
     const title = `Lot-wise Inventory Report`;
 
     return (
         <Card>
-            <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4 print-hide">
+            <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div className="flex-1">
                     <CardTitle>Lot Inventory Report</CardTitle>
                     <CardDescription>A summary of active stock present in each lot.</CardDescription>
                 </div>
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-                    <Button onClick={handleGenerate}>
-                        <Printer className="mr-2 h-4 w-4" /> Print / Save PDF
-                    </Button>
-                </div>
             </CardHeader>
             <CardContent>
-                <div ref={reportRef}>
+                <div>
                     <LotInventoryTable 
                         groupedLots={groupedLots} 
                         customers={customers}

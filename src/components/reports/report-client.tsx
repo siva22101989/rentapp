@@ -1,23 +1,18 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import type { Customer, StorageRecord, UnloadingRecord, WarehouseInfo } from "@/lib/definitions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from '@/components/ui/button';
-import { Printer } from 'lucide-react';
 import { CustomerStatement } from './customer-statement';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { useFirestore } from '@/firebase/provider';
 import { doc } from 'firebase/firestore';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
-import { printElement } from '@/lib/print-util';
 
 export function ReportClient({ records, customers, unloadingRecords, initialCustomerId }: { records: StorageRecord[], customers: Customer[], unloadingRecords: UnloadingRecord[], initialCustomerId?: string }) {
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>(initialCustomerId || '');
     const firestore = useFirestore();
-    
-    const statementReportRef = useRef<HTMLDivElement>(null);
 
     const statementCustomer = customers.find(c => c.id === selectedCustomerId);
     const statementRecords = records.filter(r => r.customerId === selectedCustomerId);
@@ -29,15 +24,9 @@ export function ReportClient({ records, customers, unloadingRecords, initialCust
     );
     const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
-    const handleGenerate = () => {
-        const element = statementReportRef.current;
-        if (!element || !statementCustomer) return;
-        printElement(element, `Statement for ${statementCustomer.name}`);
-    };
-
     return (
         <Card>
-            <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4 print-hide">
+            <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div className="flex-1">
                     <CardTitle>Customer Statement of Account</CardTitle>
                     <CardDescription>Select a customer to generate a detailed statement of their account activity.</CardDescription>
@@ -55,17 +44,11 @@ export function ReportClient({ records, customers, unloadingRecords, initialCust
                             ))}
                         </SelectContent>
                     </Select>
-                    <div className="flex items-center gap-2">
-                        <Button onClick={handleGenerate} disabled={!selectedCustomerId}>
-                            <Printer className="mr-2 h-4 w-4" />
-                            Print / Save PDF
-                        </Button>
-                    </div>
                 </div>
             </CardHeader>
             <CardContent>
                 {statementCustomer ? (
-                    <div ref={statementReportRef}>
+                    <div>
                         <CustomerStatement 
                             customer={statementCustomer} 
                             records={statementRecords} 

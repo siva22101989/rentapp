@@ -1,14 +1,11 @@
 'use client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { formatCurrency, toDate } from "@/lib/utils";
-import { useMemo, useRef } from "react";
+import { useMemo } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import type { Expense, StorageRecord, UnloadingRecord, WarehouseInfo, Borrowing, Lending, OtherIncome } from "@/lib/definitions";
 import { format, differenceInCalendarMonths } from "date-fns";
 import { useDateFilter } from "@/firebase/provider";
-import { Button } from "../ui/button";
-import { Printer } from "lucide-react";
-import { printElement } from "@/lib/print-util";
 
 function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
   const activeBorrowings = useMemo(() => (borrowings || []).filter(b => b.status !== 'Paid Off'), [borrowings]);
@@ -228,7 +225,6 @@ type ProfitAndLossReportProps = {
 
 export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecords, otherIncomes, warehouseInfo, borrowings, lendings }: ProfitAndLossReportProps) {
   const { dateRange, financialYear } = useDateFilter();
-  const reportRef = useRef<HTMLDivElement>(null);
 
   const { periodIncome, periodExpenses, periodBalance, filteredExpenses, filteredIncomes, interestOnCapital } = useMemo(() => {
     if (!allRecords || !allExpenses || !allUnloadingRecords || !otherIncomes) {
@@ -277,28 +273,16 @@ export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecor
     };
   }, [allRecords, allExpenses, allUnloadingRecords, otherIncomes, dateRange, warehouseInfo, financialYear]);
 
-  const handleGenerate = () => {
-    const element = reportRef.current;
-    if (!element) return;
-    printElement(element, "Profit & Loss Report");
-  };
-
   return (
     <Card>
-        <CardHeader className="flex-row items-center justify-between print-hide">
+        <CardHeader>
             <div className="flex-1">
                 <CardTitle>Profit & Loss Statement</CardTitle>
                 <CardDescription>A P&L statement for the selected financial period.</CardDescription>
             </div>
-             <div className="flex items-center gap-2">
-                <Button onClick={handleGenerate}>
-                    <Printer className="mr-2 h-4 w-4" />
-                    Print / Save PDF
-                </Button>
-            </div>
         </CardHeader>
         <CardContent>
-            <div ref={reportRef} className="p-4 space-y-6 bg-white text-black printable-area">
+            <div className="p-4 space-y-6">
                 <div className="text-center">
                     <h2 className="text-xl font-bold">{warehouseInfo?.name || "Srilakshmi Warehouse"}</h2>
                     <h3 className="text-lg font-semibold">Profit & Loss Statement</h3>
@@ -310,8 +294,8 @@ export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecor
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead className="text-black">Particulars</TableHead>
-                            <TableHead className="text-right text-black">Amount</TableHead>
+                            <TableHead>Particulars</TableHead>
+                            <TableHead className="text-right">Amount</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -368,7 +352,7 @@ export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecor
                     </TableFooter>
                 </Table>
 
-                <div className="space-y-4 pt-8 print-no-break">
+                <div className="space-y-4 pt-8">
                     <BorrowingsTable borrowings={borrowings || []} />
                     <LendingsTable lendings={lendings || []} />
                 </div>

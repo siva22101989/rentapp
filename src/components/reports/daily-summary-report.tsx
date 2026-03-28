@@ -1,17 +1,15 @@
-
 'use client';
 
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import type { Customer, StorageRecord, UnloadingRecord, Expense, Payment, OtherIncome } from "@/lib/definitions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { Calendar as CalendarIcon, TrendingUp, TrendingDown, Scale, ArrowDownToDot, ArrowUpFromDot, Printer } from 'lucide-react';
+import { Calendar as CalendarIcon, TrendingUp, TrendingDown, Scale, ArrowDownToDot, ArrowUpFromDot } from 'lucide-react';
 import { toDate, formatCurrency } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format, isSameDay } from 'date-fns';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { printElement } from '@/lib/print-util';
 
 type DailyReportProps = {
     records: StorageRecord[];
@@ -37,11 +35,11 @@ type DailyData = {
     }
 }
 
-const DailySummaryContent = React.forwardRef<HTMLDivElement, { dailyData: DailyData, customers: Customer[], selectedDate: Date }>(({ dailyData, customers, selectedDate }, ref) => {
+const DailySummaryContent = ({ dailyData, customers, selectedDate }: { dailyData: DailyData, customers: Customer[], selectedDate: Date }) => {
     const getCustomerName = (customerId: string) => customers.find(c => c.id === customerId)?.name ?? 'Unknown';
 
     return (
-        <div ref={ref} className="bg-white p-4 text-black printable-area">
+        <div className="p-4 space-y-6">
             <div className="mb-6 text-center">
                 <h2 className="text-xl font-bold">SRI LAKSHMI WAREHOUSE</h2>
                 <h3 className="font-semibold">Daily Summary Report</h3>
@@ -49,7 +47,7 @@ const DailySummaryContent = React.forwardRef<HTMLDivElement, { dailyData: DailyD
             </div>
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 gap-4 mb-6">
+            <div className="space-y-4">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Total Income</CardTitle>
@@ -103,7 +101,7 @@ const DailySummaryContent = React.forwardRef<HTMLDivElement, { dailyData: DailyD
                     <section>
                         <h3 className="font-semibold mb-2">Outflows</h3>
                         <Table>
-                            <TableHeader><TableRow><TableHead className="text-black">Record ID</TableHead><TableHead className="text-black">Customer</TableHead><TableHead className="text-black">Commodity</TableHead><TableHead className="text-right text-black">Bags Withdrawn</TableHead></TableRow></TableHeader>
+                            <TableHeader><TableRow><TableHead>Record ID</TableHead><TableHead>Customer</TableHead><TableHead>Commodity</TableHead><TableHead className="text-right">Bags Withdrawn</TableHead></TableRow></TableHeader>
                             <TableBody>
                                 {dailyData.outflows.map(rec => (
                                     <TableRow key={`out-${rec.id}`}><TableCell>{rec.id}</TableCell><TableCell>{getCustomerName(rec.customerId)}</TableCell><TableCell>{rec.commodityDescription}</TableCell><TableCell className="text-right font-mono">{rec.bagsWithdrawn}</TableCell></TableRow>
@@ -118,15 +116,12 @@ const DailySummaryContent = React.forwardRef<HTMLDivElement, { dailyData: DailyD
             </div>
         </div>
     );
-});
-DailySummaryContent.displayName = 'DailySummaryContent';
+};
 
 
 export function DailySummaryReport({ records, customers, unloadingRecords, expenses, otherIncomes }: DailyReportProps) {
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     
-    const reportRef = useRef<HTMLDivElement>(null);
-
     const dailyData = useMemo(() => {
         const date = selectedDate;
         const data: DailyData = {
@@ -194,17 +189,10 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
         return data;
 
     }, [selectedDate, records, customers, unloadingRecords, expenses, otherIncomes]);
-
-
-    const handleGenerate = () => {
-        const element = reportRef.current;
-        if (!element) return;
-        printElement(element, `Daily Summary Report - ${format(selectedDate, 'yyyy-MM-dd')}`);
-    };
     
     return (
         <Card>
-            <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4 print-hide">
+            <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div className="flex-1">
                     <CardTitle>Daily Summary Report</CardTitle>
                     <CardDescription>A summary of all transactions for a selected day.</CardDescription>
@@ -230,14 +218,10 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
                             />
                         </PopoverContent>
                     </Popover>
-                    <Button onClick={handleGenerate}>
-                        <Printer className="mr-2 h-4 w-4" />
-                        Print / Save PDF
-                    </Button>
                 </div>
             </CardHeader>
             <CardContent>
-                <DailySummaryContent dailyData={dailyData} customers={customers} selectedDate={selectedDate} ref={reportRef} />
+                <DailySummaryContent dailyData={dailyData} customers={customers} selectedDate={selectedDate} />
             </CardContent>
         </Card>
     );

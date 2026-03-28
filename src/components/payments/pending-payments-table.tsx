@@ -1,11 +1,8 @@
 'use client';
-import { useMemo, useRef, useState } from "react";
+import { useMemo } from "react";
 import type { Customer, StorageRecord, UnloadingRecord } from "@/lib/definitions";
-import { Button } from "../ui/button";
-import { Loader2, Printer } from "lucide-react";
 import { PendingDuesReportTable } from "../reports/pending-dues-report-table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { printElement } from "@/lib/print-util";
 
 type PendingRecord = (StorageRecord | UnloadingRecord) & {
     recordType: 'storage' | 'unloading';
@@ -17,8 +14,6 @@ type PendingRecord = (StorageRecord | UnloadingRecord) & {
 };
 
 export function PendingPaymentsTable({ records, customers, unloadingRecords }: { records: StorageRecord[], customers: Customer[], unloadingRecords: UnloadingRecord[] }) {
-
-    const reportRef = useRef<HTMLDivElement>(null);
 
     const pendingRecords = useMemo(() => {
         if (!records || !unloadingRecords) return [];
@@ -78,25 +73,13 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords }: {
         return allDues.filter(record => record.balanceDue > 0.5); // Use a small buffer for floating point issues
     }, [records, unloadingRecords]);
 
-    const handleGenerate = () => {
-        const element = reportRef.current;
-        if (!element) return;
-        printElement(element, "Pending Dues Report");
-    };
-
     return (
         <Card>
-            <CardHeader className="flex flex-row items-center justify-between print-hide">
+            <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Outstanding Balances</CardTitle>
-                <div className="flex items-center gap-2">
-                    <Button size="sm" onClick={handleGenerate}>
-                        <Printer className="mr-2 h-4 w-4" />
-                        Print / Save PDF
-                    </Button>
-                </div>
             </CardHeader>
             <CardContent>
-                <div ref={reportRef}>
+                <div>
                     <PendingDuesReportTable
                         records={pendingRecords as any[]}
                         customers={customers}

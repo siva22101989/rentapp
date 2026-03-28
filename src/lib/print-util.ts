@@ -15,12 +15,12 @@ export function printElement(element: HTMLElement, documentTitle: string) {
         // Custom styles for the print preview window
         const printPreviewStyles = newWindow.document.createElement('style');
         printPreviewStyles.innerHTML = `
-            /* Screen-only styles for the preview window */
+            /* Screen-only styles for the print preview window */
             @media screen {
                 body {
                     margin: 0;
-                    font-family: sans-serif;
-                    background-color: #f1f5f9; /* A lighter gray */
+                    font-family: 'Poppins', sans-serif; /* Match app font */
+                    background-color: hsl(var(--muted)); /* Use theme color */
                 }
                 .print-controls {
                     position: sticky;
@@ -29,35 +29,48 @@ export function printElement(element: HTMLElement, documentTitle: string) {
                     justify-content: center;
                     gap: 1rem;
                     padding: 0.75rem;
-                    background-color: #334155; /* Darker blue-gray */
+                    background-color: hsl(var(--card)); /* Use theme card color */
+                    border-bottom: 1px solid hsl(var(--border));
                     z-index: 1000;
-                    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
                 }
                 .print-controls button {
+                    font-family: 'Poppins', sans-serif;
                     font-size: 0.875rem;
-                    padding: 0.5rem 1rem;
-                    border-radius: 0.375rem;
-                    border: none;
+                    padding: 0.5rem 1.25rem;
+                    border-radius: 0.5rem; /* Match app's radius */
+                    border: 1px solid transparent;
                     cursor: pointer;
-                    background-color: #f8fafc;
-                    color: #1e293b;
                     font-weight: 600;
-                    transition: background-color 0.2s;
+                    transition: all 0.2s;
                     display: inline-flex;
                     align-items: center;
                     gap: 0.5rem;
                 }
-                .print-controls button:hover {
-                    background-color: #e2e8f0;
+                #print-btn {
+                    background-color: hsl(var(--primary));
+                    color: hsl(var(--primary-foreground));
+                    border-color: hsl(var(--primary));
+                }
+                #print-btn:hover {
+                    background-color: hsl(var(--primary) / 0.9);
+                }
+                #save-pdf-btn {
+                     background-color: hsl(var(--secondary));
+                     color: hsl(var(--secondary-foreground));
+                     border-color: hsl(var(--border));
+                }
+                #save-pdf-btn:hover {
+                    background-color: hsl(var(--accent));
                 }
                 .print-content-wrapper {
                   width: 210mm; /* A4 width */
                   min-height: 297mm; /* A4 height */
                   margin: 2rem auto;
-                  padding: 0.75in; /* Adjusted for a broader content area */
+                  padding: 0.75in;
                   box-sizing: border-box;
-                  box-shadow: 0 0 15px rgba(0,0,0,0.2);
+                  box-shadow: 0 4px 16px rgba(0,0,0,0.1), 0 1px 4px rgba(0,0,0,0.05); /* Softer shadow */
                   background: white;
+                  border-radius: 2px; /* Slight rounding on paper */
                 }
             }
 
@@ -84,6 +97,7 @@ export function printElement(element: HTMLElement, documentTitle: string) {
                     width: 100% !important;
                     min-height: 0 !important;
                     background: transparent !important;
+                    border-radius: 0 !important;
                 }
                 .print-hide {
                     display: none !important;

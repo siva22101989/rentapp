@@ -1,11 +1,15 @@
+
 'use client';
+// This page is no longer used for generating receipts from the form.
+// It is kept for historical purposes or direct linking if needed.
+// The primary receipt generation now happens in a dialog within the form components.
 import { PrintHeader } from "@/components/shared/print-header";
 import { OutflowReceipt } from "@/components/outflow/outflow-receipt";
 import { notFound, useParams, useSearchParams } from "next/navigation";
 import type { Customer, StorageRecord, WarehouseInfo } from "@/lib/definitions";
 import { useDoc } from "@/firebase/firestore/use-doc";
 import { useFirestore } from "@/firebase/provider";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, onSnapshot } from "firebase/firestore";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 import { toDate } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
@@ -27,46 +31,26 @@ export default function OutflowReceiptPage() {
   const paidNow = Number(searchParams.get('paidNow')) || 0;
   const discount = Number(searchParams.get('discount')) || 0;
 
-  // Fetch record with a robust polling mechanism to solve race condition
   useEffect(() => {
     if (!firestore || !recordId) {
       setLoadingRecord(false);
       return;
     }
-
     const recordRef = doc(firestore, 'storageRecords', recordId);
-    let attempts = 0;
-    const maxAttempts = 10;
-    const delay = 500;
-
-    const intervalId = setInterval(async () => {
-      try {
-        const docSnap = await getDoc(recordRef);
+    const unsubscribe = onSnapshot(recordRef, (docSnap) => {
         if (docSnap.exists()) {
-          clearInterval(intervalId);
-          setRecord({ id: docSnap.id, ...docSnap.data() } as StorageRecord);
-          setLoadingRecord(false);
+            setRecord({ id: docSnap.id, ...docSnap.data() } as StorageRecord);
         } else {
-          attempts++;
-          if (attempts >= maxAttempts) {
-            clearInterval(intervalId);
-            console.error(`Document ${recordId} not found after ${maxAttempts} attempts.`);
             setRecord(null);
-            setLoadingRecord(false);
-          }
         }
-      } catch (e) {
-        console.error("Error fetching storage record:", e);
-        clearInterval(intervalId);
         setLoadingRecord(false);
-      }
-    }, delay);
-
-    return () => clearInterval(intervalId);
+    }, (e) => {
+        console.error("Error fetching storage record:", e);
+        setLoadingRecord(false);
+    });
+    return () => unsubscribe();
   }, [firestore, recordId]);
 
-
-  // Fetch customer after record is available
   useEffect(() => {
     if (!firestore || !record?.customerId) {
         setLoadingCustomer(false);
@@ -74,17 +58,18 @@ export default function OutflowReceiptPage() {
     }
     setLoadingCustomer(true);
     const customerRef = doc(firestore, 'customers', record.customerId);
-    getDoc(customerRef).then(docSnap => {
+    const unsubscribe = onSnapshot(customerRef, (docSnap) => {
         if(docSnap.exists()) {
             setCustomer({ id: docSnap.id, ...docSnap.data() } as Customer);
         } else {
             setCustomer(null);
         }
         setLoadingCustomer(false);
-    }).catch(e => {
+    }, (e) => {
         console.error("Error fetching customer", e);
         setLoadingCustomer(false);
     });
+    return () => unsubscribe();
   }, [firestore, record]);
 
 

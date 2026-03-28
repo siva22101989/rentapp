@@ -1,11 +1,15 @@
+
 'use client';
+// This page is no longer used for generating receipts from the form.
+// It is kept for historical purposes or direct linking if needed.
+// The primary receipt generation now happens in a dialog within the form components.
 import { PrintHeader } from "@/components/shared/print-header";
 import { UnloadingReceipt } from "@/components/unloading/unloading-receipt";
 import { notFound, useParams } from "next/navigation";
 import type { Customer, UnloadingRecord, WarehouseInfo } from "@/lib/definitions";
 import { useDoc } from "@/firebase/firestore/use-doc";
 import { useFirestore } from "@/firebase/provider";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, onSnapshot } from "firebase/firestore";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 import { Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -21,45 +25,26 @@ export default function UnloadingReceiptPage() {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [loadingCustomer, setLoadingCustomer] = useState(true);
 
-  // Fetch record with a robust polling mechanism to solve race condition
   useEffect(() => {
     if (!firestore || !unloadingId) {
       setLoadingRecord(false);
       return;
     }
-
     const recordRef = doc(firestore, 'unloadingRecords', unloadingId);
-    let attempts = 0;
-    const maxAttempts = 10;
-    const delay = 500;
-
-    const intervalId = setInterval(async () => {
-      try {
-        const docSnap = await getDoc(recordRef);
+    const unsubscribe = onSnapshot(recordRef, (docSnap) => {
         if (docSnap.exists()) {
-          clearInterval(intervalId);
-          setRecord({ id: docSnap.id, ...docSnap.data() } as UnloadingRecord);
-          setLoadingRecord(false);
+            setRecord({ id: docSnap.id, ...docSnap.data() } as UnloadingRecord);
         } else {
-          attempts++;
-          if (attempts >= maxAttempts) {
-            clearInterval(intervalId);
-            console.error(`Document ${unloadingId} not found after ${maxAttempts} attempts.`);
             setRecord(null);
-            setLoadingRecord(false);
-          }
         }
-      } catch (e) {
-        console.error("Error fetching unloading record:", e);
-        clearInterval(intervalId);
         setLoadingRecord(false);
-      }
-    }, delay);
-
-    return () => clearInterval(intervalId);
+    }, (e) => {
+        console.error("Error fetching unloading record:", e);
+        setLoadingRecord(false);
+    });
+    return () => unsubscribe();
   }, [firestore, unloadingId]);
 
-  // Fetch customer after record is available
   useEffect(() => {
     if (!firestore || !record?.customerId) {
         setLoadingCustomer(false);
@@ -67,17 +52,18 @@ export default function UnloadingReceiptPage() {
     }
     setLoadingCustomer(true);
     const customerRef = doc(firestore, 'customers', record.customerId);
-    getDoc(customerRef).then(docSnap => {
+    const unsubscribe = onSnapshot(customerRef, (docSnap) => {
         if(docSnap.exists()) {
             setCustomer({ id: docSnap.id, ...docSnap.data() } as Customer);
         } else {
             setCustomer(null);
         }
         setLoadingCustomer(false);
-    }).catch(e => {
+    }, (e) => {
         console.error("Error fetching customer", e);
         setLoadingCustomer(false);
     });
+     return () => unsubscribe();
   }, [firestore, record]);
 
   const warehouseInfoRef = useMemoFirebase(

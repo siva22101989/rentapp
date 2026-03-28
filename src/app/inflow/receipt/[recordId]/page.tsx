@@ -1,4 +1,9 @@
+
 'use client';
+// This page is no longer used for generating receipts from the form.
+// It is kept for historical purposes or direct linking if needed.
+// The primary receipt generation now happens in a dialog within the form components.
+
 import { InflowReceipt } from "@/components/inflow/inflow-receipt";
 import { PrintHeader } from "@/components/shared/print-header";
 import { notFound, useParams } from "next/navigation";
@@ -23,42 +28,25 @@ export default function InflowReceiptPage() {
   const [unloadingRecord, setUnloadingRecord] = useState<UnloadingRecord | null>(null);
   const [loadingUnloading, setLoadingUnloading] = useState(true);
 
-  // Fetch record with a robust polling mechanism to solve race condition
+  // Fetch record
   useEffect(() => {
     if (!firestore || !recordId) {
       setLoadingRecord(false);
       return;
     }
-
     const recordRef = doc(firestore, 'storageRecords', recordId);
-    let attempts = 0;
-    const maxAttempts = 10; // Increased attempts
-    const delay = 500;    // 500ms delay
-
-    const intervalId = setInterval(async () => {
-        try {
-            const docSnap = await getDoc(recordRef);
-            if (docSnap.exists()) {
-                clearInterval(intervalId);
-                setRecord({ id: docSnap.id, ...docSnap.data() } as StorageRecord);
-                setLoadingRecord(false);
-            } else {
-                attempts++;
-                if (attempts >= maxAttempts) {
-                    clearInterval(intervalId);
-                    console.error(`Document ${recordId} not found after ${maxAttempts} attempts.`);
-                    setRecord(null);
-                    setLoadingRecord(false);
-                }
-            }
-        } catch (e) {
-            console.error("Error fetching storage record:", e);
-            clearInterval(intervalId);
-            setLoadingRecord(false);
+    const unsubscribe = onSnapshot(recordRef, (docSnap) => {
+        if (docSnap.exists()) {
+            setRecord({ id: docSnap.id, ...docSnap.data() } as StorageRecord);
+        } else {
+            setRecord(null);
         }
-    }, delay);
-
-    return () => clearInterval(intervalId);
+        setLoadingRecord(false);
+    }, (e) => {
+        console.error("Error fetching storage record:", e);
+        setLoadingRecord(false);
+    });
+    return () => unsubscribe();
   }, [firestore, recordId]);
 
   // Fetch customer after record is available
@@ -69,17 +57,18 @@ export default function InflowReceiptPage() {
     }
     setLoadingCustomer(true);
     const customerRef = doc(firestore, 'customers', record.customerId);
-    getDoc(customerRef).then(docSnap => {
+    const unsubscribe = onSnapshot(customerRef, (docSnap) => {
         if(docSnap.exists()) {
             setCustomer({ id: docSnap.id, ...docSnap.data() } as Customer);
         } else {
             setCustomer(null);
         }
         setLoadingCustomer(false);
-    }).catch(e => {
+    }, (e) => {
         console.error("Error fetching customer", e);
         setLoadingCustomer(false);
     });
+     return () => unsubscribe();
   }, [firestore, record]);
 
   const warehouseInfoRef = useMemoFirebase(
@@ -94,30 +83,20 @@ export default function InflowReceiptPage() {
         setLoadingUnloading(false);
         return;
       }
-      
       setLoadingUnloading(true);
-      
       try {
-        const dryingRef = doc(firestore, 'dryingRecords', record.dryingRecordId);
-        const dryingSnap = await getDoc(dryingRef);
-        
-        if (dryingSnap.exists()) {
-          const dryingData = dryingSnap.data() as DryingRecord;
-          if (dryingData.unloadingRecordId) {
-            const unloadingRef = doc(firestore, 'unloadingRecords', dryingData.unloadingRecordId);
-            const unloadingSnap = await getDoc(unloadingRef);
-            if (unloadingSnap.exists()) {
-              setUnloadingRecord({ id: unloadingSnap.id, ...unloadingSnap.data() } as UnloadingRecord);
+          const dryingRef = doc(firestore, 'dryingRecords', record.dryingRecordId);
+          const dryingSnap = await getDoc(dryingRef);
+          if (dryingSnap.exists()) {
+            const dryingData = dryingSnap.data() as DryingRecord;
+            if (dryingData.unloadingRecordId) {
+              const unloadingRef = doc(firestore, 'unloadingRecords', dryingData.unloadingRecordId);
+              const unloadingSnap = await getDoc(unloadingRef);
+              if (unloadingSnap.exists()) {
+                setUnloadingRecord({ id: unloadingSnap.id, ...unloadingSnap.data() } as UnloadingRecord);
+              }
             }
           }
-        } else {
-          // Fallback for old data structure
-          const unloadingRef = doc(firestore, 'unloadingRecords', record.dryingRecordId);
-          const unloadingSnap = await getDoc(unloadingRef);
-          if (unloadingSnap.exists()) {
-            setUnloadingRecord({ id: unloadingSnap.id, ...unloadingSnap.data() } as UnloadingRecord);
-          }
-        }
       } catch (e) {
         console.error("Error fetching related unloading record", e);
       } finally {
@@ -141,7 +120,6 @@ export default function InflowReceiptPage() {
     notFound();
   }
   
-  // Create a version of the record where all timestamps are converted to dates for the component
   const cleanRecord = {
     ...record,
     storageStartDate: toDate(record.storageStartDate),

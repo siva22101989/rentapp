@@ -13,12 +13,16 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase/provider';
-import type { Customer, Commodity } from '@/lib/definitions';
-import { addDoc, collection, Timestamp } from 'firebase/firestore';
-import Link from 'next/link';
+import type { Customer, Commodity, UnloadingRecord, WarehouseInfo } from '@/lib/definitions';
+import { addDoc, collection, Timestamp, doc } from 'firebase/firestore';
 import { formatCurrency, cleanForFirestore } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 import { Combobox } from '../ui/combobox';
+import { Dialog, DialogContent } from '../ui/dialog';
+import { PrintHeader } from '../shared/print-header';
+import { UnloadingReceipt } from './unloading-receipt';
+import { useDoc } from '@/firebase/firestore/use-doc';
+import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 
 const UnloadingRecordSchema = z.object({
   customerId: z.string().min(1, 'Customer is required.'),
@@ -34,10 +38,8 @@ type UnloadingFormData = z.infer<typeof UnloadingRecordSchema>;
 
 const getLocalDateTimeForInput = () => {
     const now = new Date();
-    // Adjust for timezone offset to get local time in ISO-like format
     const timezoneOffsetInMs = now.getTimezoneOffset() * 60000;
     const localDate = new Date(now.getTime() - timezoneOffsetInMs);
-    // Return formatted string for datetime-local input
     return localDate.toISOString().slice(0, 16);
 };
 
@@ -46,6 +48,15 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
     const firestore = useFirestore();
+
+    const [receiptRecord, setReceiptRecord] = useState<UnloadingRecord | null>(null);
+
+    const warehouseInfoRef = useMemoFirebase(
+      () => (firestore ? doc(firestore, 'settings', 'main') : null),
+      [firestore]
+    );
+    const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
+
 
     const form = useForm<UnloadingFormData>({
         resolver: zodResolver(UnloadingRecordSchema),
@@ -58,7 +69,7 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
           hamaliPerBag: '',
           billNo: nextBillNo,
         },
-        values: { // Use `values` to ensure billNo is always up-to-date
+        values: { 
             customerId: '',
             commodityDescription: '',
             lorryTractorNo: '',
@@ -81,26 +92,14 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
             return;
         }
 
-        const receiptWindow = window.open('', '_blank');
-        if (!receiptWindow) {
-            toast({
-                title: "Pop-up Blocked",
-                description: "Please allow pop-ups for this website to view the receipt.",
-                variant: 'destructive',
-                duration: 10000,
-            });
-            return;
-        }
-        receiptWindow.document.write('<html><head><title>Loading Receipt...</title><style>body { font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; } .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; } @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style></head><body><div class="loader"></div></body></html>');
-
-
         startTransition(async () => {
             try {
                 const totalHamali = data.bagsUnloaded * data.hamaliPerBag;
+                const unloadingDate = new Date(data.unloadingDate);
                 const rawRecord = {
                     ...data,
-                    billNo: nextBillNo, // Ensure the latest bill number is used
-                    unloadingDate: Timestamp.fromDate(new Date(data.unloadingDate)),
+                    unloadingDate,
+                    billNo: nextBillNo,
                     bagsSentToDrying: 0,
                     totalHamali,
                     workerHamaliPayable: totalHamali,
@@ -109,12 +108,10 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
                 
                 toast({ title: 'Success', description: 'Unloading record added.' });
                 
-                const receiptUrl = `/unloading/receipt/${docRef.id}`;
-                receiptWindow.location.href = receiptUrl;
+                setReceiptRecord({ id: docRef.id, ...rawRecord });
                 
                 form.reset();
             } catch (error) {
-                receiptWindow.close();
                 console.error(error);
                 toast({ title: 'Error', description: 'Failed to add unloading record.', variant: 'destructive' });
             }
@@ -122,6 +119,7 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
     };
 
   return (
+    <>
     <Card>
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
@@ -252,5 +250,20 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
             </form>
         </Form>
     </Card>
+    {receiptRecord && (
+        <Dialog open={!!receiptRecord} onOpenChange={(open) => !open && setReceiptRecord(null)}>
+            <DialogContent className="max-w-3xl">
+                <PrintHeader title={`Unloading Bill #${receiptRecord.billNo}`} />
+                 <div className="max-h-[70vh] overflow-y-auto p-1">
+                    <UnloadingReceipt
+                        record={receiptRecord}
+                        customer={customers.find(c => c.id === receiptRecord.customerId)!}
+                        warehouseInfo={warehouseInfo}
+                    />
+                 </div>
+            </DialogContent>
+        </Dialog>
+    )}
+    </>
   );
 }

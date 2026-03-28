@@ -6,14 +6,19 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import type { Customer, Payment, Commodity, Lot, StorageRecord } from '@/lib/definitions';
+import type { Customer, Payment, Commodity, Lot, StorageRecord, WarehouseInfo } from '@/lib/definitions';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { formatCurrency, cleanForFirestore } from '@/lib/utils';
 import { useFirestore } from '@/firebase/provider';
-import { addDoc, collection } from 'firebase/firestore';
+import { addDoc, collection, doc } from 'firebase/firestore';
 import { Combobox } from '../ui/combobox';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
+import { PrintHeader } from '../shared/print-header';
+import { InflowReceipt } from './inflow-receipt';
+import { useDoc } from '@/firebase/firestore/use-doc';
+import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 
 function SubmitButton({ isPending }: { isPending: boolean }) {
     return (
@@ -47,9 +52,17 @@ export function InflowForm({ customers, commodities, lots, records }: { customer
     const [lorryTractorNo, setLorryTractorNo] = useState('');
     const [storageStartDate, setStorageStartDate] = useState(new Date().toISOString().split('T')[0]);
 
+    const [receiptRecord, setReceiptRecord] = useState<StorageRecord | null>(null);
 
     const customerOptions = customers.map(c => ({ value: c.id, label: c.name }));
     const commodityOptions = commodities.map(c => ({ value: c.name, label: c.name }));
+
+    const warehouseInfoRef = useMemoFirebase(
+      () => (firestore ? doc(firestore, 'settings', 'main') : null),
+      [firestore]
+    );
+    const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
+
 
     const lotOccupancy = useMemo(() => {
         const occupancy: { [lotName: string]: number } = {};
@@ -119,19 +132,6 @@ export function InflowForm({ customers, commodities, lots, records }: { customer
             return;
         }
 
-        const receiptWindow = window.open('', '_blank');
-        if (!receiptWindow) {
-            toast({
-                title: "Pop-up Blocked",
-                description: "Please allow pop-ups for this website to view the receipt.",
-                variant: 'destructive',
-                duration: 10000,
-            });
-            return;
-        }
-        receiptWindow.document.write('<html><head><title>Loading Receipt...</title><style>body { font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; } .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; } @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style></head><body><div class="loader"></div></body></html>');
-
-
         startTransition(async () => {
             try {
                 const weightValue = Number(weight) || 0;
@@ -171,16 +171,14 @@ export function InflowForm({ customers, commodities, lots, records }: { customer
                 };
 
                 const docRef = await addDoc(collection(firestore, "storageRecords"), cleanForFirestore(rawRecord));
-                const newRecordId = docRef.id;
-
-                const receiptUrl = `/inflow/receipt/${newRecordId}`;
-                receiptWindow.location.href = receiptUrl;
                 
                 toast({ title: 'Success', description: 'Inflow record created successfully.' });
+
+                setReceiptRecord({ id: docRef.id, ...rawRecord } as StorageRecord);
+                
                 resetForm();
                 
             } catch (error) {
-                receiptWindow.close();
                 console.error(error);
                 toast({ title: 'Error', description: 'Failed to create inflow record.', variant: 'destructive' });
             }
@@ -188,6 +186,7 @@ export function InflowForm({ customers, commodities, lots, records }: { customer
     }
 
   return (
+    <>
     <div className="flex justify-center">
         <form onSubmit={handleSubmit} className="w-full max-w-lg">
             <Card>
@@ -317,5 +316,20 @@ export function InflowForm({ customers, commodities, lots, records }: { customer
             </Card>
         </form>
     </div>
+    {receiptRecord && (
+        <Dialog open={!!receiptRecord} onOpenChange={(open) => !open && setReceiptRecord(null)}>
+            <DialogContent className="max-w-3xl">
+                 <PrintHeader title={`Inflow Bill #${receiptRecord.id}`} />
+                 <div className="max-h-[70vh] overflow-y-auto p-1">
+                    <InflowReceipt
+                        record={receiptRecord}
+                        customer={customers.find(c => c.id === receiptRecord.customerId)!}
+                        warehouseInfo={warehouseInfo}
+                    />
+                 </div>
+            </DialogContent>
+        </Dialog>
+    )}
+    </>
   );
 }

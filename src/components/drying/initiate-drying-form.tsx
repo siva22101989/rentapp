@@ -13,13 +13,18 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase/provider';
-import type { Customer, UnloadingRecord, Lot, StorageRecord, HamaliChargeItem } from '@/lib/definitions';
+import type { Customer, UnloadingRecord, Lot, StorageRecord, HamaliChargeItem, WarehouseInfo } from '@/lib/definitions';
 import { doc, writeBatch, increment, collection } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { formatCurrency, cleanForFirestore, toDate } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 import { Combobox } from '../ui/combobox';
 import { differenceInDays, format } from 'date-fns';
+import { Dialog, DialogContent } from '../ui/dialog';
+import { PrintHeader } from '../shared/print-header';
+import { InflowReceipt } from '../inflow/inflow-receipt';
+import { useDoc } from '@/firebase/firestore/use-doc';
+import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 
 const InitiateDryingSchema = z.object({
   unloadingRecordId: z.string().min(1, 'An unloading bill is required.'),
@@ -55,6 +60,14 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
     const firestore = useFirestore();
+    const [receiptRecord, setReceiptRecord] = useState<StorageRecord | null>(null);
+
+    const warehouseInfoRef = useMemoFirebase(
+      () => (firestore ? doc(firestore, 'settings', 'main') : null),
+      [firestore]
+    );
+    const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
+
 
     const form = useForm<DryingFormData>({
         resolver: zodResolver(InitiateDryingSchema),
@@ -170,12 +183,10 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
 
 
     useEffect(() => {
-        // This effect handles auto-filling and resetting the form when the selected record changes.
         if (selectedUnloadingRecord) {
             form.setValue('bagsForDrying', bagsRemainingOnRecord);
             form.setValue('bagsPacked', bagsRemainingOnRecord); 
         } else {
-            // If no record is selected (e.g., deselected), clear the dependent fields.
             form.reset({
                 ...form.getValues(),
                 bagsForDrying: 0,
@@ -188,11 +199,8 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
     }, [selectedUnloadingRecordId, form]);
 
     useEffect(() => {
-        // This effect handles the case where the underlying data (unloadingRecords) changes,
-        // for example, if a record is deleted.
         const selectedRecordExists = unloadingRecords.some(ur => ur.id === selectedUnloadingRecordId);
         if (selectedUnloadingRecordId && !selectedRecordExists) {
-            // The selected record is no longer in the list, so reset the form.
             form.reset({
                 unloadingRecordId: '',
                 dryingStartDate: new Date().toISOString().split('T')[0],
@@ -227,19 +235,6 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
           form.setError('bagsForDrying', { message: `Cannot exceed available bags (${bagsStillAvailable}).`});
           return;
         }
-
-        const receiptWindow = window.open('', '_blank');
-        if (!receiptWindow) {
-            toast({
-                title: "Pop-up Blocked",
-                description: "Please allow pop-ups for this website to view the receipt.",
-                variant: 'destructive',
-                duration: 10000,
-            });
-            return;
-        }
-        receiptWindow.document.write('<html><head><title>Loading Receipt...</title><style>body { font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; } .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; } @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style></head><body><div class="loader"></div></body></html>');
-
 
         startTransition(async () => {
             try {
@@ -301,7 +296,6 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                 
                 const batch = writeBatch(firestore);
                 const newStorageRecordRef = doc(collection(firestore, 'storageRecords'));
-                const newRecordId = newStorageRecordRef.id;
 
                 const newStorageRecord: Omit<StorageRecord, 'id'> = {
                     customerId: selectedRecordOnSubmit.customerId,
@@ -338,13 +332,12 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                 await batch.commit();
                 
                 toast({ title: 'Success', description: `Storage record created from plot.` });
+                
+                setReceiptRecord({ id: newStorageRecordRef.id, ...newStorageRecord } as StorageRecord);
 
-                const receiptUrl = `/inflow/receipt/${newRecordId}`;
-                receiptWindow.location.href = receiptUrl;
                 form.reset();
                 
             } catch (error) {
-                receiptWindow.close();
                 console.error(error);
                 toast({ title: 'Error', description: 'Failed to create storage record.', variant: 'destructive' });
             }
@@ -352,6 +345,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
     };
 
   return (
+    <>
     <Card>
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
@@ -605,5 +599,21 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
             </form>
         </Form>
     </Card>
+    {receiptRecord && (
+        <Dialog open={!!receiptRecord} onOpenChange={(open) => !open && setReceiptRecord(null)}>
+            <DialogContent className="max-w-3xl">
+                 <PrintHeader title={`Inflow Bill #${receiptRecord.id}`} />
+                 <div className="max-h-[70vh] overflow-y-auto p-1">
+                    <InflowReceipt
+                        record={receiptRecord}
+                        customer={customers.find(c => c.id === receiptRecord.customerId)!}
+                        warehouseInfo={warehouseInfo}
+                        unloadingRecord={unloadingRecords.find(ur => ur.id === receiptRecord.dryingRecordId)}
+                    />
+                 </div>
+            </DialogContent>
+        </Dialog>
+    )}
+    </>
   );
 }

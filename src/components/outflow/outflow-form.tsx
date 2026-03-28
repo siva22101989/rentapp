@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import type { Customer, StorageRecord, Payment, Outflow } from '@/lib/definitions';
+import type { Customer, StorageRecord, Payment, Outflow, WarehouseInfo } from '@/lib/definitions';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Separator } from '../ui/separator';
@@ -18,6 +18,11 @@ import { format } from 'date-fns';
 import { toDate, cleanForFirestore, formatCurrency } from '@/lib/utils';
 import { Combobox } from '../ui/combobox';
 import { useRouter } from 'next/navigation';
+import { Dialog, DialogContent } from '../ui/dialog';
+import { PrintHeader } from '../shared/print-header';
+import { OutflowReceipt } from './outflow-receipt';
+import { useDoc } from '@/firebase/firestore/use-doc';
+import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 
 function SubmitButton({ isPending }: { isPending: boolean }) {
     return (
@@ -33,6 +38,19 @@ function SubmitButton({ isPending }: { isPending: boolean }) {
       </Button>
     );
 }
+
+type ReceiptData = {
+    record: StorageRecord;
+    customer: Customer;
+    warehouseInfo: WarehouseInfo | null;
+    withdrawnBags: number;
+    finalRent: number;
+    paidNow: number;
+    discount: number;
+    deliveryOrderNo: string;
+    deliveryOrderDate: Date;
+}
+
 
 export function OutflowForm({ records, customers }: { records: StorageRecord[], customers: Customer[] }) {
     const { toast } = useToast();
@@ -50,6 +68,15 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
     const [totalRent, setTotalRent] = useState(0);
     const [totalPendingHamali, setTotalPendingHamali] = useState(0);
     const [totalBags, setTotalBags] = useState(0);
+
+    const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
+
+    const warehouseInfoRef = useMemoFirebase(
+      () => (firestore ? doc(firestore, 'settings', 'main') : null),
+      [firestore]
+    );
+    const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
+
 
     const customerOptions = customers.map(c => ({ value: c.id, label: c.name }));
 
@@ -117,8 +144,6 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
     }
 
     const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        // e.target.value will be a string like "2024-07-26"
-        // Appending T00:00:00 makes it parse as local time midnight, avoiding timezone bugs
         const dateValue = new Date(e.target.value + 'T00:00:00');
         setWithdrawalDate(dateValue);
     }
@@ -141,31 +166,18 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
             return;
         }
 
-        let receiptWindow: Window | null = null;
-        if (!isMultiLotWithdrawal) {
-            receiptWindow = window.open('', '_blank');
-            if (!receiptWindow) {
-                toast({
-                    title: "Pop-up Blocked",
-                    description: "Please allow pop-ups for this website to view the receipt.",
-                    variant: 'destructive',
-                    duration: 10000,
-                });
-                return;
-            }
-            receiptWindow.document.write('<html><head><title>Loading Receipt...</title><style>body { font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; } .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; } @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style></head><body><div class="loader"></div></body></html>');
-        }
-
-
         startTransition(async () => {
             try {
                 const batch = writeBatch(firestore);
                 const discountAmount = !isMultiLotWithdrawal ? (Number(discount) || 0) : 0;
                 
-                for (const [recordId, bags] of withdrawalEntries) {
-                    const bagsToWithdraw = Number(bags);
-                    const record = records.find(r => r.id === recordId);
-                    if (!record || bagsToWithdraw <= 0) continue;
+                // This is a snapshot of the records at the time of submission
+                const processedRecordIds = new Set(withdrawalEntries.map(([id]) => id));
+                const recordsToProcess = records.filter(r => processedRecordIds.has(r.id));
+                
+                for (const record of recordsToProcess) {
+                    const bagsToWithdraw = Number(withdrawals[record.id]);
+                    if (bagsToWithdraw <= 0) continue;
 
                     const { rent: rentForThisWithdrawal } = calculateFinalRent({ ...record, storageStartDate: toDate(record.storageStartDate) }, withdrawalDate, bagsToWithdraw);
                     
@@ -173,7 +185,7 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                         date: withdrawalDate,
                         bagsWithdrawn: bagsToWithdraw,
                         rentBilled: rentForThisWithdrawal,
-                        discount: discountAmount,
+                        discount: isMultiLotWithdrawal ? 0 : discountAmount,
                     };
 
                     const newBagsOut = (record.bagsOut || 0) + bagsToWithdraw;
@@ -197,7 +209,7 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                         updateData.payments = arrayUnion(cleanForFirestore(newPayment));
                     }
                     
-                    const recordRef = doc(firestore, 'storageRecords', recordId);
+                    const recordRef = doc(firestore, 'storageRecords', record.id);
                     batch.update(recordRef, updateData);
                 }
                 
@@ -209,23 +221,41 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                     router.push(`/reports?report=customer-statement&customerId=${selectedCustomerId}`);
                 } else {
                     const [recordId, bags] = withdrawalEntries[0];
-                    const record = records.find(r => r.id === recordId);
-                    if (!record || !receiptWindow) {
-                        toast({ title: 'Error', description: 'Could not find the processed record after submission.', variant: 'destructive' });
-                        return;
+                    const docSnap = await getDoc(doc(firestore, 'storageRecords', recordId));
+                    const updatedRecord = { id: docSnap.id, ...docSnap.data() } as StorageRecord;
+
+                    if (!updatedRecord) {
+                        throw new Error("Failed to fetch updated record for receipt.");
                     }
+
+                    const customer = customers.find(c => c.id === updatedRecord.customerId);
+                    if (!customer) {
+                        throw new Error("Could not find customer for receipt.");
+                    }
+
                     const bagsToWithdraw = Number(bags);
-                    const { rent: rentForThisWithdrawal } = calculateFinalRent({ ...record, storageStartDate: toDate(record.storageStartDate) }, withdrawalDate, bagsToWithdraw);
+                    const { rent: rentForThisWithdrawal } = calculateFinalRent({ ...updatedRecord, storageStartDate: toDate(updatedRecord.storageStartDate) }, withdrawalDate, bagsToWithdraw);
                     
-                    const url = `/outflow/receipt/${recordId}?withdrawn=${bagsToWithdraw}&rent=${rentForThisWithdrawal}&paidNow=${Number(amountPaidNow) || 0}&discount=${discountAmount}`;
-                    receiptWindow.location.href = url;
+                    const latestOutflowIndex = (updatedRecord.outflows?.length || 1) - 1;
+                    const deliveryOrderNo = `${updatedRecord.id}-${latestOutflowIndex + 1}`;
+
+                    setReceiptData({
+                        record: updatedRecord,
+                        customer: customer,
+                        warehouseInfo: warehouseInfo,
+                        withdrawnBags: bagsToWithdraw,
+                        finalRent: rentForThisWithdrawal,
+                        paidNow: Number(amountPaidNow) || 0,
+                        discount: discountAmount,
+                        deliveryOrderNo: deliveryOrderNo,
+                        deliveryOrderDate: withdrawalDate
+                    });
                     
-                    toast({ title: 'Success', description: 'Withdrawal processed successfully. Receipt opened in a new tab.' });
+                    toast({ title: 'Success', description: 'Withdrawal processed successfully.' });
                     resetForm();
                 }
 
             } catch (error) {
-                if (receiptWindow) receiptWindow.close();
                 console.error("Outflow failed:", error);
                 toast({ title: 'Error', description: 'Failed to process outflow.', variant: 'destructive' });
             }
@@ -233,6 +263,7 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
     }
 
   return (
+    <>
     <div className="flex justify-center">
         <form onSubmit={handleSubmit} className="w-full max-w-3xl">
             <Card>
@@ -378,5 +409,16 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
             </Card>
         </form>
     </div>
+    {receiptData && (
+        <Dialog open={!!receiptData} onOpenChange={(open) => !open && setReceiptData(null)}>
+            <DialogContent className="max-w-3xl">
+                <PrintHeader title={`Outflow Bill #${receiptData.deliveryOrderNo}`} />
+                <div className="max-h-[70vh] overflow-y-auto p-1">
+                    <OutflowReceipt {...receiptData} />
+                </div>
+            </DialogContent>
+        </Dialog>
+    )}
+    </>
   );
 }

@@ -12,7 +12,7 @@ import { Loader2 } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { formatCurrency, cleanForFirestore } from '@/lib/utils';
 import { useFirestore } from '@/firebase/provider';
-import { setDoc, doc } from 'firebase/firestore';
+import { addDoc, collection } from 'firebase/firestore';
 import { Combobox } from '../ui/combobox';
 
 function SubmitButton({ isPending }: { isPending: boolean }) {
@@ -30,7 +30,7 @@ function SubmitButton({ isPending }: { isPending: boolean }) {
     );
 }
 
-export function InflowForm({ customers, commodities, lots, records, nextSerialNumber }: { customers: Customer[], commodities: Commodity[], lots: Lot[], records: StorageRecord[], nextSerialNumber: string }) {
+export function InflowForm({ customers, commodities, lots, records }: { customers: Customer[], commodities: Commodity[], lots: Lot[], records: StorageRecord[] }) {
     const { toast } = useToast();
     const firestore = useFirestore();
     const [isPending, startTransition] = useTransition();
@@ -149,8 +149,7 @@ export function InflowForm({ customers, commodities, lots, records, nextSerialNu
                     });
                 }
                 
-                const rawRecord = {
-                    id: nextSerialNumber,
+                const rawRecord: Omit<StorageRecord, 'id'> = {
                     customerId: selectedCustomerId,
                     commodityDescription: selectedCommodity,
                     location: selectedLot,
@@ -171,10 +170,10 @@ export function InflowForm({ customers, commodities, lots, records, nextSerialNu
                     khataAmount: Number(khataAmount) || 0
                 };
 
-                const newRecordRef = doc(firestore, "storageRecords", nextSerialNumber);
-                await setDoc(newRecordRef, cleanForFirestore(rawRecord));
+                const docRef = await addDoc(collection(firestore, "storageRecords"), cleanForFirestore(rawRecord));
+                const newRecordId = docRef.id;
 
-                const receiptUrl = `/inflow/receipt/${nextSerialNumber}`;
+                const receiptUrl = `/inflow/receipt/${newRecordId}`;
                 receiptWindow.location.href = receiptUrl;
                 
                 toast({ title: 'Success', description: 'Inflow record created successfully.' });
@@ -194,9 +193,6 @@ export function InflowForm({ customers, commodities, lots, records, nextSerialNu
             <Card>
                 <CardHeader>
                     <CardTitle>New Storage Record Details</CardTitle>
-                    <CardDescription>
-                        Next Inflow Bill No: <span className="font-bold text-primary">{nextSerialNumber}</span>
-                    </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                      <div className="space-y-2">

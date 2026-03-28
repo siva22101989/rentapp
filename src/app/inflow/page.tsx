@@ -39,21 +39,6 @@ export default function InflowPage() {
   const { data: lots, loading: loadingLots } = useCollection<Lot>(lotsQuery);
 
 
-  const nextSerialNumber = useMemo(() => {
-    if (!records || records.length === 0) {
-      return '1';
-    }
-    const maxId = records.reduce((max, record) => {
-      let idNum = parseInt(record.id, 10);
-      if (isNaN(idNum)) {
-        idNum = parseInt(record.id.replace(/[^0-9]/g, ''), 10);
-      }
-      return isNaN(idNum) ? max : Math.max(max, idNum);
-    }, 0);
-    return `${maxId + 1}`;
-  }, [records]);
-
-
   if (loadingCustomers || loadingRecords || loadingCommodities || loadingLots) {
     return <AppLayout><div>Loading...</div></AppLayout>;
   }
@@ -71,7 +56,6 @@ export default function InflowPage() {
         commodities={commodities || []}
         lots={lots || []}
         records={records || []}
-        nextSerialNumber={nextSerialNumber} 
       />
     </AppLayout>
   );

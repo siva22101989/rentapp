@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase/provider';
 import type { Customer, UnloadingRecord, Lot, StorageRecord, HamaliChargeItem } from '@/lib/definitions';
-import { doc, writeBatch, increment, getDoc } from 'firebase/firestore';
+import { doc, writeBatch, increment, collection } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { formatCurrency, cleanForFirestore, toDate } from '@/lib/utils';
 import { Separator } from '../ui/separator';
@@ -49,10 +49,9 @@ interface InitiateDryingFormProps {
     unloadingRecords: UnloadingRecord[];
     lots: Lot[];
     storageRecords: StorageRecord[];
-    nextSerialNumber: string;
 }
 
-export function InitiateDryingForm({ customers, unloadingRecords, lots, storageRecords, nextSerialNumber }: InitiateDryingFormProps) {
+export function InitiateDryingForm({ customers, unloadingRecords, lots, storageRecords }: InitiateDryingFormProps) {
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
     const firestore = useFirestore();
@@ -299,9 +298,12 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                 // Worker Hamali Calculation
                 const dryingDay1WorkerHamali = data.bagsForDrying * data.workerHamaliPerBag;
                 const totalWorkerHamali = currentProportionalUnloadingHamali + dryingDay1WorkerHamali + pavHamaliAmount + cuppaHamaliAmount;
+                
+                const batch = writeBatch(firestore);
+                const newStorageRecordRef = doc(collection(firestore, 'storageRecords'));
+                const newRecordId = newStorageRecordRef.id;
 
-                const newStorageRecord: Omit<StorageRecord, 'id'> & { id: string } = {
-                    id: nextSerialNumber,
+                const newStorageRecord: Omit<StorageRecord, 'id'> = {
                     customerId: selectedRecordOnSubmit.customerId,
                     commodityDescription: selectedRecordOnSubmit.commodityDescription,
                     location: data.lotNo,
@@ -326,21 +328,18 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                     hamaliDetails: hamaliDetails,
                 };
                 
-                const newStorageRecordRef = doc(firestore, 'storageRecords', nextSerialNumber);
-                const unloadingRecordRef = doc(firestore, 'unloadingRecords', data.unloadingRecordId);
-                
-                const batch = writeBatch(firestore);
-
                 batch.set(newStorageRecordRef, cleanForFirestore(newStorageRecord));
+
+                const unloadingRecordRef = doc(firestore, 'unloadingRecords', data.unloadingRecordId);
                 batch.update(unloadingRecordRef, {
                     bagsSentToDrying: increment(data.bagsForDrying)
                 });
                 
                 await batch.commit();
                 
-                toast({ title: 'Success', description: `Storage record ${nextSerialNumber} created from plot.` });
+                toast({ title: 'Success', description: `Storage record created from plot.` });
 
-                const receiptUrl = `/inflow/receipt/${nextSerialNumber}`;
+                const receiptUrl = `/inflow/receipt/${newRecordId}`;
                 receiptWindow.location.href = receiptUrl;
                 form.reset();
                 
@@ -360,7 +359,6 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                     <CardTitle>Finalize Drying & Create Storage Record</CardTitle>
                     <CardDescription>
                         Select an item from the unloading queue. This will create a new storage record.
-                        <br/>Next Storage Bill No: <span className="font-bold text-primary">{nextSerialNumber}</span>
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">

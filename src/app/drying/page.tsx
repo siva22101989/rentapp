@@ -46,20 +46,6 @@ export default function DryingPage() {
     // Sort by unloading date, oldest first, to show the earliest records at the top of the list.
     return filtered.sort((a, b) => toDate(a.unloadingDate).getTime() - toDate(b.unloadingDate).getTime());
   }, [unloadingRecords]);
-  
-  const nextSerialNumber = useMemo(() => {
-    if (!storageRecords || storageRecords.length === 0) {
-      return '1';
-    }
-    const maxId = storageRecords.reduce((max, record) => {
-      let idNum = parseInt(record.id, 10);
-      if (isNaN(idNum)) {
-        idNum = parseInt(record.id.replace(/[^0-9]/g, ''), 10);
-      }
-      return isNaN(idNum) ? max : Math.max(max, idNum);
-    }, 0);
-    return `${maxId + 1}`;
-  }, [storageRecords]);
 
 
   if (loadingCustomers || loadingUnloadingRecords || loadingLots || loadingStorageRecords) {
@@ -82,7 +68,6 @@ export default function DryingPage() {
                 unloadingRecords={availableForDryingRecords || []}
                 lots={lots || []}
                 storageRecords={storageRecords || []}
-                nextSerialNumber={nextSerialNumber}
             />
         </div>
       </div>

@@ -1,11 +1,10 @@
 
 'use client';
 
-import { MoreHorizontal, IndianRupee, Pencil, Trash2, FileText } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2, FileText } from "lucide-react";
 import { Button } from "../ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import type { UnloadingRecord, Customer, Commodity } from "@/lib/definitions";
-import { AddUnloadingPaymentDialog } from "./add-unloading-payment-dialog";
 import { EditUnloadingRecordDialog } from "./edit-unloading-record-dialog";
 import { DeleteUnloadingRecordDialog } from "./delete-unloading-record-dialog";
 import { ViewUnloadingReceiptDialog } from "./view-unloading-receipt-dialog";
@@ -50,15 +49,6 @@ export function UnloadingTableActionsMenu({ record, customers, commodities }: Ac
                         Edit
                     </DropdownMenuItem>
                 </EditUnloadingRecordDialog>
-                
-                {record.hamaliPending > 0 && (
-                    <AddUnloadingPaymentDialog record={record}>
-                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                            <IndianRupee className="mr-2 h-4 w-4" />
-                            Add Payment
-                        </DropdownMenuItem>
-                    </AddUnloadingPaymentDialog>
-                )}
                 
                 {canDelete && (
                     <>

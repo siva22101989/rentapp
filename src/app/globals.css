@@ -109,22 +109,20 @@
   }
 
   @media print {
-    body * {
-      visibility: hidden;
-    }
-    .printable-area, .printable-area * {
-      visibility: visible;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-    .printable-area {
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: 100%;
-    }
     .print-hide {
-        display: none;
+      display: none;
+    }
+    body, main {
+      padding: 0;
+      margin: 0;
+      background: #fff;
+    }
+    .printable-area .card {
+      border: none;
+      box-shadow: none;
+    }
+    body {
+        background-image: none;
     }
   }
 }

@@ -10,6 +10,7 @@ import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { toDate } from "@/lib/utils";
 import { useDoc } from "@/firebase/firestore/use-doc";
+import { Button } from "@/components/ui/button";
 
 export default function InflowReceiptPage() {
   const params = useParams();
@@ -158,7 +159,7 @@ export default function InflowReceiptPage() {
   return (
     <div className="bg-gray-100 min-h-screen">
       <PrintHeader title={`Inflow Bill #${record.id}`} />
-      <main className="p-4 sm:p-8 flex justify-center">
+      <main className="p-4 sm:p-8 flex justify-center printable-area">
         <InflowReceipt record={cleanRecord} customer={customer} warehouseInfo={warehouseInfo} unloadingRecord={cleanUnloadingRecord} />
       </main>
     </div>

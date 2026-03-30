@@ -55,7 +55,7 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
     }
 
     return (
-      <div ref={ref} className="printable-area bg-white p-4 sm:p-6 border-2 border-black font-sans text-sm text-black">
+      <div ref={ref} className="bg-white p-4 sm:p-6 border-2 border-black font-sans text-sm text-black">
           <div className="text-center mb-4">
               <h1 className="text-2xl font-bold tracking-wider">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</h1>
               <p className="text-xs">{warehouseInfo?.addressLine1 || 'Survey No. 165,237/2, Owk - Koilakuntla Road, OWK - 518 122,'}</p>

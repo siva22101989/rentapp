@@ -135,7 +135,7 @@ export default function OutflowReceiptPage() {
   return (
     <div className="bg-gray-100 min-h-screen">
        <PrintHeader title={`Outflow Bill #${deliveryOrderNo}`} />
-       <main className="p-4 sm:p-8 flex justify-center">
+       <main className="p-4 sm:p-8 flex justify-center printable-area">
         <OutflowReceipt 
             record={cleanRecord} 
             customer={customer}

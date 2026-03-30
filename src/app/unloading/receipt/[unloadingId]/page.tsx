@@ -115,7 +115,7 @@ export default function UnloadingReceiptPage() {
   return (
     <div className="bg-gray-100 min-h-screen">
       <PrintHeader title={`Unloading Bill #${record.billNo}`} />
-      <main className="p-4 sm:p-8 flex justify-center">
+      <main className="p-4 sm:p-8 flex justify-center printable-area">
         <UnloadingReceipt record={cleanRecord} customer={customer} warehouseInfo={warehouseInfo} />
       </main>
     </div>

@@ -1,20 +1,15 @@
-
 'use client';
-// This page is no longer used for generating receipts from the form.
-// It is kept for historical purposes or direct linking if needed.
-// The primary receipt generation now happens in a dialog within the form components.
-
 import { InflowReceipt } from "@/components/inflow/inflow-receipt";
 import { PrintHeader } from "@/components/shared/print-header";
 import { notFound, useParams } from "next/navigation";
-import type { Customer, StorageRecord, WarehouseInfo, UnloadingRecord, DryingRecord } from "@/lib/definitions";
-import { useDoc } from "@/firebase/firestore/use-doc";
+import type { Customer, StorageRecord, WarehouseInfo, UnloadingRecord } from "@/lib/definitions";
 import { useFirestore } from "@/firebase/provider";
 import { doc, getDoc } from "firebase/firestore";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { toDate } from "@/lib/utils";
+import { useDoc } from "@/firebase/firestore/use-doc";
 
 export default function InflowReceiptPage() {
   const params = useParams();
@@ -27,97 +22,122 @@ export default function InflowReceiptPage() {
   const [loadingCustomer, setLoadingCustomer] = useState(true);
   const [unloadingRecord, setUnloadingRecord] = useState<UnloadingRecord | null>(null);
   const [loadingUnloading, setLoadingUnloading] = useState(true);
+  const [error, setError] = useState<string|null>(null);
 
-  // Fetch record
+  // Poll for the main record
   useEffect(() => {
     if (!firestore || !recordId) {
       setLoadingRecord(false);
       return;
     }
-    const recordRef = doc(firestore, 'storageRecords', recordId);
-    const unsubscribe = onSnapshot(recordRef, (docSnap) => {
+    const recordRef = doc(firestore, 'storageRecords', recordId as string);
+    let attempts = 0;
+    const maxAttempts = 10;
+    const intervalTime = 500;
+
+    const pollDocument = async () => {
+      attempts++;
+      try {
+        const docSnap = await getDoc(recordRef);
         if (docSnap.exists()) {
-            setRecord({ id: docSnap.id, ...docSnap.data() } as StorageRecord);
+          setRecord({ id: docSnap.id, ...docSnap.data() } as StorageRecord);
+          setLoadingRecord(false);
+        } else if (attempts < maxAttempts) {
+          setTimeout(pollDocument, intervalTime);
         } else {
-            setRecord(null);
+          setError('The bill could not be found. It may not have been saved correctly.');
+          setLoadingRecord(false);
         }
+      } catch (err) {
+        console.error('Error fetching document:', err);
+        setError('An error occurred while fetching the bill.');
         setLoadingRecord(false);
-    }, (e) => {
-        console.error("Error fetching storage record:", e);
-        setLoadingRecord(false);
-    });
-    return () => unsubscribe();
+      }
+    };
+
+    pollDocument();
   }, [firestore, recordId]);
 
-  // Fetch customer after record is available
+  // Fetch related data after the main record is loaded
   useEffect(() => {
-    if (!firestore || !record?.customerId) {
-        setLoadingCustomer(false);
-        return;
-    }
-    setLoadingCustomer(true);
-    const customerRef = doc(firestore, 'customers', record.customerId);
-    const unsubscribe = onSnapshot(customerRef, (docSnap) => {
-        if(docSnap.exists()) {
-            setCustomer({ id: docSnap.id, ...docSnap.data() } as Customer);
-        } else {
-            setCustomer(null);
+    async function fetchRelatedData() {
+        if (!firestore || !record?.customerId) {
+            setLoadingCustomer(false);
+            setLoadingUnloading(false);
+            return;
         }
-        setLoadingCustomer(false);
-    }, (e) => {
-        console.error("Error fetching customer", e);
-        setLoadingCustomer(false);
-    });
-     return () => unsubscribe();
-  }, [firestore, record]);
 
+        // Fetch Customer
+        setLoadingCustomer(true);
+        try {
+            const customerRef = doc(firestore, 'customers', record.customerId);
+            const customerSnap = await getDoc(customerRef);
+            if (customerSnap.exists()) {
+                setCustomer({ id: customerSnap.id, ...customerSnap.data() } as Customer);
+            }
+        } catch (e) {
+            console.error("Error fetching customer", e);
+        } finally {
+            setLoadingCustomer(false);
+        }
+
+        // Fetch Unloading Record (if applicable)
+        if (record.inflowType === 'Plot' && record.dryingRecordId) {
+            setLoadingUnloading(true);
+            try {
+                const dryingRef = doc(firestore, 'dryingRecords', record.dryingRecordId);
+                const dryingSnap = await getDoc(dryingRef);
+                if (dryingSnap.exists()) {
+                    const dryingData = dryingSnap.data() as { unloadingRecordId?: string };
+                    if (dryingData.unloadingRecordId) {
+                        const unloadingRef = doc(firestore, 'unloadingRecords', dryingData.unloadingRecordId);
+                        const unloadingSnap = await getDoc(unloadingRef);
+                        if (unloadingSnap.exists()) {
+                            setUnloadingRecord({ id: unloadingSnap.id, ...unloadingSnap.data() } as UnloadingRecord);
+                        }
+                    }
+                }
+            } catch (e) {
+               console.error("Error fetching related unloading record", e);
+            } finally {
+               setLoadingUnloading(false);
+            }
+        } else {
+            setLoadingUnloading(false);
+        }
+    }
+    fetchRelatedData();
+  }, [firestore, record]);
+  
   const warehouseInfoRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'settings', 'main') : null),
     [firestore]
   );
   const { data: warehouseInfo, loading: loadingWarehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
-
-  useEffect(() => {
-    async function fetchUnloadingRecord() {
-      if (!firestore || !record || record.inflowType !== 'Plot' || !record.dryingRecordId) {
-        setLoadingUnloading(false);
-        return;
-      }
-      setLoadingUnloading(true);
-      try {
-          const dryingRef = doc(firestore, 'dryingRecords', record.dryingRecordId);
-          const dryingSnap = await getDoc(dryingRef);
-          if (dryingSnap.exists()) {
-            const dryingData = dryingSnap.data() as DryingRecord;
-            if (dryingData.unloadingRecordId) {
-              const unloadingRef = doc(firestore, 'unloadingRecords', dryingData.unloadingRecordId);
-              const unloadingSnap = await getDoc(unloadingRef);
-              if (unloadingSnap.exists()) {
-                setUnloadingRecord({ id: unloadingSnap.id, ...unloadingSnap.data() } as UnloadingRecord);
-              }
-            }
-          }
-      } catch (e) {
-        console.error("Error fetching related unloading record", e);
-      } finally {
-        setLoadingUnloading(false);
-      }
-    }
-    fetchUnloadingRecord();
-  }, [firestore, record]);
   
   const isLoading = loadingRecord || loadingCustomer || loadingWarehouseInfo || loadingUnloading;
 
   if (isLoading) {
     return (
         <div className="flex h-screen w-full items-center justify-center bg-gray-50">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <div className="flex flex-col items-center gap-2">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-muted-foreground">Loading receipt...</p>
+            </div>
         </div>
     );
   }
 
-  if (!record || !customer) {
-    notFound();
+  if (error || !record || !customer) {
+    return (
+        <div className="flex h-screen w-full items-center justify-center bg-gray-50 p-4">
+            <div className="text-center">
+                <h1 className="text-xl font-bold text-destructive">404 - Not Found</h1>
+                <p className="text-muted-foreground mt-2">{error || "The requested receipt could not be found."}</p>
+                 <Button onClick={() => window.close()} className="mt-4">Close Window</Button>
+            </div>
+        </div>
+    );
   }
   
   const cleanRecord = {

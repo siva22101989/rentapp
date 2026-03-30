@@ -1,19 +1,16 @@
-
 'use client';
-// This page is no longer used for generating receipts from the form.
-// It is kept for historical purposes or direct linking if needed.
-// The primary receipt generation now happens in a dialog within the form components.
 import { PrintHeader } from "@/components/shared/print-header";
 import { UnloadingReceipt } from "@/components/unloading/unloading-receipt";
 import { notFound, useParams } from "next/navigation";
 import type { Customer, UnloadingRecord, WarehouseInfo } from "@/lib/definitions";
-import { useDoc } from "@/firebase/firestore/use-doc";
 import { useFirestore } from "@/firebase/provider";
-import { doc, getDoc, onSnapshot } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 import { Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toDate } from "@/lib/utils";
+import { useDoc } from "@/firebase/firestore/use-doc";
+import { Button } from "@/components/ui/button";
 
 export default function UnloadingReceiptPage() {
   const params = useParams();
@@ -24,6 +21,7 @@ export default function UnloadingReceiptPage() {
   const [loadingRecord, setLoadingRecord] = useState(true);
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [loadingCustomer, setLoadingCustomer] = useState(true);
+  const [error, setError] = useState<string|null>(null);
 
   useEffect(() => {
     if (!firestore || !unloadingId) {
@@ -31,39 +29,53 @@ export default function UnloadingReceiptPage() {
       return;
     }
     const recordRef = doc(firestore, 'unloadingRecords', unloadingId);
-    const unsubscribe = onSnapshot(recordRef, (docSnap) => {
+    let attempts = 0;
+    const maxAttempts = 10;
+    const intervalTime = 500;
+
+    const pollDocument = async () => {
+      attempts++;
+      try {
+        const docSnap = await getDoc(recordRef);
         if (docSnap.exists()) {
-            setRecord({ id: docSnap.id, ...docSnap.data() } as UnloadingRecord);
+          setRecord({ id: docSnap.id, ...docSnap.data() } as UnloadingRecord);
+          setLoadingRecord(false);
+        } else if (attempts < maxAttempts) {
+          setTimeout(pollDocument, intervalTime);
         } else {
-            setRecord(null);
+          setError('The bill could not be found. It may not have been saved correctly.');
+          setLoadingRecord(false);
         }
+      } catch (err) {
+        console.error('Error fetching document:', err);
+        setError('An error occurred while fetching the bill.');
         setLoadingRecord(false);
-    }, (e) => {
-        console.error("Error fetching unloading record:", e);
-        setLoadingRecord(false);
-    });
-    return () => unsubscribe();
+      }
+    };
+
+    pollDocument();
   }, [firestore, unloadingId]);
 
   useEffect(() => {
-    if (!firestore || !record?.customerId) {
-        setLoadingCustomer(false);
-        return;
-    }
-    setLoadingCustomer(true);
-    const customerRef = doc(firestore, 'customers', record.customerId);
-    const unsubscribe = onSnapshot(customerRef, (docSnap) => {
-        if(docSnap.exists()) {
-            setCustomer({ id: docSnap.id, ...docSnap.data() } as Customer);
-        } else {
-            setCustomer(null);
+    async function fetchCustomer() {
+        if (!firestore || !record?.customerId) {
+            setLoadingCustomer(false);
+            return;
         }
-        setLoadingCustomer(false);
-    }, (e) => {
-        console.error("Error fetching customer", e);
-        setLoadingCustomer(false);
-    });
-     return () => unsubscribe();
+        setLoadingCustomer(true);
+        try {
+            const customerRef = doc(firestore, 'customers', record.customerId);
+            const customerSnap = await getDoc(customerRef);
+            if (customerSnap.exists()) {
+                setCustomer({ id: customerSnap.id, ...customerSnap.data() } as Customer);
+            }
+        } catch (e) {
+            console.error("Error fetching customer", e);
+        } finally {
+            setLoadingCustomer(false);
+        }
+    }
+    fetchCustomer();
   }, [firestore, record]);
 
   const warehouseInfoRef = useMemoFirebase(
@@ -75,13 +87,24 @@ export default function UnloadingReceiptPage() {
   if (loadingRecord || loadingCustomer || loadingWarehouseInfo) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-gray-50">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <div className="flex flex-col items-center gap-2">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-muted-foreground">Loading receipt...</p>
+          </div>
       </div>
     );
   }
 
-  if (!record || !customer) {
-    notFound();
+  if (error || !record || !customer) {
+    return (
+       <div className="flex h-screen w-full items-center justify-center bg-gray-50 p-4">
+            <div className="text-center">
+                <h1 className="text-xl font-bold text-destructive">404 - Not Found</h1>
+                <p className="text-muted-foreground mt-2">{error || "The requested receipt could not be found."}</p>
+                 <Button onClick={() => window.close()} className="mt-4">Close Window</Button>
+            </div>
+        </div>
+    );
   }
   
   const cleanRecord = {

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useTransition, useState, useEffect } from 'react';
@@ -18,11 +17,6 @@ import { addDoc, collection, Timestamp, doc } from 'firebase/firestore';
 import { formatCurrency, cleanForFirestore } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 import { Combobox } from '../ui/combobox';
-import { Dialog, DialogContent } from '../ui/dialog';
-import { PrintHeader } from '../shared/print-header';
-import { UnloadingReceipt } from './unloading-receipt';
-import { useDoc } from '@/firebase/firestore/use-doc';
-import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 
 const UnloadingRecordSchema = z.object({
   customerId: z.string().min(1, 'Customer is required.'),
@@ -49,15 +43,6 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
     const [isPending, startTransition] = useTransition();
     const firestore = useFirestore();
 
-    const [receiptRecord, setReceiptRecord] = useState<UnloadingRecord | null>(null);
-
-    const warehouseInfoRef = useMemoFirebase(
-      () => (firestore ? doc(firestore, 'settings', 'main') : null),
-      [firestore]
-    );
-    const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
-
-
     const form = useForm<UnloadingFormData>({
         resolver: zodResolver(UnloadingRecordSchema),
         defaultValues: {
@@ -65,8 +50,8 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
           commodityDescription: '',
           lorryTractorNo: '',
           unloadingDate: getLocalDateTimeForInput(),
-          bagsUnloaded: '',
-          hamaliPerBag: '',
+          bagsUnloaded: undefined,
+          hamaliPerBag: undefined,
           billNo: nextBillNo,
         },
         values: { 
@@ -74,8 +59,8 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
             commodityDescription: '',
             lorryTractorNo: '',
             unloadingDate: getLocalDateTimeForInput(),
-            bagsUnloaded: '',
-            hamaliPerBag: '',
+            bagsUnloaded: undefined,
+            hamaliPerBag: undefined,
             billNo: nextBillNo,
         }
       });
@@ -91,6 +76,17 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
             toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
             return;
         }
+        
+        const receiptUrl = `/unloading/receipt/${nextBillNo}`;
+        const receiptWindow = window.open(receiptUrl, '_blank');
+        if (!receiptWindow) {
+            toast({
+                title: "Popup Blocked",
+                description: "Please allow popups for this site to view receipts.",
+                variant: "destructive",
+            });
+            return;
+        }
 
         startTransition(async () => {
             try {
@@ -104,22 +100,22 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
                     totalHamali,
                     workerHamaliPayable: totalHamali,
                 };
-                const docRef = await addDoc(collection(firestore, 'unloadingRecords'), cleanForFirestore(rawRecord));
+                // Use billNo as the document ID
+                const docRef = doc(firestore, 'unloadingRecords', nextBillNo);
+                await docRef.set(cleanForFirestore(rawRecord));
                 
                 toast({ title: 'Success', description: 'Unloading record added.' });
-                
-                setReceiptRecord({ id: docRef.id, ...rawRecord });
                 
                 form.reset();
             } catch (error) {
                 console.error(error);
                 toast({ title: 'Error', description: 'Failed to add unloading record.', variant: 'destructive' });
+                if (receiptWindow) receiptWindow.close();
             }
         });
     };
 
   return (
-    <>
     <Card>
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
@@ -187,7 +183,7 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Lorry / Tractor No. <span className="text-muted-foreground">(Optional)</span></FormLabel>
-                                <FormControl><Input placeholder="e.g., AP 21 1234" {...field} /></FormControl>
+                                <FormControl><Input placeholder="e.g., AP 21 1234" {...field} value={field.value ?? ''} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -250,20 +246,5 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
             </form>
         </Form>
     </Card>
-    {receiptRecord && (
-        <Dialog open={!!receiptRecord} onOpenChange={(open) => !open && setReceiptRecord(null)}>
-            <DialogContent className="max-w-3xl">
-                <PrintHeader title={`Unloading Bill #${receiptRecord.billNo}`} />
-                 <div className="max-h-[70vh] overflow-y-auto p-1">
-                    <UnloadingReceipt
-                        record={receiptRecord}
-                        customer={customers.find(c => c.id === receiptRecord.customerId)!}
-                        warehouseInfo={warehouseInfo}
-                    />
-                 </div>
-            </DialogContent>
-        </Dialog>
-    )}
-    </>
   );
 }

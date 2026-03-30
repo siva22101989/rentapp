@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useTransition, useMemo } from 'react';
@@ -18,11 +17,6 @@ import { format } from 'date-fns';
 import { toDate, cleanForFirestore, formatCurrency } from '@/lib/utils';
 import { Combobox } from '../ui/combobox';
 import { useRouter } from 'next/navigation';
-import { Dialog, DialogContent } from '../ui/dialog';
-import { PrintHeader } from '../shared/print-header';
-import { OutflowReceipt } from './outflow-receipt';
-import { useDoc } from '@/firebase/firestore/use-doc';
-import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 
 function SubmitButton({ isPending }: { isPending: boolean }) {
     return (
@@ -38,19 +32,6 @@ function SubmitButton({ isPending }: { isPending: boolean }) {
       </Button>
     );
 }
-
-type ReceiptData = {
-    record: StorageRecord;
-    customer: Customer;
-    warehouseInfo: WarehouseInfo | null;
-    withdrawnBags: number;
-    finalRent: number;
-    paidNow: number;
-    discount: number;
-    deliveryOrderNo: string;
-    deliveryOrderDate: Date;
-}
-
 
 export function OutflowForm({ records, customers }: { records: StorageRecord[], customers: Customer[] }) {
     const { toast } = useToast();
@@ -68,15 +49,6 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
     const [totalRent, setTotalRent] = useState(0);
     const [totalPendingHamali, setTotalPendingHamali] = useState(0);
     const [totalBags, setTotalBags] = useState(0);
-
-    const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
-
-    const warehouseInfoRef = useMemoFirebase(
-      () => (firestore ? doc(firestore, 'settings', 'main') : null),
-      [firestore]
-    );
-    const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
-
 
     const customerOptions = customers.map(c => ({ value: c.id, label: c.name }));
 
@@ -166,12 +138,32 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
             return;
         }
 
+        let receiptWindow: Window | null = null;
+        if (!isMultiLotWithdrawal) {
+            const [recordId] = withdrawalEntries[0];
+            const queryParams = new URLSearchParams();
+            const bagsToWithdraw = Number(withdrawals[recordId]);
+            const { rent: rentForThisWithdrawal } = calculateFinalRent({ ...records.find(r => r.id === recordId)!, storageStartDate: toDate(records.find(r => r.id === recordId)!.storageStartDate) }, withdrawalDate, bagsToWithdraw);
+            
+            queryParams.set('withdrawn', String(bagsToWithdraw));
+            queryParams.set('rent', String(rentForThisWithdrawal));
+            queryParams.set('paidNow', String(Number(amountPaidNow) || 0));
+            queryParams.set('discount', String(Number(discount) || 0));
+            
+            const receiptUrl = `/outflow/receipt/${recordId}?${queryParams.toString()}`;
+            receiptWindow = window.open(receiptUrl, '_blank');
+            
+            if (!receiptWindow) {
+                toast({ title: "Popup Blocked", description: "Please allow popups for this site to view receipts.", variant: "destructive" });
+                return;
+            }
+        }
+
         startTransition(async () => {
             try {
                 const batch = writeBatch(firestore);
                 const discountAmount = !isMultiLotWithdrawal ? (Number(discount) || 0) : 0;
                 
-                // This is a snapshot of the records at the time of submission
                 const processedRecordIds = new Set(withdrawalEntries.map(([id]) => id));
                 const recordsToProcess = records.filter(r => processedRecordIds.has(r.id));
                 
@@ -220,37 +212,6 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                     resetForm();
                     router.push(`/reports?report=customer-statement&customerId=${selectedCustomerId}`);
                 } else {
-                    const [recordId, bags] = withdrawalEntries[0];
-                    const docSnap = await getDoc(doc(firestore, 'storageRecords', recordId));
-                    const updatedRecord = { id: docSnap.id, ...docSnap.data() } as StorageRecord;
-
-                    if (!updatedRecord) {
-                        throw new Error("Failed to fetch updated record for receipt.");
-                    }
-
-                    const customer = customers.find(c => c.id === updatedRecord.customerId);
-                    if (!customer) {
-                        throw new Error("Could not find customer for receipt.");
-                    }
-
-                    const bagsToWithdraw = Number(bags);
-                    const { rent: rentForThisWithdrawal } = calculateFinalRent({ ...updatedRecord, storageStartDate: toDate(updatedRecord.storageStartDate) }, withdrawalDate, bagsToWithdraw);
-                    
-                    const latestOutflowIndex = (updatedRecord.outflows?.length || 1) - 1;
-                    const deliveryOrderNo = `${updatedRecord.id}-${latestOutflowIndex + 1}`;
-
-                    setReceiptData({
-                        record: updatedRecord,
-                        customer: customer,
-                        warehouseInfo: warehouseInfo,
-                        withdrawnBags: bagsToWithdraw,
-                        finalRent: rentForThisWithdrawal,
-                        paidNow: Number(amountPaidNow) || 0,
-                        discount: discountAmount,
-                        deliveryOrderNo: deliveryOrderNo,
-                        deliveryOrderDate: withdrawalDate
-                    });
-                    
                     toast({ title: 'Success', description: 'Withdrawal processed successfully.' });
                     resetForm();
                 }
@@ -258,12 +219,12 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
             } catch (error) {
                 console.error("Outflow failed:", error);
                 toast({ title: 'Error', description: 'Failed to process outflow.', variant: 'destructive' });
+                if (receiptWindow) receiptWindow.close();
             }
         });
     }
 
   return (
-    <>
     <div className="flex justify-center">
         <form onSubmit={handleSubmit} className="w-full max-w-3xl">
             <Card>
@@ -409,16 +370,5 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
             </Card>
         </form>
     </div>
-    {receiptData && (
-        <Dialog open={!!receiptData} onOpenChange={(open) => !open && setReceiptData(null)}>
-            <DialogContent className="max-w-3xl">
-                <PrintHeader title={`Outflow Bill #${receiptData.deliveryOrderNo}`} />
-                <div className="max-h-[70vh] overflow-y-auto p-1">
-                    <OutflowReceipt {...receiptData} />
-                </div>
-            </DialogContent>
-        </Dialog>
-    )}
-    </>
   );
 }

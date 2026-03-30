@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useTransition, useState, useEffect, useMemo } from 'react';
@@ -12,13 +11,8 @@ import { Loader2 } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { formatCurrency, cleanForFirestore } from '@/lib/utils';
 import { useFirestore } from '@/firebase/provider';
-import { doc, setDoc, collection } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 import { Combobox } from '../ui/combobox';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
-import { PrintHeader } from '../shared/print-header';
-import { InflowReceipt } from './inflow-receipt';
-import { useDoc } from '@/firebase/firestore/use-doc';
-import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 
 function SubmitButton({ isPending }: { isPending: boolean }) {
     return (
@@ -52,17 +46,8 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
     const [lorryTractorNo, setLorryTractorNo] = useState('');
     const [storageStartDate, setStorageStartDate] = useState(new Date().toISOString().split('T')[0]);
 
-    const [receiptRecord, setReceiptRecord] = useState<StorageRecord | null>(null);
-
     const customerOptions = customers.map(c => ({ value: c.id, label: c.name }));
     const commodityOptions = commodities.map(c => ({ value: c.name, label: c.name }));
-
-    const warehouseInfoRef = useMemoFirebase(
-      () => (firestore ? doc(firestore, 'settings', 'main') : null),
-      [firestore]
-    );
-    const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
-
 
     const lotOccupancy = useMemo(() => {
         const occupancy: { [lotName: string]: number } = {};
@@ -132,6 +117,17 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
             return;
         }
 
+        const receiptUrl = `/inflow/receipt/${nextId}`;
+        const receiptWindow = window.open(receiptUrl, '_blank');
+        if (!receiptWindow) {
+            toast({
+                title: "Popup Blocked",
+                description: "Please allow popups for this site to view receipts.",
+                variant: "destructive",
+            });
+            return;
+        }
+
         startTransition(async () => {
             try {
                 const weightValue = Number(weight) || 0;
@@ -174,20 +170,18 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                 await setDoc(docRef, cleanForFirestore(rawRecord));
                 
                 toast({ title: 'Success', description: 'Inflow record created successfully.' });
-
-                setReceiptRecord({ id: docRef.id, ...rawRecord } as StorageRecord);
                 
                 resetForm();
                 
             } catch (error) {
                 console.error(error);
                 toast({ title: 'Error', description: 'Failed to create inflow record.', variant: 'destructive' });
+                if (receiptWindow) receiptWindow.close();
             }
         });
     }
 
   return (
-    <>
     <div className="flex justify-center">
         <form onSubmit={handleSubmit} className="w-full max-w-lg">
             <Card>
@@ -317,22 +311,5 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
             </Card>
         </form>
     </div>
-    {receiptRecord && (
-        <Dialog open={!!receiptRecord} onOpenChange={(open) => !open && setReceiptRecord(null)}>
-            <DialogContent className="max-w-3xl">
-                 <PrintHeader title={`Inflow Bill #${receiptRecord.id}`} />
-                 <div className="max-h-[70vh] overflow-y-auto p-1">
-                    <div className="printable-area">
-                        <InflowReceipt
-                            record={receiptRecord}
-                            customer={customers.find(c => c.id === receiptRecord.customerId)!}
-                            warehouseInfo={warehouseInfo}
-                        />
-                    </div>
-                 </div>
-            </DialogContent>
-        </Dialog>
-    )}
-    </>
   );
 }

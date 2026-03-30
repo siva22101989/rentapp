@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useTransition, useState, useEffect, useMemo } from 'react';
@@ -20,11 +19,6 @@ import { formatCurrency, cleanForFirestore, toDate } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 import { Combobox } from '../ui/combobox';
 import { differenceInDays, format } from 'date-fns';
-import { Dialog, DialogContent } from '../ui/dialog';
-import { PrintHeader } from '../shared/print-header';
-import { InflowReceipt } from '../inflow/inflow-receipt';
-import { useDoc } from '@/firebase/firestore/use-doc';
-import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 
 const InitiateDryingSchema = z.object({
   unloadingRecordId: z.string().min(1, 'An unloading bill is required.'),
@@ -60,14 +54,6 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
     const firestore = useFirestore();
-    const [receiptRecord, setReceiptRecord] = useState<StorageRecord | null>(null);
-
-    const warehouseInfoRef = useMemoFirebase(
-      () => (firestore ? doc(firestore, 'settings', 'main') : null),
-      [firestore]
-    );
-    const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
-
 
     const form = useForm<DryingFormData>({
         resolver: zodResolver(InitiateDryingSchema),
@@ -236,6 +222,18 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
           return;
         }
 
+        const newStorageRecordRef = doc(collection(firestore, 'storageRecords'));
+        const receiptUrl = `/inflow/receipt/${newStorageRecordRef.id}`;
+        const receiptWindow = window.open(receiptUrl, '_blank');
+        if (!receiptWindow) {
+            toast({
+                title: "Popup Blocked",
+                description: "Please allow popups for this site to view receipts.",
+                variant: "destructive",
+            });
+            return;
+        }
+
         startTransition(async () => {
             try {
                 // Prepare new storage record
@@ -295,7 +293,6 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                 const totalWorkerHamali = currentProportionalUnloadingHamali + dryingDay1WorkerHamali + pavHamaliAmount + cuppaHamaliAmount;
                 
                 const batch = writeBatch(firestore);
-                const newStorageRecordRef = doc(collection(firestore, 'storageRecords'));
 
                 const newStorageRecord: Omit<StorageRecord, 'id'> = {
                     customerId: selectedRecordOnSubmit.customerId,
@@ -332,20 +329,18 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                 await batch.commit();
                 
                 toast({ title: 'Success', description: `Storage record created from plot.` });
-                
-                setReceiptRecord({ id: newStorageRecordRef.id, ...newStorageRecord } as StorageRecord);
 
                 form.reset();
                 
             } catch (error) {
                 console.error(error);
                 toast({ title: 'Error', description: 'Failed to create storage record.', variant: 'destructive' });
+                if (receiptWindow) receiptWindow.close();
             }
         });
     };
 
   return (
-    <>
     <Card>
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
@@ -599,21 +594,5 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
             </form>
         </Form>
     </Card>
-    {receiptRecord && (
-        <Dialog open={!!receiptRecord} onOpenChange={(open) => !open && setReceiptRecord(null)}>
-            <DialogContent className="max-w-3xl">
-                 <PrintHeader title={`Inflow Bill #${receiptRecord.id}`} />
-                 <div className="max-h-[70vh] overflow-y-auto p-1">
-                    <InflowReceipt
-                        record={receiptRecord}
-                        customer={customers.find(c => c.id === receiptRecord.customerId)!}
-                        warehouseInfo={warehouseInfo}
-                        unloadingRecord={unloadingRecords.find(ur => ur.id === receiptRecord.dryingRecordId)}
-                    />
-                 </div>
-            </DialogContent>
-        </Dialog>
-    )}
-    </>
   );
 }

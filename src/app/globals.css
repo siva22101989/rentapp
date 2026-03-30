@@ -109,6 +109,10 @@
   }
 }
 
+.pdf-generating .print-hide {
+    display: none !important;
+}
+
 @media print {
   body * {
     visibility: hidden;

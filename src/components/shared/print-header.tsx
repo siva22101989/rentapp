@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Printer, FileDown, Loader2 } from 'lucide-react';
@@ -19,6 +20,7 @@ export function PrintHeader({ title, filename = 'document.pdf' }: { title: strin
         }
 
         setIsDownloading(true);
+        printableArea.classList.add('pdf-generating');
 
         try {
             const { default: jsPDF } = await import('jspdf');
@@ -27,18 +29,35 @@ export function PrintHeader({ title, filename = 'document.pdf' }: { title: strin
             const canvas = await html2canvas(printableArea, {
                 scale: 2, // Higher scale for better quality
             });
-
+            
             const imgData = canvas.toDataURL('image/png');
             
-            // Using jspdf
             const pdf = new jsPDF('p', 'mm', 'a4');
             const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+
+            const canvasWidth = canvas.width;
+            const canvasHeight = canvas.height;
+            const ratio = canvasWidth / pdfWidth;
+            const imgHeight = canvasHeight / ratio;
+            let heightLeft = imgHeight;
+            let position = 0;
+
+            pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
+            heightLeft -= pdfHeight;
+
+            while (heightLeft > 0) {
+                position = heightLeft - imgHeight;
+                pdf.addPage();
+                pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
+                heightLeft -= pdfHeight;
+            }
+
             pdf.save(filename);
         } catch (error) {
             console.error("Error generating PDF:", error);
         } finally {
+            printableArea.classList.remove('pdf-generating');
             setIsDownloading(false);
         }
     };

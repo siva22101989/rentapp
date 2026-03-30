@@ -27,7 +27,7 @@ export const UnloadingReceipt = React.forwardRef<HTMLDivElement, { record: Unloa
     }
     
     return (
-        <div ref={ref} className="printable-area bg-white p-4 border-2 border-blue-800 font-sans text-xs" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+        <div ref={ref} className="printable-area bg-white p-4 border-2 border-black font-sans text-xs" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
             <div className="text-center mb-2">
                 <div className="text-xs">Cell: {warehouseInfo?.phone || '9703503423, 9160606633'}</div>
                 <h1 className="text-xl font-bold text-blue-900">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</h1>

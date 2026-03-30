@@ -114,6 +114,8 @@
     }
     .printable-area, .printable-area * {
       visibility: visible;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
     }
     .printable-area {
       position: absolute;
@@ -124,11 +126,5 @@
     .print-hide {
         display: none;
     }
-  }
-}
-
-@layer utilities {
-  .print-header {
-    @apply print:hidden;
   }
 }

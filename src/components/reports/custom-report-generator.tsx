@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import type { Customer, StorageRecord, UnloadingRecord, Expense, WarehouseInfo, Borrowing, Lending, OtherIncome } from "@/lib/definitions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -17,6 +16,8 @@ import { UnloadingReport } from './unloading-report';
 import { PaymentReport } from './payment-report';
 import { DailySummaryReport } from './daily-summary-report';
 import { ProfitAndLossReport } from './profit-and-loss-report';
+import { Button } from '../ui/button';
+import { Printer } from 'lucide-react';
 
 const reportTypes = [
     { value: 'daily-summary', label: 'Daily Summary Report' },
@@ -59,6 +60,10 @@ export function CustomReportGenerator({
     initialCustomerId 
 }: ReportGeneratorProps) {
     const [selectedReport, setSelectedReport] = useState<string>(initialReport || 'daily-summary');
+    
+    const handlePrint = () => {
+        window.print();
+    };
 
     const renderReport = () => {
         switch (selectedReport) {
@@ -84,7 +89,7 @@ export function CustomReportGenerator({
                             initialCustomerId={initialCustomerId}
                         />;
             case 'active-inventory':
-                return <StorageTable />;
+                return <Card><CardHeader><CardTitle>Active Inventory Summary</CardTitle></CardHeader><CardContent><StorageTable /></CardContent></Card>;
             case 'pending-dues':
                 return <PendingPaymentsTable records={records} customers={customers} unloadingRecords={unloadingRecords} />;
             case 'hamali-register':
@@ -112,22 +117,30 @@ export function CustomReportGenerator({
 
     return (
         <div className="space-y-6">
-            <div>
-                <label htmlFor="report-type-select" className="text-sm font-medium text-muted-foreground">Select Report Type</label>
-                <Select onValueChange={setSelectedReport} value={selectedReport}>
-                    <SelectTrigger id="report-type-select" className="mt-1 w-auto">
-                        <SelectValue placeholder="Select a report type..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {reportTypes.map(report => (
-                            <SelectItem key={report.value} value={report.value}>
-                                {report.label}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 print-hide">
+                <div>
+                    <label htmlFor="report-type-select" className="text-sm font-medium text-muted-foreground">Select Report Type</label>
+                    <Select onValueChange={setSelectedReport} value={selectedReport}>
+                        <SelectTrigger id="report-type-select" className="mt-1 w-full md:w-auto">
+                            <SelectValue placeholder="Select a report type..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {reportTypes.map(report => (
+                                <SelectItem key={report.value} value={report.value}>
+                                    {report.label}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="self-end">
+                     <Button onClick={handlePrint} variant="outline">
+                        <Printer className="mr-2 h-4 w-4" />
+                        Print Report
+                    </Button>
+                </div>
             </div>
-            <div className="mt-6">
+            <div className="mt-6 printable-area">
                 {renderReport()}
             </div>
         </div>

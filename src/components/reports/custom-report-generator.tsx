@@ -17,7 +17,9 @@ import { PaymentReport } from './payment-report';
 import { DailySummaryReport } from './daily-summary-report';
 import { ProfitAndLossReport } from './profit-and-loss-report';
 import { Button } from '../ui/button';
-import { Printer } from 'lucide-react';
+import { Printer, FileDown, Loader2 } from 'lucide-react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 const reportTypes = [
     { value: 'daily-summary', label: 'Daily Summary Report' },
@@ -60,9 +62,34 @@ export function CustomReportGenerator({
     initialCustomerId 
 }: ReportGeneratorProps) {
     const [selectedReport, setSelectedReport] = useState<string>(initialReport || 'daily-summary');
+    const [isDownloading, setIsDownloading] = useState(false);
+    const reportRef = useRef<HTMLDivElement>(null);
     
     const handlePrint = () => {
         window.print();
+    };
+
+    const handleDownload = async () => {
+        const printableArea = reportRef.current;
+        if (!printableArea) {
+            console.error("Report area not found!");
+            return;
+        }
+
+        setIsDownloading(true);
+        try {
+            const canvas = await html2canvas(printableArea, { scale: 2 });
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            pdf.save(`${selectedReport}-report.pdf`);
+        } catch (error) {
+            console.error("Error generating PDF:", error);
+        } finally {
+            setIsDownloading(false);
+        }
     };
 
     const renderReport = () => {
@@ -133,14 +160,22 @@ export function CustomReportGenerator({
                         </SelectContent>
                     </Select>
                 </div>
-                <div className="self-end">
-                     <Button onClick={handlePrint} variant="outline">
+                <div className="self-end flex items-center gap-2">
+                     <Button onClick={handlePrint} variant="outline" disabled={isDownloading}>
                         <Printer className="mr-2 h-4 w-4" />
                         Print Report
                     </Button>
+                     <Button onClick={handleDownload} disabled={isDownloading}>
+                        {isDownloading ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                            <FileDown className="mr-2 h-4 w-4" />
+                        )}
+                        Download PDF
+                    </Button>
                 </div>
             </div>
-            <div className="mt-6 printable-area">
+            <div ref={reportRef} className="mt-6 printable-area">
                 {renderReport()}
             </div>
         </div>

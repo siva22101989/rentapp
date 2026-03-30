@@ -158,7 +158,7 @@ export default function InflowReceiptPage() {
 
   return (
     <div className="bg-gray-100 min-h-screen">
-      <PrintHeader title={`Inflow Bill #${record.id}`} />
+      <PrintHeader title={`Inflow Bill #${record.id}`} filename={`inflow-bill-${record.id}.pdf`} />
       <main className="p-4 sm:p-8 flex justify-center printable-area">
         <InflowReceipt record={cleanRecord} customer={customer} warehouseInfo={warehouseInfo} unloadingRecord={cleanUnloadingRecord} />
       </main>

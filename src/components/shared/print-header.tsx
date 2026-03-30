@@ -3,8 +3,6 @@
 import { Printer, FileDown, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 
 export function PrintHeader({ title, filename = 'document.pdf' }: { title: string, filename?: string }) {
     const [isDownloading, setIsDownloading] = useState(false);
@@ -23,6 +21,9 @@ export function PrintHeader({ title, filename = 'document.pdf' }: { title: strin
         setIsDownloading(true);
 
         try {
+            const { default: jsPDF } = await import('jspdf');
+            const { default: html2canvas } = await import('html2canvas');
+
             const canvas = await html2canvas(printableArea, {
                 scale: 2, // Higher scale for better quality
             });

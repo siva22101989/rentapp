@@ -18,8 +18,6 @@ import { DailySummaryReport } from './daily-summary-report';
 import { ProfitAndLossReport } from './profit-and-loss-report';
 import { Button } from '../ui/button';
 import { Printer, FileDown, Loader2 } from 'lucide-react';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 
 const reportTypes = [
     { value: 'daily-summary', label: 'Daily Summary Report' },
@@ -78,6 +76,8 @@ export function CustomReportGenerator({
 
         setIsDownloading(true);
         try {
+            const { default: jsPDF } = await import('jspdf');
+            const { default: html2canvas } = await import('html2canvas');
             const canvas = await html2canvas(printableArea, { scale: 2 });
             const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF('p', 'mm', 'a4');

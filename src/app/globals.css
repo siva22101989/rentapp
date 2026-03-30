@@ -138,4 +138,12 @@
   .print-hide {
     display: none !important;
   }
+  .printable-area .inline-flex.rounded-full.border {
+    background-color: transparent !important;
+    color: #000 !important;
+    border-width: 1px !important;
+    border-color: #e5e7eb !important;
+    box-shadow: none !important;
+    -webkit-print-color-adjust: exact !important;
+  }
 }

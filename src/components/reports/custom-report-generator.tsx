@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef } from 'react';
@@ -19,6 +18,16 @@ import { DailySummaryReport } from './daily-summary-report';
 import { ProfitAndLossReport } from './profit-and-loss-report';
 import { Button } from '../ui/button';
 import { Printer, FileDown, Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+} from "@/components/ui/dialog";
 
 const reportTypes = [
     { value: 'daily-summary', label: 'Daily Summary Report' },
@@ -62,7 +71,9 @@ export function CustomReportGenerator({
 }: ReportGeneratorProps) {
     const [selectedReport, setSelectedReport] = useState<string>(initialReport || 'daily-summary');
     const [isDownloading, setIsDownloading] = useState(false);
+    const [isPreviewOpen, setIsPreviewOpen] = useState(false);
     const reportRef = useRef<HTMLDivElement>(null);
+    const { toast } = useToast();
     
     const handlePrint = () => {
         window.print();
@@ -76,42 +87,61 @@ export function CustomReportGenerator({
         }
 
         setIsDownloading(true);
-        printableArea.classList.add('pdf-generating');
+        document.body.classList.add('pdf-generating');
         
         try {
             const { default: jsPDF } = await import('jspdf');
             const { default: html2canvas } = await import('html2canvas');
             
-            const canvas = await html2canvas(printableArea, { scale: 2 });
+            const canvas = await html2canvas(printableArea, { 
+                scale: 2,
+                useCORS: true,
+                onclone: (document) => {
+                    const printStyles = document.createElement('style');
+                    printStyles.innerHTML = `
+                        .pdf-generating .print-hide { display: none !important; }
+                        .pdf-generating .badge-print, .pdf-generating [data-badge] {
+                            background-color: transparent !important;
+                            color: #000 !important;
+                            border: 1px solid #ccc !important;
+                            box-shadow: none !important;
+                            -webkit-print-color-adjust: exact !important;
+                            print-color-adjust: exact !important;
+                        }
+                    `;
+                    document.head.appendChild(printStyles);
+                }
+            });
+
             const imgData = canvas.toDataURL('image/png');
-            
             const pdf = new jsPDF('p', 'mm', 'a4');
             const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = pdf.internal.pageSize.getHeight();
-            
             const canvasWidth = canvas.width;
             const canvasHeight = canvas.height;
             const ratio = canvasWidth / pdfWidth;
             const imgHeight = canvasHeight / ratio;
+            
             let heightLeft = imgHeight;
             let position = 0;
 
             pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
-            heightLeft -= pdfHeight;
+            heightLeft -= pdf.internal.pageSize.getHeight();
 
             while (heightLeft > 0) {
                 position = heightLeft - imgHeight;
                 pdf.addPage();
                 pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
-                heightLeft -= pdfHeight;
+                heightLeft -= pdf.internal.pageSize.getHeight();
             }
 
             pdf.save(`${selectedReport}-report.pdf`);
         } catch (error) {
             console.error("Error generating PDF:", error);
+            toast({ title: "Download Error", description: "Failed to generate PDF.", variant: "destructive"});
         } finally {
-            printableArea.classList.remove('pdf-generating');
+            document.body.classList.remove('pdf-generating');
             setIsDownloading(false);
+            setIsPreviewOpen(false);
         }
     };
 
@@ -184,23 +214,47 @@ export function CustomReportGenerator({
                     </Select>
                 </div>
                 <div className="self-end flex items-center gap-2">
-                     <Button onClick={handlePrint} variant="outline" disabled={isDownloading}>
+                     <Button onClick={handlePrint} variant="outline">
                         <Printer className="mr-2 h-4 w-4" />
                         Print Report
                     </Button>
-                     <Button onClick={handleDownload} disabled={isDownloading}>
-                        {isDownloading ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                            <FileDown className="mr-2 h-4 w-4" />
-                        )}
+                     <Button onClick={() => setIsPreviewOpen(true)}>
+                        <FileDown className="mr-2 h-4 w-4" />
                         Download PDF
                     </Button>
                 </div>
             </div>
-            <div ref={reportRef} className="mt-6 printable-area">
+            <div className="mt-6 printable-area">
                 {renderReport()}
             </div>
+
+            <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+                <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
+                    <DialogHeader>
+                        <DialogTitle>Report Preview</DialogTitle>
+                        <DialogDescription>
+                            Review your report below. When ready, click Download PDF.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex-1 overflow-y-auto p-2 border bg-secondary/30 rounded-md">
+                        <div ref={reportRef}>
+                           {renderReport()}
+                        </div>
+                    </div>
+                    <DialogFooter className="print-hide">
+                        <DialogClose asChild>
+                            <Button variant="outline">Close</Button>
+                        </DialogClose>
+                        <Button onClick={handleDownload} disabled={isDownloading}>
+                            {isDownloading ? (
+                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Downloading...</>
+                            ) : (
+                                <><FileDown className="mr-2 h-4 w-4" /> Download PDF</>
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

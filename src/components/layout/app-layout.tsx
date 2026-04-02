@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -12,22 +13,16 @@ import { Loader2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { SidebarProvider, Sidebar, SidebarTrigger, SidebarContent, SidebarHeader, SidebarFooter, SidebarInset } from '@/components/ui/sidebar';
-import { SidebarNav } from './sidebar-nav';
 import type { User } from 'firebase/auth';
 
 function LiveClock() {
   const [currentTime, setCurrentTime] = React.useState<Date | null>(null);
 
   React.useEffect(() => {
-    // Set initial time on client-side to avoid hydration mismatch
     setCurrentTime(new Date());
-
     const timerId = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
-
-    // Cleanup interval on component unmount
     return () => clearInterval(timerId);
   }, []);
 
@@ -123,63 +118,47 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     };
 
     return (
-        <SidebarProvider>
-            <Sidebar>
-                <SidebarHeader>
+        <div className="flex min-h-screen w-full flex-col">
+             <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-card px-4 md:px-6 print-hide">
+                <Link href="/" className="flex items-center gap-3" aria-label="Back to homepage">
                     <Logo />
-                </SidebarHeader>
-                <SidebarContent>
-                    <SidebarNav />
-                </SidebarContent>
-                <SidebarFooter>
-                    {/* can add footer items here if needed */}
-                </SidebarFooter>
-            </Sidebar>
-            <SidebarInset>
-                <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-card px-4 md:px-6 print-hide">
-                    <SidebarTrigger className="md:hidden" />
-                    <div className="hidden md:block">
-                        <DateFilters />
-                    </div>
-                    <div className='flex items-center gap-4 ml-auto'>
-                        <div className="md:hidden">
-                            <DateFilters />
-                        </div>
-                        <LiveClock />
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                                    <Avatar className="h-8 w-8">
-                                        <AvatarFallback>{getInitials(user?.email)}</AvatarFallback>
-                                    </Avatar>
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent className="w-56" align="end" forceMount>
-                                <DropdownMenuLabel className="font-normal">
-                                    <div className="flex flex-col space-y-1">
-                                        <p className="text-sm font-medium leading-none">{getUserName(user)}</p>
-                                        <p className="text-xs leading-none text-muted-foreground">
-                                            {user.email}
-                                        </p>
-                                    </div>
-                                </DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem asChild>
-                                    <Link href="/settings">
-                                        Settings
-                                    </Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={handleSignOut}>
-                                    <LogOut className="mr-2 h-4 w-4" />
-                                    <span>Sign Out</span>
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </div>
-                </header>
-                <main className="flex flex-1 flex-col gap-4 p-4 md:p-6">{children}</main>
-            </SidebarInset>
-        </SidebarProvider>
+                </Link>
+                <div className='flex items-center gap-4 ml-auto'>
+                    <DateFilters />
+                    <LiveClock />
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                                <Avatar className="h-8 w-8">
+                                    <AvatarFallback>{getInitials(user?.email)}</AvatarFallback>
+                                </Avatar>
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-56" align="end" forceMount>
+                            <DropdownMenuLabel className="font-normal">
+                                <div className="flex flex-col space-y-1">
+                                    <p className="text-sm font-medium leading-none">{getUserName(user)}</p>
+                                    <p className="text-xs leading-none text-muted-foreground">
+                                        {user.email}
+                                    </p>
+                                </div>
+                            </DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem asChild>
+                                <Link href="/settings">
+                                    Settings
+                                </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={handleSignOut}>
+                                <LogOut className="mr-2 h-4 w-4" />
+                                <span>Sign Out</span>
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+            </header>
+            <main className="flex flex-1 flex-col gap-4 p-4 md:p-6">{children}</main>
+        </div>
     );
 }

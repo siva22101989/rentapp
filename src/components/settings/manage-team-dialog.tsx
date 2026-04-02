@@ -1,14 +1,13 @@
-
 'use client';
 import { useState, useTransition } from 'react';
 import { useFirestore } from '@/firebase/provider';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
-import { collection, addDoc, deleteDoc, doc } from 'firebase/firestore';
+import { collection, addDoc, deleteDoc, doc, query, where } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { cleanForFirestore } from '@/lib/utils';
-import type { AppUser, UserRole } from '@/lib/definitions';
-import { userRoles } from '@/lib/definitions';
+import type { AppUser } from '@/lib/definitions';
+import { useAppUser } from '@/firebase/auth/use-user';
 
 import {
   Dialog,
@@ -30,9 +29,11 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
+const teamMemberRoles = ['owner', 'supervisor', 'biller'] as const;
+
 const AddUserSchema = z.object({
     email: z.string().email('Please enter a valid email address.'),
-    role: z.enum(userRoles, { required_error: 'Please select a role.' }),
+    role: z.enum(teamMemberRoles, { required_error: 'Please select a role.' }),
 });
 
 type AddUserFormData = z.infer<typeof AddUserSchema>;
@@ -42,10 +43,11 @@ export function ManageTeamDialog({ children }: { children: React.ReactNode }) {
     const firestore = useFirestore();
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
+    const appUser = useAppUser();
 
     const usersQuery = useMemoFirebase(
-        () => (firestore ? collection(firestore, 'users') : null),
-        [firestore]
+        () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'users'), where('warehouseId', '==', appUser.warehouseId)) : null),
+        [firestore, appUser]
     );
     const { data: users, loading } = useCollection<AppUser>(usersQuery);
 
@@ -55,7 +57,7 @@ export function ManageTeamDialog({ children }: { children: React.ReactNode }) {
     });
 
     const onAddUser = (data: AddUserFormData) => {
-        if (!firestore) return;
+        if (!firestore || !appUser?.warehouseId) return;
         
         // Check if user already exists
         if (users?.some(u => u.email.toLowerCase() === data.email.toLowerCase())) {
@@ -68,6 +70,7 @@ export function ManageTeamDialog({ children }: { children: React.ReactNode }) {
                 await addDoc(collection(firestore, 'users'), cleanForFirestore({
                     email: data.email.toLowerCase(),
                     role: data.role,
+                    warehouseId: appUser.warehouseId,
                 }));
                 toast({ title: 'Success', description: 'User added to the team.' });
                 form.reset();
@@ -124,7 +127,7 @@ export function ManageTeamDialog({ children }: { children: React.ReactNode }) {
                                         <SelectTrigger><SelectValue /></SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        {userRoles.map(role => (
+                                        {teamMemberRoles.map(role => (
                                             <SelectItem key={role} value={role} className="capitalize">{role}</SelectItem>
                                         ))}
                                     </SelectContent>

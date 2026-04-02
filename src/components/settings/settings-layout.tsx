@@ -10,11 +10,9 @@ import { DataSettings } from "./data-settings";
 import { Card, CardContent } from "../ui/card";
 import { SmsSettings } from "./sms-settings";
 import { useAppUser } from "@/firebase/auth/use-user";
-import { BillingSettings } from "./billing-settings";
 
 const allTabs = [
     { value: "profile", label: "Profile", icon: User, roles: ['super-admin', 'owner', 'supervisor', 'biller'] },
-    { value: "billing", label: "Billing", icon: CreditCard, roles: ['super-admin', 'owner'] },
     { value: "warehouse", label: "My Warehouse", icon: Warehouse, roles: ['owner', 'super-admin'] },
     { value: "crops_rates", label: "Crops & Rates", icon: Wheat, roles: ['owner', 'super-admin'] },
     { value: "data", label: "Data", icon: Database, roles: ['owner', 'super-admin'] },
@@ -44,7 +42,7 @@ export function SettingsLayout() {
     return (
         <Tabs defaultValue={accessibleTabs[0].value} className="w-full">
             <div className="overflow-x-auto">
-                <TabsList className="grid w-full grid-cols-3 sm:w-auto sm:grid-cols-7 h-auto p-1">
+                <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 h-auto p-1">
                     {accessibleTabs.map((tab) => (
                         <TabsTrigger key={tab.value} value={tab.value} className="text-xs sm:text-sm">
                             <tab.icon className="mr-1 h-4 w-4" />
@@ -55,9 +53,6 @@ export function SettingsLayout() {
             </div>
             <TabsContent value="profile">
                 <ProfileSettings />
-            </TabsContent>
-             <TabsContent value="billing">
-                <BillingSettings />
             </TabsContent>
             <TabsContent value="warehouse">
                 <WarehouseSettings />

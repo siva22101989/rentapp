@@ -185,11 +185,23 @@ export type SmsInfo = {
   twilioPhoneNumber: string;
 };
 
-export const userRoles = ["owner", "supervisor", "biller"] as const;
+export const userRoles = ["super-admin", "owner", "supervisor", "biller"] as const;
 export type UserRole = (typeof userRoles)[number];
 
 export type AppUser = {
   id: string;
   email: string;
   role: UserRole;
+  warehouseId?: string;
 };
+
+export type ManagedWarehouse = {
+    id: string;
+    name: string;
+    ownerName: string;
+    ownerEmail: string;
+    subscriptionStatus: 'active' | 'trial' | 'expired' | 'suspended';
+    yearlyAmount: number;
+    createdAt: Date | Timestamp;
+    trialMonths?: number;
+}

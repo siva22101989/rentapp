@@ -136,17 +136,16 @@ function DashboardHeaderSkeleton() {
 export default function DashboardPage() {
     const firestore = useFirestore();
     const appUser = useAppUser();
-    const warehouseId = appUser?.warehouseId;
 
     const recordsQuery = useMemoFirebase(
-      () => (warehouseId ? collection(firestore, `managedWarehouses/${warehouseId}/storageRecords`) : null),
-      [firestore, warehouseId]
+      () => (firestore ? collection(firestore, 'storageRecords') : null),
+      [firestore]
     );
     const { data: allRecords, loading: loadingRecords } = useCollection<StorageRecord>(recordsQuery);
   
     const lotsQuery = useMemoFirebase(
-      () => (warehouseId ? collection(firestore, `managedWarehouses/${warehouseId}/lots`) : null),
-      [firestore, warehouseId]
+      () => (firestore ? collection(firestore, 'lots') : null),
+      [firestore]
     );
     const { data: allLots, loading: loadingLots } = useCollection<Lot>(lotsQuery);
 

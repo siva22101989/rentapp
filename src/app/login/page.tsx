@@ -1,24 +1,20 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { GoogleAuthProvider, signInWithPopup, User, RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { useAuth, useFirestore } from '@/firebase/provider';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Logo } from '@/components/layout/logo';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-
-declare global {
-  interface Window {
-    recaptchaVerifier?: RecaptchaVerifier;
-  }
-}
+import { Separator } from '../ui/separator';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
 
 function GoogleIcon() {
     return (
@@ -33,23 +29,15 @@ function GoogleIcon() {
 
 export default function LoginPage() {
   const auth = useAuth();
+  const firestore = useFirestore();
   const router = useRouter();
+  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [unauthorizedDomain, setUnauthorizedDomain] = useState<string | null>(null);
 
-  const [view, setView] = useState<'google' | 'phone'>('google');
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [otp, setOtp] = useState('');
-  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
-
-  useEffect(() => {
-    if (auth && !window.recaptchaVerifier) {
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        'size': 'invisible',
-      });
-    }
-  }, [auth]);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
@@ -59,8 +47,6 @@ export default function LoginPage() {
       const provider = new GoogleAuthProvider();
       try {
         await signInWithPopup(auth, provider);
-        // On successful sign-in, redirect to the dashboard.
-        // The UserProvider will handle authorization checks.
         router.push('/');
       } catch (error: any) {
         if (error.code === 'auth/unauthorized-domain') {
@@ -70,7 +56,7 @@ export default function LoginPage() {
         } else if (error.code === 'auth/cancelled-popup-request') {
             // User closed the popup, this is not an error.
         } else {
-            setError('An unknown error occurred during sign-in.');
+            setError('An unknown error occurred during Google sign-in.');
             console.error(error);
         }
         setIsLoading(false);
@@ -78,140 +64,144 @@ export default function LoginPage() {
     }
   };
 
-  const handlePhoneSignIn = async (e: React.FormEvent) => {
+  const handlePasswordSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!auth || !firestore) {
+      setError('Firebase not available.');
+      return;
+    }
     setIsLoading(true);
     setError(null);
-    if (!auth) {
-        setError('Firebase not configured.');
-        setIsLoading(false);
-        return;
-    }
-    if (!window.recaptchaVerifier) {
-        setError('reCAPTCHA not initialized. Please wait a moment and try again.');
-        setIsLoading(false);
-        return;
-    }
 
     try {
-        const appVerifier = window.recaptchaVerifier;
-        const result = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
-        setConfirmationResult(result);
-        setIsLoading(false);
-    } catch (error: any) {
-        console.error(error);
-        if (error.code === 'auth/invalid-phone-number') {
-            setError('Invalid phone number. Please include the country code (e.g., +91).');
-        } else {
-            setError('Failed to send verification code. Please try again.');
-        }
-        setIsLoading(false);
-    }
-  };
-
-  const handleOtpSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError(null);
-    if (!confirmationResult) {
-        setError('Verification process not started.');
-        setIsLoading(false);
-        return;
-    }
-    try {
-        await confirmationResult.confirm(otp);
+        await signInWithEmailAndPassword(auth, email, password);
         router.push('/');
-    } catch (error: any) {
-        console.error(error);
-        setError('Invalid verification code. Please try again.');
-        setIsLoading(false);
+    } catch (signInError: any) {
+        if (signInError.code === 'auth/user-not-found') {
+            // User doesn't exist, let's see if they are an invited team member.
+            const usersRef = collection(firestore, 'users');
+            const q = query(usersRef, where('email', '==', email.toLowerCase()));
+            const userQuerySnapshot = await getDocs(q);
+
+            if (!userQuerySnapshot.empty) {
+                // This is an invited user, create their auth account now.
+                try {
+                    await createUserWithEmailAndPassword(auth, email, password);
+                    router.push('/');
+                } catch (createError: any) {
+                    setError('Failed to create account. Password should be at least 6 characters.');
+                    console.error(createError);
+                    setIsLoading(false);
+                }
+            } else {
+                // Not an invited user.
+                setError('User not found. Please check your email or contact the warehouse owner.');
+                setIsLoading(false);
+            }
+        } else if (signInError.code === 'auth/wrong-password') {
+            setError('Incorrect password. Please try again.');
+            setIsLoading(false);
+        } else if (signInError.code === 'auth/invalid-credential') {
+             setError('Incorrect email or password. Please try again.');
+             setIsLoading(false);
+        } else {
+            setError('An unknown error occurred during sign-in.');
+            console.error(signInError);
+            setIsLoading(false);
+        }
     }
   };
+
+  const handleForgotPassword = async () => {
+    if (!auth) {
+        toast({ title: 'Error', description: 'Firebase not available.', variant: 'destructive'});
+        return;
+    }
+    if (!email) {
+        toast({ title: 'Email Required', description: 'Please enter your email address first.', variant: 'destructive'});
+        return;
+    }
+    try {
+        await sendPasswordResetEmail(auth, email);
+        toast({ title: 'Password Reset Email Sent', description: 'Check your inbox for a link to reset your password.'});
+    } catch (error: any) {
+        console.error(error);
+        toast({ title: 'Error', description: 'Failed to send password reset email.', variant: 'destructive'});
+    }
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
             <div className="mx-auto mb-4">
               <Logo />
             </div>
-          <CardTitle>Welcome</CardTitle>
-          <CardDescription>Sign in to access your warehouse dashboard</CardDescription>
+          <CardTitle>Sign In</CardTitle>
+          <CardDescription>to access your warehouse dashboard</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-            {unauthorizedDomain ? (
-                <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Domain Not Authorized</AlertTitle>
-                <AlertDescription>
-                    <p className="mb-2">
-                        To sign in, you must authorize this domain in your Firebase project settings:
-                    </p>
-                    <pre className="mb-4 bg-muted p-2 rounded text-xs font-mono text-destructive-foreground break-all">
-                        {unauthorizedDomain}
-                    </pre>
-                    <Button asChild size="sm">
-                        <Link href="https://console.firebase.google.com/project/_/authentication/settings" target="_blank" rel="noopener noreferrer">
-                            Open Firebase Auth Settings
-                        </Link>
-                    </Button>
-                </AlertDescription>
+            {unauthorizedDomain && (
+                 <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Domain Not Authorized</AlertTitle>
+                    <AlertDescription>
+                        <p className="mb-2">To sign in, authorize this domain in Firebase:</p>
+                        <pre className="mb-4 bg-muted p-2 rounded text-xs font-mono text-destructive-foreground break-all">{unauthorizedDomain}</pre>
+                        <Button asChild size="sm">
+                            <Link href="https://console.firebase.google.com/project/_/authentication/settings" target="_blank" rel="noopener noreferrer">
+                                Open Firebase Auth Settings
+                            </Link>
+                        </Button>
+                    </AlertDescription>
                 </Alert>
-            ) : view === 'google' && (
-              <>
+            )}
+
+            <div>
+                <h3 className="text-sm font-semibold mb-2 text-center">Owner Sign-in</h3>
                 <Button onClick={handleGoogleSignIn} disabled={isLoading} className="w-full">
                   {isLoading ? ( <Loader2 className="mr-2 h-4 w-4 animate-spin" /> ) : ( <GoogleIcon /> )}
                   Sign in with Google
                 </Button>
-                <Button variant="link" onClick={() => setView('phone')}>
-                    Sign in with phone number instead
+            </div>
+
+            <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">Or</span>
+                </div>
+            </div>
+
+            <form onSubmit={handlePasswordSignIn} className="space-y-4">
+                <h3 className="text-sm font-semibold text-center">Team Member Sign-in</h3>
+                <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                        id="email"
+                        type="email"
+                        placeholder="member@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                    />
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
+                    <Input
+                        id="password"
+                        type="password"
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                    />
+                </div>
+                <Button type="submit" disabled={isLoading} className="w-full">
+                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Sign In'}
                 </Button>
-              </>
-            )}
-
-            {view === 'phone' && !confirmationResult && (
-                <form onSubmit={handlePhoneSignIn} className="space-y-4">
-                    <div>
-                        <Label htmlFor="phone">Phone Number (with country code)</Label>
-                        <Input
-                            id="phone"
-                            type="tel"
-                            placeholder="+91 123 456 7890"
-                            value={phoneNumber}
-                            onChange={(e) => setPhoneNumber(e.target.value)}
-                            required
-                        />
-                    </div>
-                    <Button type="submit" disabled={isLoading} className="w-full">
-                        {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Send Verification Code'}
-                    </Button>
-                    <Button variant="link" onClick={() => setView('google')}>
-                        Sign in with Google instead
-                    </Button>
-                </form>
-            )}
-
-            {view === 'phone' && confirmationResult && (
-                <form onSubmit={handleOtpSubmit} className="space-y-4">
-                    <div>
-                        <Label htmlFor="otp">Verification Code</Label>
-                        <Input
-                            id="otp"
-                            type="text"
-                            placeholder="Enter 6-digit code"
-                            value={otp}
-                            onChange={(e) => setOtp(e.target.value)}
-                            required
-                        />
-                    </div>
-                    <Button type="submit" disabled={isLoading} className="w-full">
-                        {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Verify & Sign In'}
-                    </Button>
-                    <Button variant="link" onClick={() => setConfirmationResult(null)}>
-                        Change phone number
-                    </Button>
-                </form>
-            )}
+            </form>
 
             {error && (
                 <Alert variant="destructive" className="text-center">
@@ -220,8 +210,12 @@ export default function LoginPage() {
                     <AlertDescription>{error}</AlertDescription>
                 </Alert>
             )}
-             <div id="recaptcha-container"></div>
         </CardContent>
+        <CardFooter>
+            <Button variant="link" size="sm" className="w-full" onClick={handleForgotPassword}>
+                Forgot Password?
+            </Button>
+        </CardFooter>
       </Card>
     </div>
   );

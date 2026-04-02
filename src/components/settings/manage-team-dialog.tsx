@@ -32,7 +32,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 const teamMemberRoles = ['owner', 'supervisor', 'biller'] as const;
 
 const AddUserSchema = z.object({
-    phone: z.string().min(10, 'Please enter a valid phone number including country code (e.g., +12223334444).'),
+    email: z.string().email('Please enter a valid email address.'),
     role: z.enum(teamMemberRoles, { required_error: 'Please select a role.' }),
 });
 
@@ -53,25 +53,25 @@ export function ManageTeamDialog({ children }: { children: React.ReactNode }) {
 
     const form = useForm<AddUserFormData>({
         resolver: zodResolver(AddUserSchema),
-        defaultValues: { phone: '', role: 'biller' },
+        defaultValues: { email: '', role: 'biller' },
     });
 
     const onAddUser = (data: AddUserFormData) => {
         if (!firestore || !appUser?.warehouseId) return;
         
-        if (users?.some(u => u.phone === data.phone)) {
-            form.setError('phone', { message: 'This user already exists in the team.' });
+        if (users?.some(u => u.email === data.email.toLowerCase())) {
+            form.setError('email', { message: 'This user already exists in the team.' });
             return;
         }
 
         startTransition(async () => {
             try {
                 await addDoc(collection(firestore, 'users'), cleanForFirestore({
-                    phone: data.phone,
+                    email: data.email.toLowerCase(),
                     role: data.role,
                     warehouseId: appUser.warehouseId,
                 }));
-                toast({ title: 'Success', description: 'User added to the team.' });
+                toast({ title: 'Success', description: 'User added to the team. They can now sign in to create their password.' });
                 form.reset();
             } catch (error) {
                 toast({ title: 'Error', description: 'Failed to add user.', variant: 'destructive' });
@@ -81,10 +81,12 @@ export function ManageTeamDialog({ children }: { children: React.ReactNode }) {
 
     const onDeleteUser = (userId: string) => {
         if (!firestore) return;
+        // This is a placeholder for a more complex delete operation that should also remove the Firebase Auth user.
+        // For now, we just remove them from the team list.
         startTransition(async () => {
             try {
                 await deleteDoc(doc(firestore, 'users', userId));
-                toast({ title: 'Success', description: 'User removed from the team.' });
+                toast({ title: 'Success', description: 'User removed from the team. Their login access may still exist.' });
             } catch (error) {
                  toast({ title: 'Error', description: 'Failed to remove user.', variant: 'destructive' });
             }
@@ -98,7 +100,7 @@ export function ManageTeamDialog({ children }: { children: React.ReactNode }) {
             <DialogHeader>
                 <DialogTitle>Manage Team</DialogTitle>
                 <DialogDescription>
-                    Add or remove users and assign their roles. Users will need to sign in with an account associated with the provided phone number.
+                    Add or remove users by their email. Users will create their own password the first time they sign in.
                 </DialogDescription>
             </DialogHeader>
             
@@ -106,11 +108,11 @@ export function ManageTeamDialog({ children }: { children: React.ReactNode }) {
                 <form onSubmit={form.handleSubmit(onAddUser)} className="flex items-end gap-2">
                      <FormField
                         control={form.control}
-                        name="phone"
+                        name="email"
                         render={({ field }) => (
                             <FormItem className="flex-1">
-                                <FormLabel className="sr-only">Phone Number</FormLabel>
-                                <FormControl><Input placeholder="+15551234567" {...field} /></FormControl>
+                                <FormLabel className="sr-only">Email Address</FormLabel>
+                                <FormControl><Input placeholder="teammember@example.com" {...field} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -153,7 +155,7 @@ export function ManageTeamDialog({ children }: { children: React.ReactNode }) {
                         {loading && <TableRow><TableCell colSpan={3} className="text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>}
                         {users?.map(user => (
                             <TableRow key={user.id}>
-                                <TableCell className="font-medium">{user.phone || user.email}</TableCell>
+                                <TableCell className="font-medium">{user.email || user.phone}</TableCell>
                                 <TableCell className="capitalize">{user.role}</TableCell>
                                 <TableCell>
                                     <Button variant="ghost" size="icon" onClick={() => onDeleteUser(user.id)} disabled={isPending || user.role === 'owner' || user.role === 'super-admin'}>

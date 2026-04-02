@@ -5,7 +5,7 @@ import { useState, useEffect, createContext, useContext, ReactNode } from 'react
 import { type User } from 'firebase/auth';
 import { useAuth, useFirestore } from '@/firebase/provider';
 import type { AppUser } from '@/lib/definitions';
-import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, or } from 'firebase/firestore';
 import { cleanForFirestore } from '@/lib/utils';
 
 interface UserContextType {
@@ -31,39 +31,52 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
     const unsubscribe = auth.onAuthStateChanged(async (fbUser) => {
       setLoading(true);
-      if (fbUser && fbUser.email) {
+      if (fbUser) {
         // User is authenticated, check if they are authorized in our app.
         const usersRef = collection(firestore, 'users');
         
-        // Check if there are any users in the collection at all.
         const allUsersSnapshot = await getDocs(usersRef);
 
         if (allUsersSnapshot.empty) {
           // This is the first user ever. Make them a super-admin.
-          const userDocData = { email: fbUser.email.toLowerCase(), role: 'super-admin' as const };
+          const userDocData: { email?: string; phone?: string; role: 'super-admin' } = { role: 'super-admin' };
+          if (fbUser.email) userDocData.email = fbUser.email.toLowerCase();
+          if (fbUser.phoneNumber) userDocData.phone = fbUser.phoneNumber;
+
           try {
             const newUserDocRef = await addDoc(usersRef, cleanForFirestore(userDocData));
             setAppUser({ id: newUserDocRef.id, ...userDocData });
             setUser(fbUser);
           } catch (e) {
             console.error("Failed to create first user:", e);
-            await auth.signOut(); // Sign out on failure
+            await auth.signOut();
           }
         } else {
           // Users exist. Check if the current user is one of them.
-          const q = query(usersRef, where('email', '==', fbUser.email.toLowerCase()));
-          const userQuerySnapshot = await getDocs(q);
+          const conditions = [];
+          if (fbUser.email) {
+            conditions.push(where('email', '==', fbUser.email.toLowerCase()));
+          }
+          if (fbUser.phoneNumber) {
+            conditions.push(where('phone', '==', fbUser.phoneNumber));
+          }
+          
+          if (conditions.length > 0) {
+              const q = query(usersRef, or(...conditions));
+              const userQuerySnapshot = await getDocs(q);
 
-          if (!userQuerySnapshot.empty) {
-            // User is authorized.
-            const userDoc = userQuerySnapshot.docs[0];
-            setAppUser({ id: userDoc.id, ...userDoc.data() } as AppUser);
-            setUser(fbUser);
+              if (!userQuerySnapshot.empty) {
+                // User is authorized.
+                const userDoc = userQuerySnapshot.docs[0];
+                setAppUser({ id: userDoc.id, ...userDoc.data() } as AppUser);
+                setUser(fbUser);
+              } else {
+                // User is authenticated with Firebase but not in our app's user list.
+                await auth.signOut();
+              }
           } else {
-            // User is authenticated with Firebase but not in our app's user list.
-            // This is an unauthorized user. Sign them out.
+            // User is authenticated but has no email or phone.
             await auth.signOut();
-            // The next onAuthStateChanged event will clear the user/appUser state.
           }
         }
       } else {

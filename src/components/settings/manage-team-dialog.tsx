@@ -32,7 +32,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 const teamMemberRoles = ['owner', 'supervisor', 'biller'] as const;
 
 const AddUserSchema = z.object({
-    email: z.string().email('Please enter a valid email address.'),
+    phone: z.string().min(10, 'Please enter a valid phone number including country code (e.g., +12223334444).'),
     role: z.enum(teamMemberRoles, { required_error: 'Please select a role.' }),
 });
 
@@ -53,22 +53,21 @@ export function ManageTeamDialog({ children }: { children: React.ReactNode }) {
 
     const form = useForm<AddUserFormData>({
         resolver: zodResolver(AddUserSchema),
-        defaultValues: { email: '', role: 'biller' },
+        defaultValues: { phone: '', role: 'biller' },
     });
 
     const onAddUser = (data: AddUserFormData) => {
         if (!firestore || !appUser?.warehouseId) return;
         
-        // Check if user already exists
-        if (users?.some(u => u.email.toLowerCase() === data.email.toLowerCase())) {
-            form.setError('email', { message: 'This user already exists in the team.' });
+        if (users?.some(u => u.phone === data.phone)) {
+            form.setError('phone', { message: 'This user already exists in the team.' });
             return;
         }
 
         startTransition(async () => {
             try {
                 await addDoc(collection(firestore, 'users'), cleanForFirestore({
-                    email: data.email.toLowerCase(),
+                    phone: data.phone,
                     role: data.role,
                     warehouseId: appUser.warehouseId,
                 }));
@@ -99,7 +98,7 @@ export function ManageTeamDialog({ children }: { children: React.ReactNode }) {
             <DialogHeader>
                 <DialogTitle>Manage Team</DialogTitle>
                 <DialogDescription>
-                    Add or remove users and assign their roles. Users will need to sign in with the exact Google account email.
+                    Add or remove users and assign their roles. Users will need to sign in with an account associated with the provided phone number.
                 </DialogDescription>
             </DialogHeader>
             
@@ -107,11 +106,11 @@ export function ManageTeamDialog({ children }: { children: React.ReactNode }) {
                 <form onSubmit={form.handleSubmit(onAddUser)} className="flex items-end gap-2">
                      <FormField
                         control={form.control}
-                        name="email"
+                        name="phone"
                         render={({ field }) => (
                             <FormItem className="flex-1">
-                                <FormLabel className="sr-only">Email</FormLabel>
-                                <FormControl><Input placeholder="user@example.com" {...field} /></FormControl>
+                                <FormLabel className="sr-only">Phone Number</FormLabel>
+                                <FormControl><Input placeholder="+15551234567" {...field} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -145,7 +144,7 @@ export function ManageTeamDialog({ children }: { children: React.ReactNode }) {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Email</TableHead>
+                            <TableHead>Identifier</TableHead>
                             <TableHead>Role</TableHead>
                             <TableHead className="w-[50px]"></TableHead>
                         </TableRow>
@@ -154,10 +153,10 @@ export function ManageTeamDialog({ children }: { children: React.ReactNode }) {
                         {loading && <TableRow><TableCell colSpan={3} className="text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>}
                         {users?.map(user => (
                             <TableRow key={user.id}>
-                                <TableCell className="font-medium">{user.email}</TableCell>
+                                <TableCell className="font-medium">{user.phone || user.email}</TableCell>
                                 <TableCell className="capitalize">{user.role}</TableCell>
                                 <TableCell>
-                                    <Button variant="ghost" size="icon" onClick={() => onDeleteUser(user.id)} disabled={isPending || user.role === 'owner'}>
+                                    <Button variant="ghost" size="icon" onClick={() => onDeleteUser(user.id)} disabled={isPending || user.role === 'owner' || user.role === 'super-admin'}>
                                         <Trash2 className="h-4 w-4 text-destructive" />
                                     </Button>
                                 </TableCell>

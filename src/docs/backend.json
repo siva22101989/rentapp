@@ -497,6 +497,10 @@
           "format": "email",
           "description": "The user's email address (lowercase)."
         },
+        "phone": {
+          "type": "string",
+          "description": "The user's contact phone number."
+        },
         "role": {
           "type": "string",
           "enum": ["super-admin", "owner", "supervisor", "biller"],
@@ -507,7 +511,7 @@
           "description": "The ID of the warehouse account this user belongs to."
         }
       },
-      "required": ["email", "role"]
+      "required": ["role"]
     },
     "managedWarehouse": {
       "title": "Managed Warehouse",

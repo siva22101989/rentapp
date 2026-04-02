@@ -15,7 +15,7 @@ import {
   query,
   where,
 } from 'firebase/firestore';
-import type { Customer, Expense, Payment, StorageRecord, Commodity, Outflow, UnloadingRecord, Borrowing, Lending, ManagedWarehouse } from './definitions';
+import type { Customer, Expense, Payment, StorageRecord, Commodity, Outflow, UnloadingRecord, Borrowing, Lending, ManagedWarehouse, AppUser } from './definitions';
 import { cleanForFirestore } from './utils';
 
 // These functions are intended for client-side use.
@@ -152,6 +152,11 @@ export const updateLending = async (db: Firestore, id: string, data: Partial<Len
 
 export const deleteLending = async (db: Firestore, id: string): Promise<void> => {
     await deleteDoc(doc(db, 'lendings', id));
+};
+
+export const updateUser = async (db: Firestore, id: string, data: Partial<AppUser>): Promise<void> => {
+    const userRef = doc(db, 'users', id);
+    await updateDoc(userRef, cleanForFirestore(data));
 };
 
 export const updateManagedWarehouse = async (db: Firestore, id: string, data: Partial<ManagedWarehouse>): Promise<void> => {

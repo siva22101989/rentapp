@@ -40,13 +40,13 @@ export function InflowReportTable({ records, customers, title, allRecords }: Rep
                         <TableHead className="h-auto py-2 px-2">Date</TableHead>
                         <TableHead className="h-auto py-2 px-2">Bill No</TableHead>
                         <TableHead className="h-auto py-2 px-2">Customer</TableHead>
-                        <TableHead className="h-auto py-2 px-2">Commodity</TableHead>
-                        <TableHead className="h-auto py-2 px-2">Inflow Type</TableHead>
-                        <TableHead className="h-auto py-2 px-2">Lorry/Tractor No</TableHead>
-                        <TableHead className="h-auto py-2 px-2">Lot No</TableHead>
+                        <TableHead className="h-auto py-2 px-2 hidden md:table-cell">Commodity</TableHead>
+                        <TableHead className="h-auto py-2 px-2 hidden lg:table-cell">Inflow Type</TableHead>
+                        <TableHead className="h-auto py-2 px-2 hidden lg:table-cell">Lorry/Tractor No</TableHead>
+                        <TableHead className="h-auto py-2 px-2 hidden md:table-cell">Lot No</TableHead>
                         <TableHead className="h-auto py-2 px-2 text-right">Bags</TableHead>
-                        <TableHead className="h-auto py-2 px-2 text-right">Weight (Kgs)</TableHead>
-                        <TableHead className="h-auto py-2 px-2 w-[50px] text-right print-hide">Actions</TableHead>
+                        <TableHead className="h-auto py-2 px-2 text-right hidden xl:table-cell">Weight (Kgs)</TableHead>
+                        <TableHead className="h-auto py-2 px-2 w-[50px] text-right print-hide hidden xl:table-cell">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -56,17 +56,17 @@ export function InflowReportTable({ records, customers, title, allRecords }: Rep
                             <TableCell className="p-2">{format(toDate(record.storageStartDate), 'dd MMM yyyy')}</TableCell>
                             <TableCell className="p-2">{record.id}</TableCell>
                             <TableCell className="p-2 font-medium">{getCustomerName(record.customerId)}</TableCell>
-                            <TableCell className="p-2">{record.commodityDescription}</TableCell>
-                            <TableCell className="p-2">
+                            <TableCell className="p-2 hidden md:table-cell">{record.commodityDescription}</TableCell>
+                            <TableCell className="p-2 hidden lg:table-cell">
                                 <Badge variant={record.inflowType === 'Direct' ? 'default' : 'secondary'} className={record.inflowType === 'Plot' ? 'bg-purple-100 text-purple-800' : ''}>
                                     {record.inflowType || 'Direct'}
                                 </Badge>
                             </TableCell>
-                            <TableCell className="p-2">{record.lorryTractorNo}</TableCell>
-                            <TableCell className="p-2">{record.location}</TableCell>
+                            <TableCell className="p-2 hidden lg:table-cell">{record.lorryTractorNo}</TableCell>
+                            <TableCell className="p-2 hidden md:table-cell">{record.location}</TableCell>
                             <TableCell className="p-2 text-right font-mono">{record.bagsIn}</TableCell>
-                            <TableCell className="p-2 text-right font-mono">{record.weight}</TableCell>
-                            <TableCell className="p-2 text-right print-hide">
+                            <TableCell className="p-2 text-right font-mono hidden xl:table-cell">{record.weight}</TableCell>
+                            <TableCell className="p-2 text-right print-hide hidden xl:table-cell">
                                 <ActionsMenu record={record} customers={customers} allRecords={allRecords} />
                             </TableCell>
                         </TableRow>
@@ -81,10 +81,15 @@ export function InflowReportTable({ records, customers, title, allRecords }: Rep
                 </TableBody>
                 <TableFooter>
                     <TableRow>
-                        <TableCell colSpan={7} className="p-2 text-right font-bold">Totals</TableCell>
-                        <TableCell className="p-2 text-right font-mono font-bold">{totalBagsIn}</TableCell>
+                        <TableCell colSpan={3} className="p-2 text-right font-bold sm:hidden">Totals</TableCell>
+                        <TableCell colSpan={4} className="p-2 text-right font-bold hidden sm:table-cell md:hidden">Totals</TableCell>
+                        <TableCell colSpan={6} className="p-2 text-right font-bold hidden md:table-cell lg:hidden">Totals</TableCell>
+                        <TableCell colSpan={7} className="p-2 text-right font-bold hidden lg:table-cell xl:hidden">Totals</TableCell>
+                        <TableCell colSpan={8} className="p-2 text-right font-bold hidden xl:table-cell">Totals</TableCell>
+
+                        <TableCell className="p-2 text-right font-mono font-bold hidden xl:table-cell">{totalBagsIn}</TableCell>
                         <TableCell className="p-2 text-right font-mono font-bold">{totalWeight.toFixed(2)}</TableCell>
-                        <TableCell className="p-2 print-hide"></TableCell>
+                        <TableCell className="p-2 print-hide hidden xl:table-cell"></TableCell>
                     </TableRow>
                 </TableFooter>
             </Table>

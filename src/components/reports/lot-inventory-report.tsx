@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo } from 'react';
@@ -56,8 +57,8 @@ function LotInventoryTable({ groupedLots, customers, title }: { groupedLots: Gro
                         <TableHead className="w-[150px]">Lot No.</TableHead>
                         <TableHead>Patti No.</TableHead>
                         <TableHead>Customer</TableHead>
-                        <TableHead>Commodity</TableHead>
-                        <TableHead>Inflow Date</TableHead>
+                        <TableHead className="hidden md:table-cell">Commodity</TableHead>
+                        <TableHead className="hidden lg:table-cell">Inflow Date</TableHead>
                         <TableHead className="text-right">Bags</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -65,7 +66,8 @@ function LotInventoryTable({ groupedLots, customers, title }: { groupedLots: Gro
                     {lotNames.map(lotName => (
                         <React.Fragment key={lotName}>
                             <TableRow className="bg-secondary hover:bg-secondary">
-                                <TableCell colSpan={5} className="font-bold">{lotName || 'Unassigned'}</TableCell>
+                                <TableCell colSpan={3} className="font-bold md:hidden">{lotName || 'Unassigned'}</TableCell>
+                                <TableCell colSpan={5} className="font-bold hidden md:table-cell">{lotName || 'Unassigned'}</TableCell>
                                 <TableCell className="text-right font-bold font-mono">{groupedLots[lotName].totalBags}</TableCell>
                             </TableRow>
                             {groupedLots[lotName].records.map(record => (
@@ -73,8 +75,8 @@ function LotInventoryTable({ groupedLots, customers, title }: { groupedLots: Gro
                                     <TableCell></TableCell>
                                     <TableCell>{record.id}</TableCell>
                                     <TableCell>{getCustomerName(record.customerId)}</TableCell>
-                                    <TableCell>{record.commodityDescription}</TableCell>
-                                    <TableCell>{format(toDate(record.storageStartDate), 'dd MMM yyyy')}</TableCell>
+                                    <TableCell className="hidden md:table-cell">{record.commodityDescription}</TableCell>
+                                    <TableCell className="hidden lg:table-cell">{format(toDate(record.storageStartDate), 'dd MMM yyyy')}</TableCell>
                                     <TableCell className="text-right font-mono">{record.bagsStored}</TableCell>
                                 </TableRow>
                             ))}

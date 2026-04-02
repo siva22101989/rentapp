@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -36,10 +37,10 @@ export function WorkerHamaliReportTable({ events, customers, title }: ReportTabl
                 <TableHeader>
                     <TableRow>
                         <TableHead>Date</TableHead>
-                        <TableHead>Customer</TableHead>
+                        <TableHead className="hidden sm:table-cell">Customer</TableHead>
                         <TableHead>Description</TableHead>
-                        <TableHead>Reference ID</TableHead>
-                        <TableHead className="text-center">Bags</TableHead>
+                        <TableHead className="hidden md:table-cell">Reference ID</TableHead>
+                        <TableHead className="text-center hidden lg:table-cell">Bags</TableHead>
                         <TableHead className="text-right">Payable</TableHead>
                         <TableHead className="text-right">Paid</TableHead>
                     </TableRow>
@@ -48,10 +49,10 @@ export function WorkerHamaliReportTable({ events, customers, title }: ReportTabl
                     {events.map((event, index) => (
                         <TableRow key={index}>
                             <TableCell>{format(event.date, 'dd MMM yyyy')}</TableCell>
-                            <TableCell className="font-medium">{getCustomerName(event.customerId)}</TableCell>
+                            <TableCell className="font-medium hidden sm:table-cell">{getCustomerName(event.customerId)}</TableCell>
                             <TableCell>{event.description}</TableCell>
-                            <TableCell>{event.recordId}</TableCell>
-                            <TableCell className="text-center font-mono">{event.bags || ''}</TableCell>
+                            <TableCell className="hidden md:table-cell">{event.recordId}</TableCell>
+                            <TableCell className="text-center font-mono hidden lg:table-cell">{event.bags || ''}</TableCell>
                             <TableCell className="text-right font-mono">
                                 {event.payable > 0 ? formatCurrency(event.payable) : ''}
                             </TableCell>
@@ -70,12 +71,14 @@ export function WorkerHamaliReportTable({ events, customers, title }: ReportTabl
                 </TableBody>
                 <TableFooter>
                     <TableRow>
-                        <TableCell colSpan={5} className="text-right font-bold">Totals</TableCell>
+                        <TableCell colSpan={2} className="text-right font-bold sm:hidden">Totals</TableCell>
+                        <TableCell colSpan={5} className="text-right font-bold hidden sm:table-cell">Totals</TableCell>
                         <TableCell className="text-right font-mono font-bold">{formatCurrency(totalPayable)}</TableCell>
                         <TableCell className="text-right font-mono font-bold text-green-600">{formatCurrency(totalPaid)}</TableCell>
                     </TableRow>
                      <TableRow>
-                        <TableCell colSpan={6} className="text-right font-bold">Pending Balance</TableCell>
+                        <TableCell colSpan={2} className="text-right font-bold sm:hidden">Balance</TableCell>
+                        <TableCell colSpan={6} className="text-right font-bold hidden sm:table-cell">Pending Balance</TableCell>
                         <TableCell className="text-right font-mono font-bold text-destructive">{formatCurrency(balance)}</TableCell>
                     </TableRow>
                 </TableFooter>

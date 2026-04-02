@@ -72,6 +72,10 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
             });
     }, [lots, lotOccupancy]);
 
+    const selectedCustomer = useMemo(() => {
+        return customers.find(c => c.id === selectedCustomerId);
+    }, [selectedCustomerId, customers]);
+
 
     useEffect(() => {
         const bagsValue = bags || 0;
@@ -200,6 +204,14 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                             emptyPlaceholder="No customer found."
                         />
                     </div>
+
+                    {selectedCustomer && (
+                        <div className="text-sm text-muted-foreground p-3 border rounded-md bg-secondary/50 space-y-1">
+                            <p><strong>Father's Name:</strong> {selectedCustomer.fatherName || 'N/A'}</p>
+                            <p><strong>Village:</strong> {selectedCustomer.village || 'N/A'}</p>
+                            <p><strong>Phone:</strong> {selectedCustomer.phone}</p>
+                        </div>
+                    )}
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">

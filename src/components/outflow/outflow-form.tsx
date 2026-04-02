@@ -57,6 +57,10 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
         [records, selectedCustomerId]
     );
 
+    const selectedCustomer = useMemo(() => 
+        customers.find(c => c.id === selectedCustomerId)
+    , [customers, selectedCustomerId]);
+
     const withdrawalEntries = useMemo(() => 
         Object.entries(withdrawals).filter(([, bags]) => Number(bags) > 0),
         [withdrawals]
@@ -97,7 +101,7 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
         
         setTotalRent(runningRent);
         setTotalPendingHamali(runningHamali);
-        setTotalBags(runningBags);
+        setTotalBags(totalBags);
     }, [withdrawals, withdrawalDate, records]);
 
     const resetForm = () => {
@@ -244,6 +248,14 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                             emptyPlaceholder="No customer found."
                         />
                     </div>
+                    
+                    {selectedCustomer && (
+                        <div className="text-sm text-muted-foreground p-3 border rounded-md bg-secondary/50 space-y-1">
+                            <p><strong>Father's Name:</strong> {selectedCustomer.fatherName || 'N/A'}</p>
+                            <p><strong>Village:</strong> {selectedCustomer.village || 'N/A'}</p>
+                            <p><strong>Phone:</strong> {selectedCustomer.phone}</p>
+                        </div>
+                    )}
 
                     {selectedCustomerId && (
                         <div className="border rounded-md">

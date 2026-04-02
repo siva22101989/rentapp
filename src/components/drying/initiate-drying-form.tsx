@@ -372,32 +372,27 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                         )}
                     />
                     
-                    {selectedUnloadingRecord && (
-                        <>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2 text-sm pt-2">
-                            <div className="flex items-center gap-2">
-                                <User className="h-4 w-4 text-muted-foreground" />
-                                <span>{selectedCustomer?.name || '...'}</span>
+                    {selectedUnloadingRecord && selectedCustomer && (
+                        <div className="text-sm text-muted-foreground p-3 border rounded-md bg-secondary/50 space-y-1">
+                            <div className="flex justify-between items-center">
+                                <p className="font-bold text-foreground">{selectedCustomer.name}</p>
+                                <p>Bill #{selectedUnloadingRecord.billNo}</p>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <Clock className="h-4 w-4 text-muted-foreground" />
-                                <span>{format(toDate(selectedUnloadingRecord.unloadingDate), 'dd MMM yyyy, hh:mm a')}</span>
-                            </div>
-                             <div className="flex items-center gap-2 col-span-2">
-                                <Package className="h-4 w-4 text-muted-foreground" />
-                                <span>{selectedUnloadingRecord.commodityDescription}</span>
-                            </div>
+                            <p><strong>Father's Name:</strong> {selectedCustomer.fatherName || 'N/A'}</p>
+                            <p><strong>Village:</strong> {selectedCustomer.village || 'N/A'}</p>
+                            <Separator className="my-2"/>
+                            <p><strong>Commodity:</strong> {selectedUnloadingRecord.commodityDescription}</p>
+                            <p><strong>Unloaded:</strong> {format(toDate(selectedUnloadingRecord.unloadingDate), 'dd MMM yyyy, hh:mm a')}</p>
                         </div>
+                    )}
 
                         <Alert variant="destructive" className="bg-secondary/30 border-secondary">
                             <Info className="h-4 w-4" />
                             <AlertTitle>Unloading Hamali</AlertTitle>
                             <AlertDescription>
-                                Unloading hamali was {formatCurrency(selectedUnloadingRecord.hamaliPerBag || 0)} per bag. This will be pro-rated and added to the total.
+                                Unloading hamali was {formatCurrency(selectedUnloadingRecord?.hamaliPerBag || 0)} per bag. This will be pro-rated and added to the total.
                             </AlertDescription>
                         </Alert>
-                        </>
-                    )}
                      <FormField
                         control={form.control}
                         name="bagsForDrying"

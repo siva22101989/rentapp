@@ -1,6 +1,6 @@
 'use client';
 
-import { useTransition, useState, useEffect } from 'react';
+import { useTransition, useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -70,6 +70,11 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
     const bagsUnloaded = form.watch('bagsUnloaded');
     const hamaliPerBag = form.watch('hamaliPerBag');
     const totalHamali = (Number(bagsUnloaded) || 0) * (Number(hamaliPerBag) || 0);
+
+    const selectedCustomerId = form.watch('customerId');
+    const selectedCustomer = useMemo(() => {
+        return customers.find(c => c.id === selectedCustomerId);
+    }, [selectedCustomerId, customers]);
 
     const onSubmit = (data: UnloadingFormData) => {
         if (!firestore) {
@@ -153,6 +158,15 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
                             </FormItem>
                         )}
                     />
+
+                    {selectedCustomer && (
+                        <div className="text-sm text-muted-foreground p-3 border rounded-md bg-secondary/50 space-y-1 -mt-2">
+                            <p><strong>Father's Name:</strong> {selectedCustomer.fatherName || 'N/A'}</p>
+                            <p><strong>Village:</strong> {selectedCustomer.village || 'N/A'}</p>
+                            <p><strong>Phone:</strong> {selectedCustomer.phone}</p>
+                        </div>
+                    )}
+
                     <FormField
                         control={form.control}
                         name="commodityDescription"

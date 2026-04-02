@@ -43,8 +43,13 @@ export default function InflowPage() {
     // This logic finds the highest numeric ID and adds 1.
     // It's safer than using array length if records are ever deleted.
     const maxId = records.reduce((max, r) => {
-        const idNum = parseInt(r.id, 10);
-        return isNaN(idNum) ? max : Math.max(max, idNum);
+        // Only consider IDs that are purely numeric strings.
+        // This prevents alphanumeric auto-IDs from being partially parsed.
+        if (/^\d+$/.test(r.id)) {
+            const idNum = parseInt(r.id, 10);
+            return Math.max(max, idNum);
+        }
+        return max;
     }, 0);
     return (maxId + 1).toString();
   }, [records]);

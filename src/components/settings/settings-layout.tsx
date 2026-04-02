@@ -10,14 +10,16 @@ import { DataSettings } from "./data-settings";
 import { Card, CardContent } from "../ui/card";
 import { SmsSettings } from "./sms-settings";
 import { useAppUser } from "@/firebase/auth/use-user";
+import { BillingSettings } from "./billing-settings";
 
 const allTabs = [
     { value: "profile", label: "Profile", icon: User, roles: ['super-admin', 'owner', 'supervisor', 'biller'] },
-    { value: "warehouse", label: "My Warehouse", icon: Warehouse, roles: ['owner', 'super-admin'] },
-    { value: "crops_rates", label: "Crops & Rates", icon: Wheat, roles: ['owner', 'super-admin'] },
-    { value: "data", label: "Data", icon: Database, roles: ['owner', 'super-admin'] },
-    { value: "sms", label: "SMS", icon: MessageSquare, roles: ['owner', 'super-admin'] },
-    { value: "notifications", label: "Notifications", icon: Bell, roles: ['owner', 'supervisor', 'biller', 'super-admin'] },
+    { value: "warehouse", label: "My Warehouse", icon: Warehouse, roles: ['owner'] },
+    { value: "crops_rates", label: "Crops & Rates", icon: Wheat, roles: ['owner'] },
+    { value: "data", label: "Data", icon: Database, roles: ['owner'] },
+    { value: "sms", label: "SMS", icon: MessageSquare, roles: ['owner'] },
+    { value: "notifications", label: "Notifications", icon: Bell, roles: ['owner', 'supervisor', 'biller'] },
+    { value: "billing", label: "Billing", icon: CreditCard, roles: ['super-admin'] },
 ];
 
 export function SettingsLayout() {
@@ -68,6 +70,9 @@ export function SettingsLayout() {
             </TabsContent>
              <TabsContent value="sms">
                 <SmsSettings />
+            </TabsContent>
+            <TabsContent value="billing">
+                <BillingSettings />
             </TabsContent>
         </Tabs>
     );

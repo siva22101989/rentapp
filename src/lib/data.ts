@@ -18,51 +18,51 @@ import {
 import type { Customer, Expense, Payment, StorageRecord, Commodity, Outflow, UnloadingRecord, Borrowing, Lending, ManagedWarehouse, AppUser } from './definitions';
 import { cleanForFirestore } from './utils';
 
-// These functions are intended for client-side use.
+// These functions are intended for client-side use and now require a warehouseId.
 
-export const saveCustomer = async (db: Firestore, customer: Omit<Customer, 'id'>): Promise<string> => {
-  const docRef = await addDoc(collection(db, `customers`), cleanForFirestore(customer));
+export const saveCustomer = async (db: Firestore, warehouseId: string, customer: Omit<Customer, 'id'>): Promise<string> => {
+  const docRef = await addDoc(collection(db, 'managedWarehouses', warehouseId, 'customers'), cleanForFirestore(customer));
   return docRef.id;
 };
 
-export const updateCustomer = async (db: Firestore, id: string, data: Partial<Customer>): Promise<void> => {
-    const customerRef = doc(db, 'customers', id);
+export const updateCustomer = async (db: Firestore, warehouseId: string, id: string, data: Partial<Customer>): Promise<void> => {
+    const customerRef = doc(db, 'managedWarehouses', warehouseId, 'customers', id);
     await updateDoc(customerRef, cleanForFirestore(data));
 };
 
-export const deleteCustomer = async (db: Firestore, id: string): Promise<void> => {
-    await deleteDoc(doc(db, 'customers', id));
+export const deleteCustomer = async (db: Firestore, warehouseId: string, id: string): Promise<void> => {
+    await deleteDoc(doc(db, 'managedWarehouses', warehouseId, 'customers', id));
 };
 
-export const updateStorageRecord = async (db: Firestore, id: string, data: Partial<StorageRecord>): Promise<void> => {
-    const recordRef = doc(db, 'storageRecords', id);
+export const updateStorageRecord = async (db: Firestore, warehouseId: string, id: string, data: Partial<StorageRecord>): Promise<void> => {
+    const recordRef = doc(db, 'managedWarehouses', warehouseId, 'storageRecords', id);
     await updateDoc(recordRef, cleanForFirestore(data));
 };
 
-export const deleteStorageRecord = async (db: Firestore, id: string): Promise<void> => {
-    await deleteDoc(doc(db, 'storageRecords', id));
+export const deleteStorageRecord = async (db: Firestore, warehouseId: string, id: string): Promise<void> => {
+    await deleteDoc(doc(db, 'managedWarehouses', warehouseId, 'storageRecords', id));
 };
 
-export const saveCommodity = async (db: Firestore, commodity: Omit<Commodity, 'id'>): Promise<string> => {
-  const docRef = await addDoc(collection(db, 'commodities'), cleanForFirestore(commodity));
+export const saveCommodity = async (db: Firestore, warehouseId: string, commodity: Omit<Commodity, 'id'>): Promise<string> => {
+  const docRef = await addDoc(collection(db, 'managedWarehouses', warehouseId, 'commodities'), cleanForFirestore(commodity));
   return docRef.id;
 };
 
-export const updateCommodity = async (db: Firestore, id: string, data: Partial<Commodity>): Promise<void> => {
-    const commodityRef = doc(db, 'commodities', id);
+export const updateCommodity = async (db: Firestore, warehouseId: string, id: string, data: Partial<Commodity>): Promise<void> => {
+    const commodityRef = doc(db, 'managedWarehouses', warehouseId, 'commodities', id);
     await updateDoc(commodityRef, cleanForFirestore(data));
 };
 
-export const deleteCommodity = async (db: Firestore, id: string): Promise<void> => {
-    await deleteDoc(doc(db, 'commodities', id));
+export const deleteCommodity = async (db: Firestore, warehouseId: string, id: string): Promise<void> => {
+    await deleteDoc(doc(db, 'managedWarehouses', warehouseId, 'commodities', id));
 };
 
-export const deleteLot = async (db: Firestore, id: string): Promise<void> => {
-    await deleteDoc(doc(db, 'lots', id));
+export const deleteLot = async (db: Firestore, warehouseId: string, id: string): Promise<void> => {
+    await deleteDoc(doc(db, 'managedWarehouses', warehouseId, 'lots', id));
 };
 
-export const deleteOutflowEvent = async (db: Firestore, recordId: string, outflowIndex: number): Promise<void> => {
-    const recordRef = doc(db, 'storageRecords', recordId);
+export const deleteOutflowEvent = async (db: Firestore, warehouseId: string, recordId: string, outflowIndex: number): Promise<void> => {
+    const recordRef = doc(db, 'managedWarehouses', warehouseId, 'storageRecords', recordId);
     const recordSnap = await getDoc(recordRef);
     if (!recordSnap.exists()) {
         throw new Error("Storage record not found");
@@ -96,8 +96,8 @@ export const deleteOutflowEvent = async (db: Firestore, recordId: string, outflo
     await updateDoc(recordRef, cleanForFirestore(updateData));
 };
 
-export const editOutflowEvent = async (db: Firestore, recordId: string, outflowIndex: number, newData: { date: Date, discount: number }): Promise<void> => {
-    const recordRef = doc(db, 'storageRecords', recordId);
+export const editOutflowEvent = async (db: Firestore, warehouseId: string, recordId: string, outflowIndex: number, newData: { date: Date, discount: number }): Promise<void> => {
+    const recordRef = doc(db, 'managedWarehouses', warehouseId, 'storageRecords', recordId);
     const recordSnap = await getDoc(recordRef);
     if (!recordSnap.exists()) {
         throw new Error("Storage record not found");
@@ -118,13 +118,13 @@ export const editOutflowEvent = async (db: Firestore, recordId: string, outflowI
     });
 };
 
-export const updateUnloadingRecord = async (db: Firestore, id: string, data: Partial<UnloadingRecord>): Promise<void> => {
-    const recordRef = doc(db, 'unloadingRecords', id);
+export const updateUnloadingRecord = async (db: Firestore, warehouseId: string, id: string, data: Partial<UnloadingRecord>): Promise<void> => {
+    const recordRef = doc(db, 'managedWarehouses', warehouseId, 'unloadingRecords', id);
     await updateDoc(recordRef, cleanForFirestore(data));
 };
 
-export const deleteUnloadingRecord = async (db: Firestore, id: string): Promise<void> => {
-    const recordRef = doc(db, 'unloadingRecords', id);
+export const deleteUnloadingRecord = async (db: Firestore, warehouseId: string, id: string): Promise<void> => {
+    const recordRef = doc(db, 'managedWarehouses', warehouseId, 'unloadingRecords', id);
     const recordSnap = await getDoc(recordRef);
     if (!recordSnap.exists()) {
         throw new Error("Record not found.");
@@ -136,22 +136,22 @@ export const deleteUnloadingRecord = async (db: Firestore, id: string): Promise<
     await deleteDoc(recordRef);
 };
 
-export const updateBorrowing = async (db: Firestore, id: string, data: Partial<Borrowing>): Promise<void> => {
-    const borrowingRef = doc(db, 'borrowings', id);
+export const updateBorrowing = async (db: Firestore, warehouseId: string, id: string, data: Partial<Borrowing>): Promise<void> => {
+    const borrowingRef = doc(db, 'managedWarehouses', warehouseId, 'borrowings', id);
     await updateDoc(borrowingRef, cleanForFirestore(data));
 };
 
-export const deleteBorrowing = async (db: Firestore, id: string): Promise<void> => {
-    await deleteDoc(doc(db, 'borrowings', id));
+export const deleteBorrowing = async (db: Firestore, warehouseId: string, id: string): Promise<void> => {
+    await deleteDoc(doc(db, 'managedWarehouses', warehouseId, 'borrowings', id));
 };
 
-export const updateLending = async (db: Firestore, id: string, data: Partial<Lending>): Promise<void> => {
-    const lendingRef = doc(db, 'lendings', id);
+export const updateLending = async (db: Firestore, warehouseId: string, id: string, data: Partial<Lending>): Promise<void> => {
+    const lendingRef = doc(db, 'managedWarehouses', warehouseId, 'lendings', id);
     await updateDoc(lendingRef, cleanForFirestore(data));
 };
 
-export const deleteLending = async (db: Firestore, id: string): Promise<void> => {
-    await deleteDoc(doc(db, 'lendings', id));
+export const deleteLending = async (db: Firestore, warehouseId: string, id: string): Promise<void> => {
+    await deleteDoc(doc(db, 'managedWarehouses', warehouseId, 'lendings', id));
 };
 
 export const updateUser = async (db: Firestore, id: string, data: Partial<AppUser>): Promise<void> => {
@@ -159,6 +159,7 @@ export const updateUser = async (db: Firestore, id: string, data: Partial<AppUse
     await updateDoc(userRef, cleanForFirestore(data));
 };
 
+// Super-admin functions (no warehouseId needed)
 export const updateManagedWarehouse = async (db: Firestore, id: string, data: Partial<ManagedWarehouse>): Promise<void> => {
     const warehouseRef = doc(db, 'managedWarehouses', id);
     await updateDoc(warehouseRef, cleanForFirestore(data));

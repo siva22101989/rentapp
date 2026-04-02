@@ -83,7 +83,7 @@ function DashboardHeader({ activeRecordsCount, occupancy }: { activeRecordsCount
                         <Package size={16} />
                         SRI LAKSHMI WAREHOUSE
                     </p>
-                    <h2 className="text-3xl font-bold mt-2">{greeting} 👋</h2>
+                    <h2 className="text-2xl font-bold mt-2">{greeting}</h2>
                     <p className="text-muted-foreground mt-2 max-w-md">
                         Here's what's happening in your warehouse today. You have {activeRecordsCount} active records and
                         your storage is {occupancy.toFixed(1)}% full.
@@ -138,14 +138,14 @@ export default function DashboardPage() {
     const appUser = useAppUser();
 
     const recordsQuery = useMemoFirebase(
-      () => (firestore ? collection(firestore, 'storageRecords') : null),
-      [firestore]
+      () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'storageRecords') : null),
+      [firestore, appUser]
     );
     const { data: allRecords, loading: loadingRecords } = useCollection<StorageRecord>(recordsQuery);
   
     const lotsQuery = useMemoFirebase(
-      () => (firestore ? collection(firestore, 'lots') : null),
-      [firestore]
+      () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'lots') : null),
+      [firestore, appUser]
     );
     const { data: allLots, loading: loadingLots } = useCollection<Lot>(lotsQuery);
 
@@ -169,6 +169,23 @@ export default function DashboardPage() {
         if (!appUser) return [];
         return navItems.filter(item => item.roles.includes(appUser.role));
     }, [appUser]);
+
+    if (appUser?.role === 'super-admin') {
+      return (
+          <AppLayout>
+              <div className="text-center py-16">
+                  <h1 className="text-4xl font-bold">Welcome, Super Admin</h1>
+                  <p className="text-muted-foreground mt-2">You can manage all warehouse subscriptions from the settings page.</p>
+                  <Button asChild className="mt-6">
+                      <Link href="/settings">
+                          <Settings className="mr-2"/>
+                          Go to Settings
+                      </Link>
+                  </Button>
+              </div>
+          </AppLayout>
+      )
+  }
 
   return (
     <AppLayout>

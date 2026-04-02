@@ -43,6 +43,14 @@ export default function LoginPage() {
   const [otp, setOtp] = useState('');
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
 
+  useEffect(() => {
+    if (auth && !window.recaptchaVerifier) {
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        'size': 'invisible',
+      });
+    }
+  }, [auth]);
+
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     setError(null);
@@ -79,11 +87,13 @@ export default function LoginPage() {
         setIsLoading(false);
         return;
     }
+    if (!window.recaptchaVerifier) {
+        setError('reCAPTCHA not initialized. Please wait a moment and try again.');
+        setIsLoading(false);
+        return;
+    }
+
     try {
-        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-            'size': 'invisible',
-            'callback': (response: any) => { /* reCAPTCHA solved */ }
-        });
         const appVerifier = window.recaptchaVerifier;
         const result = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
         setConfirmationResult(result);
@@ -216,5 +226,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    

@@ -14,8 +14,10 @@ export type Customer = {
 export type Commodity = {
   id: string;
   name: string;
-  rate6Months: number;
-  rate1Year: number;
+  billingType: 'monthly' | 'slab';
+  monthlyRate?: number;
+  rate6Months?: number;
+  rate1Year?: number;
 };
 
 export type Lot = {
@@ -69,6 +71,10 @@ export type StorageRecord = {
   dryingStartDate?: Date | Timestamp | null;
   dryingEndDate?: Date | Timestamp | null;
   hamaliDetails?: HamaliChargeItem[];
+  billingType?: 'monthly' | 'slab';
+  monthlyRate?: number;
+  rate6Months?: number;
+  rate1Year?: number;
 };
 
 export const expenseCategories = ["Worker Salary", "Petrol", "Maintenance", "Utilities", "Current Bill", "Hamali", "EMI for Godown", "Loan Repayment", "Other"] as const;
@@ -179,23 +185,11 @@ export type SmsInfo = {
   twilioPhoneNumber: string;
 };
 
-export const userRoles = ["super-admin", "owner", "supervisor", "biller"] as const;
+export const userRoles = ["owner", "supervisor", "biller"] as const;
 export type UserRole = (typeof userRoles)[number];
 
 export type AppUser = {
   id: string;
   email: string;
   role: UserRole;
-  warehouseId?: string;
-};
-
-export type ManagedWarehouse = {
-  id: string;
-  name: string;
-  ownerName: string;
-  ownerEmail: string;
-  subscriptionStatus: 'active' | 'trial' | 'expired' | 'suspended';
-  yearlyAmount: number;
-  createdAt: Date | Timestamp;
-  trialMonths?: number;
 };

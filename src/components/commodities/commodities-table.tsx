@@ -16,6 +16,7 @@ import { useFirestore } from "@/firebase/provider";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 import { formatCurrency } from "@/lib/utils";
 import { CommodityActionsMenu } from "./commodity-actions-menu";
+import { Badge } from "../ui/badge";
 
 export function CommoditiesTable() {
   const firestore = useFirestore();
@@ -36,8 +37,8 @@ export function CommoditiesTable() {
           <TableHeader>
             <TableRow>
               <TableHead>Commodity Name</TableHead>
-              <TableHead className="text-right">6-Month Rate</TableHead>
-              <TableHead className="text-right">1-Year Rate</TableHead>
+              <TableHead>Billing Type</TableHead>
+              <TableHead className="text-right">Rates</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -45,8 +46,15 @@ export function CommoditiesTable() {
             {commodities?.map((commodity) => (
               <TableRow key={commodity.id}>
                 <TableCell className="font-medium">{commodity.name}</TableCell>
-                <TableCell className="text-right font-mono">{formatCurrency(commodity.rate6Months)}</TableCell>
-                <TableCell className="text-right font-mono">{formatCurrency(commodity.rate1Year)}</TableCell>
+                <TableCell>
+                  <Badge variant="secondary" className="capitalize">{commodity.billingType || 'Slab'}</Badge>
+                </TableCell>
+                <TableCell className="text-right font-mono">
+                  {commodity.billingType === 'monthly'
+                    ? `${formatCurrency(commodity.monthlyRate || 0)} / month`
+                    : `${formatCurrency(commodity.rate6Months || 0)} / 6M, ${formatCurrency(commodity.rate1Year || 0)} / 1Y`
+                  }
+                </TableCell>
                 <TableCell>
                   <CommodityActionsMenu commodity={commodity} />
                 </TableCell>

@@ -1,8 +1,9 @@
-import { differenceInCalendarMonths, addMonths, isAfter, startOfDay, differenceInYears, differenceInMonths } from 'date-fns';
+
+import { differenceInMonths, startOfDay } from 'date-fns';
 import type { StorageRecord } from '@/lib/definitions';
 import { toDate } from './utils';
 
-// Rates
+// Default rates for backward compatibility
 export const RATE_6_MONTHS = 36;
 export const RATE_1_YEAR = 55;
 
@@ -29,8 +30,6 @@ export function getRecordStatus(record: StorageRecord): RecordStatusInfo {
     };
   }
   
-  // Since rent is only calculated at withdrawal, the status is always simply "Active".
-  // The concept of next billing date or current rate before withdrawal is not applicable.
   return {
     status: 'Active',
     nextBillingDate: null,
@@ -48,7 +47,7 @@ export function calculateFinalRent(
     rent: number;
     monthsStored: number;
     rentPerBag: number;
-    rentAlreadyPaidPerBag: number; // This will now always be 0
+    rentAlreadyPaidPerBag: number;
 } {
   const startDate = startOfDay(toDate(record.storageStartDate));
   const endDate = startOfDay(withdrawalDate);
@@ -59,26 +58,34 @@ export function calculateFinalRent(
   const monthsStored = differenceInMonths(endDate, startDate);
 
   if (monthsStored < 0) {
-    // Should not happen, but as a safeguard
     rentPerBag = 0;
-  } else if (monthsStored <= 6) {
-    rentPerBag = RATE_6_MONTHS;
-  } else if (monthsStored <= 12) {
-    rentPerBag = RATE_1_YEAR;
+  } else if (record.billingType === 'monthly') {
+    const monthlyRate = record.monthlyRate || 0;
+    // Charge for at least one month, even if stored for a shorter period
+    const effectiveMonths = Math.max(1, monthsStored + 1);
+    rentPerBag = effectiveMonths * monthlyRate;
   } else {
-    // After 1 year
-    const fullYearsPastFirst = Math.floor((monthsStored - 1) / 12);
-    
-    rentPerBag = fullYearsPastFirst * RATE_1_YEAR;
+    // Slab billing logic (default for old records)
+    const slab6Months = record.rate6Months ?? RATE_6_MONTHS;
+    const slab1Year = record.rate1Year ?? RATE_1_YEAR;
 
-    const remainingMonths = monthsStored - (fullYearsPastFirst * 12);
+    if (monthsStored < 6) {
+      rentPerBag = slab6Months;
+    } else if (monthsStored < 12) {
+      rentPerBag = slab1Year;
+    } else {
+      const yearsStored = Math.floor(monthsStored / 12);
+      const remainingMonths = monthsStored % 12;
+      
+      rentPerBag = yearsStored * slab1Year;
 
-    if (remainingMonths > 0) {
-        if (remainingMonths <= 6) {
-            rentPerBag += RATE_6_MONTHS;
-        } else {
-            rentPerBag += RATE_1_YEAR;
-        }
+      if (remainingMonths > 0) {
+          if (remainingMonths <= 6) {
+              rentPerBag += slab6Months;
+          } else {
+              rentPerBag += slab1Year;
+          }
+      }
     }
   }
   
@@ -88,6 +95,6 @@ export function calculateFinalRent(
       rent: Math.max(0, finalRentForWithdrawnBags),
       monthsStored,
       rentPerBag,
-      rentAlreadyPaidPerBag // Will be 0
+      rentAlreadyPaidPerBag
   };
 }

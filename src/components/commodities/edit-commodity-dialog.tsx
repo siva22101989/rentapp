@@ -22,13 +22,42 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { Input } from '../ui/input';
+import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import type { Commodity } from '@/lib/definitions';
 
 const CommoditySchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
-  rate6Months: z.coerce.number().positive('Rate must be a positive number.'),
-  rate1Year: z.coerce.number().positive('Rate must be a positive number.'),
+  billingType: z.enum(['monthly', 'slab']),
+  monthlyRate: z.coerce.number().optional(),
+  rate6Months: z.coerce.number().optional(),
+  rate1Year: z.coerce.number().optional(),
+}).superRefine((data, ctx) => {
+    if (data.billingType === 'monthly') {
+        if (!data.monthlyRate || data.monthlyRate <= 0) {
+            ctx.addIssue({
+                code: 'custom',
+                message: 'Monthly rate must be a positive number.',
+                path: ['monthlyRate'],
+            });
+        }
+    } else if (data.billingType === 'slab') {
+        if (!data.rate6Months || data.rate6Months <= 0) {
+            ctx.addIssue({
+                code: 'custom',
+                message: '6-month rate must be a positive number.',
+                path: ['rate6Months'],
+            });
+        }
+        if (!data.rate1Year || data.rate1Year <= 0) {
+            ctx.addIssue({
+                code: 'custom',
+                message: '1-year rate must be a positive number.',
+                path: ['rate1Year'],
+            });
+        }
+    }
 });
+
 
 type CommodityFormData = z.infer<typeof CommoditySchema>;
 
@@ -40,8 +69,16 @@ export function EditCommodityDialog({ commodity, children }: { commodity: Commod
 
   const form = useForm<CommodityFormData>({
     resolver: zodResolver(CommoditySchema),
-    defaultValues: commodity,
+    defaultValues: {
+      name: commodity.name,
+      billingType: commodity.billingType || 'slab',
+      monthlyRate: commodity.monthlyRate,
+      rate6Months: commodity.rate6Months,
+      rate1Year: commodity.rate1Year,
+    },
   });
+
+  const billingType = form.watch('billingType');
 
   const onSubmit = (data: CommodityFormData) => {
     if (!firestore) {
@@ -51,7 +88,15 @@ export function EditCommodityDialog({ commodity, children }: { commodity: Commod
 
     startTransition(async () => {
       try {
-        await updateCommodity(firestore, commodity.id, data);
+        const updateData: Partial<Commodity> = { ...data };
+        if (data.billingType === 'monthly') {
+            updateData.rate6Months = undefined;
+            updateData.rate1Year = undefined;
+        } else {
+            updateData.monthlyRate = undefined;
+        }
+
+        await updateCommodity(firestore, commodity.id, updateData);
         toast({ title: 'Success', description: 'Commodity updated successfully.' });
         setIsOpen(false);
       } catch (error) {
@@ -64,7 +109,7 @@ export function EditCommodityDialog({ commodity, children }: { commodity: Commod
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-md">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <DialogHeader>
@@ -87,32 +132,84 @@ export function EditCommodityDialog({ commodity, children }: { commodity: Commod
                   </FormItem>
                 )}
               />
+
               <FormField
                 control={form.control}
-                name="rate6Months"
+                name="billingType"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>6-Month Rate (per bag)</FormLabel>
+                  <FormItem className="space-y-3">
+                    <FormLabel>Billing Structure</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" {...field} />
+                      <RadioGroup
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        className="flex space-x-4"
+                      >
+                        <FormItem className="flex items-center space-x-2 space-y-0">
+                          <FormControl>
+                            <RadioGroupItem value="slab" />
+                          </FormControl>
+                          <FormLabel className="font-normal">Slab Rate</FormLabel>
+                        </FormItem>
+                        <FormItem className="flex items-center space-x-2 space-y-0">
+                          <FormControl>
+                            <RadioGroupItem value="monthly" />
+                          </FormControl>
+                          <FormLabel className="font-normal">Monthly Rate</FormLabel>
+                        </FormItem>
+                      </RadioGroup>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="rate1Year"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>1-Year Rate (per bag)</FormLabel>
-                    <FormControl>
-                      <Input type="number" step="0.01" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+
+              {billingType === 'monthly' && (
+                <FormField
+                  control={form.control}
+                  name="monthlyRate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Monthly Rate (per bag)</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="0.01" {...field} value={field.value ?? ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {billingType === 'slab' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="rate6Months"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>6-Month Rate</FormLabel>
+                        <FormControl>
+                          <Input type="number" step="0.01" {...field} value={field.value ?? ''} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="rate1Year"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>1-Year Rate</FormLabel>
+                        <FormControl>
+                          <Input type="number" step="0.01" {...field} value={field.value ?? ''} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
             </div>
             <DialogFooter>
               <DialogClose asChild>

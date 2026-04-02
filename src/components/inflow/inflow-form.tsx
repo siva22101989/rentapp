@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useTransition, useState, useEffect, useMemo } from 'react';
@@ -116,7 +117,8 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
             toast({ title: 'Error', description: 'Please select a customer.', variant: 'destructive' });
             return;
         }
-         if (!selectedCommodity) {
+        const commodityDetails = commodities.find(c => c.name === selectedCommodity);
+         if (!commodityDetails) {
             toast({ title: 'Error', description: 'Please select a product.', variant: 'destructive' });
             return;
         }
@@ -167,7 +169,11 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                     weight: weightValue,
                     inflowType: 'Direct' as const,
                     dryingRecordId: '',
-                    khataAmount: Number(khataAmount) || 0
+                    khataAmount: Number(khataAmount) || 0,
+                    billingType: commodityDetails.billingType,
+                    monthlyRate: commodityDetails.monthlyRate,
+                    rate6Months: commodityDetails.rate6Months,
+                    rate1Year: commodityDetails.rate1Year,
                 };
 
                 const docRef = doc(firestore, "storageRecords", nextId);

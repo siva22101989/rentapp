@@ -17,9 +17,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useToast } from "@/hooks/use-toast";
 import { useFirestore } from "@/firebase/provider";
 import { updateUser } from "@/lib/data";
+import type { AppUser } from "@/lib/definitions";
 
 const ProfileSchema = z.object({
   email: z.string().email("A valid email address is required."),
+  phone: z.string().optional(),
 });
 
 type ProfileFormData = z.infer<typeof ProfileSchema>;
@@ -33,16 +35,17 @@ export function ProfileSettings() {
 
     const form = useForm<ProfileFormData>({
         resolver: zodResolver(ProfileSchema),
-        defaultValues: { email: '' },
+        defaultValues: { email: '', phone: '' },
     });
 
     useEffect(() => {
         if (appUser) {
             form.reset({
                 email: appUser.email || '',
+                phone: appUser.phone || user?.phoneNumber || '',
             });
         }
-    }, [appUser, form]);
+    }, [appUser, user, form]);
 
     const onSubmit = (data: ProfileFormData) => {
         if (!firestore || !appUser) {
@@ -50,25 +53,58 @@ export function ProfileSettings() {
             return;
         }
 
+        const updates: Partial<AppUser> = {};
+        let needsSignOut = false;
+        let emailChangeAttempted = false;
+
         const originalEmail = appUser.email.toLowerCase();
         const newEmail = data.email.toLowerCase();
         
-        if (appUser.role !== 'super-admin' || originalEmail === newEmail) {
-            toast({ title: 'No Changes', description: 'Only the super-admin can change their email, and the new email must be different.' });
+        const originalPhone = appUser.phone || user?.phoneNumber || '';
+        const newPhone = data.phone || '';
+
+        if (newEmail !== originalEmail) {
+            if (appUser.role === 'super-admin') {
+                updates.email = newEmail;
+                needsSignOut = true;
+            } else {
+                emailChangeAttempted = true;
+                form.setValue('email', originalEmail); // Revert field
+            }
+        }
+        
+        if (newPhone !== originalPhone) {
+            updates.phone = newPhone;
+        }
+
+        if (Object.keys(updates).length === 0) {
+            if (emailChangeAttempted) {
+                toast({ title: 'Permission Denied', description: 'Only a super-admin can change their email address.', variant: 'destructive' });
+            } else {
+                toast({ title: 'No Changes', description: 'No information was changed.' });
+            }
             return;
         }
 
         startTransition(async () => {
             try {
-                await updateUser(firestore, appUser.id, { email: newEmail });
+                await updateUser(firestore, appUser.id, updates);
+                
+                let toastDescription = 'Your profile has been updated.';
+                if(needsSignOut){
+                    toastDescription = 'Super-admin email updated. Please sign out and sign back in with the new email.';
+                } else if (emailChangeAttempted) {
+                     toastDescription = 'Your phone number was updated, but only a super-admin can change the email address.';
+                }
+
                 toast({ 
                     title: 'Success!', 
-                    description: 'Super-admin email updated. Please sign out and sign back in with the new email.',
-                    duration: 8000,
+                    description: toastDescription,
+                    duration: needsSignOut ? 8000 : 5000,
                 });
             } catch (error) {
                 console.error(error);
-                toast({ title: 'Error', description: 'Failed to update email.', variant: 'destructive' });
+                toast({ title: 'Error', description: 'Failed to update profile.', variant: 'destructive' });
             }
         });
     };
@@ -118,13 +154,22 @@ export function ProfileSettings() {
                                     <Input id="fullName" value={user?.displayName || 'Admin'} disabled className="pl-8 bg-muted/50" />
                                 </div>
                             </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="phone">Phone Number</Label>
-                                <div className="relative">
-                                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                    <Input id="phone" value={user?.phoneNumber || 'Not Provided'} disabled className="pl-8 bg-muted/50" />
-                                </div>
-                            </div>
+                            <FormField
+                                control={form.control}
+                                name="phone"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Phone Number</FormLabel>
+                                        <div className="relative">
+                                            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                            <FormControl>
+                                                <Input {...field} disabled={isPending} className="pl-8" placeholder="Not Provided"/>
+                                            </FormControl>
+                                        </div>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
                         </div>
                         <FormField
                             control={form.control}
@@ -150,7 +195,7 @@ export function ProfileSettings() {
                         />
                     </CardContent>
                     <CardFooter className="justify-end">
-                        <Button type="submit" disabled={isPending || !isSuperAdmin}>
+                        <Button type="submit" disabled={isPending}>
                            {isPending ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Updating...</>) : ('Update Profile')}
                         </Button>
                     </CardFooter>

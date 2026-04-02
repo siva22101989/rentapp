@@ -497,13 +497,36 @@
           "format": "email",
           "description": "The user's email address (lowercase)."
         },
+        "phone": {
+          "type": "string",
+          "description": "The user's contact phone number."
+        },
         "role": {
           "type": "string",
           "enum": ["super-admin", "owner", "supervisor", "biller"],
           "description": "The assigned role for the user."
+        },
+        "warehouseId": {
+          "type": "string",
+          "description": "The ID of the warehouse account this user belongs to."
         }
       },
       "required": ["email", "role"]
+    },
+    "managedWarehouse": {
+      "title": "Managed Warehouse",
+      "description": "Represents a tenant warehouse managed by the super-admin.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Name of the subscribed warehouse." },
+        "ownerName": { "type": "string", "description": "Name of the warehouse owner." },
+        "ownerEmail": { "type": "string", "format": "email", "description": "Email of the owner, used for login." },
+        "subscriptionStatus": { "type": "string", "enum": ["active", "trial", "expired", "suspended"], "description": "Current status of the subscription." },
+        "yearlyAmount": { "type": "number", "description": "The yearly subscription fee." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "The date the subscription was created." },
+        "trialMonths": { "type": "number", "description": "The number of months for the trial period." }
+      },
+      "required": ["name", "ownerEmail", "yearlyAmount"]
     }
   },
   "auth": {
@@ -514,53 +537,57 @@
       "schema": "appUser",
       "description": "Stores user roles and information."
     },
-    "/customers/{customerId}": {
+    "/managedWarehouses/{warehouseId}": {
+      "schema": "managedWarehouse",
+      "description": "Stores subscription records for warehouses managed by the super-admin."
+    },
+    "/managedWarehouses/{warehouseId}/customers/{customerId}": {
       "schema": "customer",
-      "description": "Stores individual customer documents."
+      "description": "Stores individual customer documents for a specific warehouse."
     },
-    "/commodities/{commodityId}": {
+    "/managedWarehouses/{warehouseId}/commodities/{commodityId}": {
       "schema": "commodity",
-      "description": "Stores documents for different types of commodities and their rent rates."
+      "description": "Stores commodity types for a specific warehouse."
     },
-    "/lots/{lotId}": {
+    "/managedWarehouses/{warehouseId}/lots/{lotId}": {
       "schema": "lot",
-      "description": "Stores documents for each storage lot in the warehouse."
+      "description": "Stores lot information for a specific warehouse."
     },
-    "/storageRecords/{recordId}": {
+    "/managedWarehouses/{warehouseId}/storageRecords/{recordId}": {
       "schema": "storageRecord",
-      "description": "Stores individual storage records."
+      "description": "Stores individual storage records for a specific warehouse."
     },
-    "/expenses/{expenseId}": {
-        "schema": "expense",
-        "description": "Stores individual expense documents."
+    "/managedWarehouses/{warehouseId}/expenses/{expenseId}": {
+      "schema": "expense",
+      "description": "Stores individual expense documents for a specific warehouse."
     },
-    "/borrowings/{borrowingId}": {
+    "/managedWarehouses/{warehouseId}/borrowings/{borrowingId}": {
       "schema": "borrowing",
-      "description": "Stores individual borrowing/loan records."
+      "description": "Stores individual borrowing/loan records for a specific warehouse."
     },
-    "/lendings/{lendingId}": {
+    "/managedWarehouses/{warehouseId}/lendings/{lendingId}": {
       "schema": "lending",
-      "description": "Stores individual lending/loan records."
+      "description": "Stores individual lending/loan records for a specific warehouse."
     },
-    "/otherIncomes/{incomeId}": {
+    "/managedWarehouses/{warehouseId}/otherIncomes/{incomeId}": {
       "schema": "otherIncome",
-      "description": "Stores individual miscellaneous income records."
+      "description": "Stores individual miscellaneous income records for a specific warehouse."
     },
-    "/unloadingRecords/{unloadingId}": {
+    "/managedWarehouses/{warehouseId}/unloadingRecords/{unloadingId}": {
       "schema": "unloadingRecord",
-      "description": "Stores records of the unloading process."
+      "description": "Stores records of the unloading process for a specific warehouse."
     },
-    "/dryingRecords/{dryingId}": {
+    "/managedWarehouses/{warehouseId}/dryingRecords/{dryingId}": {
       "schema": "dryingRecord",
-      "description": "Stores records of the drying process."
+      "description": "Stores records of the drying process for a specific warehouse."
     },
-    "/settings/{settingId}": {
-      "schema": "warehouseInfo",
-      "description": "Stores application settings, like warehouse details."
+    "/managedWarehouses/{warehouseId}/settings/main": {
+        "schema": "warehouseInfo",
+        "description": "Stores application settings, like warehouse details for a specific warehouse."
     },
-    "/settings/sms": {
+    "/managedWarehouses/{warehouseId}/settings/sms": {
       "schema": "smsInfo",
-      "description": "Stores SMS provider configuration."
+      "description": "Stores SMS provider configuration for a specific warehouse."
     }
   }
 }

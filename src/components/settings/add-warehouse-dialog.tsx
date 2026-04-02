@@ -20,7 +20,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { Input } from '../ui/input';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, writeBatch, doc } from 'firebase/firestore';
 import { cleanForFirestore } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
@@ -29,7 +29,8 @@ const WarehouseSchema = z.object({
   ownerName: z.string().min(2, 'Owner name is required.'),
   ownerEmail: z.string().email('A valid owner email is required.'),
   yearlyAmount: z.coerce.number().nonnegative('Yearly amount must be non-negative.'),
-  subscriptionStatus: z.enum(['active', 'trial', 'expired']).default('trial'),
+  subscriptionStatus: z.enum(['active', 'trial', 'expired', 'suspended']).default('trial'),
+  trialMonths: z.coerce.number().int().nonnegative('Trial months must be a non-negative integer.').optional(),
 });
 
 type WarehouseFormData = z.infer<typeof WarehouseSchema>;
@@ -48,6 +49,7 @@ export function AddWarehouseDialog() {
       ownerEmail: '',
       yearlyAmount: undefined,
       subscriptionStatus: 'trial',
+      trialMonths: 1,
     },
   });
 
@@ -59,12 +61,26 @@ export function AddWarehouseDialog() {
 
     startTransition(async () => {
       try {
-        await addDoc(collection(firestore, 'managedWarehouses'), cleanForFirestore({
+        const batch = writeBatch(firestore);
+
+        // 1. Create the warehouse document
+        const warehouseRef = doc(collection(firestore, 'managedWarehouses'));
+        batch.set(warehouseRef, cleanForFirestore({
             ...data,
             createdAt: new Date(),
         }));
+
+        // 2. Create the owner's user document
+        const userRef = doc(collection(firestore, 'users'));
+        batch.set(userRef, {
+            email: data.ownerEmail.toLowerCase(),
+            role: 'owner',
+            warehouseId: warehouseRef.id,
+        });
         
-        toast({ title: 'Success', description: 'New warehouse subscription added.' });
+        await batch.commit();
+
+        toast({ title: 'Success', description: 'New warehouse and owner account created.' });
         setIsOpen(false);
         form.reset();
       } catch (error) {
@@ -88,10 +104,10 @@ export function AddWarehouseDialog() {
             <DialogHeader>
               <DialogTitle>Onboard New Warehouse</DialogTitle>
               <DialogDescription>
-                Create a new warehouse subscription record.
+                Create a new warehouse subscription record and its owner account.
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
+            <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-4">
               <FormField
                 control={form.control}
                 name="name"
@@ -149,6 +165,7 @@ export function AddWarehouseDialog() {
                             <SelectItem value="trial">Trial</SelectItem>
                             <SelectItem value="active">Active</SelectItem>
                             <SelectItem value="expired">Expired</SelectItem>
+                            <SelectItem value="suspended">Suspended</SelectItem>
                             </SelectContent>
                         </Select>
                         <FormMessage />
@@ -156,8 +173,19 @@ export function AddWarehouseDialog() {
                     )}
                 />
               </div>
+               <FormField
+                  control={form.control}
+                  name="trialMonths"
+                  render={({ field }) => (
+                  <FormItem>
+                      <FormLabel>Trial Duration (Months)</FormLabel>
+                      <FormControl><Input type="number" placeholder="e.g. 1" {...field} value={field.value ?? ''} /></FormControl>
+                      <FormMessage />
+                  </FormItem>
+                  )}
+              />
             </div>
-            <DialogFooter>
+            <DialogFooter className="pt-4">
               <DialogClose asChild><Button variant="outline" type="button">Cancel</Button></DialogClose>
               <Button type="submit" disabled={isPending}>
                 {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : 'Add Subscription'}

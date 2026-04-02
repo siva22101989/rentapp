@@ -27,7 +27,7 @@ export type Lot = {
 export type Payment = {
   amount: number;
   date: Date | Timestamp;
-  type?: 'rent' | 'hamali' | 'other' | 'unloading' | 'discount' | 'repayment';
+  type?: 'rent' | 'hamali' | 'other' | 'unloading' | 'discount' | 'repayment' | 'interest' | 'principal';
 };
 
 export type Outflow = {
@@ -194,7 +194,8 @@ export type ManagedWarehouse = {
   name: string;
   ownerName: string;
   ownerEmail: string;
-  subscriptionStatus: 'active' | 'trial' | 'expired';
+  subscriptionStatus: 'active' | 'trial' | 'expired' | 'suspended';
   yearlyAmount: number;
   createdAt: Date | Timestamp;
+  trialMonths?: number;
 };

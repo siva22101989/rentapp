@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { GoogleAuthProvider, signInWithPopup, User } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, User, RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from 'firebase/auth';
 import { useAuth, useFirestore } from '@/firebase/provider';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +11,14 @@ import { Loader2, AlertCircle } from 'lucide-react';
 import { Logo } from '@/components/layout/logo';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Link from 'next/link';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+
+declare global {
+  interface Window {
+    recaptchaVerifier?: RecaptchaVerifier;
+  }
+}
 
 function GoogleIcon() {
     return (
@@ -30,7 +38,12 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [unauthorizedDomain, setUnauthorizedDomain] = useState<string | null>(null);
 
-  const handleSignIn = async () => {
+  const [view, setView] = useState<'google' | 'phone'>('google');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [otp, setOtp] = useState('');
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+
+  const handleGoogleSignIn = async () => {
     setIsLoading(true);
     setError(null);
     setUnauthorizedDomain(null);
@@ -57,6 +70,54 @@ export default function LoginPage() {
     }
   };
 
+  const handlePhoneSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+    if (!auth) {
+        setError('Firebase not configured.');
+        setIsLoading(false);
+        return;
+    }
+    try {
+        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+            'size': 'invisible',
+            'callback': (response: any) => { /* reCAPTCHA solved */ }
+        });
+        const appVerifier = window.recaptchaVerifier;
+        const result = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+        setConfirmationResult(result);
+        setIsLoading(false);
+    } catch (error: any) {
+        console.error(error);
+        if (error.code === 'auth/invalid-phone-number') {
+            setError('Invalid phone number. Please include the country code (e.g., +91).');
+        } else {
+            setError('Failed to send verification code. Please try again.');
+        }
+        setIsLoading(false);
+    }
+  };
+
+  const handleOtpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+    if (!confirmationResult) {
+        setError('Verification process not started.');
+        setIsLoading(false);
+        return;
+    }
+    try {
+        await confirmationResult.confirm(otp);
+        router.push('/');
+    } catch (error: any) {
+        console.error(error);
+        setError('Invalid verification code. Please try again.');
+        setIsLoading(false);
+    }
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
@@ -68,44 +129,92 @@ export default function LoginPage() {
           <CardDescription>Sign in to access your warehouse dashboard</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          {unauthorizedDomain ? (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Domain Not Authorized</AlertTitle>
-              <AlertDescription>
-                <p className="mb-2">
-                    To sign in, you must authorize this domain in your Firebase project settings:
-                </p>
-                <pre className="mb-4 bg-muted p-2 rounded text-xs font-mono text-destructive-foreground break-all">
-                    {unauthorizedDomain}
-                </pre>
-                <Button asChild size="sm">
-                    <Link href="https://console.firebase.google.com/project/_/authentication/settings" target="_blank" rel="noopener noreferrer">
-                        Open Firebase Auth Settings
-                    </Link>
-                </Button>
-              </AlertDescription>
-            </Alert>
-          ) : (
-            <Button onClick={handleSignIn} disabled={isLoading} className="w-full">
-              {isLoading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                  <GoogleIcon />
-              )}
-              Sign in with Google
-            </Button>
-          )}
-
-          {error && (
-            <Alert variant="destructive" className="text-center">
+            {unauthorizedDomain ? (
+                <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Access Denied</AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
+                <AlertTitle>Domain Not Authorized</AlertTitle>
+                <AlertDescription>
+                    <p className="mb-2">
+                        To sign in, you must authorize this domain in your Firebase project settings:
+                    </p>
+                    <pre className="mb-4 bg-muted p-2 rounded text-xs font-mono text-destructive-foreground break-all">
+                        {unauthorizedDomain}
+                    </pre>
+                    <Button asChild size="sm">
+                        <Link href="https://console.firebase.google.com/project/_/authentication/settings" target="_blank" rel="noopener noreferrer">
+                            Open Firebase Auth Settings
+                        </Link>
+                    </Button>
+                </AlertDescription>
+                </Alert>
+            ) : view === 'google' && (
+              <>
+                <Button onClick={handleGoogleSignIn} disabled={isLoading} className="w-full">
+                  {isLoading ? ( <Loader2 className="mr-2 h-4 w-4 animate-spin" /> ) : ( <GoogleIcon /> )}
+                  Sign in with Google
+                </Button>
+                <Button variant="link" onClick={() => setView('phone')}>
+                    Sign in with phone number instead
+                </Button>
+              </>
+            )}
+
+            {view === 'phone' && !confirmationResult && (
+                <form onSubmit={handlePhoneSignIn} className="space-y-4">
+                    <div>
+                        <Label htmlFor="phone">Phone Number (with country code)</Label>
+                        <Input
+                            id="phone"
+                            type="tel"
+                            placeholder="+91 123 456 7890"
+                            value={phoneNumber}
+                            onChange={(e) => setPhoneNumber(e.target.value)}
+                            required
+                        />
+                    </div>
+                    <Button type="submit" disabled={isLoading} className="w-full">
+                        {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Send Verification Code'}
+                    </Button>
+                    <Button variant="link" onClick={() => setView('google')}>
+                        Sign in with Google instead
+                    </Button>
+                </form>
+            )}
+
+            {view === 'phone' && confirmationResult && (
+                <form onSubmit={handleOtpSubmit} className="space-y-4">
+                    <div>
+                        <Label htmlFor="otp">Verification Code</Label>
+                        <Input
+                            id="otp"
+                            type="text"
+                            placeholder="Enter 6-digit code"
+                            value={otp}
+                            onChange={(e) => setOtp(e.target.value)}
+                            required
+                        />
+                    </div>
+                    <Button type="submit" disabled={isLoading} className="w-full">
+                        {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Verify & Sign In'}
+                    </Button>
+                    <Button variant="link" onClick={() => setConfirmationResult(null)}>
+                        Change phone number
+                    </Button>
+                </form>
+            )}
+
+            {error && (
+                <Alert variant="destructive" className="text-center">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Sign-In Error</AlertTitle>
+                    <AlertDescription>{error}</AlertDescription>
+                </Alert>
+            )}
+             <div id="recaptcha-container"></div>
         </CardContent>
       </Card>
     </div>
   );
 }
+
+    

@@ -69,7 +69,7 @@ export default function LoginPage() {
 
   const handlePasswordSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth || !firestore) {
+    if (!auth) {
       setError('Firebase not available.');
       return;
     }
@@ -79,47 +79,32 @@ export default function LoginPage() {
     const shadowEmail = `${identifier}@${firebaseConfig.authDomain}`;
 
     try {
-        // First, try to sign in. This will work for existing users.
         await signInWithEmailAndPassword(auth, shadowEmail, password);
         router.push('/');
     } catch (signInError: any) {
         if (signInError.code === 'auth/user-not-found' || signInError.code === 'auth/invalid-credential') {
-            // This is the special case: the user might be a new team member.
-            // We can't query the `users` collection for security reasons before auth.
-            // So, we'll try to create the user. If they aren't in the `users` collection,
-            // the `UserProvider` will sign them out immediately after login.
+            // If the user is not found, it might be their first time signing in.
+            // Attempt to create an account for them.
             try {
-                // Check if the user is in Firestore first to prevent random signups
-                const usersRef = collection(firestore, 'users');
-                const q = query(usersRef, where('phone', '==', identifier));
-                const userQuerySnapshot = await getDocs(q);
-
-                if (userQuerySnapshot.empty) {
-                    // This is the error you were seeing. The user is not in the database.
-                    setError('User not found. Please contact the warehouse owner to get access.');
-                    setIsLoading(false);
-                    return;
-                }
-                
-                // If the user is in the DB but doesn't have an auth account, create it.
                 await createUserWithEmailAndPassword(auth, shadowEmail, password);
+                // After successful creation, Firebase automatically signs the user in.
+                // The UserProvider will then handle authorization by checking the 'users' collection.
                 router.push('/');
-
             } catch (createError: any) {
-                // This catch block handles Firestore query errors AND createUser errors
-                 if(createError.code?.includes('permission-denied')) {
-                    setError('Could not verify user. Please try again.');
-                } else if (createError.code === 'auth/weak-password') {
-                    setError('Password is too weak. It must be at least 6 characters.');
+                if (createError.code === 'auth/weak-password') {
+                    setError('Password is too weak. It must be at least 6 characters long.');
+                } else if (createError.code === 'auth/email-already-in-use') {
+                    // This can happen if sign-in fails with invalid-credential, but user actually exists.
+                    // In this case, the password was simply wrong.
+                    setError('Incorrect password. Please try again.');
                 } else {
-                    setError('An unknown error occurred during account creation.');
+                    setError('This phone number has not been authorized. Please contact the owner.');
                 }
-                console.error("Creation/Verification error:", createError);
             }
         } else if (signInError.code === 'auth/wrong-password') {
             setError('Incorrect password. Please try again.');
         } else {
-            setError('An unknown sign-in error occurred.');
+            setError('An unknown sign-in error occurred. Please try again.');
             console.error(signInError);
         }
     } finally {
@@ -133,25 +118,22 @@ export default function LoginPage() {
         return;
     }
     if (!identifier) {
-        toast({ title: 'Phone Number or Email Required', description: 'Please enter your identifier to reset your password.', variant: 'destructive'});
+        toast({ title: 'Phone Number Required', description: 'Please enter your phone number to reset your password.', variant: 'destructive'});
         return;
     }
 
-    let userEmail: string | undefined = undefined;
-
-    if (identifier.includes('@')) {
-        userEmail = identifier;
-    } else {
-        // Assume it's a phone number, construct shadow email
-        userEmail = `${identifier}@${firebaseConfig.authDomain}`;
-    }
+    const userEmail = `${identifier}@${firebaseConfig.authDomain}`;
 
     try {
         await sendPasswordResetEmail(auth, userEmail);
-        toast({ title: 'Password Reset Email Sent', description: 'Check your inbox for a link to reset your password.'});
+        toast({ title: 'Password Reset Email Sent', description: `An email has been sent to ${userEmail}. Check your inbox for a link to reset your password.`});
     } catch (error: any) {
         console.error(error);
-        toast({ title: 'Error', description: 'Failed to send password reset email. Ensure the phone or email is registered.', variant: 'destructive'});
+        if (error.code === 'auth/user-not-found') {
+             toast({ title: 'User Not Found', description: 'This phone number is not registered. Please contact the warehouse owner.', variant: 'destructive'});
+        } else {
+            toast({ title: 'Error', description: 'Failed to send password reset email.', variant: 'destructive'});
+        }
     }
   }
 
@@ -245,3 +227,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
+    

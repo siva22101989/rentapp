@@ -77,7 +77,7 @@ export function AddBorrowingDialog() {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="success">
+        <Button variant="default">
           <Landmark className="mr-2" />
           Add Borrowing
         </Button>

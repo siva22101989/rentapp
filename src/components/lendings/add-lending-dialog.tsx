@@ -77,7 +77,7 @@ export function AddLendingDialog() {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="destructive">
+        <Button variant="default">
           <HandCoins className="mr-2" />
           Add Lending
         </Button>

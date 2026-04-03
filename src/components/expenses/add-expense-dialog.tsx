@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -129,7 +130,7 @@ export function AddExpenseDialog({ borrowings }: { borrowings: Borrowing[] }) {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="destructive">
+        <Button variant="default">
           <PlusCircle className="mr-2" />
           Add Expense
         </Button>

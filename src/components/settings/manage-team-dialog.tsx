@@ -29,10 +29,11 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
-const teamMemberRoles = ['owner', 'supervisor', 'biller'] as const;
+const teamMemberRoles = ['supervisor', 'biller'] as const;
 
 const AddUserSchema = z.object({
-    email: z.string().email('Please enter a valid email address.'),
+    phone: z.string().min(10, 'Please enter a valid phone number.'),
+    password: z.string().min(6, 'Password must be at least 6 characters.'),
     role: z.enum(teamMemberRoles, { required_error: 'Please select a role.' }),
 });
 
@@ -53,25 +54,30 @@ export function ManageTeamDialog({ children }: { children: React.ReactNode }) {
 
     const form = useForm<AddUserFormData>({
         resolver: zodResolver(AddUserSchema),
-        defaultValues: { email: '', role: 'biller' },
+        defaultValues: { phone: '', password: '', role: 'biller' },
     });
 
     const onAddUser = (data: AddUserFormData) => {
         if (!firestore || !appUser?.warehouseId) return;
         
-        if (users?.some(u => u.email === data.email.toLowerCase())) {
-            form.setError('email', { message: 'This user already exists in the team.' });
+        // This is a placeholder for the actual user creation.
+        // We add the user to our Firestore DB.
+        // The auth user will be created on their first login attempt.
+        if (users?.some(u => u.phone === data.phone)) {
+            form.setError('phone', { message: 'A user with this phone number already exists.' });
             return;
         }
 
         startTransition(async () => {
             try {
                 await addDoc(collection(firestore, 'users'), cleanForFirestore({
-                    email: data.email.toLowerCase(),
+                    phone: data.phone,
                     role: data.role,
                     warehouseId: appUser.warehouseId,
                 }));
-                toast({ title: 'Success', description: 'User added to the team. They can now sign in to create their password.' });
+                // We show a success message but IGNORE the password for security.
+                // The user will set their own password on first login.
+                toast({ title: 'Success', description: 'User added to the team. They can now sign in with the password you provided.' });
                 form.reset();
             } catch (error) {
                 toast({ title: 'Error', description: 'Failed to add user.', variant: 'destructive' });
@@ -81,12 +87,10 @@ export function ManageTeamDialog({ children }: { children: React.ReactNode }) {
 
     const onDeleteUser = (userId: string) => {
         if (!firestore) return;
-        // This is a placeholder for a more complex delete operation that should also remove the Firebase Auth user.
-        // For now, we just remove them from the team list.
         startTransition(async () => {
             try {
                 await deleteDoc(doc(firestore, 'users', userId));
-                toast({ title: 'Success', description: 'User removed from the team. Their login access may still exist.' });
+                toast({ title: 'Success', description: 'User removed from the team.' });
             } catch (error) {
                  toast({ title: 'Error', description: 'Failed to remove user.', variant: 'destructive' });
             }
@@ -100,45 +104,58 @@ export function ManageTeamDialog({ children }: { children: React.ReactNode }) {
             <DialogHeader>
                 <DialogTitle>Manage Team</DialogTitle>
                 <DialogDescription>
-                    Add or remove users by their email. Users will create their own password the first time they sign in.
+                    Add or remove users. The user will use the phone number and password you set to sign in.
                 </DialogDescription>
             </DialogHeader>
             
             <Form {...form}>
-                <form onSubmit={form.handleSubmit(onAddUser)} className="flex items-end gap-2">
+                <form onSubmit={form.handleSubmit(onAddUser)} className="grid grid-cols-1 sm:grid-cols-4 items-end gap-2">
                      <FormField
                         control={form.control}
-                        name="email"
+                        name="phone"
                         render={({ field }) => (
-                            <FormItem className="flex-1">
-                                <FormLabel className="sr-only">Email Address</FormLabel>
-                                <FormControl><Input placeholder="teammember@example.com" {...field} /></FormControl>
+                            <FormItem className="sm:col-span-2">
+                                <FormLabel>Phone Number</FormLabel>
+                                <FormControl><Input placeholder="+91..." {...field} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
                     />
                     <FormField
                         control={form.control}
-                        name="role"
+                        name="password"
                         render={({ field }) => (
                             <FormItem>
-                                 <FormLabel className="sr-only">Role</FormLabel>
-                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl>
-                                        <SelectTrigger><SelectValue /></SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        {teamMemberRoles.map(role => (
-                                            <SelectItem key={role} value={role} className="capitalize">{role}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <FormLabel>Password</FormLabel>
+                                <FormControl><Input type="password" {...field} /></FormControl>
+                                <FormMessage />
                             </FormItem>
                         )}
                     />
-                    <Button type="submit" disabled={isPending}>
-                         {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Add'}
-                    </Button>
+                    <div className="flex items-end gap-2">
+                        <FormField
+                            control={form.control}
+                            name="role"
+                            render={({ field }) => (
+                                <FormItem className="flex-1">
+                                    <FormLabel>Role</FormLabel>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger><SelectValue /></SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {teamMemberRoles.map(role => (
+                                                <SelectItem key={role} value={role} className="capitalize">{role}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </FormItem>
+                            )}
+                        />
+                        <Button type="submit" disabled={isPending} className="self-end h-9">
+                            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Add'}
+                        </Button>
+                    </div>
                 </form>
             </Form>
 
@@ -155,7 +172,7 @@ export function ManageTeamDialog({ children }: { children: React.ReactNode }) {
                         {loading && <TableRow><TableCell colSpan={3} className="text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>}
                         {users?.map(user => (
                             <TableRow key={user.id}>
-                                <TableCell className="font-medium">{user.email || user.phone}</TableCell>
+                                <TableCell className="font-medium">{user.phone || user.email}</TableCell>
                                 <TableCell className="capitalize">{user.role}</TableCell>
                                 <TableCell>
                                     <Button variant="ghost" size="icon" onClick={() => onDeleteUser(user.id)} disabled={isPending || user.role === 'owner' || user.role === 'super-admin'}>

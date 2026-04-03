@@ -15,6 +15,8 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '../ui/separator';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
+import { firebaseConfig } from '@/firebase/config';
+import type { AppUser } from '@/lib/definitions';
 
 function GoogleIcon() {
     return (
@@ -36,7 +38,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [unauthorizedDomain, setUnauthorizedDomain] = useState<string | null>(null);
 
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState(''); // Can be email or phone
   const [password, setPassword] = useState('');
 
   const handleGoogleSignIn = async () => {
@@ -74,41 +76,44 @@ export default function LoginPage() {
     setError(null);
 
     try {
-        await signInWithEmailAndPassword(auth, email, password);
-        router.push('/');
-    } catch (signInError: any) {
-        if (signInError.code === 'auth/user-not-found') {
-            // User doesn't exist, let's see if they are an invited team member.
-            const usersRef = collection(firestore, 'users');
-            const q = query(usersRef, where('email', '==', email.toLowerCase()));
-            const userQuerySnapshot = await getDocs(q);
+        const usersRef = collection(firestore, 'users');
+        const q = query(usersRef, where('phone', '==', identifier));
+        const userQuerySnapshot = await getDocs(q);
 
-            if (!userQuerySnapshot.empty) {
-                // This is an invited user, create their auth account now.
+        if (userQuerySnapshot.empty) {
+            setError('User not found. Please contact the warehouse owner to get access.');
+            setIsLoading(false);
+            return;
+        }
+
+        const appUser = userQuerySnapshot.docs[0].data() as AppUser;
+        const shadowEmail = `${identifier}@${firebaseConfig.authDomain}`;
+
+        try {
+             await signInWithEmailAndPassword(auth, shadowEmail, password);
+             router.push('/');
+        } catch(signInError: any) {
+             if (signInError.code === 'auth/user-not-found') {
                 try {
-                    await createUserWithEmailAndPassword(auth, email, password);
+                    await createUserWithEmailAndPassword(auth, shadowEmail, password);
                     router.push('/');
                 } catch (createError: any) {
-                    setError('Failed to create account. Password should be at least 6 characters.');
+                    setError('Failed to create account. Please ensure the password is at least 6 characters long.');
                     console.error(createError);
-                    setIsLoading(false);
                 }
+            } else if (signInError.code === 'auth/wrong-password' || signInError.code === 'auth/invalid-credential') {
+                setError('Incorrect password. Please try again.');
             } else {
-                // Not an invited user.
-                setError('User not found. Please check your email or contact the warehouse owner.');
-                setIsLoading(false);
+                setError('An unknown error occurred during sign-in.');
+                console.error(signInError);
             }
-        } else if (signInError.code === 'auth/wrong-password') {
-            setError('Incorrect password. Please try again.');
-            setIsLoading(false);
-        } else if (signInError.code === 'auth/invalid-credential') {
-             setError('Incorrect email or password. Please try again.');
-             setIsLoading(false);
-        } else {
-            setError('An unknown error occurred during sign-in.');
-            console.error(signInError);
-            setIsLoading(false);
         }
+
+    } catch (e) {
+        setError('Failed to query user data.');
+        console.error(e);
+    } finally {
+        setIsLoading(false);
     }
   };
 
@@ -117,16 +122,26 @@ export default function LoginPage() {
         toast({ title: 'Error', description: 'Firebase not available.', variant: 'destructive'});
         return;
     }
-    if (!email) {
-        toast({ title: 'Email Required', description: 'Please enter your email address first.', variant: 'destructive'});
+    if (!identifier) {
+        toast({ title: 'Phone Number or Email Required', description: 'Please enter your identifier to reset your password.', variant: 'destructive'});
         return;
     }
+
+    let userEmail: string | undefined = undefined;
+
+    if (identifier.includes('@')) {
+        userEmail = identifier;
+    } else {
+        // Assume it's a phone number, construct shadow email
+        userEmail = `${identifier}@${firebaseConfig.authDomain}`;
+    }
+
     try {
-        await sendPasswordResetEmail(auth, email);
+        await sendPasswordResetEmail(auth, userEmail);
         toast({ title: 'Password Reset Email Sent', description: 'Check your inbox for a link to reset your password.'});
     } catch (error: any) {
         console.error(error);
-        toast({ title: 'Error', description: 'Failed to send password reset email.', variant: 'destructive'});
+        toast({ title: 'Error', description: 'Failed to send password reset email. Ensure the phone or email is registered.', variant: 'destructive'});
     }
   }
 
@@ -177,13 +192,13 @@ export default function LoginPage() {
             <form onSubmit={handlePasswordSignIn} className="space-y-4">
                 <h3 className="text-sm font-semibold text-center">Team Member Sign-in</h3>
                 <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="identifier">Phone Number</Label>
                     <Input
-                        id="email"
-                        type="email"
-                        placeholder="member@example.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        id="identifier"
+                        type="text"
+                        placeholder="e.g., +91..."
+                        value={identifier}
+                        onChange={(e) => setIdentifier(e.target.value)}
                         required
                     />
                 </div>

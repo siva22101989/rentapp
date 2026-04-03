@@ -191,7 +191,7 @@ export type UserRole = (typeof userRoles)[number];
 export type AppUser = {
   id: string;
   email?: string;
-  phone?: string;
+  phone: string;
   role: UserRole;
   warehouseId?: string;
 };

@@ -7,6 +7,7 @@ import { useAuth, useFirestore } from '@/firebase/provider';
 import type { AppUser } from '@/lib/definitions';
 import { collection, query, where, getDocs, addDoc, or } from 'firebase/firestore';
 import { cleanForFirestore } from '@/lib/utils';
+import { firebaseConfig } from '../config';
 
 interface UserContextType {
   user: User | null;
@@ -32,13 +33,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
     const unsubscribe = auth.onAuthStateChanged(async (fbUser) => {
       setLoading(true);
       if (fbUser) {
-        // User is authenticated, check if they are authorized in our app.
         const usersRef = collection(firestore, 'users');
         
         const allUsersSnapshot = await getDocs(usersRef);
 
-        if (allUsersSnapshot.empty) {
-          // This is the first user ever. Make them a super-admin.
+        if (allUsersSnapshot.empty && fbUser.providerData.some(p => p.providerId === 'google.com')) {
+          // This is the first user ever signing in with Google. Make them a super-admin.
           const userDocData: { email?: string; phone?: string; role: 'super-admin' } = { role: 'super-admin' };
           if (fbUser.email) userDocData.email = fbUser.email.toLowerCase();
           if (fbUser.phoneNumber) userDocData.phone = fbUser.phoneNumber;
@@ -52,30 +52,38 @@ export function UserProvider({ children }: { children: ReactNode }) {
             await auth.signOut();
           }
         } else {
-          // Users exist. Check if the current user is one of them.
-          const conditions = [];
-          if (fbUser.email) {
-            conditions.push(where('email', '==', fbUser.email.toLowerCase()));
-          }
-          if (fbUser.phoneNumber) {
-            conditions.push(where('phone', '==', fbUser.phoneNumber));
+          // Users exist, or this is a team member login.
+          let userQuery;
+          const userEmail = fbUser.email;
+          const userPhone = fbUser.phoneNumber;
+
+          // Check if this is a team member using a "shadow email"
+          if (userEmail && userEmail.startsWith('+') && userEmail.endsWith(`@${firebaseConfig.authDomain}`)) {
+              const phone = userEmail.split('@')[0];
+              userQuery = query(usersRef, where('phone', '==', phone));
+          } else {
+              // Standard google login or an old email/pass user
+              const conditions = [];
+              if (userEmail) conditions.push(where('email', '==', userEmail.toLowerCase()));
+              if (userPhone) conditions.push(where('phone', '==', userPhone));
+
+              if (conditions.length > 0) {
+                  userQuery = query(usersRef, or(...conditions));
+              }
           }
           
-          if (conditions.length > 0) {
-              const q = query(usersRef, or(...conditions));
-              const userQuerySnapshot = await getDocs(q);
-
-              if (!userQuerySnapshot.empty) {
-                // User is authorized.
-                const userDoc = userQuerySnapshot.docs[0];
-                setAppUser({ id: userDoc.id, ...userDoc.data() } as AppUser);
-                setUser(fbUser);
-              } else {
-                // User is authenticated with Firebase but not in our app's user list.
-                await auth.signOut();
-              }
+          if (userQuery) {
+            const userQuerySnapshot = await getDocs(userQuery);
+            if (!userQuerySnapshot.empty) {
+              const userDoc = userQuerySnapshot.docs[0];
+              setAppUser({ id: userDoc.id, ...userDoc.data() } as AppUser);
+              setUser(fbUser);
+            } else {
+              // User is authenticated with Firebase but not in our app's user list.
+              await auth.signOut();
+            }
           } else {
-            // User is authenticated but has no email or phone.
+             // User has no email or phone, and doesn't match shadow email format.
             await auth.signOut();
           }
         }

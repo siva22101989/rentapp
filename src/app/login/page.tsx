@@ -17,6 +17,8 @@ import { collection, query, where, getDocs } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { firebaseConfig } from '@/firebase/config';
 import type { AppUser } from '@/lib/definitions';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 function GoogleIcon() {
     return (
@@ -75,45 +77,54 @@ export default function LoginPage() {
     setIsLoading(true);
     setError(null);
 
-    const shadowEmail = `${identifier}@${firebaseConfig.authDomain}`;
+    const shadowEmail = `+${identifier}@${firebaseConfig.authDomain}`;
 
-    try {
-        await signInWithEmailAndPassword(auth, shadowEmail, password);
-        router.push('/');
-    } catch (signInError: any) {
-        if (signInError.code === 'auth/user-not-found' || signInError.code === 'auth/invalid-credential') {
-            // User doesn't exist in Firebase Auth. Check if they are authorized in our Firestore DB.
-            const userInDbQuery = query(collection(firestore, 'users'), where('phone', '==', identifier));
-            const userInDbSnap = await getDocs(userInDbQuery);
+    signInWithEmailAndPassword(auth, shadowEmail, password)
+        .then(() => {
+            router.push('/');
+        })
+        .catch((signInError: any) => {
+            if (signInError.code === 'auth/user-not-found' || signInError.code === 'auth/invalid-credential') {
+                const userInDbQuery = query(collection(firestore, 'users'), where('phone', '==', identifier));
+                
+                getDocs(userInDbQuery)
+                    .then(userInDbSnap => {
+                        if (userInDbSnap.empty) {
+                            setError('This phone number has not been authorized. Please contact the owner.');
+                            setIsLoading(false);
+                            return;
+                        }
 
-            if (userInDbSnap.empty) {
-                setError('This phone number has not been authorized. Please contact the owner.');
+                        createUserWithEmailAndPassword(auth, shadowEmail, password)
+                            .then(() => {
+                                router.push('/');
+                            })
+                            .catch(createError => {
+                                if (createError.code === 'auth/weak-password') {
+                                    setError('Password is too weak. It must be at least 6 characters long.');
+                                } else {
+                                    setError('This phone number is already associated with an account.');
+                                }
+                                setIsLoading(false);
+                            });
+                    })
+                    .catch(serverError => {
+                        const permissionError = new FirestorePermissionError({
+                            path: 'users',
+                            operation: 'list',
+                        });
+                        errorEmitter.emit('permission-error', permissionError, auth.currentUser);
+                        setIsLoading(false);
+                    });
+            } else if (signInError.code === 'auth/wrong-password' || signInError.code === 'auth/invalid-credential') {
+                setError('Incorrect password. Please try again.');
                 setIsLoading(false);
-                return;
+            } else {
+                setError('An unknown sign-in error occurred. Please try again.');
+                console.error(signInError);
+                setIsLoading(false);
             }
-
-            // User is authorized in Firestore, so create their auth account now.
-            try {
-                await createUserWithEmailAndPassword(auth, shadowEmail, password);
-                // After successful creation, Firebase automatically signs the user in.
-                router.push('/');
-            } catch (createError: any) {
-                if (createError.code === 'auth/weak-password') {
-                    setError('Password is too weak. It must be at least 6 characters long.');
-                } else {
-                    // This can happen if another user already has this shadow email. Should be rare.
-                    setError('This phone number is already associated with an account.');
-                }
-            }
-        } else if (signInError.code === 'auth/wrong-password') {
-            setError('Incorrect password. Please try again.');
-        } else {
-            setError('An unknown sign-in error occurred. Please try again.');
-            console.error(signInError);
-        }
-    } finally {
-        setIsLoading(false);
-    }
+        });
   };
 
   const handleForgotPassword = async () => {
@@ -126,11 +137,11 @@ export default function LoginPage() {
         return;
     }
 
-    const userEmail = `${identifier}@${firebaseConfig.authDomain}`;
+    const userEmail = `+${identifier}@${firebaseConfig.authDomain}`;
 
     try {
         await sendPasswordResetEmail(auth, userEmail);
-        toast({ title: 'Password Reset Email Sent', description: `If an account exists for this phone number, an email has been sent to ${userEmail} with a password reset link.`});
+        toast({ title: 'Password Reset Email Sent', description: `If an account exists for this phone number, check the spam folder for an email sent to ${userEmail} with a password reset link.`});
     } catch (error: any) {
         console.error(error);
         if (error.code === 'auth/user-not-found') {

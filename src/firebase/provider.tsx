@@ -15,6 +15,7 @@ import { getAuth, type Auth } from 'firebase/auth';
 // Import a common function like `collection` to hint the bundler against tree-shaking.
 import { getFirestore, collection, type Firestore } from 'firebase/firestore';
 import { firebaseConfig } from './config';
+import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
 export type FirebaseContextValue = {
   auth: Auth;
@@ -44,6 +45,7 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
   return (
     <FirebaseContext.Provider value={value}>
       {children}
+      <FirebaseErrorListener />
     </FirebaseContext.Provider>
   );
 }

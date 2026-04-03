@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
@@ -8,6 +7,8 @@ import type { AppUser } from '@/lib/definitions';
 import { collection, query, where, getDocs, addDoc, or } from 'firebase/firestore';
 import { cleanForFirestore } from '@/lib/utils';
 import { firebaseConfig } from '../config';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 interface UserContextType {
   user: User | null;
@@ -30,73 +31,98 @@ export function UserProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const unsubscribe = auth.onAuthStateChanged(async (fbUser) => {
+    const handlePermissionError = (operation: 'list' | 'create', path: string, resource?: any) => {
+      const permissionError = new FirestorePermissionError({
+        path,
+        operation,
+        ...(resource && { requestResourceData: resource }),
+      });
+      errorEmitter.emit('permission-error', permissionError, auth.currentUser);
+    };
+
+    const unsubscribe = auth.onAuthStateChanged((fbUser) => {
       setLoading(true);
       if (fbUser) {
         const usersRef = collection(firestore, 'users');
-        
-        const allUsersSnapshot = await getDocs(usersRef);
 
-        if (allUsersSnapshot.empty && fbUser.providerData.some(p => p.providerId === 'google.com')) {
-          // This is the first user ever signing in with Google. Make them a super-admin.
-          const userDocData: { email?: string; phone?: string; role: 'super-admin' } = { role: 'super-admin' };
-          if (fbUser.email) userDocData.email = fbUser.email.toLowerCase();
-          if (fbUser.phoneNumber) userDocData.phone = fbUser.phoneNumber;
+        getDocs(usersRef)
+          .then((allUsersSnapshot) => {
+            if (allUsersSnapshot.empty && fbUser.providerData.some(p => p.providerId === 'google.com')) {
+              const userDocData: { email?: string; phone?: string; role: 'super-admin' } = { role: 'super-admin' };
+              if (fbUser.email) userDocData.email = fbUser.email.toLowerCase();
+              if (fbUser.phoneNumber) userDocData.phone = fbUser.phoneNumber;
+              const cleanUserDocData = cleanForFirestore(userDocData);
 
-          try {
-            const newUserDocRef = await addDoc(usersRef, cleanForFirestore(userDocData));
-            setAppUser({ id: newUserDocRef.id, ...userDocData });
-            setUser(fbUser);
-          } catch (e) {
-            console.error("Failed to create first user:", e);
-            await auth.signOut();
-          }
-        } else {
-          // Users exist, or this is a team member login.
-          let userQuery;
-          const userEmail = fbUser.email;
-          const userPhone = fbUser.phoneNumber;
-
-          // Check if this is a team member using a "shadow email"
-          if (userEmail && userEmail.startsWith('+') && userEmail.endsWith(`@${firebaseConfig.authDomain}`)) {
-              const phone = userEmail.split('@')[0];
-              userQuery = query(usersRef, where('phone', '==', phone));
-          } else {
-              // Standard google login or an old email/pass user
-              const conditions = [];
-              if (userEmail) conditions.push(where('email', '==', userEmail.toLowerCase()));
-              if (userPhone) conditions.push(where('phone', '==', userPhone));
-
-              if (conditions.length > 0) {
-                  userQuery = query(usersRef, or(...conditions));
-              }
-          }
-          
-          if (userQuery) {
-            const userQuerySnapshot = await getDocs(userQuery);
-            if (!userQuerySnapshot.empty) {
-              const userDoc = userQuerySnapshot.docs[0];
-              setAppUser({ id: userDoc.id, ...userDoc.data() } as AppUser);
-              setUser(fbUser);
+              addDoc(usersRef, cleanUserDocData)
+                .then(newUserDocRef => {
+                  setAppUser({ id: newUserDocRef.id, ...userDocData } as AppUser);
+                  setUser(fbUser);
+                  setLoading(false);
+                })
+                .catch(e => {
+                  handlePermissionError('create', 'users', cleanUserDocData);
+                  console.error("Failed to create first user:", e);
+                  auth.signOut();
+                  setLoading(false);
+                });
             } else {
-              // User is authenticated with Firebase but not in our app's user list.
-              await auth.signOut();
+              let userQuery;
+              const userEmail = fbUser.email;
+              const userPhone = fbUser.phoneNumber;
+
+              if (userEmail && userEmail.startsWith('+') && userEmail.endsWith(`@${firebaseConfig.authDomain}`)) {
+                const phone = userEmail.substring(1, userEmail.indexOf('@'));
+                userQuery = query(usersRef, where('phone', '==', phone));
+              } else {
+                const conditions = [];
+                if (userEmail) conditions.push(where('email', '==', userEmail.toLowerCase()));
+                if (userPhone) conditions.push(where('phone', '==', userPhone));
+
+                if (conditions.length > 0) {
+                  userQuery = query(usersRef, or(...conditions));
+                }
+              }
+
+              if (userQuery) {
+                getDocs(userQuery)
+                  .then(userQuerySnapshot => {
+                    if (!userQuerySnapshot.empty) {
+                      const userDoc = userQuerySnapshot.docs[0];
+                      setAppUser({ id: userDoc.id, ...userDoc.data() } as AppUser);
+                      setUser(fbUser);
+                    } else {
+                      auth.signOut();
+                    }
+                    setLoading(false);
+                  })
+                  .catch(e => {
+                    handlePermissionError('list', 'users');
+                    console.error("Failed to query user:", e);
+                    auth.signOut();
+                    setLoading(false);
+                  });
+              } else {
+                auth.signOut();
+                setLoading(false);
+              }
             }
-          } else {
-             // User has no email or phone, and doesn't match shadow email format.
-            await auth.signOut();
-          }
-        }
+          })
+          .catch(e => {
+            handlePermissionError('list', 'users');
+            console.error("Failed to list users:", e);
+            auth.signOut();
+            setLoading(false);
+          });
       } else {
-        // User is not logged in.
         setUser(null);
         setAppUser(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => unsubscribe();
   }, [auth, firestore]);
+
 
   return (
     <UserContext.Provider value={{ user, appUser, loading }}>

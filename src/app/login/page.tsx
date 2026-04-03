@@ -13,12 +13,8 @@ import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { collection, query, where, getDocs } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { firebaseConfig } from '@/firebase/config';
-import type { AppUser } from '@/lib/definitions';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 
 function GoogleIcon() {
     return (
@@ -84,44 +80,31 @@ export default function LoginPage() {
             router.push('/');
         })
         .catch((signInError: any) => {
-            if (signInError.code === 'auth/user-not-found' || signInError.code === 'auth/invalid-credential') {
-                const userInDbQuery = query(collection(firestore, 'users'), where('phone', '==', identifier));
-                
-                getDocs(userInDbQuery)
-                    .then(userInDbSnap => {
-                        if (userInDbSnap.empty) {
-                            setError('This phone number has not been authorized. Please contact the owner.');
-                            setIsLoading(false);
-                            return;
-                        }
-
-                        createUserWithEmailAndPassword(auth, shadowEmail, password)
-                            .then(() => {
-                                router.push('/');
-                            })
-                            .catch(createError => {
-                                if (createError.code === 'auth/weak-password') {
-                                    setError('Password is too weak. It must be at least 6 characters long.');
-                                } else {
-                                    setError('This phone number is already associated with an account.');
-                                }
-                                setIsLoading(false);
-                            });
+            // This error code can mean "user-not-found" or "wrong-password".
+            // So, we'll try to create an account. If that fails because the
+            // user already exists, then we know it was a wrong password.
+            if (signInError.code === 'auth/invalid-credential') {
+                createUserWithEmailAndPassword(auth, shadowEmail, password)
+                    .then(() => {
+                        // The useUser hook will now verify if this new user is authorized.
+                        // If not, it will sign them out automatically.
+                        router.push('/');
                     })
-                    .catch(serverError => {
-                        const permissionError = new FirestorePermissionError({
-                            path: 'users',
-                            operation: 'list',
-                        });
-                        errorEmitter.emit('permission-error', permissionError, auth.currentUser);
+                    .catch(createError => {
+                        if (createError.code === 'auth/email-already-in-use') {
+                            // User exists, so the password was wrong.
+                            setError('Incorrect password. Please try again or use "Forgot Password".');
+                        } else if (createError.code === 'auth/weak-password') {
+                            setError('Password is too weak. It must be at least 6 characters long.');
+                        } else {
+                            setError('This phone number is already associated with an account, but sign-in failed.');
+                            console.error("Create error:", createError);
+                        }
                         setIsLoading(false);
                     });
-            } else if (signInError.code === 'auth/wrong-password' || signInError.code === 'auth/invalid-credential') {
-                setError('Incorrect password. Please try again.');
-                setIsLoading(false);
             } else {
                 setError('An unknown sign-in error occurred. Please try again.');
-                console.error(signInError);
+                console.error("Sign in error:", signInError);
                 setIsLoading(false);
             }
         });

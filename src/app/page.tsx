@@ -1,69 +1,73 @@
 
 'use client';
-
 import { AppLayout } from "@/components/layout/app-layout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { ArrowRight, Users, Warehouse, IndianRupee, FileText, ArrowDownToDot, ArrowUpFromDot, Scale, Wind, Settings, ArrowDownFromLine, Archive, Package, TrendingUp } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAppUser } from "@/firebase/auth/use-user";
+import type { LucideIcon } from 'lucide-react';
+import Link from 'next/link';
+import {
+  ArrowDownToDot,
+  ArrowUpFromDot,
+  Archive,
+  IndianRupee,
+  Users,
+  FileText,
+  Scale,
+  Settings,
+  Wind,
+  ArrowDownFromLine,
+  LayoutDashboard
+} from 'lucide-react';
+import { StorageTable } from "@/components/dashboard/storage-table";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { collection } from "firebase/firestore";
 import { useFirestore } from "@/firebase/provider";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
-import type { StorageRecord, Lot } from "@/lib/definitions";
 import { useMemo, useState, useEffect } from "react";
+import type { StorageRecord, Lot } from "@/lib/definitions";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useAppUser } from "@/firebase/auth/use-user";
+import { Package, TrendingUp, Warehouse } from "lucide-react";
 
 
 type NavItem = {
   href: string;
   label: string;
-  description: string;
   icon: LucideIcon;
-  roles: ('super-admin' | 'owner' | 'supervisor' | 'biller')[];
+  description: string;
+  roles: ('owner' | 'supervisor' | 'biller')[];
 };
 
 const navItems: NavItem[] = [
-  { href: '/inflow', label: 'Inflow', description: 'Add new items to storage.', icon: ArrowDownToDot, roles: ['super-admin', 'owner', 'supervisor', 'biller'] },
-  { href: '/unloading', label: 'Unloading Process', description: 'Manage item unloading.', icon: ArrowDownFromLine, roles: ['super-admin', 'owner', 'supervisor', 'biller'] },
-  { href: '/drying', label: 'Drying Process', description: 'Manage item drying.', icon: Wind, roles: ['super-admin', 'owner', 'supervisor', 'biller'] },
-  { href: '/outflow', label: 'Outflow', description: 'Process item withdrawals.', icon: ArrowUpFromDot, roles: ['super-admin', 'owner', 'supervisor', 'biller'] },
-  { href: '/storage', label: 'Storage', description: 'View all active storage.', icon: Archive, roles: ['super-admin', 'owner', 'supervisor', 'biller'] },
-  { href: '/payments/pending', label: 'Payments', description: 'Manage pending payments.', icon: IndianRupee, roles: ['super-admin', 'owner', 'biller'] },
-  { href: '/customers', label: 'Customers', description: 'View and manage customers.', icon: Users, roles: ['super-admin', 'owner', 'supervisor', 'biller'] },
-  { href: '/reports', label: 'Reports', description: 'See all transactions.', icon: FileText, roles: ['super-admin', 'owner', 'supervisor'] },
-  { href: '/expenses', label: 'Profit & Loss', description: 'Track income, expenses, and net profit.', icon: Scale, roles: ['super-admin', 'owner'] },
+    { href: '/inflow', label: 'Inflow', icon: ArrowDownToDot, description: 'Record new items arriving for storage.', roles: ['owner', 'supervisor', 'biller'] },
+    { href: '/unloading', label: 'Unloading Process', icon: ArrowDownFromLine, description: 'Manage goods unloaded from vehicles.', roles: ['owner', 'supervisor', 'biller'] },
+    { href: '/drying', label: 'Create from Plot', icon: Wind, description: 'Finalize items from plot to storage.', roles: ['owner', 'supervisor', 'biller'] },
+    { href: '/outflow', label: 'Outflow', icon: ArrowUpFromDot, description: 'Process withdrawals and generate final bills.', roles: ['owner', 'supervisor', 'biller'] },
+    { href: '/storage', label: 'Storage', icon: Archive, description: 'View all active inventory and stock.', roles: ['owner', 'supervisor', 'biller'] },
+    { href: '/payments/pending', label: 'Payments', icon: IndianRupee, description: 'View and manage pending payments.', roles: ['owner', 'biller'] },
+    { href: '/customers', label: 'Customers', icon: Users, description: 'Manage customer information.', roles: ['owner', 'supervisor', 'biller'] },
+    { href: '/reports', label: 'Reports', icon: FileText, description: 'Generate detailed business reports.', roles: ['owner', 'supervisor'] },
+    { href: '/expenses', label: 'Profit & Loss', icon: Scale, description: 'Track income, expenses, and profitability.', roles: ['owner'] },
+    { href: '/settings', label: 'Settings', icon: Settings, description: 'Configure application settings.', roles: ['owner', 'supervisor', 'biller'] },
 ];
 
-function NavCard({ item }: { item: NavItem }) {
-  return (
-    <Card className="flex flex-col transition-all hover:shadow-lg hover:-translate-y-0.5">
-      <CardHeader className="p-4">
-        <div className="flex justify-center mb-4">
-          <div className="p-3 bg-primary/10 rounded-full">
-            <item.icon className="h-8 w-8 text-primary" />
-          </div>
-        </div>
-        <CardTitle className="text-lg text-center">{item.label}</CardTitle>
-      </CardHeader>
-      <CardContent className="flex-1 p-4 pt-0">
-        <CardDescription className="text-sm text-center min-h-[40px]">{item.description}</CardDescription>
-      </CardContent>
-      <CardFooter className="p-4 pt-0">
-        <Button asChild size="lg" className="w-full">
-          <Link href={item.href}>
-            Go
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Link>
-        </Button>
-      </CardFooter>
-    </Card>
-  );
+function NavCard({ href, label, icon: Icon, description }: Omit<NavItem, 'roles'>) {
+    return (
+        <Link href={href}>
+            <Card className="h-full hover:bg-muted/50 transition-colors hover:border-primary/50">
+                <CardHeader className="flex-row items-center gap-4 space-y-0">
+                    <div className="grid h-10 w-10 place-items-center rounded-lg bg-primary/10 text-primary">
+                        <Icon className="h-6 w-6" />
+                    </div>
+                    <CardTitle>{label}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-sm text-muted-foreground">{description}</p>
+                </CardContent>
+            </Card>
+        </Link>
+    );
 }
-
 
 function DashboardHeader({ activeRecordsCount, occupancy }: { activeRecordsCount: number; occupancy: number }) {
     const [greeting, setGreeting] = useState("Good Day, Team!");
@@ -84,10 +88,13 @@ function DashboardHeader({ activeRecordsCount, occupancy }: { activeRecordsCount
                         SRI LAKSHMI WAREHOUSE
                     </p>
                     <h2 className="text-2xl font-bold mt-2">{greeting}</h2>
+<<<<<<< HEAD
                     <p className="text-muted-foreground mt-2 max-w-md">
                         Here's what's happening in your warehouse today. You have {activeRecordsCount} active records and
                         your storage is {occupancy.toFixed(1)}% full.
                     </p>
+=======
+>>>>>>> 0702511923daeb5ab0f29ffc9fd4b727f78871aa
                 </div>
                 <div className="grid w-full grid-cols-2 items-center gap-4 md:w-auto">
                     <Card className="p-4 bg-background/50">
@@ -121,7 +128,7 @@ function DashboardHeaderSkeleton() {
             <CardContent className="p-4 md:p-6 flex flex-col md:flex-row items-center gap-6">
                 <div className="flex-1 space-y-2">
                     <Skeleton className="h-5 w-48" />
-                    <Skeleton className="h-9 w-64" />
+                    <Skeleton className="h-8 w-64" />
                     <Skeleton className="h-5 w-full max-w-md" />
                 </div>
                 <div className="flex items-center gap-4">
@@ -134,8 +141,10 @@ function DashboardHeaderSkeleton() {
 }
 
 export default function DashboardPage() {
-    const firestore = useFirestore();
     const appUser = useAppUser();
+    const firestore = useFirestore();
+
+    const accessibleNavItems = navItems.filter(item => appUser && item.roles.includes(appUser.role));
 
     const recordsQuery = useMemoFirebase(
       () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'storageRecords') : null),
@@ -165,11 +174,15 @@ export default function DashboardPage() {
         return { activeRecordsCount, occupancy };
     }, [allRecords, allLots]);
 
-    const accessibleNavItems = useMemo(() => {
-        if (!appUser) return [];
-        return navItems.filter(item => item.roles.includes(appUser.role));
-    }, [appUser]);
+    return (
+        <AppLayout>
+            {loadingRecords || loadingLots ? (
+                <DashboardHeaderSkeleton />
+            ) : (
+                <DashboardHeader activeRecordsCount={activeRecordsCount} occupancy={occupancy} />
+            )}
 
+<<<<<<< HEAD
     if (appUser?.role === 'super-admin') {
       return (
           <AppLayout>
@@ -201,4 +214,23 @@ export default function DashboardPage() {
       </div>
     </AppLayout>
   );
+=======
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mb-6">
+                {accessibleNavItems.map((item) => (
+                    <NavCard key={item.href} {...item} />
+                ))}
+            </div>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Customer Storage Summary</CardTitle>
+                    <CardDescription>A summary of active stock held by each customer.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <StorageTable />
+                </CardContent>
+            </Card>
+        </AppLayout>
+    );
+>>>>>>> 0702511923daeb5ab0f29ffc9fd4b727f78871aa
 }

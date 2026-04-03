@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -42,12 +43,12 @@ export function PendingDuesReportTable({ records, customers, title }: ReportTabl
                     <TableRow>
                         <TableHead>Record ID</TableHead>
                         <TableHead>Customer</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Bags In</TableHead>
-                        <TableHead className="text-right">Bags Out</TableHead>
-                        <TableHead className="text-right">Total Billed</TableHead>
-                        <TableHead className="text-right">Hamali Pending</TableHead>
-                        <TableHead className="text-right">Rent Pending</TableHead>
+                        <TableHead className="hidden sm:table-cell">Status</TableHead>
+                        <TableHead className="text-right hidden lg:table-cell">Bags In</TableHead>
+                        <TableHead className="text-right hidden lg:table-cell">Bags Out</TableHead>
+                        <TableHead className="text-right hidden xl:table-cell">Total Billed</TableHead>
+                        <TableHead className="text-right hidden md:table-cell">Hamali Pending</TableHead>
+                        <TableHead className="text-right hidden md:table-cell">Rent Pending</TableHead>
                         <TableHead className="text-right">Total Due</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -56,16 +57,16 @@ export function PendingDuesReportTable({ records, customers, title }: ReportTabl
                         <TableRow key={record.id}>
                             <TableCell className="font-medium">{record.id}</TableCell>
                             <TableCell>{getCustomerName(record.customerId)}</TableCell>
-                            <TableCell>
+                            <TableCell className="hidden sm:table-cell">
                                 <Badge variant={record.storageEndDate ? "secondary" : "default"} className={record.storageEndDate ? 'bg-zinc-100 text-zinc-800' : 'bg-green-100 text-green-800'}>
                                     {record.storageEndDate ? 'Completed' : 'Active'}
                                 </Badge>
                             </TableCell>
-                            <TableCell className="text-right font-mono">{record.bagsIn || 0}</TableCell>
-                            <TableCell className="text-right font-mono">{record.bagsOut || 0}</TableCell>
-                            <TableCell className="text-right font-mono">{formatCurrency(record.totalBilled)}</TableCell>
-                            <TableCell className="text-right font-mono text-orange-600">{formatCurrency(record.hamaliPending)}</TableCell>
-                            <TableCell className="text-right font-mono text-blue-600">{formatCurrency(record.rentPending)}</TableCell>
+                            <TableCell className="text-right font-mono hidden lg:table-cell">{record.bagsIn || 0}</TableCell>
+                            <TableCell className="text-right font-mono hidden lg:table-cell">{record.bagsOut || 0}</TableCell>
+                            <TableCell className="text-right font-mono hidden xl:table-cell">{formatCurrency(record.totalBilled)}</TableCell>
+                            <TableCell className="text-right font-mono text-orange-600 hidden md:table-cell">{formatCurrency(record.hamaliPending)}</TableCell>
+                            <TableCell className="text-right font-mono text-blue-600 hidden md:table-cell">{formatCurrency(record.rentPending)}</TableCell>
                             <TableCell className="text-right font-mono text-destructive">{formatCurrency(record.balanceDue)}</TableCell>
                         </TableRow>
                     ))}
@@ -79,7 +80,13 @@ export function PendingDuesReportTable({ records, customers, title }: ReportTabl
                 </TableBody>
                 <TableFooter>
                     <TableRow>
-                        <TableCell colSpan={8} className="text-right font-bold">Total Pending Dues</TableCell>
+                        <TableCell colSpan={3} className="text-right font-bold hidden sm:table-cell">Total Pending Dues</TableCell>
+                        <TableCell colSpan={2} className="text-right font-bold sm:hidden">Total Due</TableCell>
+                        <TableCell className="hidden lg:table-cell" />
+                        <TableCell className="hidden lg:table-cell" />
+                        <TableCell className="hidden xl:table-cell" />
+                        <TableCell className="hidden md:table-cell" />
+                        <TableCell className="hidden md:table-cell" />
                         <TableCell className="text-right font-bold text-destructive font-mono">{formatCurrency(totalDue)}</TableCell>
                     </TableRow>
                 </TableFooter>

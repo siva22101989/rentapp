@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -52,9 +53,9 @@ export function PaymentReportTable({ events, customers, title }: ReportTableProp
                     <TableRow>
                         <TableHead>Date</TableHead>
                         <TableHead>Customer</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Description</TableHead>
-                        <TableHead>Reference ID</TableHead>
+                        <TableHead className="hidden sm:table-cell">Type</TableHead>
+                        <TableHead className="hidden md:table-cell">Description</TableHead>
+                        <TableHead className="hidden lg:table-cell">Reference ID</TableHead>
                         <TableHead className="text-right">Amount Paid</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -63,9 +64,9 @@ export function PaymentReportTable({ events, customers, title }: ReportTableProp
                         <TableRow key={index}>
                             <TableCell>{format(event.date, 'dd MMM yyyy')}</TableCell>
                             <TableCell className="font-medium">{getCustomerName(event.customerId)}</TableCell>
-                            <TableCell>{getTypeBadge(event.type)}</TableCell>
-                            <TableCell>{event.description}</TableCell>
-                            <TableCell>{event.recordId}</TableCell>
+                            <TableCell className="hidden sm:table-cell">{getTypeBadge(event.type)}</TableCell>
+                            <TableCell className="hidden md:table-cell">{event.description}</TableCell>
+                            <TableCell className="hidden lg:table-cell">{event.recordId}</TableCell>
                             <TableCell className="text-right font-mono text-green-600">
                                 {formatCurrency(event.amount)}
                             </TableCell>
@@ -81,7 +82,10 @@ export function PaymentReportTable({ events, customers, title }: ReportTableProp
                 </TableBody>
                 <TableFooter>
                     <TableRow>
-                        <TableCell colSpan={5} className="text-right font-bold">Total Payments</TableCell>
+                        <TableCell colSpan={2} className="text-right font-bold sm:hidden">Total</TableCell>
+                        <TableCell colSpan={3} className="text-right font-bold hidden sm:table-cell md:hidden">Total</TableCell>
+                        <TableCell colSpan={4} className="text-right font-bold hidden md:table-cell lg:hidden">Total</TableCell>
+                        <TableCell colSpan={5} className="text-right font-bold hidden lg:table-cell">Total Payments</TableCell>
                         <TableCell className="text-right font-mono font-bold text-green-600">{formatCurrency(totalPayments)}</TableCell>
                     </TableRow>
                 </TableFooter>

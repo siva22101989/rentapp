@@ -28,6 +28,7 @@ import type { StorageRecord, Lot } from "@/lib/definitions";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Package, TrendingUp, Warehouse } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 
 type NavItem = {
@@ -88,13 +89,10 @@ function DashboardHeader({ activeRecordsCount, occupancy }: { activeRecordsCount
                         SRI LAKSHMI WAREHOUSE
                     </p>
                     <h2 className="text-2xl font-bold mt-2">{greeting}</h2>
-<<<<<<< HEAD
                     <p className="text-muted-foreground mt-2 max-w-md">
                         Here's what's happening in your warehouse today. You have {activeRecordsCount} active records and
                         your storage is {occupancy.toFixed(1)}% full.
                     </p>
-=======
->>>>>>> 0702511923daeb5ab0f29ffc9fd4b727f78871aa
                 </div>
                 <div className="grid w-full grid-cols-2 items-center gap-4 md:w-auto">
                     <Card className="p-4 bg-background/50">
@@ -174,15 +172,6 @@ export default function DashboardPage() {
         return { activeRecordsCount, occupancy };
     }, [allRecords, allLots]);
 
-    return (
-        <AppLayout>
-            {loadingRecords || loadingLots ? (
-                <DashboardHeaderSkeleton />
-            ) : (
-                <DashboardHeader activeRecordsCount={activeRecordsCount} occupancy={occupancy} />
-            )}
-
-<<<<<<< HEAD
     if (appUser?.role === 'super-admin') {
       return (
           <AppLayout>
@@ -198,23 +187,15 @@ export default function DashboardPage() {
               </div>
           </AppLayout>
       )
-  }
+    }
 
-  return (
-    <AppLayout>
-      {loadingRecords || loadingLots ? (
-          <DashboardHeaderSkeleton />
-      ) : (
-          <DashboardHeader activeRecordsCount={activeRecordsCount} occupancy={occupancy} />
-      )}
-      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-        {accessibleNavItems.map((item) => (
-          <NavCard key={item.href} item={item} />
-        ))}
-      </div>
-    </AppLayout>
-  );
-=======
+    return (
+        <AppLayout>
+            {loadingRecords || loadingLots ? (
+                <DashboardHeaderSkeleton />
+            ) : (
+                <DashboardHeader activeRecordsCount={activeRecordsCount} occupancy={occupancy} />
+            )}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mb-6">
                 {accessibleNavItems.map((item) => (
                     <NavCard key={item.href} {...item} />
@@ -232,5 +213,4 @@ export default function DashboardPage() {
             </Card>
         </AppLayout>
     );
->>>>>>> 0702511923daeb5ab0f29ffc9fd4b727f78871aa
 }

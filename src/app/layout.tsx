@@ -1,12 +1,9 @@
+
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import { FirebaseClientProvider } from '@/firebase/client-provider';
-<<<<<<< HEAD
 import { UserProvider } from '@/firebase/auth/use-user';
-=======
-import { FirebaseErrorListener } from '@/components/firebase-error-listener';
->>>>>>> 493f64cf071699c798704dd512006dc35618f02c
 
 export const metadata: Metadata = {
   title: 'SRI LAKSHMI WAREHOUSE',
@@ -28,16 +25,10 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased bg-background">
         <FirebaseClientProvider>
-<<<<<<< HEAD
           <UserProvider>
             {children}
             <Toaster />
           </UserProvider>
-=======
-          {children}
-          <Toaster />
-          <FirebaseErrorListener />
->>>>>>> 493f64cf071699c798704dd512006dc35618f02c
         </FirebaseClientProvider>
       </body>
     </html>

@@ -9,16 +9,6 @@ import {
   TableRow,
   TableFooter,
 } from "@/components/ui/table";
-<<<<<<< HEAD
-=======
-import { Badge } from "@/components/ui/badge";
-import { format } from 'date-fns';
-import { ActionsMenu } from "./actions-menu";
-import { formatCurrency, toDate } from "@/lib/utils";
-import { useCollection } from "@/firebase/firestore/use-collection";
-import { collection, query, where } from "firebase/firestore";
-import { useFirestore } from "@/firebase";
->>>>>>> 493f64cf071699c798704dd512006dc35618f02c
 import type { Customer, StorageRecord } from "@/lib/definitions";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { collection } from "firebase/firestore";
@@ -26,44 +16,27 @@ import { useFirestore } from "@/firebase/provider";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 import { useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { useAppUser } from "@/firebase/auth/use-user";
 
 export function StorageTable() {
   const firestore = useFirestore();
-<<<<<<< HEAD
   const router = useRouter();
+  const appUser = useAppUser();
 
   const allRecordsQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'storageRecords') : null),
-    [firestore]
+    () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'storageRecords') : null),
+    [firestore, appUser]
   );
   const { data: allRecords, loading: loadingRecords } = useCollection<StorageRecord>(allRecordsQuery);
 
   const customersQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'customers') : null),
-    [firestore]
+    () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'customers') : null),
+    [firestore, appUser]
   );
   const { data: allCustomers, loading: loadingCustomers } = useCollection<Customer>(customersQuery);
   
   const { summary, totalBags } = useMemo(() => {
     if (!allRecords || !allCustomers) return { summary: [], totalBags: 0 };
-=======
-
-  const activeRecordsQuery = firestore
-    ? query(collection(firestore, 'storageRecords'), where('storageEndDate', '==', null))
-    : null;
-    
-  const { data: activeRecords, loading: recordsLoading } = useCollection<StorageRecord>(activeRecordsQuery);
-  const { data: allCustomers, loading: customersLoading } = useCollection<Customer>(
-    firestore ? collection(firestore, 'customers') : null
-  );
-
-  const loading = recordsLoading || customersLoading;
-
-  const getCustomerName = (customerId: string) => {
-    if (!allCustomers) return 'Unknown';
-    return allCustomers.find(c => c.id === customerId)?.name ?? 'Unknown';
-  };
->>>>>>> 493f64cf071699c798704dd512006dc35618f02c
 
     const activeRecords = allRecords.filter(r => !r.storageEndDate && r.bagsStored > 0);
     

@@ -29,11 +29,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
-const teamMemberRoles = ['supervisor', 'biller'] as const;
+const teamMemberRoles = ['owner', 'supervisor', 'biller'] as const;
 
 const AddUserSchema = z.object({
     phone: z.string().min(10, 'Please enter a valid phone number.'),
-    password: z.string().min(6, 'Password must be at least 6 characters.'),
     role: z.enum(teamMemberRoles, { required_error: 'Please select a role.' }),
 });
 
@@ -54,15 +53,12 @@ export function ManageTeamDialog({ children }: { children: React.ReactNode }) {
 
     const form = useForm<AddUserFormData>({
         resolver: zodResolver(AddUserSchema),
-        defaultValues: { phone: '', password: '', role: 'biller' },
+        defaultValues: { phone: '', role: 'biller' },
     });
 
     const onAddUser = (data: AddUserFormData) => {
         if (!firestore || !appUser?.warehouseId) return;
         
-        // This is a placeholder for the actual user creation.
-        // We add the user to our Firestore DB.
-        // The auth user will be created on their first login attempt.
         if (users?.some(u => u.phone === data.phone)) {
             form.setError('phone', { message: 'A user with this phone number already exists.' });
             return;
@@ -75,9 +71,7 @@ export function ManageTeamDialog({ children }: { children: React.ReactNode }) {
                     role: data.role,
                     warehouseId: appUser.warehouseId,
                 }));
-                // We show a success message but IGNORE the password for security.
-                // The user will set their own password on first login.
-                toast({ title: 'Success', description: 'User added to the team. They can now sign in with the password you provided.' });
+                toast({ title: 'Success', description: 'User added to the team. They can now sign in with their phone number and a password of their choice.' });
                 form.reset();
             } catch (error) {
                 toast({ title: 'Error', description: 'Failed to add user.', variant: 'destructive' });
@@ -104,35 +98,24 @@ export function ManageTeamDialog({ children }: { children: React.ReactNode }) {
             <DialogHeader>
                 <DialogTitle>Manage Team</DialogTitle>
                 <DialogDescription>
-                    Add or remove users. The user will use the phone number and password you set to sign in.
+                    Add or remove users. The user will use their phone number and a password of their choosing to sign in.
                 </DialogDescription>
             </DialogHeader>
             
             <Form {...form}>
-                <form onSubmit={form.handleSubmit(onAddUser)} className="grid grid-cols-1 sm:grid-cols-4 items-end gap-2">
+                <form onSubmit={form.handleSubmit(onAddUser)} className="grid grid-cols-1 sm:grid-cols-3 items-end gap-2">
                      <FormField
                         control={form.control}
                         name="phone"
                         render={({ field }) => (
-                            <FormItem className="sm:col-span-2">
+                            <FormItem className="sm:col-span-1">
                                 <FormLabel>Phone Number</FormLabel>
                                 <FormControl><Input placeholder="+91..." {...field} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
                     />
-                    <FormField
-                        control={form.control}
-                        name="password"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Password</FormLabel>
-                                <FormControl><Input type="password" {...field} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <div className="flex items-end gap-2">
+                    <div className="flex items-end gap-2 sm:col-span-2">
                         <FormField
                             control={form.control}
                             name="role"

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -69,7 +68,7 @@ export default function LoginPage() {
 
   const handlePasswordSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth) {
+    if (!auth || !firestore) {
       setError('Firebase not available.');
       return;
     }
@@ -83,22 +82,27 @@ export default function LoginPage() {
         router.push('/');
     } catch (signInError: any) {
         if (signInError.code === 'auth/user-not-found' || signInError.code === 'auth/invalid-credential') {
-            // If the user is not found, it might be their first time signing in.
-            // Attempt to create an account for them.
+            // User doesn't exist in Firebase Auth. Check if they are authorized in our Firestore DB.
+            const userInDbQuery = query(collection(firestore, 'users'), where('phone', '==', identifier));
+            const userInDbSnap = await getDocs(userInDbQuery);
+
+            if (userInDbSnap.empty) {
+                setError('This phone number has not been authorized. Please contact the owner.');
+                setIsLoading(false);
+                return;
+            }
+
+            // User is authorized in Firestore, so create their auth account now.
             try {
                 await createUserWithEmailAndPassword(auth, shadowEmail, password);
                 // After successful creation, Firebase automatically signs the user in.
-                // The UserProvider will then handle authorization by checking the 'users' collection.
                 router.push('/');
             } catch (createError: any) {
                 if (createError.code === 'auth/weak-password') {
                     setError('Password is too weak. It must be at least 6 characters long.');
-                } else if (createError.code === 'auth/email-already-in-use') {
-                    // This can happen if sign-in fails with invalid-credential, but user actually exists.
-                    // In this case, the password was simply wrong.
-                    setError('Incorrect password. Please try again.');
                 } else {
-                    setError('This phone number has not been authorized. Please contact the owner.');
+                    // This can happen if another user already has this shadow email. Should be rare.
+                    setError('This phone number is already associated with an account.');
                 }
             }
         } else if (signInError.code === 'auth/wrong-password') {
@@ -126,7 +130,7 @@ export default function LoginPage() {
 
     try {
         await sendPasswordResetEmail(auth, userEmail);
-        toast({ title: 'Password Reset Email Sent', description: `An email has been sent to ${userEmail}. Check your inbox for a link to reset your password.`});
+        toast({ title: 'Password Reset Email Sent', description: `If an account exists for this phone number, an email has been sent to ${userEmail} with a password reset link.`});
     } catch (error: any) {
         console.error(error);
         if (error.code === 'auth/user-not-found') {
@@ -188,7 +192,7 @@ export default function LoginPage() {
                     <Input
                         id="identifier"
                         type="text"
-                        placeholder="e.g., +91..."
+                        placeholder="e.g., 9652369143"
                         value={identifier}
                         onChange={(e) => setIdentifier(e.target.value)}
                         required
@@ -227,5 +231,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    

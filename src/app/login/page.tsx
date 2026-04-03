@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -12,7 +13,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Separator } from '../ui/separator';
+import { Separator } from '@/components/ui/separator';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { firebaseConfig } from '@/firebase/config';
@@ -75,43 +76,52 @@ export default function LoginPage() {
     setIsLoading(true);
     setError(null);
 
+    const shadowEmail = `${identifier}@${firebaseConfig.authDomain}`;
+
     try {
-        const usersRef = collection(firestore, 'users');
-        const q = query(usersRef, where('phone', '==', identifier));
-        const userQuerySnapshot = await getDocs(q);
+        // First, try to sign in. This will work for existing users.
+        await signInWithEmailAndPassword(auth, shadowEmail, password);
+        router.push('/');
+    } catch (signInError: any) {
+        if (signInError.code === 'auth/user-not-found' || signInError.code === 'auth/invalid-credential') {
+            // This is the special case: the user might be a new team member.
+            // We can't query the `users` collection for security reasons before auth.
+            // So, we'll try to create the user. If they aren't in the `users` collection,
+            // the `UserProvider` will sign them out immediately after login.
+            try {
+                // Check if the user is in Firestore first to prevent random signups
+                const usersRef = collection(firestore, 'users');
+                const q = query(usersRef, where('phone', '==', identifier));
+                const userQuerySnapshot = await getDocs(q);
 
-        if (userQuerySnapshot.empty) {
-            setError('User not found. Please contact the warehouse owner to get access.');
-            setIsLoading(false);
-            return;
-        }
-
-        const appUser = userQuerySnapshot.docs[0].data() as AppUser;
-        const shadowEmail = `${identifier}@${firebaseConfig.authDomain}`;
-
-        try {
-             await signInWithEmailAndPassword(auth, shadowEmail, password);
-             router.push('/');
-        } catch(signInError: any) {
-             if (signInError.code === 'auth/user-not-found') {
-                try {
-                    await createUserWithEmailAndPassword(auth, shadowEmail, password);
-                    router.push('/');
-                } catch (createError: any) {
-                    setError('Failed to create account. Please ensure the password is at least 6 characters long.');
-                    console.error(createError);
+                if (userQuerySnapshot.empty) {
+                    // This is the error you were seeing. The user is not in the database.
+                    setError('User not found. Please contact the warehouse owner to get access.');
+                    setIsLoading(false);
+                    return;
                 }
-            } else if (signInError.code === 'auth/wrong-password' || signInError.code === 'auth/invalid-credential') {
-                setError('Incorrect password. Please try again.');
-            } else {
-                setError('An unknown error occurred during sign-in.');
-                console.error(signInError);
-            }
-        }
+                
+                // If the user is in the DB but doesn't have an auth account, create it.
+                await createUserWithEmailAndPassword(auth, shadowEmail, password);
+                router.push('/');
 
-    } catch (e) {
-        setError('Failed to query user data.');
-        console.error(e);
+            } catch (createError: any) {
+                // This catch block handles Firestore query errors AND createUser errors
+                 if(createError.code?.includes('permission-denied')) {
+                    setError('Could not verify user. Please try again.');
+                } else if (createError.code === 'auth/weak-password') {
+                    setError('Password is too weak. It must be at least 6 characters.');
+                } else {
+                    setError('An unknown error occurred during account creation.');
+                }
+                console.error("Creation/Verification error:", createError);
+            }
+        } else if (signInError.code === 'auth/wrong-password') {
+            setError('Incorrect password. Please try again.');
+        } else {
+            setError('An unknown sign-in error occurred.');
+            console.error(signInError);
+        }
     } finally {
         setIsLoading(false);
     }

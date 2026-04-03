@@ -43,7 +43,7 @@
     "jspdf": "^2.5.1",
     "jsonwebtoken": "9.0.2",
     "lucide-react": "^0.475.0",
-    "next": "14.2.35",
+    "next": "^14.2.35",
     "react": "18.3.1",
     "react-day-picker": "8.10.1",
     "react-dom": "18.3.1",

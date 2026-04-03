@@ -1,9 +1,11 @@
 
 'use client';
-<<<<<<< HEAD
 import { useState, useEffect } from 'react';
-import { onSnapshot, collection, query, where, type Query } from 'firebase/firestore';
-import type { DocumentData } from 'firebase/firestore';
+import { onSnapshot, type Query, type DocumentData } from 'firebase/firestore';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
+import { toDate } from '@/lib/utils';
+import { useAuth } from '../provider';
 
 interface UseCollectionReturn<T> {
   data: T[] | null;
@@ -16,29 +18,11 @@ export function useCollection<T extends DocumentData>(
 ): UseCollectionReturn<T> {
   const [data, setData] = useState<T[] | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-=======
-
-import { useState, useEffect } from 'react';
-import {
-  onSnapshot,
-  type CollectionReference,
-  type Query,
-} from 'firebase/firestore';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
-import { toDate } from '@/lib/utils';
-
-export const useCollection = <T extends { id: string }>(
-  q: Query | CollectionReference | null,
-) => {
-  const [data, setData] = useState<T[] | null>(null);
-  const [loading, setLoading] = useState(true);
->>>>>>> 493f64cf071699c798704dd512006dc35618f02c
   const [error, setError] = useState<Error | null>(null);
+  const auth = useAuth();
 
   useEffect(() => {
     if (!q) {
-<<<<<<< HEAD
       setData([]);
       setLoading(false);
       return;
@@ -52,48 +36,23 @@ export const useCollection = <T extends { id: string }>(
             const docData = doc.data();
             // Convert Timestamps to Dates
             Object.keys(docData).forEach(key => {
-                if (docData[key] && docData[key].toDate) {
-                    docData[key] = docData[key].toDate();
+                if (docData[key] && typeof docData[key].toDate === 'function') {
+                    docData[key] = toDate(docData[key]);
                 }
             });
+            // Ensure nested payment dates are converted
+             if (Array.isArray(docData.payments)) {
+                docData.payments = docData.payments.map((p: any) => ({...p, date: toDate(p.date)}));
+            }
+            if (Array.isArray(docData.outflows)) {
+                docData.outflows = docData.outflows.map((o: any) => ({...o, date: toDate(o.date)}));
+            }
             return {
                 id: doc.id,
                 ...docData,
             } as T;
         });
         setData(documents);
-        setLoading(false);
-      },
-      (err) => {
-        console.error("Error fetching collection: ", err);
-        setError(err);
-=======
-        setData([]);
-        setLoading(false);
-        return;
-    };
-
-    setLoading(true);
-
-    const unsubscribe = onSnapshot(
-      q,
-      (querySnapshot) => {
-        const docs: T[] = [];
-        querySnapshot.forEach((doc) => {
-          const docData = doc.data();
-          // Convert any Timestamps to Dates
-          for (const key in docData) {
-            if (docData[key]?.toDate) {
-              docData[key] = toDate(docData[key]);
-            }
-          }
-          // Ensure nested payment dates are converted
-          if (Array.isArray(docData.payments)) {
-            docData.payments = docData.payments.map((p: any) => ({...p, date: toDate(p.date)}));
-          }
-          docs.push({ id: doc.id, ...docData } as T);
-        });
-        setData(docs);
         setLoading(false);
         setError(null);
       },
@@ -102,23 +61,16 @@ export const useCollection = <T extends { id: string }>(
           path: q.path,
           operation: 'list',
         });
-        errorEmitter.emit('permission-error', permissionError);
+        errorEmitter.emit('permission-error', permissionError, auth?.currentUser || null);
         setError(permissionError);
->>>>>>> 493f64cf071699c798704dd512006dc35618f02c
         setLoading(false);
       }
     );
 
     return () => unsubscribe();
-<<<<<<< HEAD
-  }, [q]);
+  // Using path as a dependency string to avoid re-running on object reference change
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q?.path]);
 
   return { data, loading, error };
 }
-=======
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(q)]);
-
-  return { data, loading, error };
-};
->>>>>>> 493f64cf071699c798704dd512006dc35618f02c

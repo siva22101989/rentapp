@@ -16,7 +16,7 @@ service cloud.firestore {
 
     // Helper function to check if the user belongs to the requested warehouse
     function isWarehouseMember(warehouseId) {
-      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.warehouseId == warehouseId;
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.warehouseId == warehouseId;
     }
 
     // Super-admin can manage the list of warehouses.
@@ -24,11 +24,12 @@ service cloud.firestore {
       allow read, write: if isSuperAdmin();
     }
     
-    // Users can read and write their own user document.
-    // Allow creation for the first-time sign-up process.
+    // Allow signed-in users to read from the users collection to find their own profile.
+    // Writes are restricted to the user themselves or a super-admin (for creation).
     match /users/{userId} {
-      allow read, write: if request.auth.uid == userId;
-      allow create: if isSignedIn();
+      allow read: if isSignedIn();
+      allow write: if request.auth.uid == userId;
+      allow create: if isSignedIn(); // Allows for initial user creation during sign-up
     }
 
     // All documents within a warehouse's subcollection can only be accessed

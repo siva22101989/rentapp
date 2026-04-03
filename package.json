@@ -37,7 +37,12 @@
     "cmdk": "^1.0.0",
     "date-fns": "^3.6.0",
     "embla-carousel-react": "^8.6.0",
+<<<<<<< HEAD
     "firebase": "^10.12.2",
+=======
+    "firebase": "^10.12.3",
+    "genkit": "^1.20.0",
+>>>>>>> 493f64cf071699c798704dd512006dc35618f02c
     "html2canvas": "^1.4.1",
     "jspdf": "^2.5.1",
     "jsonwebtoken": "9.0.2",

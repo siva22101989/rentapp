@@ -1,5 +1,6 @@
 'use client';
 import { InflowReceipt } from "@/components/inflow/inflow-receipt";
+<<<<<<< HEAD
 import { PrintHeader } from "@/components/shared/print-header";
 import { notFound, useParams } from "next/navigation";
 import type { Customer, StorageRecord, WarehouseInfo, UnloadingRecord } from "@/lib/definitions";
@@ -11,12 +12,20 @@ import { Loader2 } from "lucide-react";
 import { toDate } from "@/lib/utils";
 import { useDoc } from "@/firebase/firestore/use-doc";
 import { Button } from "@/components/ui/button";
+=======
+import { notFound, useParams } from "next/navigation";
+import type { Customer, StorageRecord } from "@/lib/definitions";
+import { useDoc } from "@/firebase/firestore/use-doc";
+import { doc } from "firebase/firestore";
+import { useFirestore } from "@/firebase";
+>>>>>>> 493f64cf071699c798704dd512006dc35618f02c
 
 export default function InflowReceiptPage() {
   const params = useParams();
   const recordId = params.recordId as string;
   const firestore = useFirestore();
 
+<<<<<<< HEAD
   const [record, setRecord] = useState<StorageRecord | null>(null);
   const [loadingRecord, setLoadingRecord] = useState(true);
   const [customer, setCustomer] = useState<Customer | null>(null);
@@ -55,6 +64,18 @@ export default function InflowReceiptPage() {
         setLoadingRecord(false);
       }
     };
+=======
+  const { data: record, loading: recordLoading } = useDoc<StorageRecord>(
+    firestore && recordId ? doc(firestore, 'storageRecords', recordId) : null
+  );
+  
+  // Fetch customer separately based on record's customerId
+  const { data: customer, loading: customerLoading } = useDoc<Customer>(
+    firestore && record ? doc(firestore, 'customers', record.customerId) : null
+  );
+  
+  const loading = recordLoading || customerLoading;
+>>>>>>> 493f64cf071699c798704dd512006dc35618f02c
 
     pollDocument();
   }, [firestore, recordId]);

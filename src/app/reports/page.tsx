@@ -1,5 +1,6 @@
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
+<<<<<<< HEAD
 import { CustomReportGenerator } from "@/components/reports/custom-report-generator";
 import type { Customer, StorageRecord, UnloadingRecord, Expense, WarehouseInfo, Borrowing, Lending, OtherIncome } from "@/lib/definitions";
 import { useCollection } from "@/firebase/firestore/use-collection";
@@ -12,6 +13,25 @@ import { useDoc } from "@/firebase/firestore/use-doc";
 export default function ReportsPage() {
     const firestore = useFirestore();
     const searchParams = useSearchParams();
+=======
+import { PageHeader } from "@/components/shared/page-header";
+import { ReportClient } from "@/components/reports/report-client";
+import type { Customer, StorageRecord } from "@/lib/definitions";
+import { useCollection } from "@/firebase/firestore/use-collection";
+import { collection } from "firebase/firestore";
+import { useFirestore } from "@/firebase";
+
+export default function ReportsPage() {
+    const firestore = useFirestore();
+    const { data: allRecords, loading: recordsLoading } = useCollection<StorageRecord>(
+      firestore ? collection(firestore, 'storageRecords') : null
+    );
+    const { data: allCustomers, loading: customersLoading } = useCollection<Customer>(
+      firestore ? collection(firestore, 'customers') : null
+    );
+    
+    const loading = recordsLoading || customersLoading;
+>>>>>>> 493f64cf071699c798704dd512006dc35618f02c
 
     const initialReport = searchParams.get('report') || undefined;
     const initialCustomerId = searchParams.get('customerId') || undefined;

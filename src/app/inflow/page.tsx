@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { InflowForm } from "@/components/inflow/inflow-form";
 import { AddCustomerDialog } from "@/components/customers/add-customer-dialog";
 import { useMemo } from "react";
+<<<<<<< HEAD
 import type { Customer, StorageRecord, Commodity, Lot } from "@/lib/definitions";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { collection, query } from "firebase/firestore";
@@ -50,6 +51,31 @@ export default function InflowPage() {
             return Math.max(max, idNum);
         }
         return max;
+=======
+import type { Customer, StorageRecord } from "@/lib/definitions";
+import { useCollection } from "@/firebase/firestore/use-collection";
+import { collection } from "firebase/firestore";
+import { useFirestore } from "@/firebase";
+
+export default function InflowPage() {
+  const firestore = useFirestore();
+  const { data: customers, loading: customersLoading } = useCollection<Customer>(
+    firestore ? collection(firestore, 'customers') : null
+  );
+  const { data: records, loading: recordsLoading } = useCollection<StorageRecord>(
+    firestore ? collection(firestore, 'storageRecords') : null
+  );
+  
+  const loading = customersLoading || recordsLoading;
+
+  const nextSerialNumber = useMemo(() => {
+    if (!records || records.length === 0) {
+      return 'SLWH-1';
+    }
+    const maxId = records.reduce((max, record) => {
+      const idNum = parseInt(record.id.replace('SLWH-', ''), 10);
+      return isNaN(idNum) ? max : Math.max(max, idNum);
+>>>>>>> 493f64cf071699c798704dd512006dc35618f02c
     }, 0);
     return (maxId + 1).toString();
   }, [records]);

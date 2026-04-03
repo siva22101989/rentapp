@@ -89,6 +89,7 @@ export type Expense = {
   date: Date | Timestamp;
 };
 
+<<<<<<< HEAD
 export type Borrowing = {
   id: string;
   lenderName: string;
@@ -205,4 +206,12 @@ export type ManagedWarehouse = {
     yearlyAmount: number;
     createdAt: Date | Timestamp;
     trialMonths?: number;
+=======
+// This is a placeholder for Firebase user object
+export interface User {
+  uid: string;
+  email?: string | null;
+  displayName?: string | null;
+  photoURL?: string | null;
+>>>>>>> 493f64cf071699c798704dd512006dc35618f02c
 }

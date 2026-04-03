@@ -3,6 +3,7 @@
 import { AppLayout } from "@/components/layout/app-layout";
 import { AddExpenseDialog } from "@/components/expenses/add-expense-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+<<<<<<< HEAD
 import { TrendingUp, TrendingDown, Scale, Banknote, IndianRupee } from "lucide-react";
 import { formatCurrency, toDate } from "@/lib/utils";
 import { useMemo, useState, useEffect } from "react";
@@ -59,6 +60,18 @@ function IncomesTable({ incomes }: { incomes: OtherIncome[] }) {
       </Card>
     );
 }
+=======
+import { TrendingUp, TrendingDown, Scale } from "lucide-react";
+import { formatCurrency, toDate } from "@/lib/utils";
+import { useMemo } from "react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import type { Expense, StorageRecord } from "@/lib/definitions";
+import { format } from "date-fns";
+import { ExpenseActionsMenu } from "@/components/expenses/expense-actions-menu";
+import { useCollection } from "@/firebase/firestore/use-collection";
+import { collection } from "firebase/firestore";
+import { useFirestore } from "@/firebase";
+>>>>>>> 493f64cf071699c798704dd512006dc35618f02c
 
 function ExpensesTable({ expenses }: { expenses: Expense[] }) {
   const appUser = useAppUser();
@@ -292,6 +305,7 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
 
 export default function ExpensesPage() {
   const firestore = useFirestore();
+<<<<<<< HEAD
   const { dateRange, financialYear } = useDateFilter();
   const appUser = useAppUser();
   const canEdit = appUser?.role === 'owner';
@@ -372,6 +386,23 @@ export default function ExpensesPage() {
     const rentEstimate = activeRecords.reduce((total, record) => {
       const { rent } = calculateFinalRent(record, new Date(), record.bagsStored);
       return total + rent;
+=======
+  const { data: allRecords, loading: recordsLoading } = useCollection<StorageRecord>(
+    firestore ? collection(firestore, 'storageRecords') : null
+  );
+  const { data: allExpenses, loading: expensesLoading } = useCollection<Expense>(
+    firestore ? collection(firestore, 'expenses') : null
+  );
+
+  const { totalIncome, totalExpenses, totalBalance } = useMemo(() => {
+    if (!allRecords || !allExpenses) return { totalIncome: 0, totalExpenses: 0, totalBalance: 0 };
+    
+    const income = allRecords.reduce((total, record) => {
+      const rentPayments = (record.payments || [])
+        .filter(p => p.type === 'rent' || p.type === 'other') // considering other as potential income
+        .reduce((acc, p) => acc + p.amount, 0);
+      return total + rentPayments;
+>>>>>>> 493f64cf071699c798704dd512006dc35618f02c
     }, 0);
     
     const totalActiveBags = activeRecords.reduce((acc, record) => acc + record.bagsStored, 0);
@@ -390,7 +421,11 @@ export default function ExpensesPage() {
   }, [allRecords, allExpenses, allUnloadingRecords, otherIncomes, dateRange, warehouseInfo, financialYear]);
 
 
+<<<<<<< HEAD
   if (loadingRecords || loadingExpenses || loadingUnloading || loadingWarehouseInfo || loadingBorrowings || loadingLendings || loadingOtherIncomes) {
+=======
+  if (recordsLoading || expensesLoading) {
+>>>>>>> 493f64cf071699c798704dd512006dc35618f02c
     return (
       <AppLayout>
         <div>Loading...</div>
@@ -482,12 +517,17 @@ export default function ExpensesPage() {
             </CardContent>
         </Card>
       </div>
+<<<<<<< HEAD
       <div className="space-y-8">
         <BorrowingsTable borrowings={borrowings || []} />
         <LendingsTable lendings={lendings || []} />
         <Separator />
         <IncomesTable incomes={filteredIncomes} />
         <ExpensesTable expenses={filteredExpenses} />
+=======
+      <div className="mt-8">
+        <ExpensesTable expenses={allExpenses || []} />
+>>>>>>> 493f64cf071699c798704dd512006dc35618f02c
       </div>
     </AppLayout>
   );

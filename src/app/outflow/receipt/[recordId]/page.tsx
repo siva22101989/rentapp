@@ -2,6 +2,7 @@
 import { PrintHeader } from "@/components/shared/print-header";
 import { OutflowReceipt } from "@/components/outflow/outflow-receipt";
 import { notFound, useParams, useSearchParams } from "next/navigation";
+<<<<<<< HEAD
 import type { Customer, StorageRecord, WarehouseInfo } from "@/lib/definitions";
 import { useFirestore } from "@/firebase/provider";
 import { doc, getDoc } from "firebase/firestore";
@@ -11,24 +12,34 @@ import { Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useDoc } from "@/firebase/firestore/use-doc";
 import { Button } from "@/components/ui/button";
+=======
+import type { Customer, StorageRecord } from "@/lib/definitions";
+import { useDoc } from "@/firebase/firestore/use-doc";
+import { doc } from "firebase/firestore";
+import { useFirestore } from "@/firebase";
+>>>>>>> 493f64cf071699c798704dd512006dc35618f02c
 
 export default function OutflowReceiptPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const recordId = params.recordId as string;
   const firestore = useFirestore();
+<<<<<<< HEAD
 
   const [record, setRecord] = useState<StorageRecord | null>(null);
   const [loadingRecord, setLoadingRecord] = useState(true);
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [loadingCustomer, setLoadingCustomer] = useState(true);
   const [error, setError] = useState<string|null>(null);
+=======
+>>>>>>> 493f64cf071699c798704dd512006dc35618f02c
 
   const withdrawnBags = Number(searchParams.get('withdrawn')) || 0;
   const finalRent = Number(searchParams.get('rent')) || 0;
   const paidNow = Number(searchParams.get('paidNow')) || 0;
   const discount = Number(searchParams.get('discount')) || 0;
 
+<<<<<<< HEAD
   useEffect(() => {
     if (!firestore || !recordId) {
       setLoadingRecord(false);
@@ -38,6 +49,17 @@ export default function OutflowReceiptPage() {
     let attempts = 0;
     const maxAttempts = 10;
     const intervalTime = 500;
+=======
+  const { data: record, loading: recordLoading } = useDoc<StorageRecord>(
+    firestore && recordId ? doc(firestore, 'storageRecords', recordId) : null
+  );
+  
+  const { data: customer, loading: customerLoading } = useDoc<Customer>(
+    firestore && record ? doc(firestore, 'customers', record.customerId) : null
+  );
+
+  const loading = recordLoading || customerLoading;
+>>>>>>> 493f64cf071699c798704dd512006dc35618f02c
 
     const pollDocument = async () => {
       attempts++;

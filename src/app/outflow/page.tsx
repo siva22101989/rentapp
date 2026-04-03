@@ -6,6 +6,7 @@ import { OutflowForm } from "@/components/outflow/outflow-form";
 import type { Customer, StorageRecord } from "@/lib/definitions";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { collection, query, where } from "firebase/firestore";
+<<<<<<< HEAD
 import { useFirestore } from "@/firebase/provider";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 
@@ -23,6 +24,24 @@ export default function OutflowPage() {
     [firestore]
   );
   const { data: activeRecords, loading: loadingRecords } = useCollection<StorageRecord>(activeRecordsQuery);
+=======
+import { useFirestore } from "@/firebase";
+
+export default function OutflowPage() {
+  const firestore = useFirestore();
+  
+  const { data: customers, loading: customersLoading } = useCollection<Customer>(
+    firestore ? collection(firestore, 'customers') : null
+  );
+
+  const activeRecordsQuery = firestore 
+    ? query(collection(firestore, 'storageRecords'), where('storageEndDate', '==', null)) 
+    : null;
+    
+  const { data: activeRecords, loading: recordsLoading } = useCollection<StorageRecord>(activeRecordsQuery);
+
+  const loading = customersLoading || recordsLoading;
+>>>>>>> 493f64cf071699c798704dd512006dc35618f02c
 
   if (loadingCustomers || loadingRecords) {
     return <AppLayout><div>Loading...</div></AppLayout>;

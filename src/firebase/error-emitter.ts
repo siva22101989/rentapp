@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 'use client';
 import { EventEmitter } from 'events';
 import type { User } from 'firebase/auth';
@@ -21,3 +22,23 @@ class TypedEventEmitter extends EventEmitter {}
 const emitter: TypedEventEmitter = new TypedEventEmitter();
 
 export { emitter as errorEmitter };
+=======
+
+import { EventEmitter } from 'events';
+import { FirestorePermissionError } from './errors';
+
+type ErrorEvents = {
+  'permission-error': (error: FirestorePermissionError) => void;
+};
+
+// We need to declare the `emit` method with the specific event types
+declare interface ErrorEventEmitter {
+  on<E extends keyof ErrorEvents>(event: E, listener: ErrorEvents[E]): this;
+  off<E extends keyof ErrorEvents>(event: E, listener: ErrorEvents[E]): this;
+  emit<E extends keyof ErrorEvents>(event: E, ...args: Parameters<ErrorEvents[E]>): boolean;
+}
+
+class ErrorEventEmitter extends EventEmitter {}
+
+export const errorEmitter = new ErrorEventEmitter();
+>>>>>>> 493f64cf071699c798704dd512006dc35618f02c

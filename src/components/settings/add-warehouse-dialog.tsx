@@ -20,7 +20,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { Input } from '../ui/input';
-import { collection, writeBatch, doc, query, where, getDocs } from 'firebase/firestore';
+import { collection, writeBatch, doc, query, where, getDocs, addDoc } from 'firebase/firestore';
 import { cleanForFirestore } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
@@ -61,37 +61,26 @@ export function AddWarehouseDialog() {
 
     startTransition(async () => {
       try {
-        const usersCollection = collection(firestore, 'users');
-        const q = query(usersCollection, where('email', '==', data.ownerEmail.toLowerCase()));
-        const existingUserSnap = await getDocs(q);
+        const warehousesCollection = collection(firestore, 'managedWarehouses');
+        const q = query(warehousesCollection, where('ownerEmail', '==', data.ownerEmail.toLowerCase()));
+        const existingOwnerSnap = await getDocs(q);
 
-        if (!existingUserSnap.empty) {
+        if (!existingOwnerSnap.empty) {
             toast({
-                title: 'User Exists',
-                description: 'A user with this email already exists. Please use a different email.',
+                title: 'Owner Exists',
+                description: 'This email is already assigned as an owner to another warehouse.',
                 variant: 'destructive',
             });
             return;
         }
-        
-        const batch = writeBatch(firestore);
-        
-        const warehouseRef = doc(collection(firestore, 'managedWarehouses'));
-        batch.set(warehouseRef, cleanForFirestore({
+
+        await addDoc(collection(firestore, 'managedWarehouses'), cleanForFirestore({
             ...data,
+            ownerEmail: data.ownerEmail.toLowerCase(),
             createdAt: new Date(),
         }));
-        
-        const userRef = doc(collection(firestore, 'users'));
-        batch.set(userRef, {
-            email: data.ownerEmail.toLowerCase(),
-            role: 'owner',
-            warehouseId: warehouseRef.id,
-        });
-        
-        await batch.commit();
 
-        toast({ title: 'Success', description: 'New warehouse and owner account created.' });
+        toast({ title: 'Success', description: 'New warehouse subscription created. The owner can now sign in.' });
         setIsOpen(false);
         form.reset();
       } catch (error) {
@@ -115,7 +104,7 @@ export function AddWarehouseDialog() {
             <DialogHeader>
               <DialogTitle>Onboard New Warehouse</DialogTitle>
               <DialogDescription>
-                Create a new warehouse subscription record and its owner account.
+                Create a new warehouse subscription record. The owner will be able to log in with the specified email.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-4">

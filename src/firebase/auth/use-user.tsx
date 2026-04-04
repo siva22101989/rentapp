@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
@@ -62,34 +63,48 @@ export function UserProvider({ children }: { children: ReactNode }) {
           if (userDocSnap.exists()) {
             foundAppUser = { id: userDocSnap.id, ...userDocSnap.data() } as AppUser;
           } else {
-            // Document with UID doesn't exist, try to find an existing user record to migrate
-            const usersCol = collection(firestore, 'users');
-            let querySnapshot;
+            // Document with UID doesn't exist, this could be a first-time login for an owner or staff.
 
-            // Check if it's a staff member logging in with a phone-based shadow account
+            // Case 1: Staff member logging in with a phone-based shadow account
             if (userEmail && userEmail.startsWith('+') && userEmail.endsWith(`@${firebaseConfig.authDomain}`)) {
                 const phone = userEmail.substring(1, userEmail.indexOf('@'));
+                const usersCol = collection(firestore, 'users');
                 const q = query(usersCol, where('phone', '==', phone));
-                querySnapshot = await getDocs(q);
-            } 
-            // Check if it's an owner logging in with a real email
-            else if (userEmail) {
-                const q = query(usersCol, where('email', '==', userEmail));
-                querySnapshot = await getDocs(q);
-            }
-            
-            if (querySnapshot && !querySnapshot.empty) {
-                const oldUserDoc = querySnapshot.docs[0];
-                const appUserData = oldUserDoc.data() as Omit<AppUser, 'id'>;
-                
-                // This is a critical step: migrate the user data to a new document with the correct UID
-                if (oldUserDoc.id !== fbUser.uid) {
-                    const batch = writeBatch(firestore);
-                    batch.set(userDocRef, appUserData); // Create new doc with UID
-                    batch.delete(oldUserDoc.ref);       // Delete old doc
-                    await batch.commit();
+                const querySnapshot = await getDocs(q);
+
+                if (!querySnapshot.empty) {
+                    const oldUserDoc = querySnapshot.docs[0];
+                    const appUserData = oldUserDoc.data() as Omit<AppUser, 'id'>;
+                    
+                    if (oldUserDoc.id !== fbUser.uid) { // Migrate to UID-based doc
+                        const batch = writeBatch(firestore);
+                        batch.set(userDocRef, appUserData);
+                        batch.delete(oldUserDoc.ref);
+                        await batch.commit();
+                    }
+                    foundAppUser = { id: fbUser.uid, ...appUserData };
                 }
-                foundAppUser = { id: fbUser.uid, ...appUserData };
+            } 
+            // Case 2: Warehouse owner logging in for the first time
+            else if (userEmail) {
+                const warehousesCol = collection(firestore, 'managedWarehouses');
+                const q = query(warehousesCol, where('ownerEmail', '==', userEmail));
+                const warehouseSnap = await getDocs(q);
+
+                if (!warehouseSnap.empty) {
+                    // This is a new owner. Let's create their user document.
+                    const warehouseDoc = warehouseSnap.docs[0];
+                    const newAppUserData: Omit<AppUser, 'id'> = {
+                        email: userEmail,
+                        role: 'owner',
+                        warehouseId: warehouseDoc.id,
+                        phone: fbUser.phoneNumber || ''
+                    };
+                    
+                    await setDoc(userDocRef, newAppUserData);
+                    
+                    foundAppUser = { id: fbUser.uid, ...newAppUserData };
+                }
             }
           }
           

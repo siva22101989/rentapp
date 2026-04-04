@@ -57,8 +57,8 @@ export function ProfileSettings() {
         let needsSignOut = false;
         let emailChangeAttempted = false;
 
-        const originalEmail = appUser.email.toLowerCase();
-        const newEmail = data.email.toLowerCase();
+        const originalEmail = (appUser.email || '').toLowerCase();
+        const newEmail = (data.email || '').toLowerCase();
         
         const originalPhone = appUser.phone || user?.phoneNumber || '';
         const newPhone = data.phone || '';
@@ -156,39 +156,42 @@ export function ProfileSettings() {
                             </div>
                             <FormField
                                 control={form.control}
-                                name="phone"
+                                name="email"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Phone Number</FormLabel>
+                                        <FormLabel>Email Address</FormLabel>
                                         <div className="relative">
-                                            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                             <FormControl>
-                                                <Input {...field} disabled={isPending} className="pl-8" placeholder="Not Provided"/>
+                                                <Input {...field} disabled={!isSuperAdmin || isPending} className="pl-8" />
                                             </FormControl>
                                         </div>
                                         <FormMessage />
+                                        <p className="text-xs text-muted-foreground">
+                                            {isSuperAdmin 
+                                                ? "Changing this transfers your role. You must sign out and sign back in."
+                                                : "Email cannot be changed."
+                                            }
+                                        </p>
                                     </FormItem>
                                 )}
                             />
                         </div>
                         <FormField
                             control={form.control}
-                            name="email"
+                            name="phone"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Email Address</FormLabel>
+                                    <FormLabel>Phone Number</FormLabel>
                                     <div className="relative">
-                                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                         <FormControl>
-                                            <Input {...field} disabled={!isSuperAdmin || isPending} className="pl-8" />
+                                            <Input {...field} disabled={isPending} className="pl-8" placeholder="Not Provided"/>
                                         </FormControl>
                                     </div>
                                     <FormMessage />
                                     <p className="text-xs text-muted-foreground">
-                                        {isSuperAdmin 
-                                            ? "As super-admin, changing this transfers your role. You must sign out and sign in with the new email."
-                                            : "Only the super-admin can change their login email."
-                                        }
+                                        Used for customer portal linking.
                                     </p>
                                 </FormItem>
                             )}

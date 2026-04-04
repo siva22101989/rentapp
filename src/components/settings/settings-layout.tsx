@@ -52,10 +52,10 @@ export function SettingsLayout() {
     return (
         <Tabs defaultValue={accessibleTabs[0].value} className="w-full">
             <div className="overflow-x-auto">
-                <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 h-auto p-1">
+                <TabsList>
                     {accessibleTabs.map((tab) => (
-                        <TabsTrigger key={tab.value} value={tab.value} className="text-xs sm:text-sm">
-                            <tab.icon className="mr-1 h-4 w-4" />
+                        <TabsTrigger key={tab.value} value={tab.value}>
+                            <tab.icon className="mr-2 h-4 w-4" />
                             {tab.label}
                         </TabsTrigger>
                     ))}

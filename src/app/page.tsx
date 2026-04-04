@@ -21,15 +21,16 @@ import {
 } from 'lucide-react';
 import { StorageTable } from "@/components/dashboard/storage-table";
 import { useCollection } from "@/firebase/firestore/use-collection";
-import { collection } from "firebase/firestore";
+import { doc, collection } from "firebase/firestore";
 import { useFirestore } from "@/firebase/provider";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 import { useMemo, useState, useEffect } from "react";
-import type { StorageRecord, Lot } from "@/lib/definitions";
+import type { StorageRecord, Lot, WarehouseInfo } from "@/lib/definitions";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Package, TrendingUp, Warehouse } from "lucide-react";
+import { useDoc } from "@/firebase/firestore/use-doc";
 
 type NavItem = {
   href: string;
@@ -75,7 +76,7 @@ function NavCard({ href, label, icon: Icon, description }: Omit<NavItem, 'roles'
     );
 }
 
-function DashboardHeader({ activeRecordsCount, occupancy }: { activeRecordsCount: number; occupancy: number }) {
+function DashboardHeader({ activeRecordsCount, occupancy, warehouseInfo }: { activeRecordsCount: number; occupancy: number; warehouseInfo: WarehouseInfo | null }) {
     const [greeting, setGreeting] = useState("Good Day, Team!");
     
     useEffect(() => {
@@ -91,7 +92,7 @@ function DashboardHeader({ activeRecordsCount, occupancy }: { activeRecordsCount
                 <div className="flex-1">
                     <p className="text-sm font-medium text-primary flex items-center gap-2">
                         <Package size={16} />
-                        GrainDost
+                        {warehouseInfo?.name || 'GrainDost'}
                     </p>
                     <h2 className="text-2xl font-bold mt-2">{greeting}</h2>
                     <p className="text-muted-foreground mt-2 max-w-md">
@@ -161,6 +162,12 @@ export default function DashboardPage() {
     );
     const { data: allLots, loading: loadingLots } = useCollection<Lot>(lotsQuery);
 
+    const warehouseInfoRef = useMemoFirebase(
+        () => (firestore && appUser ? doc(firestore, 'settings', 'main') : null),
+        [firestore, appUser]
+    );
+    const { data: warehouseInfo, loading: loadingWarehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
+
     const { activeRecordsCount, occupancy } = useMemo(() => {
         if (!allRecords || !allLots) {
             return { activeRecordsCount: 0, occupancy: 0 };
@@ -179,10 +186,10 @@ export default function DashboardPage() {
 
     return (
         <AppLayout>
-            {loadingRecords || loadingLots ? (
+            {loadingRecords || loadingLots || loadingWarehouseInfo ? (
                 <DashboardHeaderSkeleton />
             ) : (
-                <DashboardHeader activeRecordsCount={activeRecordsCount} occupancy={occupancy} />
+                <DashboardHeader activeRecordsCount={activeRecordsCount} occupancy={occupancy} warehouseInfo={warehouseInfo} />
             )}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mb-6">
                 {accessibleNavItems.map((item) => (

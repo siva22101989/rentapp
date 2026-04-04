@@ -1,4 +1,3 @@
-
 'use client';
 import { PrintHeader } from "@/components/shared/print-header";
 import { OutflowReceipt } from "@/components/outflow/outflow-receipt";
@@ -12,12 +11,14 @@ import { Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useDoc } from "@/firebase/firestore/use-doc";
 import { Button } from "@/components/ui/button";
+import { useAppUser } from "@/firebase/auth/use-user";
 
 export default function OutflowReceiptPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const recordId = params.recordId as string;
   const firestore = useFirestore();
+  const appUser = useAppUser();
 
   const [record, setRecord] = useState<StorageRecord | null>(null);
   const [loadingRecord, setLoadingRecord] = useState(true);
@@ -31,7 +32,7 @@ export default function OutflowReceiptPage() {
   const discount = Number(searchParams.get('discount')) || 0;
 
   useEffect(() => {
-    if (!firestore || !recordId) {
+    if (!firestore || !recordId || !appUser) {
       setLoadingRecord(false);
       return;
     }
@@ -61,11 +62,11 @@ export default function OutflowReceiptPage() {
     };
 
     pollDocument();
-  }, [firestore, recordId]);
+  }, [firestore, recordId, appUser]);
 
   useEffect(() => {
     async function fetchCustomer() {
-        if (!firestore || !record?.customerId) {
+        if (!firestore || !record?.customerId || !appUser) {
             setLoadingCustomer(false);
             return;
         }
@@ -83,12 +84,12 @@ export default function OutflowReceiptPage() {
         }
     }
     fetchCustomer();
-  }, [firestore, record]);
+  }, [firestore, record, appUser]);
 
 
   const warehouseInfoRef = useMemoFirebase(
-    () => (firestore ? doc(firestore, 'settings', 'main') : null),
-    [firestore]
+    () => (firestore && appUser ? doc(firestore, 'settings', 'main') : null),
+    [firestore, appUser]
   );
   const { data: warehouseInfo, loading: loadingWarehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 

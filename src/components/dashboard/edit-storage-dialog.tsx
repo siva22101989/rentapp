@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useTransition, useMemo } from 'react';
@@ -29,6 +28,7 @@ import { updateStorageRecord } from '@/lib/data';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 import { collection } from 'firebase/firestore';
+import { useAppUser } from '@/firebase/auth/use-user';
 
 
 const EditStorageRecordSchema = z.object({
@@ -51,16 +51,17 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const firestore = useFirestore();
+  const appUser = useAppUser();
 
   const commoditiesQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'commodities') : null),
-    [firestore]
+    () => (firestore && appUser ? collection(firestore, 'commodities') : null),
+    [firestore, appUser]
   );
   const { data: commodities, loading: loadingCommodities } = useCollection<Commodity>(commoditiesQuery);
 
   const lotsQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'lots') : null),
-    [firestore]
+    () => (firestore && appUser ? collection(firestore, 'lots') : null),
+    [firestore, appUser]
   );
   const { data: lots, loading: loadingLots } = useCollection<Lot>(lotsQuery);
 

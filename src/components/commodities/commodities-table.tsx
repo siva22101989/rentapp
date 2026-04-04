@@ -1,4 +1,3 @@
-
 'use client';
 import {
   Table,
@@ -17,12 +16,14 @@ import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 import { formatCurrency } from "@/lib/utils";
 import { CommodityActionsMenu } from "./commodity-actions-menu";
 import { Badge } from "../ui/badge";
+import { useAppUser } from "@/firebase/auth/use-user";
 
 export function CommoditiesTable() {
   const firestore = useFirestore();
+  const appUser = useAppUser();
   const commoditiesQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'commodities') : null),
-    [firestore]
+    () => (firestore && appUser ? collection(firestore, 'commodities') : null),
+    [firestore, appUser]
   );
   const { data: commodities, loading } = useCollection<Commodity>(commoditiesQuery);
 

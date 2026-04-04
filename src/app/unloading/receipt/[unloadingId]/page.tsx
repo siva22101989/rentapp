@@ -1,4 +1,3 @@
-
 'use client';
 import { PrintHeader } from "@/components/shared/print-header";
 import { UnloadingReceipt } from "@/components/unloading/unloading-receipt";
@@ -12,11 +11,13 @@ import { useState, useEffect } from "react";
 import { toDate } from "@/lib/utils";
 import { useDoc } from "@/firebase/firestore/use-doc";
 import { Button } from "@/components/ui/button";
+import { useAppUser } from "@/firebase/auth/use-user";
 
 export default function UnloadingReceiptPage() {
   const params = useParams();
   const unloadingId = params.unloadingId as string;
   const firestore = useFirestore();
+  const appUser = useAppUser();
 
   const [record, setRecord] = useState<UnloadingRecord | null>(null);
   const [loadingRecord, setLoadingRecord] = useState(true);
@@ -25,7 +26,7 @@ export default function UnloadingReceiptPage() {
   const [error, setError] = useState<string|null>(null);
 
   useEffect(() => {
-    if (!firestore || !unloadingId) {
+    if (!firestore || !unloadingId || !appUser) {
       setLoadingRecord(false);
       return;
     }
@@ -55,11 +56,11 @@ export default function UnloadingReceiptPage() {
     };
 
     pollDocument();
-  }, [firestore, unloadingId]);
+  }, [firestore, unloadingId, appUser]);
 
   useEffect(() => {
     async function fetchCustomer() {
-        if (!firestore || !record?.customerId) {
+        if (!firestore || !record?.customerId || !appUser) {
             setLoadingCustomer(false);
             return;
         }
@@ -77,11 +78,11 @@ export default function UnloadingReceiptPage() {
         }
     }
     fetchCustomer();
-  }, [firestore, record]);
+  }, [firestore, record, appUser]);
 
   const warehouseInfoRef = useMemoFirebase(
-    () => (firestore ? doc(firestore, 'settings', 'main') : null),
-    [firestore]
+    () => (firestore && appUser ? doc(firestore, 'settings', 'main') : null),
+    [firestore, appUser]
   );
   const { data: warehouseInfo, loading: loadingWarehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
   

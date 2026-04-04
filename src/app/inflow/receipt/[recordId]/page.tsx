@@ -1,4 +1,3 @@
-
 'use client';
 import { InflowReceipt } from "@/components/inflow/inflow-receipt";
 import { PrintHeader } from "@/components/shared/print-header";
@@ -12,11 +11,13 @@ import { Loader2 } from "lucide-react";
 import { toDate } from "@/lib/utils";
 import { useDoc } from "@/firebase/firestore/use-doc";
 import { Button } from "@/components/ui/button";
+import { useAppUser } from "@/firebase/auth/use-user";
 
 export default function InflowReceiptPage() {
   const params = useParams();
   const recordId = params.recordId as string;
   const firestore = useFirestore();
+  const appUser = useAppUser();
 
   const [record, setRecord] = useState<StorageRecord | null>(null);
   const [loadingRecord, setLoadingRecord] = useState(true);
@@ -28,7 +29,7 @@ export default function InflowReceiptPage() {
 
   // Poll for the main record
   useEffect(() => {
-    if (!firestore || !recordId) {
+    if (!firestore || !recordId || !appUser) {
       setLoadingRecord(false);
       return;
     }
@@ -58,12 +59,12 @@ export default function InflowReceiptPage() {
     };
 
     pollDocument();
-  }, [firestore, recordId]);
+  }, [firestore, recordId, appUser]);
 
   // Fetch related data after the main record is loaded
   useEffect(() => {
     async function fetchRelatedData() {
-        if (!firestore || !record?.customerId) {
+        if (!firestore || !record?.customerId || !appUser) {
             setLoadingCustomer(false);
             setLoadingUnloading(false);
             return;
@@ -109,11 +110,11 @@ export default function InflowReceiptPage() {
         }
     }
     fetchRelatedData();
-  }, [firestore, record]);
+  }, [firestore, record, appUser]);
   
   const warehouseInfoRef = useMemoFirebase(
-    () => (firestore ? doc(firestore, 'settings', 'main') : null),
-    [firestore]
+    () => (firestore && appUser ? doc(firestore, 'settings', 'main') : null),
+    [firestore, appUser]
   );
   const { data: warehouseInfo, loading: loadingWarehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
   

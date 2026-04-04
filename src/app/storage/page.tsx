@@ -1,4 +1,3 @@
-
 'use client';
 
 import { AppLayout } from "@/components/layout/app-layout";
@@ -14,13 +13,15 @@ import { useFirestore } from "@/firebase/provider";
 import { collection } from "firebase/firestore";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 import { StorageTable } from "@/components/dashboard/storage-table";
+import { useAppUser } from "@/firebase/auth/use-user";
 
 export default function StoragePage() {
   const firestore = useFirestore();
+  const appUser = useAppUser();
 
   const recordsQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'storageRecords') : null),
-    [firestore]
+    () => (firestore && appUser ? collection(firestore, 'storageRecords') : null),
+    [firestore, appUser]
   );
   const { data: allRecords, loading } = useCollection<StorageRecord>(recordsQuery);
 

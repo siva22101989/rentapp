@@ -1,4 +1,3 @@
-
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
@@ -11,31 +10,33 @@ import { AddCustomerDialog } from "@/components/customers/add-customer-dialog";
 import { InitiateDryingForm } from "@/components/drying/initiate-drying-form";
 import { useMemo } from "react";
 import { toDate } from "@/lib/utils";
+import { useAppUser } from "@/firebase/auth/use-user";
 
 export default function DryingPage() {
   const firestore = useFirestore();
+  const appUser = useAppUser();
 
   const customersQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'customers') : null),
-    [firestore]
+    () => (firestore && appUser ? collection(firestore, 'customers') : null),
+    [firestore, appUser]
   );
   const { data: customers, loading: loadingCustomers } = useCollection<Customer>(customersQuery);
 
   const unloadingRecordsQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'unloadingRecords') : null),
-    [firestore]
+    () => (firestore && appUser ? collection(firestore, 'unloadingRecords') : null),
+    [firestore, appUser]
   );
   const { data: unloadingRecords, loading: loadingUnloadingRecords } = useCollection<UnloadingRecord>(unloadingRecordsQuery);
 
   const lotsQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'lots') : null),
-    [firestore]
+    () => (firestore && appUser ? collection(firestore, 'lots') : null),
+    [firestore, appUser]
   );
   const { data: lots, loading: loadingLots } = useCollection<Lot>(lotsQuery);
   
   const storageRecordsQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'storageRecords') : null),
-    [firestore]
+    () => (firestore && appUser ? collection(firestore, 'storageRecords') : null),
+    [firestore, appUser]
   );
   const { data: storageRecords, loading: loadingStorageRecords } = useCollection<StorageRecord>(storageRecordsQuery);
 

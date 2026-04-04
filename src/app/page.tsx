@@ -149,14 +149,14 @@ export default function DashboardPage() {
     const accessibleNavItems = navItems.filter(item => appUser && item.roles.includes(appUser.role));
 
     const recordsQuery = useMemoFirebase(
-      () => (firestore ? collection(firestore, 'storageRecords') : null),
-      [firestore]
+      () => (firestore && appUser ? collection(firestore, 'storageRecords') : null),
+      [firestore, appUser]
     );
     const { data: allRecords, loading: loadingRecords } = useCollection<StorageRecord>(recordsQuery);
   
     const lotsQuery = useMemoFirebase(
-      () => (firestore ? collection(firestore, 'lots') : null),
-      [firestore]
+      () => (firestore && appUser ? collection(firestore, 'lots') : null),
+      [firestore, appUser]
     );
     const { data: allLots, loading: loadingLots } = useCollection<Lot>(lotsQuery);
 

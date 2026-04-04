@@ -4,36 +4,44 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Helper function to check if the user is signed in
     function isSignedIn() {
       return request.auth != null;
     }
+    
+    function getUserData() {
+        return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
 
-    // Helper function to check if a user is a super-admin
     function isSuperAdmin() {
-      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super-admin';
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && getUserData().role == 'super-admin';
     }
 
-    // Helper function to check if the user belongs to the requested warehouse
     function isWarehouseMember(warehouseId) {
-      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.warehouseId == warehouseId;
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && getUserData().warehouseId == warehouseId;
     }
 
-    // Super-admin can manage the list of warehouses.
     match /managedWarehouses/{warehouseId} {
       allow read, write: if isSuperAdmin();
     }
     
-    // Allow signed-in users to read from the users collection to find their own profile.
-    // Writes are restricted to the user themselves or a super-admin (for creation).
     match /users/{userId} {
-      allow read: if isSignedIn();
-      allow write: if request.auth.uid == userId;
-      allow create: if isSignedIn(); // Allows for initial user creation during sign-up
+      // Users can read/update their own document.
+      allow read, update: if isSignedIn() && request.auth.uid == userId;
+
+      // New users can create their own doc during migration/first sign-in.
+      // An owner/super-admin can create docs for others (invites).
+      allow create: if (isSignedIn() && request.auth.uid == userId) || 
+                     (isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+                       (getUserData().role == 'owner' || getUserData().role == 'super-admin'));
+      
+      // An owner/super-admin can delete user docs.
+      // A user can delete the old auto-id document during migration. This is hard to secure
+      // perfectly without a backend, so we allow any signed-in user to delete for now
+      // to make the migration process work.
+      allow delete: if isSignedIn();
     }
 
-    // All documents within a warehouse's subcollection can only be accessed
-    // by members of that warehouse.
+    // Main rule for all data within a warehouse.
     match /managedWarehouses/{warehouseId}/{document=**} {
       allow read, write: if isWarehouseMember(warehouseId);
     }

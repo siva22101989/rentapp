@@ -25,7 +25,7 @@ import { Separator } from '../ui/separator';
 import type { Customer } from '@/lib/definitions';
 
 // Collections to clear for testing purposes (preserving setup data)
-const TRANSACTIONAL_COLLECTIONS = ['customers', 'storageRecords', 'expenses', 'unloadingRecords', 'dryingRecords', 'borrowings', 'lendings', 'otherIncomes'];
+const TRANSACTIONAL_COLLECTIONS = ['customers', 'storageRecords', 'expenses', 'unloadingRecords', 'dryingRecords', 'borrowings', 'lendings', 'otherIncomes', 'users'];
 // All collections for full backup
 const ALL_DATA_COLLECTIONS = ['customers', 'storageRecords', 'expenses', 'unloadingRecords', 'dryingRecords', 'commodities', 'lots', 'borrowings', 'lendings', 'otherIncomes', 'settings'];
 
@@ -414,7 +414,7 @@ export function DataSettings() {
                             <AlertDialogHeader>
                                 <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                    This action is permanent and cannot be undone. All customers, storage records, and expenses will be deleted. Your Commodities and Lots will not be affected.
+                                    This action is permanent and cannot be undone. This will delete all customers, storage records, expenses, and **all user accounts**. Your Commodities and Lots will not be affected. You will be logged out and the next person to sign in with Google will become the new Super Admin.
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -427,7 +427,7 @@ export function DataSettings() {
                                     {isClearingDb ? (
                                         <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Deleting...</>
                                     ) : (
-                                        'Yes, delete transactional data'
+                                        'Yes, delete all data'
                                     )}
                                 </AlertDialogAction>
                             </AlertDialogFooter>

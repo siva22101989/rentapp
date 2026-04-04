@@ -68,6 +68,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     const router = useRouter();
     const { user, appUser, loading } = useUserContext();
     const auth = useAuth();
+
+    const handleSignOut = async () => {
+      if (auth) {
+        await auth.signOut();
+        router.push('/login');
+      }
+    };
   
     React.useEffect(() => {
         if (!loading && !user && !pathname.includes('/login')) {

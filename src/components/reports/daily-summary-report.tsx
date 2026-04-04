@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo } from 'react';
@@ -41,7 +42,7 @@ const DailySummaryContent = ({ dailyData, customers, selectedDate }: { dailyData
     return (
         <div className="p-4 space-y-6">
             <div className="mb-6 text-center">
-                <h2 className="text-xl font-bold">SRI LAKSHMI WAREHOUSE</h2>
+                <h2 className="text-xl font-bold">GrainDost</h2>
                 <h3 className="font-semibold">Daily Summary Report</h3>
                 <p className="text-sm text-gray-500">{format(selectedDate, 'EEEE, dd MMMM yyyy')}</p>
             </div>

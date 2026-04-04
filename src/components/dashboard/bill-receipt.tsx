@@ -26,7 +26,7 @@ export const BillReceipt = React.forwardRef<HTMLDivElement, BillReceiptProps>(
         <div ref={ref} className="printable-area bg-white p-4 border-2 border-blue-800 font-sans text-xs" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
             <div className="text-center mb-2">
                 <div className="text-xs">Cell: {warehouseInfo?.phone || '9703503423, 9160606633'}</div>
-                <h1 className="text-xl font-bold text-blue-900">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</h1>
+                <h1 className="text-xl font-bold text-blue-900">{warehouseInfo?.name || 'GrainDost'}</h1>
                 {warehouseInfo?.ownerName && <p className="text-xs">Prop: {warehouseInfo.ownerName}</p>}
                 <p className="text-xs">{warehouseInfo?.addressLine1 || 'Survey No. 165,237/2, Owk - Koilakuntla Road, OWK - 518 122,'}</p>
                 <p className="text-xs">{warehouseInfo?.addressLine2 || 'Owk (M), Kurnool (Dt.), A.P.'}</p>

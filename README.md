@@ -1,4 +1,4 @@
-# Sri Lakshmi Warehouse Management
+# GrainDost
 
 A comprehensive web application built with Next.js and Firebase to streamline warehouse operations. This application provides tools for managing inventory, finances, customer relationships, and generating detailed reports.
 

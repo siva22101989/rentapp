@@ -44,7 +44,7 @@ export function PaymentReportTable({ events, customers, title }: ReportTableProp
     return (
         <div className="bg-white p-4 rounded-lg">
              <div className="mb-4">
-                <h2 className="text-xl font-bold">Srilakshmi Warehouse</h2>
+                <h2 className="text-xl font-bold">GrainDost</h2>
                 <p className="text-muted-foreground">{title}</p>
                 <p className="text-xs text-muted-foreground">Generated on: {generatedDate}</p>
             </div>

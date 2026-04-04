@@ -160,7 +160,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
   return (
     <div ref={ref} className="bg-white p-4 sm:p-6 printable-area text-foreground font-sans text-sm">
         <header className="text-center mb-4">
-            <h1 className="text-xl font-bold text-primary">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</h1>
+            <h1 className="text-xl font-bold text-primary">{warehouseInfo?.name || 'GrainDost'}</h1>
             <p className="text-xs text-muted-foreground">{warehouseInfo?.addressLine1 || ''}{warehouseInfo?.addressLine1 && warehouseInfo?.addressLine2 ? ', ' : ''}{warehouseInfo?.addressLine2 || ''}</p>
             <p className="text-xs text-muted-foreground">Phone: {warehouseInfo?.phone}</p>
         </header>
@@ -253,7 +253,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 <p>This is a computer generated statement and does not require a signature.</p>
             </div>
             <div className="text-center">
-                <div className="mt-12 border-t border-gray-400 pt-1 px-8">For {warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</div>
+                <div className="mt-12 border-t border-gray-400 pt-1 px-8">For {warehouseInfo?.name || 'GrainDost'}</div>
             </div>
         </div>
     </div>

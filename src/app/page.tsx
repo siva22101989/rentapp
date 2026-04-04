@@ -91,7 +91,7 @@ function DashboardHeader({ activeRecordsCount, occupancy }: { activeRecordsCount
                 <div className="flex-1">
                     <p className="text-sm font-medium text-primary flex items-center gap-2">
                         <Package size={16} />
-                        SRI LAKSHMI WAREHOUSE
+                        GrainDost
                     </p>
                     <h2 className="text-2xl font-bold mt-2">{greeting}</h2>
                     <p className="text-muted-foreground mt-2 max-w-md">

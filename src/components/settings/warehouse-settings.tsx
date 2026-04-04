@@ -3,6 +3,9 @@
 
 import { WarehouseInfoForm } from './warehouse-info-form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
+import { ManageTeamDialog } from './manage-team-dialog';
+import { Button } from '../ui/button';
+import { Users } from 'lucide-react';
 
 export function WarehouseSettings() {
     return (
@@ -21,7 +24,22 @@ export function WarehouseSettings() {
                 </Card>
             </div>
             <div className="md:col-span-1">
-                {/* Placeholder for future settings related to warehouse */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Team Management</CardTitle>
+                        <CardDescription>
+                            Add or remove team members and manage their roles.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <ManageTeamDialog>
+                            <Button variant="outline" className="w-full">
+                                <Users className="mr-2 h-4 w-4" />
+                                Manage Team Members
+                            </Button>
+                        </ManageTeamDialog>
+                    </CardContent>
+                </Card>
             </div>
         </div>
     );

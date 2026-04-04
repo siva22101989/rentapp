@@ -6,42 +6,25 @@ import { OutflowForm } from "@/components/outflow/outflow-form";
 import type { Customer, StorageRecord } from "@/lib/definitions";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { collection, query, where } from "firebase/firestore";
-<<<<<<< HEAD
 import { useFirestore } from "@/firebase/provider";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
+import { useAppUser } from "@/firebase/auth/use-user";
 
 export default function OutflowPage() {
   const firestore = useFirestore();
+  const appUser = useAppUser();
 
   const customersQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'customers') : null),
-    [firestore]
+    () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'customers') : null),
+    [firestore, appUser]
   );
   const { data: customers, loading: loadingCustomers } = useCollection<Customer>(customersQuery);
 
   const activeRecordsQuery = useMemoFirebase(
-    () => (firestore ? query(collection(firestore, 'storageRecords'), where('storageEndDate', '==', null)) : null),
-    [firestore]
+    () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'managedWarehouses', appUser.warehouseId, 'storageRecords'), where('storageEndDate', '==', null)) : null),
+    [firestore, appUser]
   );
   const { data: activeRecords, loading: loadingRecords } = useCollection<StorageRecord>(activeRecordsQuery);
-=======
-import { useFirestore } from "@/firebase";
-
-export default function OutflowPage() {
-  const firestore = useFirestore();
-  
-  const { data: customers, loading: customersLoading } = useCollection<Customer>(
-    firestore ? collection(firestore, 'customers') : null
-  );
-
-  const activeRecordsQuery = firestore 
-    ? query(collection(firestore, 'storageRecords'), where('storageEndDate', '==', null)) 
-    : null;
-    
-  const { data: activeRecords, loading: recordsLoading } = useCollection<StorageRecord>(activeRecordsQuery);
-
-  const loading = customersLoading || recordsLoading;
->>>>>>> 493f64cf071699c798704dd512006dc35618f02c
 
   if (loadingCustomers || loadingRecords) {
     return <AppLayout><div>Loading...</div></AppLayout>;

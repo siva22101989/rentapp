@@ -10,42 +10,28 @@ import { formatCurrency } from "@/lib/utils";
 import { useMemo } from "react";
 import type { StorageRecord } from "@/lib/definitions";
 import { useCollection } from "@/firebase/firestore/use-collection";
-<<<<<<< HEAD
 import { useFirestore } from "@/firebase/provider";
 import { collection } from "firebase/firestore";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
-=======
-import { collection } from "firebase/firestore";
-import { useFirestore } from "@/firebase";
->>>>>>> 493f64cf071699c798704dd512006dc35618f02c
 import { StorageTable } from "@/components/dashboard/storage-table";
+import { useAppUser } from "@/firebase/auth/use-user";
 
 export default function StoragePage() {
   const firestore = useFirestore();
-<<<<<<< HEAD
+  const appUser = useAppUser();
 
   const recordsQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'storageRecords') : null),
-    [firestore]
+    () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'storageRecords') : null),
+    [firestore, appUser]
   );
   const { data: allRecords, loading } = useCollection<StorageRecord>(recordsQuery);
-=======
-  const { data: allRecords, loading } = useCollection<StorageRecord>(
-    firestore ? collection(firestore, 'storageRecords') : null
-  );
->>>>>>> 493f64cf071699c798704dd512006dc35618f02c
 
   const stats = useMemo(() => {
     if (!allRecords) return { totalInflow: 0, totalOutflow: 0, balanceStock: 0, estimatedRent: 0 };
     
     const totalInflow = allRecords.reduce((acc, record) => acc + (record.bagsIn || 0), 0);
     const totalOutflow = allRecords.reduce((acc, record) => acc + (record.bagsOut || 0), 0);
-<<<<<<< HEAD
     const balanceStock = allRecords.reduce((acc, record) => acc + record.bagsStored, 0);
-=======
-    const balanceStock = allRecords.filter(r => !r.storageEndDate).reduce((acc, record) => acc + record.bagsStored, 0);
-
->>>>>>> 493f64cf071699c798704dd512006dc35618f02c
 
     const activeRecords = allRecords.filter(r => !r.storageEndDate);
     const estimatedRent = activeRecords.reduce((total, record) => {
@@ -118,15 +104,9 @@ export default function StoragePage() {
         </Card>
       </div>
 
-<<<<<<< HEAD
       <Card>
         <CardHeader>
           <CardTitle>Customer Storage Summary</CardTitle>
-=======
-       <Card>
-        <CardHeader>
-          <CardTitle>Active Storage</CardTitle>
->>>>>>> 493f64cf071699c798704dd512006dc35618f02c
         </CardHeader>
         <CardContent>
           <StorageTable />

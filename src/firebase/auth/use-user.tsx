@@ -94,12 +94,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
             }
 
             if (!migrated) {
-              // Not found and not migrated, so this must be the very first user (owner)
+              // Not found and not migrated, so this must be the very first user (super-admin)
               const allUsersSnapshot = await getDocs(usersCol);
               if (allUsersSnapshot.empty && fbUser.providerData.some(p => p.providerId === 'google.com')) {
-                const ownerData: Omit<AppUser, 'id'> = { role: 'owner', email: userEmail, phone: fbUser.phoneNumber || '' };
-                await setDoc(userDocRef, ownerData);
-                setAppUser({ id: userDocRef.id, ...ownerData } as AppUser);
+                const superAdminData: Omit<AppUser, 'id'> = { role: 'super-admin', email: userEmail, phone: fbUser.phoneNumber || '' };
+                await setDoc(userDocRef, superAdminData);
+                setAppUser({ id: userDocRef.id, ...superAdminData } as AppUser);
                 setUser(fbUser);
               } else {
                 // Not found and not the first user, deny access

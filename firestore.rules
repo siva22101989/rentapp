@@ -7,54 +7,40 @@ service cloud.firestore {
     function isSignedIn() {
       return request.auth != null;
     }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    function isSuperAdmin() {
+      return isSignedIn() && getUserData().role == 'super-admin';
+    }
+
+    function isMemberOfWarehouse(warehouseId) {
+      return isSignedIn() && getUserData().warehouseId == warehouseId;
+    }
     
     // Default-deny all access
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // Allow signed-in users to manage their own user document
     match /users/{userId} {
-      allow read, update, delete: if isSignedIn() && request.auth.uid == userId;
-      // Allow creation for new sign-ups
       allow create: if isSignedIn();
+      allow read, update: if (isSignedIn() && request.auth.uid == userId) || isSuperAdmin();
+      // Allow any authenticated user to list users to find their record during login.
+      allow list: if isSignedIn();
+      allow delete: if isSuperAdmin();
+    }
+
+    // Super-admin can manage the list of warehouses
+    match /managedWarehouses/{warehouseId} {
+      allow read, list, write: if isSuperAdmin();
     }
     
-    // Allow any authenticated user to read and write to the data collections.
-    // This is a typical setup for a single-warehouse application where all
-    // logged-in users are trusted team members.
-    match /customers/{customerId} {
-      allow read, write: if isSignedIn();
-    }
-    match /commodities/{commodityId} {
-      allow read, write: if isSignedIn();
-    }
-    match /lots/{lotId} {
-      allow read, write: if isSignedIn();
-    }
-    match /storageRecords/{recordId} {
-      allow read, write: if isSignedIn();
-    }
-    match /expenses/{expenseId} {
-      allow read, write: if isSignedIn();
-    }
-    match /borrowings/{borrowingId} {
-      allow read, write: if isSignedIn();
-    }
-    match /lendings/{lendingId} {
-      allow read, write: if isSignedIn();
-    }
-    match /otherIncomes/{incomeId} {
-      allow read, write: if isSignedIn();
-    }
-    match /unloadingRecords/{unloadingId} {
-      allow read, write: if isSignedIn();
-    }
-    match /dryingRecords/{dryingId} {
-      allow read, write: if isSignedIn();
-    }
-    match /settings/{settingId} {
-       allow read, write: if isSignedIn();
+    // Rules for data within a specific warehouse
+    match /managedWarehouses/{warehouseId}/{document=**} {
+      allow read, write: if isSuperAdmin() || isMemberOfWarehouse(warehouseId);
     }
   }
 }

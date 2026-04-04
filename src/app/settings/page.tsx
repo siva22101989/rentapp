@@ -1,3 +1,4 @@
+
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { SettingsLayout } from "@/components/settings/settings-layout";
@@ -9,7 +10,7 @@ import { useAppUser } from "@/firebase/auth/use-user";
 
 export default function SettingsPage() {
   const appUser = useAppUser();
-  const canManageTeam = appUser?.role === 'owner' || appUser?.role === 'super-admin';
+  const canManageTeam = appUser?.role === 'owner';
 
   return (
     <AppLayout>

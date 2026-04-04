@@ -19,20 +19,20 @@ export default function UnloadingPage() {
   const canAdd = appUser?.role === 'owner' || appUser?.role === 'biller';
 
   const customersQuery = useMemoFirebase(
-    () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'customers') : null),
-    [firestore, appUser]
+    () => (firestore ? collection(firestore, 'customers') : null),
+    [firestore]
   );
   const { data: customers, loading: loadingCustomers } = useCollection<Customer>(customersQuery);
 
   const unloadingRecordsQuery = useMemoFirebase(
-    () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'unloadingRecords') : null),
-    [firestore, appUser]
+    () => (firestore ? collection(firestore, 'unloadingRecords') : null),
+    [firestore]
   );
   const { data: unloadingRecords, loading: loadingRecords } = useCollection<UnloadingRecord>(unloadingRecordsQuery);
 
   const commoditiesQuery = useMemoFirebase(
-    () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'commodities') : null),
-    [firestore, appUser]
+    () => (firestore ? collection(firestore, 'commodities') : null),
+    [firestore]
   );
   const { data: commodities, loading: loadingCommodities } = useCollection<Commodity>(commoditiesQuery);
 

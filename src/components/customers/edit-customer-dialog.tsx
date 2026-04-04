@@ -23,7 +23,6 @@ import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
-import { useAppUser } from '@/firebase/auth/use-user';
 
 const CustomerSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters.'),
@@ -41,7 +40,6 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer,
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const firestore = useFirestore();
-  const appUser = useAppUser();
 
   const form = useForm<CustomerFormData>({
     resolver: zodResolver(CustomerSchema),
@@ -55,14 +53,14 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer,
   });
 
   const onSubmit = (data: CustomerFormData) => {
-    if (!firestore || !appUser?.warehouseId) {
-      toast({ title: 'Error', description: 'Firestore or user session not available.', variant: 'destructive' });
+    if (!firestore) {
+      toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
       return;
     }
 
     startTransition(async () => {
       try {
-        await updateCustomer(firestore, appUser.warehouseId!, customer.id, data);
+        await updateCustomer(firestore, customer.id, data);
         toast({ title: 'Success', description: 'Customer updated successfully.' });
         setIsOpen(false);
       } catch (error) {

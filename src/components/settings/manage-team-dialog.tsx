@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useTransition } from 'react';
 import { useFirestore } from '@/firebase/provider';
@@ -46,8 +47,8 @@ export function ManageTeamDialog({ children }: { children: React.ReactNode }) {
     const appUser = useAppUser();
 
     const usersQuery = useMemoFirebase(
-        () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'users'), where('warehouseId', '==', appUser.warehouseId)) : null),
-        [firestore, appUser]
+        () => (firestore ? collection(firestore, 'users') : null),
+        [firestore]
     );
     const { data: users, loading } = useCollection<AppUser>(usersQuery);
 
@@ -57,7 +58,7 @@ export function ManageTeamDialog({ children }: { children: React.ReactNode }) {
     });
 
     const onAddUser = (data: AddUserFormData) => {
-        if (!firestore || !appUser?.warehouseId) return;
+        if (!firestore) return;
         
         if (users?.some(u => u.phone === data.phone)) {
             form.setError('phone', { message: 'A user with this phone number already exists.' });
@@ -69,7 +70,6 @@ export function ManageTeamDialog({ children }: { children: React.ReactNode }) {
                 await addDoc(collection(firestore, 'users'), cleanForFirestore({
                     phone: data.phone,
                     role: data.role,
-                    warehouseId: appUser.warehouseId,
                 }));
                 toast({ title: 'Success', description: 'User added to the team. They can now sign in with their phone number and a password of their choice.' });
                 form.reset();
@@ -158,7 +158,7 @@ export function ManageTeamDialog({ children }: { children: React.ReactNode }) {
                                 <TableCell className="font-medium">{user.phone || user.email}</TableCell>
                                 <TableCell className="capitalize">{user.role}</TableCell>
                                 <TableCell>
-                                    <Button variant="ghost" size="icon" onClick={() => onDeleteUser(user.id)} disabled={isPending || user.role === 'owner' || user.role === 'super-admin'}>
+                                    <Button variant="ghost" size="icon" onClick={() => onDeleteUser(user.id)} disabled={isPending || user.role === 'owner'}>
                                         <Trash2 className="h-4 w-4 text-destructive" />
                                     </Button>
                                 </TableCell>

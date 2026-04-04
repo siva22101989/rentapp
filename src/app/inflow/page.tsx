@@ -10,33 +10,31 @@ import { useCollection } from "@/firebase/firestore/use-collection";
 import { collection, query } from "firebase/firestore";
 import { useFirestore } from "@/firebase/provider";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
-import { useAppUser } from "@/firebase/auth/use-user";
 
 export default function InflowPage() {
   const firestore = useFirestore();
-  const appUser = useAppUser();
 
   const customersQuery = useMemoFirebase(
-    () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'customers') : null),
-    [firestore, appUser]
+    () => (firestore ? collection(firestore, 'customers') : null),
+    [firestore]
   );
   const { data: customers, loading: loadingCustomers } = useCollection<Customer>(customersQuery);
 
   const recordsQuery = useMemoFirebase(
-    () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'storageRecords') : null),
-    [firestore, appUser]
+    () => (firestore ? collection(firestore, 'storageRecords') : null),
+    [firestore]
   );
   const { data: records, loading: loadingRecords } = useCollection<StorageRecord>(recordsQuery);
 
   const commoditiesQuery = useMemoFirebase(
-    () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'commodities') : null),
-    [firestore, appUser]
+    () => (firestore ? collection(firestore, 'commodities') : null),
+    [firestore]
   );
   const { data: commodities, loading: loadingCommodities } = useCollection<Commodity>(commoditiesQuery);
   
   const lotsQuery = useMemoFirebase(
-    () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'lots') : null),
-    [firestore, appUser]
+    () => (firestore ? collection(firestore, 'lots') : null),
+    [firestore]
   );
   const { data: lots, loading: loadingLots } = useCollection<Lot>(lotsQuery);
 

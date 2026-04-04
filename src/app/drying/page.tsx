@@ -11,33 +11,31 @@ import { AddCustomerDialog } from "@/components/customers/add-customer-dialog";
 import { InitiateDryingForm } from "@/components/drying/initiate-drying-form";
 import { useMemo } from "react";
 import { toDate } from "@/lib/utils";
-import { useAppUser } from "@/firebase/auth/use-user";
 
 export default function DryingPage() {
   const firestore = useFirestore();
-  const appUser = useAppUser();
 
   const customersQuery = useMemoFirebase(
-    () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'customers') : null),
-    [firestore, appUser]
+    () => (firestore ? collection(firestore, 'customers') : null),
+    [firestore]
   );
   const { data: customers, loading: loadingCustomers } = useCollection<Customer>(customersQuery);
 
   const unloadingRecordsQuery = useMemoFirebase(
-    () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'unloadingRecords') : null),
-    [firestore, appUser]
+    () => (firestore ? collection(firestore, 'unloadingRecords') : null),
+    [firestore]
   );
   const { data: unloadingRecords, loading: loadingUnloadingRecords } = useCollection<UnloadingRecord>(unloadingRecordsQuery);
 
   const lotsQuery = useMemoFirebase(
-    () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'lots') : null),
-    [firestore, appUser]
+    () => (firestore ? collection(firestore, 'lots') : null),
+    [firestore]
   );
   const { data: lots, loading: loadingLots } = useCollection<Lot>(lotsQuery);
   
   const storageRecordsQuery = useMemoFirebase(
-    () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'storageRecords') : null),
-    [firestore, appUser]
+    () => (firestore ? collection(firestore, 'storageRecords') : null),
+    [firestore]
   );
   const { data: storageRecords, loading: loadingStorageRecords } = useCollection<StorageRecord>(storageRecordsQuery);
 

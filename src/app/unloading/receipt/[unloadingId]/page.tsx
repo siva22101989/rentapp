@@ -12,13 +12,11 @@ import { useState, useEffect } from "react";
 import { toDate } from "@/lib/utils";
 import { useDoc } from "@/firebase/firestore/use-doc";
 import { Button } from "@/components/ui/button";
-import { useAppUser } from "@/firebase/auth/use-user";
 
 export default function UnloadingReceiptPage() {
   const params = useParams();
   const unloadingId = params.unloadingId as string;
   const firestore = useFirestore();
-  const appUser = useAppUser();
 
   const [record, setRecord] = useState<UnloadingRecord | null>(null);
   const [loadingRecord, setLoadingRecord] = useState(true);
@@ -27,11 +25,11 @@ export default function UnloadingReceiptPage() {
   const [error, setError] = useState<string|null>(null);
 
   useEffect(() => {
-    if (!firestore || !unloadingId || !appUser?.warehouseId) {
+    if (!firestore || !unloadingId) {
       setLoadingRecord(false);
       return;
     }
-    const recordRef = doc(firestore, 'managedWarehouses', appUser.warehouseId, 'unloadingRecords', unloadingId);
+    const recordRef = doc(firestore, 'unloadingRecords', unloadingId);
     let attempts = 0;
     const maxAttempts = 10;
     const intervalTime = 500;
@@ -57,17 +55,17 @@ export default function UnloadingReceiptPage() {
     };
 
     pollDocument();
-  }, [firestore, unloadingId, appUser]);
+  }, [firestore, unloadingId]);
 
   useEffect(() => {
     async function fetchCustomer() {
-        if (!firestore || !record?.customerId || !appUser?.warehouseId) {
+        if (!firestore || !record?.customerId) {
             setLoadingCustomer(false);
             return;
         }
         setLoadingCustomer(true);
         try {
-            const customerRef = doc(firestore, 'managedWarehouses', appUser.warehouseId, 'customers', record.customerId);
+            const customerRef = doc(firestore, 'customers', record.customerId);
             const customerSnap = await getDoc(customerRef);
             if (customerSnap.exists()) {
                 setCustomer({ id: customerSnap.id, ...customerSnap.data() } as Customer);
@@ -79,11 +77,11 @@ export default function UnloadingReceiptPage() {
         }
     }
     fetchCustomer();
-  }, [firestore, record, appUser]);
+  }, [firestore, record]);
 
   const warehouseInfoRef = useMemoFirebase(
-    () => (firestore && appUser?.warehouseId ? doc(firestore, 'managedWarehouses', appUser.warehouseId, 'settings', 'main') : null),
-    [firestore, appUser]
+    () => (firestore ? doc(firestore, 'settings', 'main') : null),
+    [firestore]
   );
   const { data: warehouseInfo, loading: loadingWarehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
   

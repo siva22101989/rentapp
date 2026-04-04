@@ -54,8 +54,6 @@ export function ProfileSettings() {
         }
 
         const updates: Partial<AppUser> = {};
-        let needsSignOut = false;
-        let emailChangeAttempted = false;
 
         const originalEmail = (appUser.email || '').toLowerCase();
         const newEmail = (data.email || '').toLowerCase();
@@ -64,13 +62,7 @@ export function ProfileSettings() {
         const newPhone = data.phone || '';
 
         if (newEmail !== originalEmail) {
-            if (appUser.role === 'super-admin') {
-                updates.email = newEmail;
-                needsSignOut = true;
-            } else {
-                emailChangeAttempted = true;
-                form.setValue('email', originalEmail); // Revert field
-            }
+            updates.email = newEmail;
         }
         
         if (newPhone !== originalPhone) {
@@ -78,30 +70,14 @@ export function ProfileSettings() {
         }
 
         if (Object.keys(updates).length === 0) {
-            if (emailChangeAttempted) {
-                toast({ title: 'Permission Denied', description: 'Only a super-admin can change their email address.', variant: 'destructive' });
-            } else {
-                toast({ title: 'No Changes', description: 'No information was changed.' });
-            }
+            toast({ title: 'No Changes', description: 'No information was changed.' });
             return;
         }
 
         startTransition(async () => {
             try {
                 await updateUser(firestore, appUser.id, updates);
-                
-                let toastDescription = 'Your profile has been updated.';
-                if(needsSignOut){
-                    toastDescription = 'Super-admin email updated. Please sign out and sign back in with the new email.';
-                } else if (emailChangeAttempted) {
-                     toastDescription = 'Your phone number was updated, but only a super-admin can change the email address.';
-                }
-
-                toast({ 
-                    title: 'Success!', 
-                    description: toastDescription,
-                    duration: needsSignOut ? 8000 : 5000,
-                });
+                toast({ title: 'Success!', description: 'Your profile has been updated.' });
             } catch (error) {
                 console.error(error);
                 toast({ title: 'Error', description: 'Failed to update profile.', variant: 'destructive' });
@@ -129,8 +105,6 @@ export function ProfileSettings() {
             </Card>
         )
     }
-
-    const isSuperAdmin = appUser?.role === 'super-admin';
 
     return (
         <Card className="mt-6">
@@ -163,16 +137,10 @@ export function ProfileSettings() {
                                         <div className="relative">
                                             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                             <FormControl>
-                                                <Input {...field} disabled={!isSuperAdmin || isPending} className="pl-8" />
+                                                <Input {...field} disabled={isPending} className="pl-8" />
                                             </FormControl>
                                         </div>
                                         <FormMessage />
-                                        <p className="text-xs text-muted-foreground">
-                                            {isSuperAdmin 
-                                                ? "Changing this transfers your role. You must sign out and sign back in."
-                                                : "Email cannot be changed."
-                                            }
-                                        </p>
                                     </FormItem>
                                 )}
                             />

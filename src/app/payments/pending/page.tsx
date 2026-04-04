@@ -9,27 +9,25 @@ import { useFirestore } from "@/firebase/provider";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 import { PendingPaymentsTable } from "@/components/payments/pending-payments-table";
 import { CustomerBulkPaymentDialog } from "@/components/payments/customer-bulk-payment-dialog";
-import { useAppUser } from "@/firebase/auth/use-user";
 
 export default function PendingPaymentsPage() {
     const firestore = useFirestore();
-    const appUser = useAppUser();
 
     const recordsQuery = useMemoFirebase(
-      () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'storageRecords') : null),
-      [firestore, appUser]
+      () => (firestore ? collection(firestore, 'storageRecords') : null),
+      [firestore]
     );
     const { data: allRecords, loading: loadingRecords } = useCollection<StorageRecord>(recordsQuery);
 
     const customersQuery = useMemoFirebase(
-        () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'customers') : null),
-        [firestore, appUser]
+        () => (firestore ? collection(firestore, 'customers') : null),
+        [firestore]
     );
     const { data: allCustomers, loading: loadingCustomers } = useCollection<Customer>(customersQuery);
     
     const unloadingRecordsQuery = useMemoFirebase(
-        () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'unloadingRecords') : null),
-        [firestore, appUser]
+        () => (firestore ? collection(firestore, 'unloadingRecords') : null),
+        [firestore]
     );
     const { data: allUnloadingRecords, loading: loadingUnloadingRecords } = useCollection<UnloadingRecord>(unloadingRecordsQuery);
 

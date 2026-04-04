@@ -10,20 +10,18 @@ import { useDoc } from '@/firebase/firestore/use-doc';
 import { useFirestore } from '@/firebase/provider';
 import { doc } from 'firebase/firestore';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
-import { useAppUser } from '@/firebase/auth/use-user';
 
 export function ReportClient({ records, customers, unloadingRecords, initialCustomerId }: { records: StorageRecord[], customers: Customer[], unloadingRecords: UnloadingRecord[], initialCustomerId?: string }) {
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>(initialCustomerId || '');
     const firestore = useFirestore();
-    const appUser = useAppUser();
 
     const statementCustomer = customers.find(c => c.id === selectedCustomerId);
     const statementRecords = records.filter(r => r.customerId === selectedCustomerId);
     const statementUnloadingRecords = unloadingRecords.filter(r => r.customerId === selectedCustomerId);
 
     const warehouseInfoRef = useMemoFirebase(
-      () => (firestore && appUser?.warehouseId ? doc(firestore, 'managedWarehouses', appUser.warehouseId, 'settings', 'main') : null),
-      [firestore, appUser]
+      () => (firestore ? doc(firestore, 'settings', 'main') : null),
+      [firestore]
     );
     const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 

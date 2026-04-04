@@ -18,7 +18,6 @@ import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 import { cleanForFirestore } from '@/lib/utils';
 import { Skeleton } from '../ui/skeleton';
 import { Textarea } from '../ui/textarea';
-import { useAppUser } from '@/firebase/auth/use-user';
 
 const WarehouseInfoSchema = z.object({
   name: z.string().min(3, 'Warehouse name is required.'),
@@ -36,11 +35,10 @@ export function WarehouseInfoForm() {
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
     const firestore = useFirestore();
-    const appUser = useAppUser();
 
     const warehouseInfoRef = useMemoFirebase(
-        () => (firestore && appUser?.warehouseId ? doc(firestore, 'managedWarehouses', appUser.warehouseId, 'settings', 'main') : null),
-        [firestore, appUser]
+        () => (firestore ? doc(firestore, 'settings', 'main') : null),
+        [firestore]
     );
     const { data: warehouseInfo, loading: loadingInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
@@ -72,14 +70,14 @@ export function WarehouseInfoForm() {
     }, [warehouseInfo, form]);
 
     const onSubmit = (data: WarehouseInfoFormData) => {
-        if (!firestore || !appUser?.warehouseId) {
-            toast({ title: 'Error', description: 'Firestore or user session not available.', variant: 'destructive' });
+        if (!firestore) {
+            toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
             return;
         }
 
         startTransition(async () => {
             try {
-                const docRef = doc(firestore, 'managedWarehouses', appUser.warehouseId, 'settings', 'main');
+                const docRef = doc(firestore, 'settings', 'main');
                 await setDoc(docRef, cleanForFirestore(data), { merge: true });
                 toast({ title: 'Success', description: 'Warehouse information updated.' });
             } catch (error) {

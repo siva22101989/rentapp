@@ -17,7 +17,6 @@ import { Button } from '../ui/button';
 import { Loader2 } from 'lucide-react';
 import { useFirestore } from '@/firebase/provider';
 import { deleteCustomer } from '@/lib/data';
-import { useAppUser } from '@/firebase/auth/use-user';
 
 export function DeleteCustomerDialog({
   customerId,
@@ -30,16 +29,15 @@ export function DeleteCustomerDialog({
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const firestore = useFirestore();
-  const appUser = useAppUser();
 
   const handleDelete = async () => {
-    if (!firestore || !appUser?.warehouseId) {
-      toast({ title: 'Error', description: 'Firestore or user session not available.', variant: 'destructive' });
+    if (!firestore) {
+      toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
       return;
     }
     startTransition(async () => {
       try {
-        await deleteCustomer(firestore, appUser.warehouseId!, customerId);
+        await deleteCustomer(firestore, customerId);
         toast({ title: 'Success', description: 'Customer deleted successfully.' });
         setIsOpen(false);
       } catch (error) {

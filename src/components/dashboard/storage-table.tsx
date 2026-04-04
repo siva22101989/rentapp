@@ -16,22 +16,20 @@ import { useFirestore } from "@/firebase/provider";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 import { useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { useAppUser } from "@/firebase/auth/use-user";
 
 export function StorageTable() {
   const firestore = useFirestore();
-  const appUser = useAppUser();
   const router = useRouter();
 
   const allRecordsQuery = useMemoFirebase(
-    () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'storageRecords') : null),
-    [firestore, appUser]
+    () => (firestore ? collection(firestore, 'storageRecords') : null),
+    [firestore]
   );
   const { data: allRecords, loading: loadingRecords } = useCollection<StorageRecord>(allRecordsQuery);
 
   const customersQuery = useMemoFirebase(
-    () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'customers') : null),
-    [firestore, appUser]
+    () => (firestore ? collection(firestore, 'customers') : null),
+    [firestore]
   );
   const { data: allCustomers, loading: loadingCustomers } = useCollection<Customer>(customersQuery);
   

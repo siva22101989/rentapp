@@ -1,6 +1,6 @@
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAppUser } from "@/firebase/auth/use-user";
 import type { LucideIcon } from 'lucide-react';
 import Link from 'next/link';
@@ -15,7 +15,8 @@ import {
   Settings,
   Wind,
   ArrowDownFromLine,
-  LayoutDashboard
+  LayoutDashboard,
+  ArrowRight
 } from 'lucide-react';
 import { StorageTable } from "@/components/dashboard/storage-table";
 import { useCollection } from "@/firebase/firestore/use-collection";
@@ -26,6 +27,7 @@ import { useMemo, useState, useEffect } from "react";
 import type { StorageRecord, Lot } from "@/lib/definitions";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { Package, TrendingUp, Warehouse } from "lucide-react";
 
 type NavItem = {
@@ -50,19 +52,25 @@ const navItems: NavItem[] = [
 
 function NavCard({ href, label, icon: Icon, description }: Omit<NavItem, 'roles'>) {
     return (
-        <Link href={href}>
-            <Card className="h-full hover:bg-muted/50 transition-colors hover:border-primary/50">
-                <CardHeader className="flex-row items-center gap-4 space-y-0">
-                    <div className="grid h-10 w-10 place-items-center rounded-lg bg-primary/10 text-primary">
-                        <Icon className="h-6 w-6" />
-                    </div>
+        <Card className="flex flex-col h-full hover:bg-muted/50 transition-colors hover:border-primary/50">
+            <CardHeader>
+                <div className="flex justify-between items-start">
                     <CardTitle>{label}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-sm text-muted-foreground">{description}</p>
-                </CardContent>
-            </Card>
-        </Link>
+                    <Icon className="h-6 w-6 text-muted-foreground" />
+                </div>
+            </CardHeader>
+            <CardContent className="flex-grow">
+                <p className="text-sm text-muted-foreground">{description}</p>
+            </CardContent>
+            <CardFooter>
+                <Button asChild className="w-full">
+                    <Link href={href}>
+                        Go to {label}
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                </Button>
+            </CardFooter>
+        </Card>
     );
 }
 

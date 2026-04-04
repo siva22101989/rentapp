@@ -1,4 +1,3 @@
-
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -181,16 +180,6 @@ export default function DashboardPage() {
                     <NavCard key={item.href} {...item} />
                 ))}
             </div>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Customer Storage Summary</CardTitle>
-                    <CardDescription>A summary of active stock held by each customer.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <StorageTable />
-                </CardContent>
-            </Card>
         </AppLayout>
     );
 }

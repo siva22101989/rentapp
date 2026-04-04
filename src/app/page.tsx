@@ -1,4 +1,3 @@
-
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,10 +24,11 @@ import { doc, collection } from "firebase/firestore";
 import { useFirestore } from "@/firebase/provider";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 import { useMemo, useState, useEffect } from "react";
-import type { StorageRecord, Lot, WarehouseInfo } from "@/lib/definitions";
+import type { StorageRecord, Lot, WarehouseInfo, AppUser } from "@/lib/definitions";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Package, TrendingUp, Warehouse } from "lucide-react";
 import { useDoc } from "@/firebase/firestore/use-doc";
 
@@ -76,7 +76,7 @@ function NavCard({ href, label, icon: Icon, description }: Omit<NavItem, 'roles'
     );
 }
 
-function DashboardHeader({ activeRecordsCount, occupancy, warehouseInfo }: { activeRecordsCount: number; occupancy: number; warehouseInfo: WarehouseInfo | null }) {
+function DashboardHeader({ activeRecordsCount, occupancy, warehouseInfo, appUser }: { activeRecordsCount: number; occupancy: number; warehouseInfo: WarehouseInfo | null, appUser: AppUser | null }) {
     const [greeting, setGreeting] = useState("Good Day, Team!");
     
     useEffect(() => {
@@ -90,10 +90,15 @@ function DashboardHeader({ activeRecordsCount, occupancy, warehouseInfo }: { act
         <Card className="mb-6">
             <CardContent className="p-4 md:p-6 flex flex-col md:flex-row items-center gap-4 md:gap-6">
                 <div className="flex-1">
-                    <p className="text-sm font-medium text-primary flex items-center gap-2">
-                        <Package size={16} />
-                        {warehouseInfo?.name || 'GrainDost'}
-                    </p>
+                    <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-primary flex items-center gap-2">
+                            <Package size={16} />
+                            {warehouseInfo?.name || 'GrainDost'}
+                        </p>
+                        {appUser?.role && (
+                            <Badge variant="outline" className="capitalize">{appUser.role}</Badge>
+                        )}
+                    </div>
                     <h2 className="text-2xl font-bold mt-2">{greeting}</h2>
                     <p className="text-muted-foreground mt-2 max-w-md">
                         Here's what's happening in your warehouse today. You have {activeRecordsCount} active records and
@@ -189,7 +194,7 @@ export default function DashboardPage() {
             {loadingRecords || loadingLots || loadingWarehouseInfo ? (
                 <DashboardHeaderSkeleton />
             ) : (
-                <DashboardHeader activeRecordsCount={activeRecordsCount} occupancy={occupancy} warehouseInfo={warehouseInfo} />
+                <DashboardHeader activeRecordsCount={activeRecordsCount} occupancy={occupancy} warehouseInfo={warehouseInfo} appUser={appUser} />
             )}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mb-6">
                 {accessibleNavItems.map((item) => (

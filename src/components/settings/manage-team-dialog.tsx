@@ -47,7 +47,7 @@ export function ManageTeamDialog({ children }: { children: React.ReactNode }) {
     const appUser = useAppUser();
 
     const usersQuery = useMemoFirebase(
-        () => (firestore && appUser ? collection(firestore, 'users') : null),
+        () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'users'), where('warehouseId', '==', appUser.warehouseId)) : null),
         [firestore, appUser]
     );
     const { data: users, loading } = useCollection<AppUser>(usersQuery);
@@ -58,7 +58,7 @@ export function ManageTeamDialog({ children }: { children: React.ReactNode }) {
     });
 
     const onAddUser = (data: AddUserFormData) => {
-        if (!firestore) return;
+        if (!firestore || !appUser?.warehouseId) return;
         
         if (users?.some(u => u.phone === data.phone)) {
             form.setError('phone', { message: 'A user with this phone number already exists.' });
@@ -70,6 +70,7 @@ export function ManageTeamDialog({ children }: { children: React.ReactNode }) {
                 await addDoc(collection(firestore, 'users'), cleanForFirestore({
                     phone: data.phone,
                     role: data.role,
+                    warehouseId: appUser.warehouseId
                 }));
                 toast({ title: 'Success', description: 'User added to the team. They can now sign in with their phone number and a password of their choice.' });
                 form.reset();
@@ -110,7 +111,7 @@ export function ManageTeamDialog({ children }: { children: React.ReactNode }) {
                         render={({ field }) => (
                             <FormItem className="sm:col-span-1">
                                 <FormLabel>Phone Number</FormLabel>
-                                <FormControl><Input placeholder="+91..." {...field} /></FormControl>
+                                <FormControl><Input placeholder="e.g. 9876543210" {...field} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}

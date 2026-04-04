@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
@@ -47,7 +48,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
           const userEmail = fbUser.email?.toLowerCase();
 
           // Special handling for the super-admin account.
-          // This ensures that the user with this email is always the super-admin.
           if (userEmail === 'admin@gmail.com') {
             const superAdminData = { role: 'super-admin', email: userEmail, phone: '' };
             await setDoc(userDocRef, superAdminData, { merge: true });
@@ -57,11 +57,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
             return; // Super-admin flow ends here.
           }
           
+          let foundAppUser: AppUser | null = null;
           const userDocSnap = await getDoc(userDocRef);
 
           if (userDocSnap.exists()) {
-            setAppUser({ id: userDocSnap.id, ...userDocSnap.data() } as AppUser);
-            setUser(fbUser);
+            foundAppUser = { id: userDocSnap.id, ...userDocSnap.data() } as AppUser;
           } else {
             // Document with UID doesn't exist, try to find an existing user record to migrate
             const usersCol = collection(firestore, 'users');
@@ -78,7 +78,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
                 conditions.push(where('phone', '==', phone));
             }
 
-            let migrated = false;
             if (conditions.length > 0) {
               const q = query(usersCol, or(...conditions));
               const querySnapshot = await getDocs(q);
@@ -91,25 +90,27 @@ export function UserProvider({ children }: { children: ReactNode }) {
                     batch.set(userDocRef, appUserData); // Create new doc with UID
                     batch.delete(oldUserDoc.ref);       // Delete old doc
                     await batch.commit();
-
-                    setAppUser({ id: userDocRef.id, ...appUserData } as AppUser);
-                    setUser(fbUser);
-                    migrated = true;
-                } else {
-                    setAppUser({ id: oldUserDoc.id, ...appUserData } as AppUser);
-                    setUser(fbUser);
-                    migrated = true;
                 }
+                foundAppUser = { id: fbUser.uid, ...appUserData };
               }
             }
-
-            if (!migrated) {
-              // The user is not recognized and not the hardcoded super-admin. Deny access.
+          }
+          
+          // Final check: ensure the user has a valid role and warehouse assignment
+          if (foundAppUser && (foundAppUser.role === 'super-admin' || foundAppUser.warehouseId)) {
+             setAppUser(foundAppUser);
+             setUser(fbUser);
+          } else {
+              if (foundAppUser) {
+                  console.error(`Access denied for user ${foundAppUser.id} (${foundAppUser.role}): missing warehouseId.`);
+              } else {
+                  console.error(`Access denied for user ${fbUser.uid}: No matching user document found in Firestore.`);
+              }
               await auth.signOut();
               setUser(null);
               setAppUser(null);
-            }
           }
+
         } catch (e: any) {
           console.error("Error during user setup:", e);
           handlePermissionError('list', 'users'); // Emit generic error

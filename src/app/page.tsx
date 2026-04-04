@@ -1,3 +1,4 @@
+
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +17,10 @@ import {
   Wind,
   ArrowDownFromLine,
   LayoutDashboard,
-  ArrowRight
+  ArrowRight,
+  TrendingUp,
+  Warehouse,
+  Wheat
 } from 'lucide-react';
 import { StorageTable } from "@/components/dashboard/storage-table";
 import { useCollection } from "@/firebase/firestore/use-collection";
@@ -29,7 +33,6 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Package, TrendingUp, Warehouse } from "lucide-react";
 import { useDoc } from "@/firebase/firestore/use-doc";
 
 type NavItem = {
@@ -92,7 +95,7 @@ function DashboardHeader({ activeRecordsCount, occupancy, warehouseInfo, appUser
                 <div className="flex-1">
                     <div className="flex items-center gap-2">
                         <p className="text-sm font-medium text-primary flex items-center gap-2">
-                            <Package size={16} />
+                            <Wheat size={16} />
                             {warehouseInfo?.name || 'GrainDost'}
                         </p>
                         {appUser?.role && (

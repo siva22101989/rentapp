@@ -505,9 +505,28 @@
           "type": "string",
           "enum": ["super-admin", "owner", "supervisor", "biller"],
           "description": "The assigned role for the user."
+        },
+        "warehouseId": {
+          "type": "string",
+          "description": "The ID of the warehouse this user belongs to. Empty for super-admin."
         }
       },
       "required": ["role"]
+    },
+    "managedWarehouse": {
+      "title": "Managed Warehouse",
+      "description": "Represents a warehouse subscription managed by the super-admin.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Name of the warehouse." },
+        "ownerName": { "type": "string", "description": "Full name of the owner." },
+        "ownerEmail": { "type": "string", "format": "email", "description": "Email of the owner for login." },
+        "yearlyAmount": { "type": "number", "description": "Subscription amount per year." },
+        "subscriptionStatus": { "type": "string", "enum": ["active", "trial", "expired", "suspended"], "description": "Current status of the subscription." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Date of creation." },
+        "trialMonths": { "type": "number", "description": "Duration of trial in months." }
+      },
+      "required": ["name", "ownerName", "ownerEmail", "subscriptionStatus"]
     }
   },
   "auth": {
@@ -565,6 +584,10 @@
     "/settings/sms": {
       "schema": "smsInfo",
       "description": "Stores SMS provider configuration."
+    },
+    "/managedWarehouses/{warehouseId}": {
+      "schema": "managedWarehouse",
+      "description": "Stores warehouse subscription details."
     }
   }
 }

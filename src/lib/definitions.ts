@@ -192,4 +192,16 @@ export type AppUser = {
   email?: string;
   phone: string;
   role: UserRole;
+  warehouseId?: string;
+};
+
+export type ManagedWarehouse = {
+  id: string;
+  name: string;
+  ownerName: string;
+  ownerEmail: string;
+  yearlyAmount: number;
+  subscriptionStatus: 'active' | 'trial' | 'expired' | 'suspended';
+  createdAt: Date | Timestamp;
+  trialMonths?: number;
 };

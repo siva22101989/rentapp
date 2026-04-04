@@ -17,7 +17,7 @@ import {
   query,
   where,
 } from 'firebase/firestore';
-import type { Customer, Expense, Payment, StorageRecord, Commodity, Outflow, UnloadingRecord, Borrowing, Lending, AppUser } from './definitions';
+import type { Customer, Expense, Payment, StorageRecord, Commodity, Outflow, UnloadingRecord, Borrowing, Lending, AppUser, ManagedWarehouse } from './definitions';
 import { cleanForFirestore } from './utils';
 
 // These functions are intended for client-side use.
@@ -156,4 +156,26 @@ export const deleteLending = async (db: Firestore, id: string): Promise<void> =>
 export const updateUser = async (db: Firestore, id: string, data: Partial<AppUser>): Promise<void> => {
     const userRef = doc(db, 'users', id);
     await updateDoc(userRef, cleanForFirestore(data));
+};
+
+export const updateManagedWarehouse = async (db: Firestore, id: string, data: Partial<ManagedWarehouse>): Promise<void> => {
+    const warehouseRef = doc(db, 'managedWarehouses', id);
+    await updateDoc(warehouseRef, cleanForFirestore(data));
+};
+
+export const deleteManagedWarehouse = async (db: Firestore, warehouseId: string): Promise<void> => {
+    const batch = writeBatch(db);
+
+    const warehouseRef = doc(db, 'managedWarehouses', warehouseId);
+    batch.delete(warehouseRef);
+    
+    const usersCollection = collection(db, 'users');
+    const q = query(usersCollection, where('warehouseId', '==', warehouseId));
+    
+    const querySnapshot = await getDocs(q);
+    querySnapshot.forEach((doc) => {
+        batch.delete(doc.ref);
+    });
+
+    await batch.commit();
 };

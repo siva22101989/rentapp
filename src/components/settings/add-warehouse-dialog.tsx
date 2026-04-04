@@ -20,7 +20,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { Input } from '../ui/input';
-import { collection, writeBatch, doc } from 'firebase/firestore';
+import { collection, writeBatch, doc, query, where, getDocs } from 'firebase/firestore';
 import { cleanForFirestore } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
@@ -61,16 +61,27 @@ export function AddWarehouseDialog() {
 
     startTransition(async () => {
       try {
-        const batch = writeBatch(firestore);
+        const usersCollection = collection(firestore, 'users');
+        const q = query(usersCollection, where('email', '==', data.ownerEmail.toLowerCase()));
+        const existingUserSnap = await getDocs(q);
 
-        // 1. Create the warehouse document
+        if (!existingUserSnap.empty) {
+            toast({
+                title: 'User Exists',
+                description: 'A user with this email already exists. Please use a different email.',
+                variant: 'destructive',
+            });
+            return;
+        }
+        
+        const batch = writeBatch(firestore);
+        
         const warehouseRef = doc(collection(firestore, 'managedWarehouses'));
         batch.set(warehouseRef, cleanForFirestore({
             ...data,
             createdAt: new Date(),
         }));
-
-        // 2. Create the owner's user document
+        
         const userRef = doc(collection(firestore, 'users'));
         batch.set(userRef, {
             email: data.ownerEmail.toLowerCase(),

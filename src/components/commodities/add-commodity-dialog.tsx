@@ -23,6 +23,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { Input } from '../ui/input';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
+import { useAppUser } from '@/firebase/auth/use-user';
 
 const CommoditySchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
@@ -64,6 +65,7 @@ export function AddCommodityDialog() {
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const firestore = useFirestore();
+  const appUser = useAppUser();
 
   const form = useForm<CommodityFormData>({
     resolver: zodResolver(CommoditySchema),
@@ -76,14 +78,15 @@ export function AddCommodityDialog() {
   const billingType = form.watch('billingType');
 
   const onSubmit = (data: CommodityFormData) => {
-    if (!firestore) {
-      toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
+    if (!firestore || !appUser?.warehouseId) {
+      toast({ title: 'Error', description: 'Firestore not available or user not in a warehouse.', variant: 'destructive' });
       return;
     }
 
     startTransition(async () => {
       try {
-        await saveCommodity(firestore, data);
+        const commodityData = { ...data, warehouseId: appUser.warehouseId };
+        await saveCommodity(firestore, commodityData);
         toast({ title: 'Success', description: 'Commodity added successfully.' });
         setIsOpen(false);
         form.reset();

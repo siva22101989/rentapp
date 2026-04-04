@@ -9,6 +9,7 @@ export type Customer = {
   address?: string;
   fatherName?: string;
   village?: string;
+  warehouseId?: string;
 };
 
 export type Commodity = {
@@ -18,12 +19,14 @@ export type Commodity = {
   monthlyRate?: number;
   rate6Months?: number;
   rate1Year?: number;
+  warehouseId?: string;
 };
 
 export type Lot = {
   id: string;
   name: string;
   capacity?: number;
+  warehouseId?: string;
 };
 
 export type Payment = {
@@ -75,6 +78,7 @@ export type StorageRecord = {
   monthlyRate?: number;
   rate6Months?: number;
   rate1Year?: number;
+  warehouseId?: string;
 };
 
 export const expenseCategories = ["Worker Salary", "Petrol", "Maintenance", "Utilities", "Current Bill", "Hamali", "EMI for Godown", "Loan Repayment", "Other"] as const;
@@ -87,6 +91,7 @@ export type Expense = {
   amount: number;
   category: ExpenseCategory;
   date: Date | Timestamp;
+  warehouseId?: string;
 };
 
 export type Borrowing = {
@@ -97,6 +102,7 @@ export type Borrowing = {
   dateTaken: Date | Timestamp;
   payments?: Payment[];
   status?: 'Active' | 'Paid Off';
+  warehouseId?: string;
 };
 
 export type Lending = {
@@ -107,6 +113,7 @@ export type Lending = {
   dateGiven: Date | Timestamp;
   payments?: Payment[];
   status?: 'Active' | 'Paid Off';
+  warehouseId?: string;
 };
 
 export const incomeCategories = ["Loan Payment Received", "Other"] as const;
@@ -118,6 +125,7 @@ export type OtherIncome = {
     amount: number;
     category: IncomeCategory;
     date: Date | Timestamp;
+    warehouseId?: string;
 }
 
 export type WarehouseInfo = {
@@ -150,6 +158,7 @@ export type UnloadingRecord = {
   workerHamaliPayable?: number;
   billNo?: string;
   payments?: Payment[];
+  warehouseId?: string;
 };
 
 export const dryingStatus = ["Drying", "Packing", "Billed"] as const;
@@ -176,6 +185,7 @@ export type DryingRecord = {
   totalDryingHamali: number;
   hamaliCharges?: HamaliCharge[];
   totalDryingWorkerHamali?: number;
+  warehouseId?: string;
 };
 
 export type SmsInfo = {

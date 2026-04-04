@@ -30,6 +30,10 @@
         "village": {
             "type": "string",
             "description": "The village of the customer."
+        },
+        "warehouseId": {
+            "type": "string",
+            "description": "The ID of the warehouse this document belongs to."
         }
       },
       "required": ["name", "phone"]
@@ -50,6 +54,10 @@
         "rate1Year": {
           "type": "number",
           "description": "The rent rate per bag for a 1-year period."
+        },
+        "warehouseId": {
+            "type": "string",
+            "description": "The ID of the warehouse this document belongs to."
         }
       },
       "required": ["name", "rate6Months", "rate1Year"]
@@ -66,6 +74,10 @@
         "capacity": {
           "type": "number",
           "description": "The storage capacity of the lot in bags."
+        },
+        "warehouseId": {
+            "type": "string",
+            "description": "The ID of the warehouse this document belongs to."
         }
       },
       "required": ["name"]
@@ -153,6 +165,10 @@
                     "amount": { "type": "number" }
                 }
             }
+        },
+        "warehouseId": {
+            "type": "string",
+            "description": "The ID of the warehouse this document belongs to."
         }
       },
       "required": [
@@ -208,6 +224,10 @@
             "type": "string",
             "format": "date-time",
             "description": "The date the expense was incurred."
+          },
+          "warehouseId": {
+            "type": "string",
+            "description": "The ID of the warehouse this document belongs to."
           }
         },
         "required": ["description", "amount", "category", "date"]
@@ -242,6 +262,10 @@
             "type": "string",
             "enum": ["Active", "Paid Off"],
             "description": "The current status of the loan."
+        },
+        "warehouseId": {
+            "type": "string",
+            "description": "The ID of the warehouse this document belongs to."
         }
       },
       "required": [
@@ -281,6 +305,10 @@
             "type": "string",
             "enum": ["Active", "Paid Off"],
             "description": "The current status of the loan."
+        },
+        "warehouseId": {
+            "type": "string",
+            "description": "The ID of the warehouse this document belongs to."
         }
       },
       "required": [
@@ -312,6 +340,10 @@
           "type": "string",
           "format": "date-time",
           "description": "The date the income was received."
+        },
+        "warehouseId": {
+            "type": "string",
+            "description": "The ID of the warehouse this document belongs to."
         }
       },
       "required": ["description", "amount", "category", "date"]
@@ -358,6 +390,10 @@
         "billNo": {
             "type": "string",
             "description": "The bill number associated with this unloading record."
+        },
+        "warehouseId": {
+            "type": "string",
+            "description": "The ID of the warehouse this document belongs to."
         }
       },
       "required": [
@@ -422,6 +458,10 @@
         "totalDryingHamali": {
           "type": "number",
           "description": "The total hamali charge for this drying process."
+        },
+        "warehouseId": {
+            "type": "string",
+            "description": "The ID of the warehouse this document belongs to."
         }
       },
       "required": [

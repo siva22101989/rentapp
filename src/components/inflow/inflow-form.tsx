@@ -14,6 +14,7 @@ import { formatCurrency, cleanForFirestore } from '@/lib/utils';
 import { useFirestore } from '@/firebase/provider';
 import { doc, setDoc } from 'firebase/firestore';
 import { Combobox } from '../ui/combobox';
+import { useAppUser } from '@/firebase/auth/use-user';
 
 function SubmitButton({ isPending }: { isPending: boolean }) {
     return (
@@ -33,6 +34,7 @@ function SubmitButton({ isPending }: { isPending: boolean }) {
 export function InflowForm({ customers, commodities, lots, records, nextId }: { customers: Customer[], commodities: Commodity[], lots: Lot[], records: StorageRecord[], nextId: string }) {
     const { toast } = useToast();
     const firestore = useFirestore();
+    const appUser = useAppUser();
     const [isPending, startTransition] = useTransition();
 
     const [bags, setBags] = useState<number | ''>('');
@@ -103,8 +105,8 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
     
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        if (!firestore) {
-            toast({ title: 'Error', description: 'Firestore not available', variant: 'destructive' });
+        if (!firestore || !appUser?.warehouseId) {
+            toast({ title: 'Error', description: 'Firestore not available or user not in a warehouse.', variant: 'destructive' });
             return;
         }
 
@@ -174,6 +176,7 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                     monthlyRate: commodityDetails.monthlyRate,
                     rate6Months: commodityDetails.rate6Months,
                     rate1Year: commodityDetails.rate1Year,
+                    warehouseId: appUser.warehouseId,
                 };
 
                 const docRef = doc(firestore, "storageRecords", nextId);

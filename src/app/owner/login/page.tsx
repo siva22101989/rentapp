@@ -22,7 +22,7 @@ function GoogleIcon() {
     )
 }
 
-export default function SuperAdminLoginPage() {
+export default function WarehouseOwnerLoginPage() {
   const auth = useAuth();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -61,8 +61,8 @@ export default function SuperAdminLoginPage() {
             <div className="mx-auto mb-4">
               <Logo />
             </div>
-          <CardTitle>Super Admin Sign In</CardTitle>
-          <CardDescription>Sign in to manage all warehouses</CardDescription>
+          <CardTitle>Warehouse Owner Sign In</CardTitle>
+          <CardDescription>Sign in with the Google account assigned by the super-admin.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
             {unauthorizedDomain && (
@@ -96,10 +96,10 @@ export default function SuperAdminLoginPage() {
         </CardContent>
          <CardFooter className="flex-col gap-2">
             <Button variant="link" size="sm" asChild className="w-full">
-                <Link href="/owner/login">Warehouse Owner Login</Link>
+                <Link href="/login">Warehouse Staff Login</Link>
             </Button>
             <Button variant="link" size="sm" asChild className="w-full">
-                <Link href="/login">Warehouse Staff Login</Link>
+                <Link href="/super-admin/login">Super Admin Login</Link>
             </Button>
         </CardFooter>
       </Card>

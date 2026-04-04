@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { useAuth, useFirestore } from '@/firebase/provider';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -55,7 +55,7 @@ export default function LoginPage() {
                     .catch(createError => {
                         if (createError.code === 'auth/email-already-in-use') {
                             // User exists, so the password was wrong.
-                            setError('Incorrect password. Please try again or use "Forgot Password".');
+                            setError('Incorrect password. Please try again.');
                         } else if (createError.code === 'auth/weak-password') {
                             setError('Password is too weak. It must be at least 6 characters long.');
                         } else {
@@ -72,31 +72,6 @@ export default function LoginPage() {
         });
   };
 
-  const handleForgotPassword = async () => {
-    if (!auth) {
-        toast({ title: 'Error', description: 'Firebase not available.', variant: 'destructive'});
-        return;
-    }
-    if (!identifier) {
-        toast({ title: 'Phone Number Required', description: 'Please enter your phone number to reset your password.', variant: 'destructive'});
-        return;
-    }
-
-    const userEmail = `+${identifier}@${firebaseConfig.authDomain}`;
-
-    try {
-        await sendPasswordResetEmail(auth, userEmail);
-        toast({ title: 'Password Reset Email Sent', description: `If an account exists for this phone number, check the spam folder for an email sent to ${userEmail} with a password reset link.`});
-    } catch (error: any) {
-        console.error(error);
-        if (error.code === 'auth/user-not-found') {
-             toast({ title: 'User Not Found', description: 'This phone number is not registered. Please contact the warehouse owner.', variant: 'destructive'});
-        } else {
-            toast({ title: 'Error', description: 'Failed to send password reset email.', variant: 'destructive'});
-        }
-    }
-  }
-
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-sm">
@@ -105,7 +80,7 @@ export default function LoginPage() {
               <Logo />
             </div>
           <CardTitle>Warehouse Staff Sign In</CardTitle>
-          <CardDescription>to access your warehouse dashboard</CardDescription>
+          <CardDescription>Use your assigned phone number and password.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
             <form onSubmit={handlePasswordSignIn} className="space-y-4">
@@ -144,9 +119,9 @@ export default function LoginPage() {
                 </Alert>
             )}
         </CardContent>
-        <CardFooter className="flex-col gap-4">
-            <Button variant="link" size="sm" className="w-full" onClick={handleForgotPassword}>
-                Forgot Password?
+        <CardFooter className="flex-col gap-2">
+             <Button variant="link" size="sm" asChild className="w-full">
+                <Link href="/owner/login">Warehouse Owner Login</Link>
             </Button>
              <Button variant="link" size="sm" asChild className="w-full">
                 <Link href="/super-admin/login">Super Admin Login</Link>

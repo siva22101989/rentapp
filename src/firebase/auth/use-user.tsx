@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
@@ -65,26 +64,25 @@ export function UserProvider({ children }: { children: ReactNode }) {
           } else {
             // Document with UID doesn't exist, try to find an existing user record to migrate
             const usersCol = collection(firestore, 'users');
-            const conditions = [];
-            
-            if (userEmail && !userEmail.startsWith('+')) {
-                conditions.push(where('email', '==', userEmail));
-            }
-            if (fbUser.phoneNumber) {
-                 conditions.push(where('phone', '==', fbUser.phoneNumber));
-            }
+            let querySnapshot;
+
+            // Check if it's a staff member logging in with a phone-based shadow account
             if (userEmail && userEmail.startsWith('+') && userEmail.endsWith(`@${firebaseConfig.authDomain}`)) {
                 const phone = userEmail.substring(1, userEmail.indexOf('@'));
-                conditions.push(where('phone', '==', phone));
+                const q = query(usersCol, where('phone', '==', phone));
+                querySnapshot = await getDocs(q);
+            } 
+            // Check if it's an owner logging in with a real email
+            else if (userEmail) {
+                const q = query(usersCol, where('email', '==', userEmail));
+                querySnapshot = await getDocs(q);
             }
-
-            if (conditions.length > 0) {
-              const q = query(usersCol, or(...conditions));
-              const querySnapshot = await getDocs(q);
-              if (!querySnapshot.empty) {
+            
+            if (querySnapshot && !querySnapshot.empty) {
                 const oldUserDoc = querySnapshot.docs[0];
                 const appUserData = oldUserDoc.data() as Omit<AppUser, 'id'>;
                 
+                // This is a critical step: migrate the user data to a new document with the correct UID
                 if (oldUserDoc.id !== fbUser.uid) {
                     const batch = writeBatch(firestore);
                     batch.set(userDocRef, appUserData); // Create new doc with UID
@@ -92,7 +90,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
                     await batch.commit();
                 }
                 foundAppUser = { id: fbUser.uid, ...appUserData };
-              }
             }
           }
           

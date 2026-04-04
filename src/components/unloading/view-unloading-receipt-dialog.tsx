@@ -31,7 +31,7 @@ export function ViewUnloadingReceiptDialog({
   const appUser = useAppUser();
 
   const warehouseInfoRef = useMemoFirebase(
-    () => (firestore && appUser?.warehouseId ? doc(firestore, 'managedWarehouses', appUser.warehouseId, 'settings', 'main') : null),
+    () => (firestore && appUser ? doc(firestore, 'settings', 'main') : null),
     [firestore, appUser]
   );
   const { data: warehouseInfo, loading: loadingWarehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);

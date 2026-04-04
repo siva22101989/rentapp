@@ -47,8 +47,8 @@ export function ManageTeamDialog({ children }: { children: React.ReactNode }) {
     const appUser = useAppUser();
 
     const usersQuery = useMemoFirebase(
-        () => (firestore ? collection(firestore, 'users') : null),
-        [firestore]
+        () => (firestore && appUser ? collection(firestore, 'users') : null),
+        [firestore, appUser]
     );
     const { data: users, loading } = useCollection<AppUser>(usersQuery);
 
@@ -158,7 +158,7 @@ export function ManageTeamDialog({ children }: { children: React.ReactNode }) {
                                 <TableCell className="font-medium">{user.phone || user.email}</TableCell>
                                 <TableCell className="capitalize">{user.role}</TableCell>
                                 <TableCell>
-                                    <Button variant="ghost" size="icon" onClick={() => onDeleteUser(user.id)} disabled={isPending || user.role === 'owner'}>
+                                    <Button variant="ghost" size="icon" onClick={() => onDeleteUser(user.id)} disabled={isPending || user.role === 'owner' || user.role === 'super-admin'}>
                                         <Trash2 className="h-4 w-4 text-destructive" />
                                     </Button>
                                 </TableCell>

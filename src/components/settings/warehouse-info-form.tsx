@@ -18,6 +18,7 @@ import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 import { cleanForFirestore } from '@/lib/utils';
 import { Skeleton } from '../ui/skeleton';
 import { Textarea } from '../ui/textarea';
+import { useAppUser } from '@/firebase/auth/use-user';
 
 const WarehouseInfoSchema = z.object({
   name: z.string().min(3, 'Warehouse name is required.'),
@@ -35,10 +36,11 @@ export function WarehouseInfoForm() {
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
     const firestore = useFirestore();
+    const appUser = useAppUser();
 
     const warehouseInfoRef = useMemoFirebase(
-        () => (firestore ? doc(firestore, 'settings', 'main') : null),
-        [firestore]
+        () => (firestore && appUser ? doc(firestore, 'settings', 'main') : null),
+        [firestore, appUser]
     );
     const { data: warehouseInfo, loading: loadingInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 

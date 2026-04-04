@@ -15,6 +15,7 @@ import { useDoc } from '@/firebase/firestore/use-doc';
 import { useFirestore } from '@/firebase/provider';
 import { doc } from 'firebase/firestore';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
+import { useAppUser } from '@/firebase/auth/use-user';
 
 export function BillReceiptDialog({
   record,
@@ -27,10 +28,11 @@ export function BillReceiptDialog({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const firestore = useFirestore();
+  const appUser = useAppUser();
 
   const warehouseInfoRef = useMemoFirebase(
-    () => (firestore ? doc(firestore, 'settings', 'main') : null),
-    [firestore]
+    () => (firestore && appUser ? doc(firestore, 'settings', 'main') : null),
+    [firestore, appUser]
   );
   const { data: warehouseInfo, loading: loadingWarehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 

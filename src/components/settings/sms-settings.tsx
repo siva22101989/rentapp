@@ -18,6 +18,7 @@ import { useDoc } from '@/firebase/firestore/use-doc';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 import { cleanForFirestore } from '@/lib/utils';
 import { Skeleton } from '../ui/skeleton';
+import { useAppUser } from '@/firebase/auth/use-user';
 
 const SmsInfoSchema = z.object({
   twilioAccountSid: z.string().min(1, 'Twilio Account SID is required.'),
@@ -31,10 +32,11 @@ export function SmsSettings() {
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
     const firestore = useFirestore();
+    const appUser = useAppUser();
 
     const smsInfoRef = useMemoFirebase(
-        () => (firestore ? doc(firestore, 'settings', 'sms') : null),
-        [firestore]
+        () => (firestore && appUser ? doc(firestore, 'settings', 'sms') : null),
+        [firestore, appUser]
     );
     const { data: smsInfo, loading: loadingInfo } = useDoc<SmsInfo>(smsInfoRef);
 

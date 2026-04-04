@@ -30,6 +30,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { cleanForFirestore } from '@/lib/utils';
+import { useAppUser } from '@/firebase/auth/use-user';
 
 
 const AddLotSchema = z.object({
@@ -88,6 +89,7 @@ function DeleteLotDialog({ lot, onConfirm }: { lot: Lot, onConfirm: () => void }
 
 export function LotsClient() {
   const firestore = useFirestore();
+  const appUser = useAppUser();
   const { toast } = useToast();
   
   const [isAdding, startAddingTransition] = useTransition();
@@ -95,8 +97,8 @@ export function LotsClient() {
 
 
   const lotsQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'lots') : null),
-    [firestore]
+    () => (firestore && appUser ? collection(firestore, 'lots') : null),
+    [firestore, appUser]
   );
   const { data: lots, loading: loadingLots } = useCollection<Lot>(lotsQuery);
 

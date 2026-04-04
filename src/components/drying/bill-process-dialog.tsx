@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useMemo } from 'react';
@@ -21,6 +22,7 @@ import { toDate, cleanForFirestore } from '@/lib/utils';
 import { format, differenceInDays } from 'date-fns';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useAppUser } from '@/firebase/auth/use-user';
 
 export function BillProcessDialog({
   record,
@@ -39,6 +41,7 @@ export function BillProcessDialog({
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const firestore = useFirestore();
+  const appUser = useAppUser();
   const [location, setLocation] = useState('');
 
   const lotOccupancy = useMemo(() => {
@@ -63,8 +66,8 @@ export function BillProcessDialog({
   }, [record.dryingStartDate, record.packingDate]);
 
   const handleBilling = async () => {
-    if (!firestore) {
-      toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
+    if (!firestore || !appUser) {
+      toast({ title: 'Error', description: 'Firestore not available or user not authenticated.', variant: 'destructive' });
       return;
     }
     if (!record.packingDate) {

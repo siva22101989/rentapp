@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -35,6 +36,9 @@ export default function WarehouseOwnerLoginPage() {
     setUnauthorizedDomain(null);
     if (auth) {
       const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({
+        prompt: 'select_account'
+      });
       try {
         await signInWithPopup(auth, provider);
         router.push('/');

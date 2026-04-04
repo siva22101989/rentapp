@@ -296,27 +296,27 @@ export default function ExpensesPage() {
   const canEdit = appUser?.role === 'owner';
   
   const warehouseInfoRef = useMemoFirebase(
-    () => (firestore && appUser?.warehouseId ? doc(firestore, 'managedWarehouses', appUser.warehouseId, 'settings', 'main') : null),
-    [firestore, appUser]
+    () => (firestore ? doc(firestore, 'settings', 'main') : null),
+    [firestore]
   );
   const { data: warehouseInfo, loading: loadingWarehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
-  const recordsQuery = useMemoFirebase(() => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'storageRecords') : null), [firestore, appUser]);
+  const recordsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'storageRecords') : null), [firestore]);
   const { data: allRecords, loading: loadingRecords } = useCollection<StorageRecord>(recordsQuery);
 
-  const expensesQuery = useMemoFirebase(() => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'expenses') : null), [firestore, appUser]);
+  const expensesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'expenses') : null), [firestore]);
   const { data: allExpenses, loading: loadingExpenses } = useCollection<Expense>(expensesQuery);
   
-  const unloadingRecordsQuery = useMemoFirebase(() => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'unloadingRecords') : null), [firestore, appUser]);
+  const unloadingRecordsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'unloadingRecords') : null), [firestore]);
   const { data: allUnloadingRecords, loading: loadingUnloading } = useCollection<UnloadingRecord>(unloadingRecordsQuery);
 
-  const borrowingsQuery = useMemoFirebase(() => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'borrowings') : null), [firestore, appUser]);
+  const borrowingsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'borrowings') : null), [firestore]);
   const { data: borrowings, loading: loadingBorrowings } = useCollection<Borrowing>(borrowingsQuery);
   
-  const lendingsQuery = useMemoFirebase(() => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'lendings') : null), [firestore, appUser]);
+  const lendingsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'lendings') : null), [firestore]);
   const { data: lendings, loading: loadingLendings } = useCollection<Lending>(lendingsQuery);
   
-  const otherIncomesQuery = useMemoFirebase(() => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'otherIncomes') : null), [firestore, appUser]);
+  const otherIncomesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'otherIncomes') : null), [firestore]);
   const { data: otherIncomes, loading: loadingOtherIncomes } = useCollection<OtherIncome>(otherIncomesQuery);
 
 

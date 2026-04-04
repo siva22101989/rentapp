@@ -14,15 +14,13 @@ import { useFirestore } from "@/firebase/provider";
 import { collection } from "firebase/firestore";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 import { StorageTable } from "@/components/dashboard/storage-table";
-import { useAppUser } from "@/firebase/auth/use-user";
 
 export default function StoragePage() {
   const firestore = useFirestore();
-  const appUser = useAppUser();
 
   const recordsQuery = useMemoFirebase(
-    () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'storageRecords') : null),
-    [firestore, appUser]
+    () => (firestore ? collection(firestore, 'storageRecords') : null),
+    [firestore]
   );
   const { data: allRecords, loading } = useCollection<StorageRecord>(recordsQuery);
 

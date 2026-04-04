@@ -9,15 +9,13 @@ import { collection } from "firebase/firestore";
 import { useFirestore } from "@/firebase/provider";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 import { CustomersTable } from "@/components/customers/customers-table";
-import { useAppUser } from "@/firebase/auth/use-user";
 
 export default function CustomersPage() {
   const firestore = useFirestore();
-  const appUser = useAppUser();
   
   const customersQuery = useMemoFirebase(
-    () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'customers') : null),
-    [firestore, appUser]
+    () => (firestore ? collection(firestore, 'customers') : null),
+    [firestore]
   );
   const { data: customers, loading: loadingCustomers } = useCollection<Customer>(customersQuery);
 

@@ -28,8 +28,6 @@ import type { StorageRecord, Lot } from "@/lib/definitions";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Package, TrendingUp, Warehouse } from "lucide-react";
-import { Button } from "@/components/ui/button";
-
 
 type NavItem = {
   href: string;
@@ -145,14 +143,14 @@ export default function DashboardPage() {
     const accessibleNavItems = navItems.filter(item => appUser && item.roles.includes(appUser.role));
 
     const recordsQuery = useMemoFirebase(
-      () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'storageRecords') : null),
-      [firestore, appUser]
+      () => (firestore ? collection(firestore, 'storageRecords') : null),
+      [firestore]
     );
     const { data: allRecords, loading: loadingRecords } = useCollection<StorageRecord>(recordsQuery);
   
     const lotsQuery = useMemoFirebase(
-      () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'lots') : null),
-      [firestore, appUser]
+      () => (firestore ? collection(firestore, 'lots') : null),
+      [firestore]
     );
     const { data: allLots, loading: loadingLots } = useCollection<Lot>(lotsQuery);
 
@@ -171,23 +169,6 @@ export default function DashboardPage() {
 
         return { activeRecordsCount, occupancy };
     }, [allRecords, allLots]);
-
-    if (appUser?.role === 'super-admin') {
-      return (
-          <AppLayout>
-              <div className="text-center py-16">
-                  <h1 className="text-4xl font-bold">Welcome, Super Admin</h1>
-                  <p className="text-muted-foreground mt-2">You can manage all warehouse subscriptions from the settings page.</p>
-                  <Button asChild className="mt-6">
-                      <Link href="/settings">
-                          <Settings className="mr-2"/>
-                          Go to Settings
-                      </Link>
-                  </Button>
-              </div>
-          </AppLayout>
-      )
-    }
 
     return (
         <AppLayout>

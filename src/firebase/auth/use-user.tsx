@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
@@ -50,7 +51,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
             setAppUser({ id: userDocSnap.id, ...userDocSnap.data() } as AppUser);
             setUser(fbUser);
           } else {
-            // Document with UID doesn't exist, try to migrate from an auto-ID document
+            // Document with UID doesn't exist, try to find an existing user record to migrate
             const usersCol = collection(firestore, 'users');
             const conditions = [];
             const userEmail = fbUser.email?.toLowerCase();
@@ -60,7 +61,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
             if (fbUser.phoneNumber) {
                  conditions.push(where('phone', '==', fbUser.phoneNumber));
             }
-            // Handle shadow email for phone auth
             if (userEmail && userEmail.startsWith('+') && userEmail.endsWith(`@${firebaseConfig.authDomain}`)) {
                 const phone = userEmail.substring(1, userEmail.indexOf('@'));
                 conditions.push(where('phone', '==', phone));
@@ -74,27 +74,35 @@ export function UserProvider({ children }: { children: ReactNode }) {
                 const oldUserDoc = querySnapshot.docs[0];
                 const appUserData = oldUserDoc.data() as Omit<AppUser, 'id'>;
                 
-                const batch = writeBatch(firestore);
-                batch.set(userDocRef, appUserData);
-                batch.delete(oldUserDoc.ref);
-                await batch.commit();
+                // Only a user with an auto-id can be migrated. A user with a UID doc is already "claimed".
+                if (oldUserDoc.id !== fbUser.uid) {
+                    const batch = writeBatch(firestore);
+                    batch.set(userDocRef, appUserData); // Create new doc with UID
+                    batch.delete(oldUserDoc.ref);       // Delete old doc
+                    await batch.commit();
 
-                setAppUser({ id: userDocRef.id, ...appUserData } as AppUser);
-                setUser(fbUser);
-                migrated = true;
+                    setAppUser({ id: userDocRef.id, ...appUserData } as AppUser);
+                    setUser(fbUser);
+                    migrated = true;
+                } else {
+                    // This case is unlikely but handles if a UID-named doc was found by query but not initial getDoc
+                    setAppUser({ id: oldUserDoc.id, ...appUserData } as AppUser);
+                    setUser(fbUser);
+                    migrated = true;
+                }
               }
             }
 
             if (!migrated) {
-              // Not found via query, check if this is the very first user (super-admin)
+              // Not found and not migrated, so this must be the very first user (owner)
               const allUsersSnapshot = await getDocs(usersCol);
               if (allUsersSnapshot.empty && fbUser.providerData.some(p => p.providerId === 'google.com')) {
-                const superAdminData: Omit<AppUser, 'id'> = { role: 'super-admin', email: userEmail, phone: fbUser.phoneNumber || '' };
-                await setDoc(userDocRef, superAdminData);
-                setAppUser({ id: userDocRef.id, ...superAdminData } as AppUser);
+                const ownerData: Omit<AppUser, 'id'> = { role: 'owner', email: userEmail, phone: fbUser.phoneNumber || '' };
+                await setDoc(userDocRef, ownerData);
+                setAppUser({ id: userDocRef.id, ...ownerData } as AppUser);
                 setUser(fbUser);
               } else {
-                // Not found and not super-admin, deny access
+                // Not found and not the first user, deny access
                 await auth.signOut();
                 setUser(null);
                 setAppUser(null);

@@ -8,44 +8,53 @@ service cloud.firestore {
       return request.auth != null;
     }
     
-    function getUserData() {
-        return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    // Default-deny all access
+    match /{document=**} {
+      allow read, write: if false;
     }
 
-    function isSuperAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && getUserData().role == 'super-admin';
-    }
-
-    function isWarehouseMember(warehouseId) {
-      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && getUserData().warehouseId == warehouseId;
-    }
-
-    match /managedWarehouses/{warehouseId} {
-      allow read, write: if isSuperAdmin();
+    // Allow signed-in users to manage their own user document
+    match /users/{userId} {
+      allow read, update, delete: if isSignedIn() && request.auth.uid == userId;
+      // Allow creation for new sign-ups
+      allow create: if isSignedIn();
     }
     
-    match /users/{userId} {
-      // Allow any signed-in user to query the collection to find their profile during sign-in/migration.
-      allow list: if isSignedIn();
-
-      // Users can read/update their own document.
-      allow read, update: if isSignedIn() && request.auth.uid == userId;
-
-      // New users can create their own doc during migration/first sign-in.
-      // An owner/super-admin can create docs for others (invites).
-      allow create: if (isSignedIn() && request.auth.uid == userId) || 
-                     (isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-                       (getUserData().role == 'owner' || getUserData().role == 'super-admin'));
-      
-      // An owner/super-admin can delete user docs.
-      // A user can delete their old auto-id document during the migration process.
-      // This is a necessary trade-off for a client-only migration.
-      allow delete: if isSignedIn();
+    // Allow any authenticated user to read and write to the data collections.
+    // This is a typical setup for a single-warehouse application where all
+    // logged-in users are trusted team members.
+    match /customers/{customerId} {
+      allow read, write: if isSignedIn();
     }
-
-    // Main rule for all data within a warehouse.
-    match /managedWarehouses/{warehouseId}/{document=**} {
-      allow read, write: if isWarehouseMember(warehouseId);
+    match /commodities/{commodityId} {
+      allow read, write: if isSignedIn();
+    }
+    match /lots/{lotId} {
+      allow read, write: if isSignedIn();
+    }
+    match /storageRecords/{recordId} {
+      allow read, write: if isSignedIn();
+    }
+    match /expenses/{expenseId} {
+      allow read, write: if isSignedIn();
+    }
+    match /borrowings/{borrowingId} {
+      allow read, write: if isSignedIn();
+    }
+    match /lendings/{lendingId} {
+      allow read, write: if isSignedIn();
+    }
+    match /otherIncomes/{incomeId} {
+      allow read, write: if isSignedIn();
+    }
+    match /unloadingRecords/{unloadingId} {
+      allow read, write: if isSignedIn();
+    }
+    match /dryingRecords/{dryingId} {
+      allow read, write: if isSignedIn();
+    }
+    match /settings/{settingId} {
+       allow read, write: if isSignedIn();
     }
   }
 }

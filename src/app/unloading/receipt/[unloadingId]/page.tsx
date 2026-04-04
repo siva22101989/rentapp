@@ -1,3 +1,4 @@
+
 'use client';
 import { PrintHeader } from "@/components/shared/print-header";
 import { UnloadingReceipt } from "@/components/unloading/unloading-receipt";

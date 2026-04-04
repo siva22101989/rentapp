@@ -185,7 +185,7 @@ export type SmsInfo = {
   twilioPhoneNumber: string;
 };
 
-export const userRoles = ["owner", "supervisor", "biller"] as const;
+export const userRoles = ["super-admin", "owner", "supervisor", "biller"] as const;
 export type UserRole = (typeof userRoles)[number];
 
 export type AppUser = {

@@ -1,3 +1,4 @@
+
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,7 +24,7 @@ import {
 } from 'lucide-react';
 import { StorageTable } from "@/components/dashboard/storage-table";
 import { useCollection } from "@/firebase/firestore/use-collection";
-import { doc, collection } from "firebase/firestore";
+import { doc, collection, query, where } from "firebase/firestore";
 import { useFirestore } from "@/firebase/provider";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 import { useMemo, useState, useEffect } from "react";
@@ -35,6 +36,7 @@ import { Badge } from "@/components/ui/badge";
 import { useDoc } from "@/firebase/firestore/use-doc";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import { BillingSettings } from "@/components/settings/billing-settings";
 
 type NavItem = {
   href: string;
@@ -158,12 +160,6 @@ export default function DashboardPage() {
     const firestore = useFirestore();
     const router = useRouter();
 
-    useEffect(() => {
-        if (appUser?.role === 'super-admin') {
-            router.push('/settings');
-        }
-    }, [appUser, router]);
-
     const accessibleNavItems = navItems.filter(item => {
         if (!appUser) return false;
         // Super-admin should not see these nav items on this page as they'll be redirected
@@ -172,19 +168,19 @@ export default function DashboardPage() {
     });
 
     const recordsQuery = useMemoFirebase(
-      () => (firestore && appUser && appUser.role !== 'super-admin' ? collection(firestore, 'storageRecords') : null),
+      () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'storageRecords'), where('warehouseId', '==', appUser.warehouseId)) : null),
       [firestore, appUser]
     );
     const { data: allRecords, loading: loadingRecords } = useCollection<StorageRecord>(recordsQuery);
   
     const lotsQuery = useMemoFirebase(
-      () => (firestore && appUser && appUser.role !== 'super-admin' ? collection(firestore, 'lots') : null),
+      () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'lots'), where('warehouseId', '==', appUser.warehouseId)) : null),
       [firestore, appUser]
     );
     const { data: allLots, loading: loadingLots } = useCollection<Lot>(lotsQuery);
 
     const warehouseInfoRef = useMemoFirebase(
-        () => (firestore && appUser && appUser.role !== 'super-admin' ? doc(firestore, 'settings', 'main') : null),
+        () => (firestore && appUser?.warehouseId ? doc(firestore, 'settings', appUser.warehouseId) : null),
         [firestore, appUser]
     );
     const { data: warehouseInfo, loading: loadingWarehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
@@ -208,10 +204,7 @@ export default function DashboardPage() {
     if (appUser?.role === 'super-admin') {
         return (
             <AppLayout>
-                <div className="flex h-full items-center justify-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <p className="ml-2 text-muted-foreground">Redirecting to Super Admin settings...</p>
-                </div>
+                <BillingSettings />
             </AppLayout>
         );
     }

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -7,6 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PaymentReportTable, type PaymentEvent } from './payment-report-table';
 import { toDate } from '@/lib/utils';
 import { useDateFilter } from '@/firebase/provider';
+import { useAppUser } from '@/firebase/auth/use-user';
+import { useCollection } from '@/firebase/firestore/use-collection';
+import { useMemoFirebase } from '@/hooks/use-memo-firebase';
+import { collection } from 'firebase/firestore';
+import { useFirestore } from '@/firebase/provider';
 
 type PaymentReportProps = {
     records: StorageRecord[];
@@ -22,7 +28,6 @@ export function PaymentReport({ records, unloadingRecords, customers }: PaymentR
     const paymentEvents = useMemo(() => {
         const events: PaymentEvent[] = [];
 
-        // Payments from Storage Records
         records.forEach(sr => {
             (sr.payments || []).forEach(payment => {
                 events.push({
@@ -36,7 +41,6 @@ export function PaymentReport({ records, unloadingRecords, customers }: PaymentR
             });
         });
 
-        // Payments from Unloading Records
         unloadingRecords.forEach(ur => {
             (ur.payments || []).forEach(payment => {
                 events.push({

@@ -1,3 +1,4 @@
+
 'use client';
 import { PrintHeader } from "@/components/shared/print-header";
 import { UnloadingReceipt } from "@/components/unloading/unloading-receipt";
@@ -26,11 +27,11 @@ export default function UnloadingReceiptPage() {
   const [error, setError] = useState<string|null>(null);
 
   useEffect(() => {
-    if (!firestore || !unloadingId || !appUser) {
+    if (!firestore || !unloadingId || !appUser?.warehouseId) {
       setLoadingRecord(false);
       return;
     }
-    const recordRef = doc(firestore, 'unloadingRecords', unloadingId);
+    const recordRef = doc(firestore, 'managedWarehouses', appUser.warehouseId, 'unloadingRecords', unloadingId);
     let attempts = 0;
     const maxAttempts = 10;
     const intervalTime = 500;
@@ -60,13 +61,13 @@ export default function UnloadingReceiptPage() {
 
   useEffect(() => {
     async function fetchCustomer() {
-        if (!firestore || !record?.customerId || !appUser) {
+        if (!firestore || !record?.customerId || !appUser?.warehouseId) {
             setLoadingCustomer(false);
             return;
         }
         setLoadingCustomer(true);
         try {
-            const customerRef = doc(firestore, 'customers', record.customerId);
+            const customerRef = doc(firestore, 'managedWarehouses', appUser.warehouseId, 'customers', record.customerId);
             const customerSnap = await getDoc(customerRef);
             if (customerSnap.exists()) {
                 setCustomer({ id: customerSnap.id, ...customerSnap.data() } as Customer);
@@ -81,7 +82,7 @@ export default function UnloadingReceiptPage() {
   }, [firestore, record, appUser]);
 
   const warehouseInfoRef = useMemoFirebase(
-    () => (firestore && appUser ? doc(firestore, 'settings', 'main') : null),
+    () => (firestore && appUser?.warehouseId ? doc(firestore, 'managedWarehouses', appUser.warehouseId, 'settings', 'main') : null),
     [firestore, appUser]
   );
   const { data: warehouseInfo, loading: loadingWarehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);

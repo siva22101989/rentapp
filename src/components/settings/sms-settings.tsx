@@ -18,6 +18,7 @@ import { useDoc } from '@/firebase/firestore/use-doc';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 import { cleanForFirestore } from '@/lib/utils';
 import { Skeleton } from '../ui/skeleton';
+import { useAppUser } from '@/firebase/auth/use-user';
 
 const SmsInfoSchema = z.object({
   twilioAccountSid: z.string().min(1, 'Twilio Account SID is required.'),
@@ -31,10 +32,11 @@ export function SmsSettings() {
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
     const firestore = useFirestore();
+    const appUser = useAppUser();
 
     const smsInfoRef = useMemoFirebase(
-        () => (firestore ? doc(firestore, 'settings', 'sms') : null),
-        [firestore]
+        () => (firestore && appUser?.warehouseId ? doc(firestore, 'managedWarehouses', appUser.warehouseId, 'settings', 'sms') : null),
+        [firestore, appUser]
     );
     const { data: smsInfo, loading: loadingInfo } = useDoc<SmsInfo>(smsInfoRef);
 
@@ -58,14 +60,14 @@ export function SmsSettings() {
     }, [smsInfo, form]);
 
     const onSubmit = (data: SmsInfoFormData) => {
-        if (!firestore) {
-            toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
+        if (!firestore || !appUser?.warehouseId) {
+            toast({ title: 'Error', description: 'Firestore or user session not available.', variant: 'destructive' });
             return;
         }
 
         startTransition(async () => {
             try {
-                const docRef = doc(firestore, 'settings', 'sms');
+                const docRef = doc(firestore, 'managedWarehouses', appUser.warehouseId, 'settings', 'sms');
                 await setDoc(docRef, cleanForFirestore(data), { merge: true });
                 toast({ title: 'Success', description: 'SMS settings saved.' });
             } catch (error) {

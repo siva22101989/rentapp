@@ -1,3 +1,4 @@
+
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
@@ -16,36 +17,32 @@ export default function InflowPage() {
   const appUser = useAppUser();
 
   const customersQuery = useMemoFirebase(
-    () => (firestore && appUser ? collection(firestore, 'customers') : null),
+    () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'customers') : null),
     [firestore, appUser]
   );
   const { data: customers, loading: loadingCustomers } = useCollection<Customer>(customersQuery);
 
   const recordsQuery = useMemoFirebase(
-    () => (firestore && appUser ? collection(firestore, 'storageRecords') : null),
+    () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'storageRecords') : null),
     [firestore, appUser]
   );
   const { data: records, loading: loadingRecords } = useCollection<StorageRecord>(recordsQuery);
 
   const commoditiesQuery = useMemoFirebase(
-    () => (firestore && appUser ? collection(firestore, 'commodities') : null),
+    () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'commodities') : null),
     [firestore, appUser]
   );
   const { data: commodities, loading: loadingCommodities } = useCollection<Commodity>(commoditiesQuery);
   
   const lotsQuery = useMemoFirebase(
-    () => (firestore && appUser ? collection(firestore, 'lots') : null),
+    () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'lots') : null),
     [firestore, appUser]
   );
   const { data: lots, loading: loadingLots } = useCollection<Lot>(lotsQuery);
 
   const nextId = useMemo(() => {
     if (!records) return '1';
-    // This logic finds the highest numeric ID and adds 1.
-    // It's safer than using array length if records are ever deleted.
     const maxId = records.reduce((max, r) => {
-        // Only consider IDs that are purely numeric strings.
-        // This prevents alphanumeric auto-IDs from being partially parsed.
         if (/^\d+$/.test(r.id)) {
             const idNum = parseInt(r.id, 10);
             return Math.max(max, idNum);

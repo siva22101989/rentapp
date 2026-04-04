@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -8,6 +9,11 @@ import { CustomerHamaliReportTable } from './customer-hamali-report-table';
 import { WorkerHamaliReportTable } from './worker-hamali-report-table';
 import { toDate } from '@/lib/utils';
 import { useDateFilter } from '@/firebase/provider';
+import { useAppUser } from '@/firebase/auth/use-user';
+import { useCollection } from '@/firebase/firestore/use-collection';
+import { useMemoFirebase } from '@/hooks/use-memo-firebase';
+import { collection } from 'firebase/firestore';
+import { useFirestore } from '@/firebase/provider';
 
 export type CustomerHamaliEvent = {
     date: Date;
@@ -37,8 +43,6 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
     const customerHamaliEvents = useMemo(() => {
         const events: CustomerHamaliEvent[] = [];
 
-        // --- CHARGES ---
-        // From all storage records
         records.forEach(sr => {
             if (sr.hamaliPayable > 0) {
                  events.push({
@@ -53,7 +57,6 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
             }
         });
         
-        // From unloading records that have not been fully processed
         unloadingRecords.forEach(ur => {
             const bagsRemaining = ur.bagsUnloaded - (ur.bagsSentToDrying || 0);
             if (bagsRemaining > 0) {
@@ -72,7 +75,6 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
             }
         });
 
-        // --- PAYMENTS ---
         records.forEach(sr => {
             (sr.payments || []).filter(p => p.type === 'hamali').forEach(payment => {
                 events.push({
@@ -118,7 +120,6 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
     const workerHamaliEvents = useMemo(() => {
         const events: WorkerHamaliEvent[] = [];
 
-        // 1. Payable from Storage Records
         records.forEach(sr => {
             if (sr.workerHamaliPayable && sr.workerHamaliPayable > 0) {
                 events.push({
@@ -133,11 +134,10 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
             }
         });
 
-        // 2. Payable from Unloading Records (for bags not yet finalized into storage)
         unloadingRecords.forEach(ur => {
             const bagsRemaining = ur.bagsUnloaded - (ur.bagsSentToDrying || 0);
             if (bagsRemaining > 0 && ur.workerHamaliPayable) {
-                const hamaliPerBag = ur.hamaliPerBag || 0; // or calculate from total
+                const hamaliPerBag = ur.hamaliPerBag || 0; 
                 const remainingPayable = bagsRemaining * hamaliPerBag;
                 if (remainingPayable > 0) {
                     events.push({
@@ -153,7 +153,6 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
             }
         });
 
-        // 3. Paid amounts from Expenses
         expenses.filter(e => e.category === 'Hamali').forEach(exp => {
             events.push({
                 date: toDate(exp.date),

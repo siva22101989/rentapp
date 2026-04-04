@@ -1,3 +1,4 @@
+
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { AddExpenseDialog } from "@/components/expenses/add-expense-dialog";
@@ -295,27 +296,27 @@ export default function ExpensesPage() {
   const canEdit = appUser?.role === 'owner';
   
   const warehouseInfoRef = useMemoFirebase(
-    () => (firestore && appUser ? doc(firestore, 'settings', 'main') : null),
+    () => (firestore && appUser?.warehouseId ? doc(firestore, 'managedWarehouses', appUser.warehouseId, 'settings', 'main') : null),
     [firestore, appUser]
   );
   const { data: warehouseInfo, loading: loadingWarehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
-  const recordsQuery = useMemoFirebase(() => (firestore && appUser ? collection(firestore, 'storageRecords') : null), [firestore, appUser]);
+  const recordsQuery = useMemoFirebase(() => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'storageRecords') : null), [firestore, appUser]);
   const { data: allRecords, loading: loadingRecords } = useCollection<StorageRecord>(recordsQuery);
 
-  const expensesQuery = useMemoFirebase(() => (firestore && appUser ? collection(firestore, 'expenses') : null), [firestore, appUser]);
+  const expensesQuery = useMemoFirebase(() => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'expenses') : null), [firestore, appUser]);
   const { data: allExpenses, loading: loadingExpenses } = useCollection<Expense>(expensesQuery);
   
-  const unloadingRecordsQuery = useMemoFirebase(() => (firestore && appUser ? collection(firestore, 'unloadingRecords') : null), [firestore, appUser]);
+  const unloadingRecordsQuery = useMemoFirebase(() => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'unloadingRecords') : null), [firestore, appUser]);
   const { data: allUnloadingRecords, loading: loadingUnloading } = useCollection<UnloadingRecord>(unloadingRecordsQuery);
 
-  const borrowingsQuery = useMemoFirebase(() => (firestore && appUser ? collection(firestore, 'borrowings') : null), [firestore, appUser]);
+  const borrowingsQuery = useMemoFirebase(() => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'borrowings') : null), [firestore, appUser]);
   const { data: borrowings, loading: loadingBorrowings } = useCollection<Borrowing>(borrowingsQuery);
   
-  const lendingsQuery = useMemoFirebase(() => (firestore && appUser ? collection(firestore, 'lendings') : null), [firestore, appUser]);
+  const lendingsQuery = useMemoFirebase(() => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'lendings') : null), [firestore, appUser]);
   const { data: lendings, loading: loadingLendings } = useCollection<Lending>(lendingsQuery);
   
-  const otherIncomesQuery = useMemoFirebase(() => (firestore && appUser ? collection(firestore, 'otherIncomes') : null), [firestore, appUser]);
+  const otherIncomesQuery = useMemoFirebase(() => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'otherIncomes') : null), [firestore, appUser]);
   const { data: otherIncomes, loading: loadingOtherIncomes } = useCollection<OtherIncome>(otherIncomesQuery);
 
 
@@ -325,24 +326,23 @@ export default function ExpensesPage() {
     }
 
     const inRange = (date: Date) => {
-        if (!dateRange) return true; // If no range, include all
+        if (!dateRange) return true; 
         if (dateRange.from && date < dateRange.from) return false;
         if (dateRange.to) {
             const to = new Date(dateRange.to);
-            to.setHours(23, 59, 59, 999); // Include the whole "to" day
+            to.setHours(23, 59, 59, 999); 
             if (date > to) return false;
         }
         return true;
     };
 
-    // Calculate interest on capital for the period
     let calculatedInterest = 0;
     const capital = warehouseInfo?.capitalInvestment || 0;
     const interestRate = warehouseInfo?.annualInterestRate || 0;
 
     if (financialYear !== 'all-time' && dateRange?.from && capital > 0 && interestRate > 0) {
         const from = dateRange.from;
-        const to = dateRange.to ? new Date(dateRange.to) : new Date(); // Use today if 'to' is not set
+        const to = dateRange.to ? new Date(dateRange.to) : new Date(); 
         to.setHours(23, 59, 59, 999);
         
         const diffTime = to.getTime() - from.getTime();

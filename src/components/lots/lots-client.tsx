@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useTransition, useState, useMemo } from 'react';
@@ -29,6 +30,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useAppUser } from '@/firebase/auth/use-user';
+import { cleanForFirestore } from '@/lib/utils';
 
 
 const AddLotSchema = z.object({
@@ -95,7 +97,7 @@ export function LotsClient() {
 
 
   const lotsQuery = useMemoFirebase(
-    () => (firestore && appUser ? collection(firestore, 'lots') : null),
+    () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'lots') : null),
     [firestore, appUser]
   );
   const { data: lots, loading: loadingLots } = useCollection<Lot>(lotsQuery);
@@ -114,7 +116,7 @@ export function LotsClient() {
 
 
   const onAddSubmit = (data: AddLotFormData) => {
-    if (!firestore) return;
+    if (!firestore || !appUser?.warehouseId) return;
     const trimmedName = data.name.trim();
     if (existingLotNames.has(trimmedName.toLowerCase())) {
         addForm.setError('name', { message: 'This lot name already exists.' });
@@ -122,7 +124,8 @@ export function LotsClient() {
     }
     startAddingTransition(async () => {
       try {
-        await addDoc(collection(firestore, 'lots'), { name: trimmedName, capacity: data.capacity || null });
+        const collectionRef = collection(firestore, 'managedWarehouses', appUser.warehouseId!, 'lots');
+        await addDoc(collectionRef, cleanForFirestore({ name: trimmedName, capacity: data.capacity || null }));
         toast({ title: 'Success', description: `Lot "${trimmedName}" added.` });
         addForm.reset();
       } catch (error) {
@@ -132,7 +135,7 @@ export function LotsClient() {
   };
 
   const onRangeAddSubmit = (data: RangeAddLotsFormData) => {
-    if (!firestore) return;
+    if (!firestore || !appUser?.warehouseId) return;
     startRangeAddingTransition(async () => {
         const { prefix = '', start, end, suffix = '', capacity } = data;
         const lotsToAdd: { name: string; capacity: number | null }[] = [];
@@ -144,7 +147,7 @@ export function LotsClient() {
                 skippedCount++;
             } else {
                 lotsToAdd.push({ name, capacity: capacity ?? null });
-                existingLotNames.add(name.toLowerCase()); // Prevent adding duplicates from the same range
+                existingLotNames.add(name.toLowerCase()); 
             }
         }
 
@@ -158,9 +161,10 @@ export function LotsClient() {
         }
 
         const batch = writeBatch(firestore);
+        const collectionRef = collection(firestore, 'managedWarehouses', appUser.warehouseId!, 'lots');
         lotsToAdd.forEach(lot => {
-            const docRef = doc(collection(firestore, 'lots'));
-            batch.set(docRef, lot);
+            const docRef = doc(collectionRef);
+            batch.set(docRef, cleanForFirestore(lot));
         });
 
         try {
@@ -178,8 +182,8 @@ export function LotsClient() {
 
 
   const handleDeleteLot = (lotId: string) => {
-    if (!firestore) return;
-    deleteLot(firestore, lotId)
+    if (!firestore || !appUser?.warehouseId) return;
+    deleteLot(firestore, appUser.warehouseId, lotId)
       .then(() => toast({ title: 'Success', description: 'Lot deleted.' }))
       .catch(() => toast({ title: 'Error', description: 'Failed to delete lot.', variant: 'destructive' }));
   };

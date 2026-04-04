@@ -27,6 +27,7 @@ import { format } from 'date-fns';
 import { toDate, cleanForFirestore } from '@/lib/utils';
 import { Combobox } from '../ui/combobox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { useAppUser } from '@/firebase/auth/use-user';
 
 const EditUnloadingSchema = z.object({
   customerId: z.string().min(1, 'Customer is required.'),
@@ -54,6 +55,7 @@ export function EditUnloadingRecordDialog({
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const firestore = useFirestore();
+  const appUser = useAppUser();
   const customerOptions = customers.map(c => ({ value: c.id, label: c.name }));
 
   const getLocalDateTimeForInput = (date: Date) => {
@@ -82,8 +84,8 @@ export function EditUnloadingRecordDialog({
   }
 
   const onSubmit = (data: EditUnloadingFormData) => {
-    if (!firestore) {
-      toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
+    if (!firestore || !appUser?.warehouseId) {
+      toast({ title: 'Error', description: 'Firestore or user session not available.', variant: 'destructive' });
       return;
     }
 
@@ -101,7 +103,7 @@ export function EditUnloadingRecordDialog({
           totalHamali,
           workerHamaliPayable: totalHamali,
         };
-        await updateUnloadingRecord(firestore, record.id, updateData);
+        await updateUnloadingRecord(firestore, appUser.warehouseId!, record.id, updateData);
         toast({ title: 'Success', description: 'Unloading record updated.' });
         setIsOpen(false);
       } catch (error) {

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useTransition, useMemo } from 'react';
@@ -54,13 +55,13 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
   const appUser = useAppUser();
 
   const commoditiesQuery = useMemoFirebase(
-    () => (firestore && appUser ? collection(firestore, 'commodities') : null),
+    () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'commodities') : null),
     [firestore, appUser]
   );
   const { data: commodities, loading: loadingCommodities } = useCollection<Commodity>(commoditiesQuery);
 
   const lotsQuery = useMemoFirebase(
-    () => (firestore && appUser ? collection(firestore, 'lots') : null),
+    () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'lots') : null),
     [firestore, appUser]
   );
   const { data: lots, loading: loadingLots } = useCollection<Lot>(lotsQuery);
@@ -77,7 +78,7 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
 
   const form = useForm<EditStorageRecordFormData>({
     resolver: zodResolver(EditStorageRecordSchema),
-    defaultValues: {}, // Will be set in handleOpenChange
+    defaultValues: {}, 
   });
 
   const handleOpenChange = (open: boolean) => {
@@ -98,8 +99,8 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
   }
   
   const onSubmit = (data: EditStorageRecordFormData) => {
-    if (!firestore) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Firestore not available' });
+    if (!firestore || !appUser?.warehouseId) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Firestore or user session not available' });
       return;
     }
     startTransition(async () => {
@@ -109,7 +110,7 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
           storageStartDate: new Date(data.storageStartDate),
           bagsStored: data.bagsIn - (record.bagsOut || 0)
         };
-        await updateStorageRecord(firestore, record.id, updateData);
+        await updateStorageRecord(firestore, appUser.warehouseId!, record.id, updateData);
         toast({ title: 'Success', description: 'Storage record updated.' });
         setIsOpen(false);
       } catch (error) {

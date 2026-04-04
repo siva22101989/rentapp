@@ -11,6 +11,7 @@ import { useDoc } from "@/firebase/firestore/use-doc";
 import { useFirestore } from "@/firebase/provider";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 import { doc } from "firebase/firestore";
+import { useAppUser } from "@/firebase/auth/use-user";
 
 
 export type OutflowEvent = Outflow & {
@@ -31,10 +32,11 @@ type ReportTableProps = {
 export function OutflowReportTable({ events, customers, title, allRecords }: ReportTableProps) {
     const generatedDate = useMemo(() => format(new Date(), 'dd MMM yyyy, hh:mm a'), []);
     const firestore = useFirestore();
+    const appUser = useAppUser();
 
     const warehouseInfoRef = useMemoFirebase(
-        () => (firestore ? doc(firestore, 'settings', 'main') : null),
-        [firestore]
+        () => (firestore && appUser?.warehouseId ? doc(firestore, 'managedWarehouses', appUser.warehouseId, 'settings', 'main') : null),
+        [firestore, appUser]
     );
     const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 

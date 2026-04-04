@@ -1,3 +1,4 @@
+
 'use client';
 import {
   Table,
@@ -22,7 +23,7 @@ export function CommoditiesTable() {
   const firestore = useFirestore();
   const appUser = useAppUser();
   const commoditiesQuery = useMemoFirebase(
-    () => (firestore && appUser ? collection(firestore, 'commodities') : null),
+    () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'commodities') : null),
     [firestore, appUser]
   );
   const { data: commodities, loading } = useCollection<Commodity>(commoditiesQuery);

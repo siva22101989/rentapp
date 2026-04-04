@@ -14,6 +14,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { User } from 'firebase/auth';
 import type { AppUser } from '@/lib/definitions';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 
 function LiveClock() {
   const [currentTime, setCurrentTime] = React.useState<Date | null>(null);
@@ -106,7 +107,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         if (!user) return '?';
         if (user.displayName) return user.displayName.charAt(0).toUpperCase();
         if (user.email) return user.email.charAt(0).toUpperCase();
-        if (appUser?.phone) return 'U'; // Fallback for phone user
+        if (appUser?.phone) return 'U';
         return '?';
     };
 
@@ -115,7 +116,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         if (user.displayName) return user.displayName;
         if (user.email) {
             const namePart = user.email.split('@')[0];
-            // Avoid showing generated phone email parts
             if (namePart.startsWith('+')) return 'Team Member';
             return namePart.charAt(0).toUpperCase() + namePart.slice(1);
         }
@@ -123,47 +123,74 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         return 'User';
     };
 
+    const header = (
+        <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-card px-4 md:px-6 print-hide">
+            <Link href="/" className="flex items-center gap-3" aria-label="Back to homepage">
+                <Logo />
+            </Link>
+            <div className='flex items-center gap-4 ml-auto'>
+                <DateFilters />
+                <LiveClock />
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                            <Avatar className="h-8 w-8">
+                                <AvatarFallback>{getInitials(user, appUser)}</AvatarFallback>
+                            </Avatar>
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-56" align="end" forceMount>
+                        <DropdownMenuLabel className="font-normal">
+                            <div className="flex flex-col space-y-1">
+                                <p className="text-sm font-medium leading-none">{getUserName(user, appUser)}</p>
+                                <p className="text-xs leading-none text-muted-foreground">
+                                    {user.email && !user.email.startsWith('+') ? user.email : (appUser?.phone || '')}
+                                </p>
+                            </div>
+                        </DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild>
+                            <Link href="/settings">
+                                Settings
+                            </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={handleSignOut}>
+                            <LogOut className="mr-2 h-4 w-4" />
+                            <span>Sign Out</span>
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
+        </header>
+    );
+
+    if (appUser?.role === 'super-admin' && !pathname.startsWith('/settings')) {
+        return (
+             <div className="flex min-h-screen w-full flex-col">
+                {header}
+                <main className="flex flex-1 flex-col gap-4 p-4 md:p-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Super Admin View</CardTitle>
+                            <CardDescription>
+                                As a super-admin, you can manage all warehouses. Please go to the settings page to add or manage a warehouse subscription. You cannot view operational data from this view.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                             <Button asChild>
+                                <Link href="/settings">Go to Settings</Link>
+                            </Button>
+                        </CardContent>
+                    </Card>
+                </main>
+            </div>
+        )
+    }
+
     return (
         <div className="flex min-h-screen w-full flex-col">
-             <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-card px-4 md:px-6 print-hide">
-                <Link href="/" className="flex items-center gap-3" aria-label="Back to homepage">
-                    <Logo />
-                </Link>
-                <div className='flex items-center gap-4 ml-auto'>
-                    <DateFilters />
-                    <LiveClock />
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                                <Avatar className="h-8 w-8">
-                                    <AvatarFallback>{getInitials(user, appUser)}</AvatarFallback>
-                                </Avatar>
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-56" align="end" forceMount>
-                            <DropdownMenuLabel className="font-normal">
-                                <div className="flex flex-col space-y-1">
-                                    <p className="text-sm font-medium leading-none">{getUserName(user, appUser)}</p>
-                                    <p className="text-xs leading-none text-muted-foreground">
-                                        {user.email && !user.email.startsWith('+') ? user.email : (appUser?.phone || '')}
-                                    </p>
-                                </div>
-                            </DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem asChild>
-                                <Link href="/settings">
-                                    Settings
-                                </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={handleSignOut}>
-                                <LogOut className="mr-2 h-4 w-4" />
-                                <span>Sign Out</span>
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </div>
-            </header>
+            {header}
             <main className="flex flex-1 flex-col gap-4 p-4 md:p-6">{children}</main>
         </div>
     );

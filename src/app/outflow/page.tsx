@@ -1,3 +1,4 @@
+
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
@@ -14,13 +15,13 @@ export default function OutflowPage() {
   const appUser = useAppUser();
 
   const customersQuery = useMemoFirebase(
-    () => (firestore && appUser ? collection(firestore, 'customers') : null),
+    () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'customers') : null),
     [firestore, appUser]
   );
   const { data: customers, loading: loadingCustomers } = useCollection<Customer>(customersQuery);
 
   const activeRecordsQuery = useMemoFirebase(
-    () => (firestore && appUser ? query(collection(firestore, 'storageRecords'), where('storageEndDate', '==', null)) : null),
+    () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'managedWarehouses', appUser.warehouseId, 'storageRecords'), where('storageEndDate', '==', null)) : null),
     [firestore, appUser]
   );
   const { data: activeRecords, loading: loadingRecords } = useCollection<StorageRecord>(activeRecordsQuery);

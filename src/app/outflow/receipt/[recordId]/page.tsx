@@ -1,3 +1,4 @@
+
 'use client';
 import { PrintHeader } from "@/components/shared/print-header";
 import { OutflowReceipt } from "@/components/outflow/outflow-receipt";
@@ -32,11 +33,11 @@ export default function OutflowReceiptPage() {
   const discount = Number(searchParams.get('discount')) || 0;
 
   useEffect(() => {
-    if (!firestore || !recordId || !appUser) {
+    if (!firestore || !recordId || !appUser?.warehouseId) {
       setLoadingRecord(false);
       return;
     }
-    const recordRef = doc(firestore, 'storageRecords', recordId as string);
+    const recordRef = doc(firestore, 'managedWarehouses', appUser.warehouseId, 'storageRecords', recordId as string);
     let attempts = 0;
     const maxAttempts = 10;
     const intervalTime = 500;
@@ -66,13 +67,13 @@ export default function OutflowReceiptPage() {
 
   useEffect(() => {
     async function fetchCustomer() {
-        if (!firestore || !record?.customerId || !appUser) {
+        if (!firestore || !record?.customerId || !appUser?.warehouseId) {
             setLoadingCustomer(false);
             return;
         }
         setLoadingCustomer(true);
         try {
-            const customerRef = doc(firestore, 'customers', record.customerId);
+            const customerRef = doc(firestore, 'managedWarehouses', appUser.warehouseId, 'customers', record.customerId);
             const customerSnap = await getDoc(customerRef);
             if (customerSnap.exists()) {
                 setCustomer({ id: customerSnap.id, ...customerSnap.data() } as Customer);
@@ -88,7 +89,7 @@ export default function OutflowReceiptPage() {
 
 
   const warehouseInfoRef = useMemoFirebase(
-    () => (firestore && appUser ? doc(firestore, 'settings', 'main') : null),
+    () => (firestore && appUser?.warehouseId ? doc(firestore, 'managedWarehouses', appUser.warehouseId, 'settings', 'main') : null),
     [firestore, appUser]
   );
   const { data: warehouseInfo, loading: loadingWarehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);

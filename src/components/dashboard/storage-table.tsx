@@ -1,3 +1,4 @@
+
 'use client';
 import {
   Table,
@@ -23,13 +24,13 @@ export function StorageTable() {
   const router = useRouter();
 
   const allRecordsQuery = useMemoFirebase(
-    () => (firestore && appUser ? collection(firestore, 'storageRecords') : null),
+    () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'storageRecords') : null),
     [firestore, appUser]
   );
   const { data: allRecords, loading: loadingRecords } = useCollection<StorageRecord>(allRecordsQuery);
 
   const customersQuery = useMemoFirebase(
-    () => (firestore && appUser ? collection(firestore, 'customers') : null),
+    () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'customers') : null),
     [firestore, appUser]
   );
   const { data: allCustomers, loading: loadingCustomers } = useCollection<Customer>(customersQuery);

@@ -1,3 +1,4 @@
+
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
@@ -17,25 +18,25 @@ export default function DryingPage() {
   const appUser = useAppUser();
 
   const customersQuery = useMemoFirebase(
-    () => (firestore && appUser ? collection(firestore, 'customers') : null),
+    () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'customers') : null),
     [firestore, appUser]
   );
   const { data: customers, loading: loadingCustomers } = useCollection<Customer>(customersQuery);
 
   const unloadingRecordsQuery = useMemoFirebase(
-    () => (firestore && appUser ? collection(firestore, 'unloadingRecords') : null),
+    () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'unloadingRecords') : null),
     [firestore, appUser]
   );
   const { data: unloadingRecords, loading: loadingUnloadingRecords } = useCollection<UnloadingRecord>(unloadingRecordsQuery);
 
   const lotsQuery = useMemoFirebase(
-    () => (firestore && appUser ? collection(firestore, 'lots') : null),
+    () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'lots') : null),
     [firestore, appUser]
   );
   const { data: lots, loading: loadingLots } = useCollection<Lot>(lotsQuery);
   
   const storageRecordsQuery = useMemoFirebase(
-    () => (firestore && appUser ? collection(firestore, 'storageRecords') : null),
+    () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'storageRecords') : null),
     [firestore, appUser]
   );
   const { data: storageRecords, loading: loadingStorageRecords } = useCollection<StorageRecord>(storageRecordsQuery);
@@ -44,7 +45,6 @@ export default function DryingPage() {
   const availableForDryingRecords = useMemo(() => {
     if (!unloadingRecords) return [];
     const filtered = unloadingRecords.filter(r => r.bagsUnloaded > (r.bagsSentToDrying || 0));
-    // Sort by unloading date, oldest first, to show the earliest records at the top of the list.
     return filtered.sort((a, b) => toDate(a.unloadingDate).getTime() - toDate(b.unloadingDate).getTime());
   }, [unloadingRecords]);
 

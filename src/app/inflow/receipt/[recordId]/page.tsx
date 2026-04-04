@@ -1,3 +1,4 @@
+
 'use client';
 import { InflowReceipt } from "@/components/inflow/inflow-receipt";
 import { PrintHeader } from "@/components/shared/print-header";
@@ -27,13 +28,12 @@ export default function InflowReceiptPage() {
   const [loadingUnloading, setLoadingUnloading] = useState(true);
   const [error, setError] = useState<string|null>(null);
 
-  // Poll for the main record
   useEffect(() => {
-    if (!firestore || !recordId || !appUser) {
+    if (!firestore || !recordId || !appUser?.warehouseId) {
       setLoadingRecord(false);
       return;
     }
-    const recordRef = doc(firestore, 'storageRecords', recordId as string);
+    const recordRef = doc(firestore, 'managedWarehouses', appUser.warehouseId, 'storageRecords', recordId as string);
     let attempts = 0;
     const maxAttempts = 10;
     const intervalTime = 500;
@@ -61,19 +61,17 @@ export default function InflowReceiptPage() {
     pollDocument();
   }, [firestore, recordId, appUser]);
 
-  // Fetch related data after the main record is loaded
   useEffect(() => {
     async function fetchRelatedData() {
-        if (!firestore || !record?.customerId || !appUser) {
+        if (!firestore || !record?.customerId || !appUser?.warehouseId) {
             setLoadingCustomer(false);
             setLoadingUnloading(false);
             return;
         }
 
-        // Fetch Customer
         setLoadingCustomer(true);
         try {
-            const customerRef = doc(firestore, 'customers', record.customerId);
+            const customerRef = doc(firestore, 'managedWarehouses', appUser.warehouseId, 'customers', record.customerId);
             const customerSnap = await getDoc(customerRef);
             if (customerSnap.exists()) {
                 setCustomer({ id: customerSnap.id, ...customerSnap.data() } as Customer);
@@ -84,16 +82,15 @@ export default function InflowReceiptPage() {
             setLoadingCustomer(false);
         }
 
-        // Fetch Unloading Record (if applicable)
         if (record.inflowType === 'Plot' && record.dryingRecordId) {
             setLoadingUnloading(true);
             try {
-                const dryingRef = doc(firestore, 'dryingRecords', record.dryingRecordId);
+                const dryingRef = doc(firestore, 'managedWarehouses', appUser.warehouseId, 'dryingRecords', record.dryingRecordId);
                 const dryingSnap = await getDoc(dryingRef);
                 if (dryingSnap.exists()) {
                     const dryingData = dryingSnap.data() as { unloadingRecordId?: string };
                     if (dryingData.unloadingRecordId) {
-                        const unloadingRef = doc(firestore, 'unloadingRecords', dryingData.unloadingRecordId);
+                        const unloadingRef = doc(firestore, 'managedWarehouses', appUser.warehouseId, 'unloadingRecords', dryingData.unloadingRecordId);
                         const unloadingSnap = await getDoc(unloadingRef);
                         if (unloadingSnap.exists()) {
                             setUnloadingRecord({ id: unloadingSnap.id, ...unloadingSnap.data() } as UnloadingRecord);
@@ -113,7 +110,7 @@ export default function InflowReceiptPage() {
   }, [firestore, record, appUser]);
   
   const warehouseInfoRef = useMemoFirebase(
-    () => (firestore && appUser ? doc(firestore, 'settings', 'main') : null),
+    () => (firestore && appUser?.warehouseId ? doc(firestore, 'managedWarehouses', appUser.warehouseId, 'settings', 'main') : null),
     [firestore, appUser]
   );
   const { data: warehouseInfo, loading: loadingWarehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);

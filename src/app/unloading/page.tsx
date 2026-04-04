@@ -1,3 +1,4 @@
+
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
@@ -18,19 +19,19 @@ export default function UnloadingPage() {
   const canAdd = appUser?.role === 'owner' || appUser?.role === 'biller';
 
   const customersQuery = useMemoFirebase(
-    () => (firestore && appUser ? collection(firestore, 'customers') : null),
+    () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'customers') : null),
     [firestore, appUser]
   );
   const { data: customers, loading: loadingCustomers } = useCollection<Customer>(customersQuery);
 
   const unloadingRecordsQuery = useMemoFirebase(
-    () => (firestore && appUser ? collection(firestore, 'unloadingRecords') : null),
+    () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'unloadingRecords') : null),
     [firestore, appUser]
   );
   const { data: unloadingRecords, loading: loadingRecords } = useCollection<UnloadingRecord>(unloadingRecordsQuery);
 
   const commoditiesQuery = useMemoFirebase(
-    () => (firestore && appUser ? collection(firestore, 'commodities') : null),
+    () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'commodities') : null),
     [firestore, appUser]
   );
   const { data: commodities, loading: loadingCommodities } = useCollection<Commodity>(commoditiesQuery);

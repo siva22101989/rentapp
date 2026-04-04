@@ -1,3 +1,4 @@
+
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
@@ -15,19 +16,19 @@ export default function PendingPaymentsPage() {
     const appUser = useAppUser();
 
     const recordsQuery = useMemoFirebase(
-      () => (firestore && appUser ? collection(firestore, 'storageRecords') : null),
+      () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'storageRecords') : null),
       [firestore, appUser]
     );
     const { data: allRecords, loading: loadingRecords } = useCollection<StorageRecord>(recordsQuery);
 
     const customersQuery = useMemoFirebase(
-        () => (firestore && appUser ? collection(firestore, 'customers') : null),
+        () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'customers') : null),
         [firestore, appUser]
     );
     const { data: allCustomers, loading: loadingCustomers } = useCollection<Customer>(customersQuery);
     
     const unloadingRecordsQuery = useMemoFirebase(
-        () => (firestore && appUser ? collection(firestore, 'unloadingRecords') : null),
+        () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'unloadingRecords') : null),
         [firestore, appUser]
     );
     const { data: allUnloadingRecords, loading: loadingUnloadingRecords } = useCollection<UnloadingRecord>(unloadingRecordsQuery);

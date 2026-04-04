@@ -1,3 +1,4 @@
+
 'use client';
 
 import { AppLayout } from "@/components/layout/app-layout";
@@ -20,7 +21,7 @@ export default function StoragePage() {
   const appUser = useAppUser();
 
   const recordsQuery = useMemoFirebase(
-    () => (firestore && appUser ? collection(firestore, 'storageRecords') : null),
+    () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'storageRecords') : null),
     [firestore, appUser]
   );
   const { data: allRecords, loading } = useCollection<StorageRecord>(recordsQuery);

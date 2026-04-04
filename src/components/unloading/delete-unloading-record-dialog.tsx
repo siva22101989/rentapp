@@ -17,6 +17,7 @@ import { Button } from '../ui/button';
 import { Loader2 } from 'lucide-react';
 import { useFirestore } from '@/firebase/provider';
 import { deleteUnloadingRecord } from '@/lib/data';
+import { useAppUser } from '@/firebase/auth/use-user';
 
 export function DeleteUnloadingRecordDialog({
   recordId,
@@ -29,15 +30,16 @@ export function DeleteUnloadingRecordDialog({
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const firestore = useFirestore();
+  const appUser = useAppUser();
 
   const handleDelete = async () => {
-    if (!firestore) {
-      toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
+    if (!firestore || !appUser?.warehouseId) {
+      toast({ title: 'Error', description: 'Firestore or user session not available.', variant: 'destructive' });
       return;
     }
     startTransition(async () => {
       try {
-        await deleteUnloadingRecord(firestore, recordId);
+        await deleteUnloadingRecord(firestore, appUser.warehouseId!, recordId);
         toast({ title: 'Success', description: 'Unloading record deleted successfully.' });
         setIsOpen(false);
       } catch (error) {

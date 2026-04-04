@@ -1,3 +1,4 @@
+
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -149,13 +150,13 @@ export default function DashboardPage() {
     const accessibleNavItems = navItems.filter(item => appUser && item.roles.includes(appUser.role));
 
     const recordsQuery = useMemoFirebase(
-      () => (firestore && appUser ? collection(firestore, 'storageRecords') : null),
+      () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'storageRecords') : null),
       [firestore, appUser]
     );
     const { data: allRecords, loading: loadingRecords } = useCollection<StorageRecord>(recordsQuery);
   
     const lotsQuery = useMemoFirebase(
-      () => (firestore && appUser ? collection(firestore, 'lots') : null),
+      () => (firestore && appUser?.warehouseId ? collection(firestore, 'managedWarehouses', appUser.warehouseId, 'lots') : null),
       [firestore, appUser]
     );
     const { data: allLots, loading: loadingLots } = useCollection<Lot>(lotsQuery);

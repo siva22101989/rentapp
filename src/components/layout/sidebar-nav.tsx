@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -34,7 +35,7 @@ const navItems: NavItem[] = [
     { href: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['super-admin', 'owner', 'supervisor', 'biller'] },
     { href: '/inflow', label: 'Inflow', icon: ArrowDownToDot, roles: ['super-admin', 'owner', 'supervisor', 'biller'] },
     { href: '/unloading', label: 'Unloading Process', icon: ArrowDownFromLine, roles: ['super-admin', 'owner', 'supervisor', 'biller'] },
-    { href: '/drying', label: 'Create from Plot', icon: Wind, roles: ['super-admin', 'owner', 'supervisor', 'biller'] },
+    { href: '/drying', label: 'Drying Process', icon: Wind, roles: ['super-admin', 'owner', 'supervisor', 'biller'] },
     { href: '/outflow', label: 'Outflow', icon: ArrowUpFromDot, roles: ['super-admin', 'owner', 'supervisor', 'biller'] },
     { href: '/storage', label: 'Storage', icon: Archive, roles: ['super-admin', 'owner', 'supervisor', 'biller'] },
     { href: '/payments/pending', label: 'Payments', icon: IndianRupee, roles: ['super-admin', 'owner', 'biller'] },

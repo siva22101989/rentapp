@@ -40,7 +40,7 @@ type NavItem = {
 const navItems: NavItem[] = [
     { href: '/inflow', label: 'Inflow', icon: ArrowDownToDot, description: 'Record new items arriving for storage.', roles: ['owner', 'supervisor', 'biller'] },
     { href: '/unloading', label: 'Unloading Process', icon: ArrowDownFromLine, description: 'Manage goods unloaded from vehicles.', roles: ['owner', 'supervisor', 'biller'] },
-    { href: '/drying', label: 'Create from Plot', icon: Wind, description: 'Finalize items from plot to storage.', roles: ['owner', 'supervisor', 'biller'] },
+    { href: '/drying', label: 'Drying Process', icon: Wind, description: 'Manage items in the drying plot and finalize them into storage.', roles: ['owner', 'supervisor', 'biller'] },
     { href: '/outflow', label: 'Outflow', icon: ArrowUpFromDot, description: 'Process withdrawals and generate final bills.', roles: ['owner', 'supervisor', 'biller'] },
     { href: '/storage', label: 'Storage', icon: Archive, description: 'View all active inventory and stock.', roles: ['owner', 'supervisor', 'biller'] },
     { href: '/payments/pending', label: 'Payments', icon: IndianRupee, description: 'View and manage pending payments.', roles: ['owner', 'biller'] },

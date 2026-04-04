@@ -55,8 +55,8 @@ export default function DryingPage() {
   return (
     <AppLayout>
       <PageHeader
-        title="Create Storage from Plot"
-        description="Select an item from the unloading queue to finalize and move to storage."
+        title="Drying Process"
+        description="Manage items in the drying plot and finalize them into storage."
       >
         <AddCustomerDialog />
       </PageHeader>

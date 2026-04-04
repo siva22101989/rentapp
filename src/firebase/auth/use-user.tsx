@@ -44,6 +44,19 @@ export function UserProvider({ children }: { children: ReactNode }) {
       if (fbUser) {
         try {
           const userDocRef = doc(firestore, 'users', fbUser.uid);
+          const userEmail = fbUser.email?.toLowerCase();
+
+          // Special handling for the super-admin account.
+          // This ensures that the user with this email is always the super-admin.
+          if (userEmail === 'admin@gmail.com') {
+            const superAdminData = { role: 'super-admin', email: userEmail, phone: '' };
+            await setDoc(userDocRef, superAdminData, { merge: true });
+            setAppUser({ id: fbUser.uid, ...superAdminData } as AppUser);
+            setUser(fbUser);
+            setLoading(false);
+            return; // Super-admin flow ends here.
+          }
+          
           const userDocSnap = await getDoc(userDocRef);
 
           if (userDocSnap.exists()) {
@@ -53,7 +66,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
             // Document with UID doesn't exist, try to find an existing user record to migrate
             const usersCol = collection(firestore, 'users');
             const conditions = [];
-            const userEmail = fbUser.email?.toLowerCase();
+            
             if (userEmail && !userEmail.startsWith('+')) {
                 conditions.push(where('email', '==', userEmail));
             }
@@ -73,7 +86,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
                 const oldUserDoc = querySnapshot.docs[0];
                 const appUserData = oldUserDoc.data() as Omit<AppUser, 'id'>;
                 
-                // Only a user with an auto-id can be migrated. A user with a UID doc is already "claimed".
                 if (oldUserDoc.id !== fbUser.uid) {
                     const batch = writeBatch(firestore);
                     batch.set(userDocRef, appUserData); // Create new doc with UID
@@ -84,7 +96,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
                     setUser(fbUser);
                     migrated = true;
                 } else {
-                    // This case is unlikely but handles if a UID-named doc was found by query but not initial getDoc
                     setAppUser({ id: oldUserDoc.id, ...appUserData } as AppUser);
                     setUser(fbUser);
                     migrated = true;
@@ -93,22 +104,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
             }
 
             if (!migrated) {
-              // Not found and not migrated. Check if super-admin should be created.
-              const superAdminQuery = query(collection(firestore, 'users'), where("role", "==", "super-admin"));
-              const superAdminSnapshot = await getDocs(superAdminQuery);
-
-              if (superAdminSnapshot.empty) {
-                // No super-admin exists, so this new user becomes the super-admin.
-                const superAdminData: Omit<AppUser, 'id'> = { role: 'super-admin', email: userEmail, phone: fbUser.phoneNumber || '' };
-                await setDoc(userDocRef, superAdminData);
-                setAppUser({ id: userDocRef.id, ...superAdminData } as AppUser);
-                setUser(fbUser);
-              } else {
-                // A super-admin already exists, and this user is not recognized. Deny access.
-                await auth.signOut();
-                setUser(null);
-                setAppUser(null);
-              }
+              // The user is not recognized and not the hardcoded super-admin. Deny access.
+              await auth.signOut();
+              setUser(null);
+              setAppUser(null);
             }
           }
         } catch (e: any) {

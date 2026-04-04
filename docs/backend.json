@@ -503,7 +503,7 @@
         },
         "role": {
           "type": "string",
-          "enum": ["owner", "supervisor", "biller"],
+          "enum": ["super-admin", "owner", "supervisor", "biller"],
           "description": "The assigned role for the user."
         }
       },

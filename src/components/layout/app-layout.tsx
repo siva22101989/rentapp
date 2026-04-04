@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -71,17 +70,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     const auth = useAuth();
   
     React.useEffect(() => {
-        if (!loading && !user && pathname !== '/login') {
+        if (!loading && !user && !pathname.includes('/login')) {
             router.push('/login');
         }
     }, [user, loading, router, pathname]);
-
-    const handleSignOut = async () => {
-        if (auth) {
-            await auth.signOut();
-            router.push('/login');
-        }
-    }
 
     if (loading || !user) {
         if (pathname.includes('/login')) {
@@ -94,12 +86,16 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         );
     }
   
-    if (user && pathname.includes('/login')) {
-        router.push('/');
+    if (user && appUser && pathname.includes('/login')) {
+        if (appUser.role === 'super-admin') {
+            router.push('/settings');
+        } else {
+            router.push('/');
+        }
         return (
-        <div className="flex h-screen w-full items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
+            <div className="flex h-screen w-full items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
         );
     }
 
@@ -125,11 +121,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
     const header = (
         <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-card px-4 md:px-6 print-hide">
-            <Link href="/" className="flex items-center gap-3" aria-label="Back to homepage">
+            <Link href={appUser?.role === 'super-admin' ? '/settings' : '/'} className="flex items-center gap-3" aria-label="Back to homepage">
                 <Logo />
             </Link>
             <div className='flex items-center gap-4 ml-auto'>
-                <DateFilters />
+                {appUser?.role !== 'super-admin' && <DateFilters />}
                 <LiveClock />
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>

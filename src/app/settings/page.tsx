@@ -1,4 +1,3 @@
-
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { SettingsLayout } from "@/components/settings/settings-layout";
@@ -16,7 +15,7 @@ export default function SettingsPage() {
     <AppLayout>
       <PageHeader
         title="Settings"
-        description="Manage your account, warehouse preferences, and crop configurations."
+        description={appUser?.role === 'super-admin' ? "Manage warehouse subscriptions and global settings." : "Manage your account, warehouse preferences, and crop configurations."}
       >
         {canManageTeam && (
           <ManageTeamDialog>

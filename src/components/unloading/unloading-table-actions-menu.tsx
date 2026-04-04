@@ -18,8 +18,8 @@ type ActionsMenuProps = {
 
 export function UnloadingTableActionsMenu({ record, customers, commodities }: ActionsMenuProps) {
     const appUser = useAppUser();
-    const canEdit = appUser?.role === 'owner' || appUser?.role === 'biller';
-    const canDelete = appUser?.role === 'owner';
+    const canEdit = appUser?.role === 'owner' || appUser?.role === 'biller' || appUser?.role === 'super-admin';
+    const canDelete = appUser?.role === 'owner' || appUser?.role === 'super-admin';
     
     const customer = customers.find(c => c.id === record.customerId);
     

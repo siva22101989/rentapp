@@ -11,7 +11,7 @@ import { useAppUser } from "@/firebase/auth/use-user";
 
 export function ExpenseActionsMenu({ expense }: { expense: Expense }) {
     const appUser = useAppUser();
-    const canEdit = appUser?.role === 'owner';
+    const canEdit = appUser?.role === 'owner' || appUser?.role === 'super-admin';
     if (!canEdit) return null;
 
     return (

@@ -84,8 +84,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     }
 
     if (loading || !user) {
-        if (pathname === '/login') {
-        return <>{children}</>;
+        if (pathname.includes('/login')) {
+            return <>{children}</>;
         }
         return (
         <div className="flex h-screen w-full items-center justify-center">
@@ -94,7 +94,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         );
     }
   
-    if (user && pathname === '/login') {
+    if (user && pathname.includes('/login')) {
         router.push('/');
         return (
         <div className="flex h-screen w-full items-center justify-center">
@@ -164,29 +164,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
         </header>
     );
-
-    if (appUser?.role === 'super-admin' && !pathname.startsWith('/settings')) {
-        return (
-             <div className="flex min-h-screen w-full flex-col">
-                {header}
-                <main className="flex flex-1 flex-col gap-4 p-4 md:p-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Super Admin View</CardTitle>
-                            <CardDescription>
-                                As a super-admin, you can manage all warehouses. Please go to the settings page to add or manage a warehouse subscription. You cannot view operational data from this view.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                             <Button asChild>
-                                <Link href="/settings">Go to Settings</Link>
-                            </Button>
-                        </CardContent>
-                    </Card>
-                </main>
-            </div>
-        )
-    }
 
     return (
         <div className="flex min-h-screen w-full flex-col">

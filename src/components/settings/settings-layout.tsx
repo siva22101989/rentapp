@@ -14,12 +14,11 @@ import { BillingSettings } from "./billing-settings";
 
 const allTabs = [
     { value: "profile", label: "Profile", icon: User, roles: ['super-admin', 'owner', 'supervisor', 'biller'] },
-    { value: "billing", label: "Manage Warehouses", icon: Warehouse, roles: ['super-admin'] },
-    { value: "warehouse", label: "My Warehouse", icon: Warehouse, roles: ['owner'] },
-    { value: "crops_rates", label: "Crops & Rates", icon: Wheat, roles: ['owner'] },
-    { value: "data", label: "Data", icon: Database, roles: ['owner'] },
-    { value: "sms", label: "SMS", icon: MessageSquare, roles: ['owner'] },
-    { value: "notifications", label: "Notifications", icon: Bell, roles: ['owner', 'supervisor', 'biller'] },
+    { value: "warehouse", label: "My Warehouse", icon: Warehouse, roles: ['owner', 'super-admin'] },
+    { value: "crops_rates", label: "Crops & Rates", icon: Wheat, roles: ['owner', 'super-admin'] },
+    { value: "data", label: "Data", icon: Database, roles: ['owner', 'super-admin'] },
+    { value: "sms", label: "SMS", icon: MessageSquare, roles: ['owner', 'super-admin'] },
+    { value: "notifications", label: "Notifications", icon: Bell, roles: ['owner', 'supervisor', 'biller', 'super-admin'] },
 ];
 
 export function SettingsLayout() {
@@ -32,6 +31,11 @@ export function SettingsLayout() {
     
     if (!appUser) {
         return null;
+    }
+    
+    // For super-admin, 'billing' is the primary view, but they can see other things now.
+    if (appUser.role === 'super-admin') {
+      return <BillingSettings />;
     }
     
     if (accessibleTabs.length === 0) {
@@ -59,11 +63,6 @@ export function SettingsLayout() {
             {accessibleTabs.find(t => t.value === 'profile') && (
                 <TabsContent value="profile">
                     <ProfileSettings />
-                </TabsContent>
-            )}
-            {accessibleTabs.find(t => t.value === 'billing') && (
-                <TabsContent value="billing">
-                    <BillingSettings />
                 </TabsContent>
             )}
             {accessibleTabs.find(t => t.value === 'warehouse') && (

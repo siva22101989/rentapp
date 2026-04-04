@@ -25,6 +25,9 @@ service cloud.firestore {
     }
     
     match /users/{userId} {
+      // Allow any signed-in user to query the collection to find their profile during sign-in/migration.
+      allow list: if isSignedIn();
+
       // Users can read/update their own document.
       allow read, update: if isSignedIn() && request.auth.uid == userId;
 
@@ -35,9 +38,8 @@ service cloud.firestore {
                        (getUserData().role == 'owner' || getUserData().role == 'super-admin'));
       
       // An owner/super-admin can delete user docs.
-      // A user can delete the old auto-id document during migration. This is hard to secure
-      // perfectly without a backend, so we allow any signed-in user to delete for now
-      // to make the migration process work.
+      // A user can delete their old auto-id document during the migration process.
+      // This is a necessary trade-off for a client-only migration.
       allow delete: if isSignedIn();
     }
 

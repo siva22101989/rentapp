@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
@@ -94,15 +93,18 @@ export function UserProvider({ children }: { children: ReactNode }) {
             }
 
             if (!migrated) {
-              // Not found and not migrated, so this must be the very first user (super-admin)
-              const allUsersSnapshot = await getDocs(usersCol);
-              if (allUsersSnapshot.empty) {
+              // Not found and not migrated. Check if super-admin should be created.
+              const superAdminQuery = query(collection(firestore, 'users'), where("role", "==", "super-admin"));
+              const superAdminSnapshot = await getDocs(superAdminQuery);
+
+              if (superAdminSnapshot.empty) {
+                // No super-admin exists, so this new user becomes the super-admin.
                 const superAdminData: Omit<AppUser, 'id'> = { role: 'super-admin', email: userEmail, phone: fbUser.phoneNumber || '' };
                 await setDoc(userDocRef, superAdminData);
                 setAppUser({ id: userDocRef.id, ...superAdminData } as AppUser);
                 setUser(fbUser);
               } else {
-                // Not found and not the first user, deny access
+                // A super-admin already exists, and this user is not recognized. Deny access.
                 await auth.signOut();
                 setUser(null);
                 setAppUser(null);

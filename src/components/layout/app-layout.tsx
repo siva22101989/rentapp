@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -13,7 +14,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { User } from 'firebase/auth';
 import type { AppUser } from '@/lib/definitions';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '../ui/card';
 
 function LiveClock() {
   const [currentTime, setCurrentTime] = React.useState<Date | null>(null);
@@ -66,7 +67,7 @@ function DateFilters() {
 export function AppLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const router = useRouter();
-    const { user, appUser, loading } = useUserContext();
+    const { user, appUser, loading, provisioningError } = useUserContext();
     const auth = useAuth();
 
     const handleSignOut = async () => {
@@ -81,6 +82,35 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             router.push('/login');
         }
     }, [user, loading, router, pathname]);
+
+    if (user && provisioningError) {
+        return (
+            <div className="flex h-screen w-full flex-col">
+                 <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-card px-4 md:px-6">
+                    <Link href="/" className="flex items-center gap-3">
+                        <Logo />
+                    </Link>
+                </header>
+                <main className="flex flex-1 items-center justify-center p-4">
+                    <Card className="w-full max-w-md text-center">
+                        <CardHeader>
+                            <CardTitle className="text-destructive">Authorization Error</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <p>{provisioningError}</p>
+                            <p className="mt-4 text-sm text-muted-foreground">
+                                You have successfully signed in, but your account (<span className="font-medium">{user.email}</span>) is not configured for access to this application.
+                            </p>
+                        </CardContent>
+                        <CardFooter className="flex-col gap-4">
+                            <Button onClick={handleSignOut}>Sign Out</Button>
+                            <p className="text-xs text-muted-foreground">If you believe this is an error, please contact the super-admin.</p>
+                        </CardFooter>
+                    </Card>
+                </main>
+            </div>
+        );
+    }
 
     if (loading || !user) {
         if (pathname.includes('/login')) {

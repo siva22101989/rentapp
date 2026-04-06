@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
@@ -10,6 +11,7 @@ interface UserContextType {
   user: User | null;
   appUser: AppUser | null;
   loading: boolean;
+  provisioningError: string | null;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -20,6 +22,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [appUser, setAppUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [provisioningError, setProvisioningError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!auth || !firestore) {
@@ -29,6 +32,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
     const unsubscribe = auth.onAuthStateChanged(async (fbUser) => {
       setLoading(true);
+      setProvisioningError(null);
       if (!fbUser) {
         setUser(null);
         setAppUser(null);
@@ -49,10 +53,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
           setUser(fbUser);
           setLoading(false);
         } else {
-          // User document is incomplete or invalid. Sign out.
+          // User document is incomplete or invalid.
           console.error(`Invalid user document for UID: ${fbUser.uid}. Missing role or warehouseId.`);
-          await auth.signOut();
-          setUser(null);
+          setProvisioningError('Your account is not configured correctly. Please contact your administrator.');
+          setUser(fbUser);
           setAppUser(null);
           setLoading(false);
         }
@@ -120,9 +124,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
       }
       
       // Step 3: If no provisioning rule matched, the user is not authorized.
-      console.error(`Unauthorized user login attempt: No provisioning rule matched for UID ${fbUser.uid} / email ${fbUser.email}. Signing out.`);
-      await auth.signOut();
-      setUser(null);
+      console.error(`Unauthorized user login attempt: No provisioning rule matched for UID ${fbUser.uid} / email ${fbUser.email}.`);
+      setProvisioningError('Your account is not authorized to access this application. Please contact your administrator.');
+      setUser(fbUser);
       setAppUser(null);
       setLoading(false);
     });
@@ -131,7 +135,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   }, [auth, firestore]);
 
   return (
-    <UserContext.Provider value={{ user, appUser, loading }}>
+    <UserContext.Provider value={{ user, appUser, loading, provisioningError }}>
       {children}
     </UserContext.Provider>
   );

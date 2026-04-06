@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react';
 import { useFirestore } from '@/firebase/provider';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
-import { collection, addDoc, deleteDoc, doc, query, where } from 'firebase/firestore';
+import { collection, addDoc, deleteDoc, doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { cleanForFirestore } from '@/lib/utils';
 import type { AppUser } from '@/lib/definitions';
@@ -47,7 +47,7 @@ export function ManageTeamDialog({ children }: { children: React.ReactNode }) {
     const appUser = useAppUser();
 
     const usersQuery = useMemoFirebase(
-        () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'users'), where('warehouseId', '==', appUser.warehouseId)) : null),
+        () => (firestore && appUser ? collection(firestore, 'users') : null),
         [firestore, appUser]
     );
     const { data: users, loading } = useCollection<AppUser>(usersQuery);
@@ -58,7 +58,7 @@ export function ManageTeamDialog({ children }: { children: React.ReactNode }) {
     });
 
     const onAddUser = (data: AddUserFormData) => {
-        if (!firestore || !appUser?.warehouseId) return;
+        if (!firestore || !appUser) return;
         
         if (users?.some(u => u.phone === data.phone)) {
             form.setError('phone', { message: 'A user with this phone number already exists.' });
@@ -70,7 +70,6 @@ export function ManageTeamDialog({ children }: { children: React.ReactNode }) {
                 await addDoc(collection(firestore, 'users'), cleanForFirestore({
                     phone: data.phone,
                     role: data.role,
-                    warehouseId: appUser.warehouseId
                 }));
                 toast({ title: 'Success', description: 'User added to the team. They can now sign in with their phone number and a password of their choice.' });
                 form.reset();

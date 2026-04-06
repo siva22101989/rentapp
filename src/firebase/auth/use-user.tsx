@@ -45,16 +45,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
       const userDocSnap = await getDoc(userDocRef);
 
       if (userDocSnap.exists()) {
-        // User document exists, this is a returning user.
         const existingAppUser = { id: userDocSnap.id, ...userDocSnap.data() } as AppUser;
-        if (existingAppUser.role && (existingAppUser.role === 'super-admin' || existingAppUser.warehouseId)) {
+        if (existingAppUser.role) {
           // User document is valid.
           setAppUser(existingAppUser);
           setUser(fbUser);
           setLoading(false);
         } else {
           // User document is incomplete or invalid.
-          console.error(`Invalid user document for UID: ${fbUser.uid}. Missing role or warehouseId.`);
+          console.error(`Invalid user document for UID: ${fbUser.uid}. Missing role.`);
           setProvisioningError('Your account is not configured correctly. Please contact your administrator.');
           setUser(fbUser);
           setAppUser(null);
@@ -83,11 +82,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
         const warehouseSnap = await getDocs(q);
 
         if (!warehouseSnap.empty) {
-          const warehouseDoc = warehouseSnap.docs[0];
           const newAppUserData: Omit<AppUser, 'id'> = {
               email: userEmail,
               role: 'owner',
-              warehouseId: warehouseDoc.id,
               phone: fbUser.phoneNumber || ''
           };
           await setDoc(userDocRef, newAppUserData);

@@ -54,15 +54,14 @@ export function AddCustomerDialog() {
   });
 
   const onSubmit = (data: CustomerFormData) => {
-    if (!firestore || !appUser?.warehouseId) {
-      toast({ title: 'Error', description: 'Firestore not available or user not in a warehouse.', variant: 'destructive' });
+    if (!firestore || !appUser) {
+      toast({ title: 'Error', description: 'Firestore not available or user not logged in.', variant: 'destructive' });
       return;
     }
 
     startTransition(async () => {
       try {
-        const customerData = { ...data, warehouseId: appUser.warehouseId };
-        await saveCustomer(firestore, customerData);
+        await saveCustomer(firestore, data);
         toast({ title: 'Success', description: 'Customer added successfully.' });
         setIsOpen(false);
         form.reset();

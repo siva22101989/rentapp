@@ -105,8 +105,8 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
     
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        if (!firestore || !appUser?.warehouseId) {
-            toast({ title: 'Error', description: 'Firestore not available or user not in a warehouse.', variant: 'destructive' });
+        if (!firestore || !appUser) {
+            toast({ title: 'Error', description: 'Firestore not available or user not logged in.', variant: 'destructive' });
             return;
         }
 
@@ -176,7 +176,6 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                     monthlyRate: commodityDetails.monthlyRate,
                     rate6Months: commodityDetails.rate6Months,
                     rate1Year: commodityDetails.rate1Year,
-                    warehouseId: appUser.warehouseId,
                 };
 
                 const docRef = doc(firestore, "storageRecords", nextId);

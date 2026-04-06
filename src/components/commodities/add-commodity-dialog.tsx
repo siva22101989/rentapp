@@ -78,15 +78,14 @@ export function AddCommodityDialog() {
   const billingType = form.watch('billingType');
 
   const onSubmit = (data: CommodityFormData) => {
-    if (!firestore || !appUser?.warehouseId) {
-      toast({ title: 'Error', description: 'Firestore not available or user not in a warehouse.', variant: 'destructive' });
+    if (!firestore || !appUser) {
+      toast({ title: 'Error', description: 'Firestore not available or user not logged in.', variant: 'destructive' });
       return;
     }
 
     startTransition(async () => {
       try {
-        const commodityData = { ...data, warehouseId: appUser.warehouseId };
-        await saveCommodity(firestore, commodityData);
+        await saveCommodity(firestore, data);
         toast({ title: 'Success', description: 'Commodity added successfully.' });
         setIsOpen(false);
         form.reset();

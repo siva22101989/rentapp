@@ -36,10 +36,10 @@ export function BillingSettings() {
     const stats: { [warehouseId: string]: { activeBags: number, occupancy: number } } = {};
 
     for (const wh of warehouses) {
-      const warehouseRecords = allRecords.filter(r => r.warehouseId === wh.id && !r.storageEndDate && r.bagsStored > 0);
+      const warehouseRecords = allRecords.filter(r => !r.storageEndDate && r.bagsStored > 0);
       const activeBags = warehouseRecords.reduce((acc, r) => acc + r.bagsStored, 0);
 
-      const warehouseLots = allLots.filter(l => l.warehouseId === wh.id);
+      const warehouseLots = allLots;
       const totalCapacity = warehouseLots.reduce((acc, l) => acc + (l.capacity || 0), 0);
       const occupancy = totalCapacity > 0 ? (activeBags / totalCapacity) * 100 : 0;
       

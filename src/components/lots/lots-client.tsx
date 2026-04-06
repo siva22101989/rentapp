@@ -9,7 +9,7 @@ import { useFirestore } from '@/firebase/provider';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 import { useToast } from '@/hooks/use-toast';
-import { collection, addDoc, writeBatch, doc, query, where } from 'firebase/firestore';
+import { collection, addDoc, writeBatch, doc } from 'firebase/firestore';
 import type { Lot } from '@/lib/definitions';
 import { deleteLot } from '@/lib/data';
 import { Button } from '@/components/ui/button';
@@ -97,7 +97,7 @@ export function LotsClient() {
 
 
   const lotsQuery = useMemoFirebase(
-    () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'lots'), where('warehouseId', '==', appUser.warehouseId)) : null),
+    () => (firestore && appUser ? collection(firestore, 'lots') : null),
     [firestore, appUser]
   );
   const { data: lots, loading: loadingLots } = useCollection<Lot>(lotsQuery);
@@ -116,7 +116,7 @@ export function LotsClient() {
 
 
   const onAddSubmit = (data: AddLotFormData) => {
-    if (!firestore || !appUser?.warehouseId) return;
+    if (!firestore || !appUser) return;
     const trimmedName = data.name.trim();
     if (existingLotNames.has(trimmedName.toLowerCase())) {
         addForm.setError('name', { message: 'This lot name already exists.' });
@@ -125,7 +125,7 @@ export function LotsClient() {
     startAddingTransition(async () => {
       try {
         const collectionRef = collection(firestore, 'lots');
-        await addDoc(collectionRef, cleanForFirestore({ name: trimmedName, capacity: data.capacity || null, warehouseId: appUser.warehouseId }));
+        await addDoc(collectionRef, cleanForFirestore({ name: trimmedName, capacity: data.capacity || null }));
         toast({ title: 'Success', description: `Lot "${trimmedName}" added.` });
         addForm.reset();
       } catch (error) {
@@ -135,10 +135,10 @@ export function LotsClient() {
   };
 
   const onRangeAddSubmit = (data: RangeAddLotsFormData) => {
-    if (!firestore || !appUser?.warehouseId) return;
+    if (!firestore || !appUser) return;
     startRangeAddingTransition(async () => {
         const { prefix = '', start, end, suffix = '', capacity } = data;
-        const lotsToAdd: { name: string; capacity: number | null, warehouseId: string }[] = [];
+        const lotsToAdd: { name: string; capacity: number | null }[] = [];
         let skippedCount = 0;
 
         for (let i = start; i <= end; i++) {
@@ -146,7 +146,7 @@ export function LotsClient() {
             if (existingLotNames.has(name.toLowerCase())) {
                 skippedCount++;
             } else {
-                lotsToAdd.push({ name, capacity: capacity ?? null, warehouseId: appUser.warehouseId });
+                lotsToAdd.push({ name, capacity: capacity ?? null });
                 existingLotNames.add(name.toLowerCase()); 
             }
         }

@@ -5,7 +5,7 @@ import { useState, useEffect, createContext, useContext, ReactNode } from 'react
 import { type User } from 'firebase/auth';
 import { useAuth, useFirestore } from '@/firebase/provider';
 import type { AppUser } from '@/lib/definitions';
-import { collection, query, where, getDocs, doc, getDoc, writeBatch, or, setDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, writeBatch, or, setDoc, deleteDoc } from 'firebase/firestore';
 import { firebaseConfig } from '../config';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -31,110 +31,89 @@ export function UserProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const handlePermissionError = (operation: 'get' | 'list' | 'create' | 'update' | 'delete' | 'write', path: string, resource?: any) => {
-      const permissionError = new FirestorePermissionError({
-        path,
-        operation,
-        ...(resource && { requestResourceData: resource }),
-      });
-      errorEmitter.emit('permission-error', permissionError, auth.currentUser);
-    };
-
     const unsubscribe = auth.onAuthStateChanged(async (fbUser) => {
+      if (!fbUser) {
+        setUser(null);
+        setAppUser(null);
+        setLoading(false);
+        return;
+      }
+      
       setLoading(true);
-      if (fbUser) {
-        try {
-          const userDocRef = doc(firestore, 'users', fbUser.uid);
-          const userEmail = fbUser.email?.toLowerCase();
 
-          // Special handling for the super-admin account.
-          if (userEmail === 'admin@gmail.com') {
-            const superAdminData = { role: 'super-admin', email: userEmail, phone: '' };
-            await setDoc(userDocRef, superAdminData, { merge: true });
-            setAppUser({ id: fbUser.uid, ...superAdminData } as AppUser);
-            setUser(fbUser);
-            setLoading(false);
-            return; // Super-admin flow ends here.
-          }
-          
-          let foundAppUser: AppUser | null = null;
-          const userDocSnap = await getDoc(userDocRef);
+      try {
+        const userDocRef = doc(firestore, 'users', fbUser.uid);
+        const userDocSnap = await getDoc(userDocRef);
 
-          if (userDocSnap.exists()) {
-            foundAppUser = { id: userDocSnap.id, ...userDocSnap.data() } as AppUser;
-          } else {
-            // Document with UID doesn't exist, this could be a first-time login for an owner or staff.
+        if (userDocSnap.exists()) {
+            // Scenario 1: Returning user with an existing user document.
+            const existingAppUser = { id: userDocSnap.id, ...userDocSnap.data() } as AppUser;
+            if (existingAppUser.role === 'super-admin' || existingAppUser.warehouseId) {
+                setAppUser(existingAppUser);
+                setUser(fbUser);
+            } else {
+                throw new Error(`User document ${fbUser.uid} is missing role or warehouseId.`);
+            }
+        } else {
+            // Scenario 2: First-time login. We need to provision a user document.
+            const userEmail = fbUser.email?.toLowerCase();
+            let newAppUserData: Omit<AppUser, 'id'> | null = null;
+            let isNewUser = false;
 
-            // Case 1: Staff member logging in with a phone-based shadow account
-            if (userEmail && userEmail.startsWith('+') && userEmail.endsWith(`@${firebaseConfig.authDomain}`)) {
-                const phone = userEmail.substring(1, userEmail.indexOf('@'));
-                const usersCol = collection(firestore, 'users');
-                const q = query(usersCol, where('phone', '==', phone));
-                const querySnapshot = await getDocs(q);
-
-                if (!querySnapshot.empty) {
-                    const oldUserDoc = querySnapshot.docs[0];
-                    const appUserData = oldUserDoc.data() as Omit<AppUser, 'id'>;
-                    
-                    if (oldUserDoc.id !== fbUser.uid) { // Migrate to UID-based doc
-                        const batch = writeBatch(firestore);
-                        batch.set(userDocRef, appUserData);
-                        batch.delete(oldUserDoc.ref);
-                        await batch.commit();
-                    }
-                    foundAppUser = { id: fbUser.uid, ...appUserData };
-                }
-            } 
-            // Case 2: Warehouse owner logging in for the first time
-            else if (userEmail) {
+            if (userEmail === 'admin@gmail.com') {
+                // Provision super-admin
+                newAppUserData = { role: 'super-admin', email: userEmail, phone: '' };
+                isNewUser = true;
+            } else if (userEmail && !userEmail.startsWith('+')) {
+                // Provision a potential new owner (who signs in with a regular email)
                 const warehousesCol = collection(firestore, 'managedWarehouses');
                 const q = query(warehousesCol, where('ownerEmail', '==', userEmail));
                 const warehouseSnap = await getDocs(q);
 
                 if (!warehouseSnap.empty) {
-                    // This is a new owner. Let's create their user document.
                     const warehouseDoc = warehouseSnap.docs[0];
-                    const newAppUserData: Omit<AppUser, 'id'> = {
+                    newAppUserData = {
                         email: userEmail,
                         role: 'owner',
                         warehouseId: warehouseDoc.id,
                         phone: fbUser.phoneNumber || ''
                     };
-                    
-                    await setDoc(userDocRef, newAppUserData);
-                    
-                    foundAppUser = { id: fbUser.uid, ...newAppUserData };
+                    isNewUser = true;
+                }
+            } else if (userEmail && userEmail.startsWith('+')) {
+                // Provision a potential new staff member (who signs in with a phone-based shadow account)
+                const phone = userEmail.substring(1, userEmail.indexOf('@'));
+                const usersCol = collection(firestore, 'users');
+                const q = query(usersCol, where('phone', '==', phone));
+                const staffSnap = await getDocs(q);
+
+                if (!staffSnap.empty) {
+                    const staffDocToDelete = staffSnap.docs[0];
+                    newAppUserData = staffDocToDelete.data() as Omit<AppUser, 'id'>;
+                    // The old doc was created with an auto-ID. Delete it now that we have a UID.
+                    await deleteDoc(staffDocToDelete.ref);
+                    isNewUser = true;
                 }
             }
-          }
-          
-          // Final check: ensure the user has a valid role and warehouse assignment
-          if (foundAppUser && (foundAppUser.role === 'super-admin' || foundAppUser.warehouseId)) {
-             setAppUser(foundAppUser);
-             setUser(fbUser);
-          } else {
-              if (foundAppUser) {
-                  console.error(`Access denied for user ${foundAppUser.id} (${foundAppUser.role}): missing warehouseId.`);
-              } else {
-                  console.error(`Access denied for user ${fbUser.uid}: No matching user document found in Firestore.`);
-              }
-              await auth.signOut();
-              setUser(null);
-              setAppUser(null);
-          }
 
-        } catch (e: any) {
-          console.error("Error during user setup:", e);
-          handlePermissionError('list', 'users'); // Emit generic error
+            if (newAppUserData) {
+                // Create the new user document with the Firebase Auth UID as the key.
+                await setDoc(userDocRef, newAppUserData);
+                setAppUser({ id: fbUser.uid, ...newAppUserData } as AppUser);
+                setUser(fbUser);
+            } else {
+                // If no provisioning rule matched, this user is not authorized.
+                throw new Error(`Unauthorized user: No provisioning rule matched for UID ${fbUser.uid}.`);
+            }
+        }
+      } catch (e: any) {
+          console.error("Auth state change error:", e);
           await auth.signOut();
           setUser(null);
           setAppUser(null);
-        }
-      } else {
-        setUser(null);
-        setAppUser(null);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => unsubscribe();

@@ -30,7 +30,7 @@ export default function WarehouseOwnerLoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [unauthorizedDomain, setUnauthorizedDomain] = useState<string | null>(null);
 
-  const handleGoogleSignIn = async () => {
+  const handleGoogleSignIn = () => {
     setIsLoading(true);
     setError(null);
     setUnauthorizedDomain(null);
@@ -39,22 +39,27 @@ export default function WarehouseOwnerLoginPage() {
       provider.setCustomParameters({
         prompt: 'select_account'
       });
-      try {
-        await signInWithPopup(auth, provider);
-        router.push('/');
-      } catch (error: any) {
-        if (error.code === 'auth/unauthorized-domain') {
-            setUnauthorizedDomain(window.location.hostname);
-        } else if (error.code === 'auth/popup-blocked') {
-            setError('Sign-in pop-up blocked by browser. Please allow pop-ups for this site.');
-        } else if (error.code === 'auth/cancelled-popup-request') {
-            // User closed the popup, this is not an error.
-        } else {
-            setError('An unknown error occurred during Google sign-in.');
-            console.error(error);
-        }
+      signInWithPopup(auth, provider)
+        .then(() => {
+          // Success is handled by the global onAuthStateChanged listener in use-user.tsx
+          // which will handle provisioning and redirection.
+        })
+        .catch((error: any) => {
+          if (error.code === 'auth/unauthorized-domain') {
+              setUnauthorizedDomain(window.location.hostname);
+          } else if (error.code === 'auth/popup-blocked') {
+              setError('Sign-in pop-up blocked by browser. Please allow pop-ups for this site.');
+          } else if (error.code === 'auth/cancelled-popup-request') {
+              // User closed the popup, this is not an error, just stop loading.
+          } else {
+              setError('An unknown error occurred during Google sign-in.');
+              console.error(error);
+          }
+          setIsLoading(false);
+      });
+    } else {
+        setError('Authentication service is not ready. Please try again.');
         setIsLoading(false);
-      }
     }
   };
 

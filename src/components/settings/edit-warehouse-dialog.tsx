@@ -58,7 +58,11 @@ export function EditWarehouseDialog({ warehouse, children }: { warehouse: Manage
 
     startTransition(async () => {
       try {
-        await updateManagedWarehouse(firestore, warehouse.id, data);
+        const updateData = {
+          ...data,
+          ownerEmail: data.ownerEmail.toLowerCase(),
+        };
+        await updateManagedWarehouse(firestore, warehouse.id, updateData);
         toast({ title: 'Success', description: 'Warehouse subscription updated.' });
         setIsOpen(false);
       } catch (error) {

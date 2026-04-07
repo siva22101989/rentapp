@@ -58,7 +58,7 @@ export function useCollection<T extends DocumentData>(
       },
       (err) => {
         const permissionError = new FirestorePermissionError({
-          path: q.path,
+          path: (q && 'path' in q) ? (q as any).path : '/unknown-query-path',
           operation: 'list',
         });
         errorEmitter.emit('permission-error', permissionError, auth?.currentUser || null);
@@ -68,9 +68,7 @@ export function useCollection<T extends DocumentData>(
     );
 
     return () => unsubscribe();
-  // Using path as a dependency string to avoid re-running on object reference change
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q?.path]);
+  }, [q, auth]);
 
   return { data, loading, error };
 }

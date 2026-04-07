@@ -67,8 +67,7 @@ export function useDoc<T extends DocumentData>(
     );
 
     return () => unsubscribe();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ref?.path]);
+  }, [ref, auth]);
 
   return { data, loading, error };
 };

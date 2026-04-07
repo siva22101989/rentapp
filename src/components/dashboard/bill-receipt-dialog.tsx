@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import { InflowReceipt } from '../inflow/inflow-receipt';
 import type { Customer, StorageRecord, WarehouseInfo } from '@/lib/definitions';
@@ -16,6 +17,8 @@ import { useFirestore } from '@/firebase/provider';
 import { doc } from 'firebase/firestore';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 import { useAppUser } from '@/firebase/auth/use-user';
+import { Button } from '../ui/button';
+import { Printer } from 'lucide-react';
 
 export function BillReceiptDialog({
   record,
@@ -36,6 +39,11 @@ export function BillReceiptDialog({
   );
   const { data: warehouseInfo, loading: loadingWarehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
+  const handlePrint = () => {
+    // The print styles in globals.css will handle hiding other elements
+    window.print();
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
@@ -43,11 +51,17 @@ export function BillReceiptDialog({
         <DialogHeader>
           <DialogTitle>Inflow Receipt</DialogTitle>
         </DialogHeader>
-        <div className="max-h-[70vh] overflow-y-auto p-2">
+        <div className="max-h-[70vh] overflow-y-auto p-2 printable-area">
             {loadingWarehouseInfo ? <div>Loading...</div> : (
               <InflowReceipt record={record} customer={customer} warehouseInfo={warehouseInfo} />
             )}
         </div>
+        <DialogFooter className="print-hide">
+            <Button variant="outline" onClick={handlePrint}>
+                <Printer className="mr-2 h-4 w-4" />
+                Print Bill
+            </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

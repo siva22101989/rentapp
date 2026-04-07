@@ -49,7 +49,7 @@ export function InflowReportTable({ records, customers, title, allRecords }: Rep
                         <TableHead className="h-auto py-2 px-2 hidden md:table-cell">Lot No</TableHead>
                         <TableHead className="h-auto py-2 px-2 text-right">Bags</TableHead>
                         <TableHead className="h-auto py-2 px-2 text-right hidden xl:table-cell">Weight (Kgs)</TableHead>
-                        <TableHead className="h-auto py-2 px-2 w-[50px] text-right print-hide hidden xl:table-cell">Actions</TableHead>
+                        <TableHead className="h-auto py-2 px-2 w-[50px] text-right print-hide">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -78,7 +78,7 @@ export function InflowReportTable({ records, customers, title, allRecords }: Rep
                                         <TableCell className="p-2 hidden md:table-cell">{record.location}</TableCell>
                                         <TableCell className="p-2 text-right font-mono">{record.bagsIn}</TableCell>
                                         <TableCell className="p-2 text-right font-mono hidden xl:table-cell">{record.weight}</TableCell>
-                                        <TableCell className="p-2 text-right print-hide hidden xl:table-cell">
+                                        <TableCell className="p-2 text-right print-hide">
                                             <ActionsMenu record={record} customers={customers} allRecords={allRecords} />
                                         </TableCell>
                                     </TableRow>
@@ -90,7 +90,7 @@ export function InflowReportTable({ records, customers, title, allRecords }: Rep
                                             <TableCell colSpan={7} className="p-2 text-right">Page Total</TableCell>
                                             <TableCell className="p-2 text-right font-mono">{pageBagsIn}</TableCell>
                                             <TableCell className="p-2 text-right font-mono hidden xl:table-cell">{pageWeight.toFixed(2)}</TableCell>
-                                            <TableCell className="p-2 print-hide hidden xl:table-cell"></TableCell>
+                                            <TableCell className="p-2 print-hide"></TableCell>
                                         </TableRow>
                                     );
                                     pageBagsIn = 0;
@@ -117,7 +117,7 @@ export function InflowReportTable({ records, customers, title, allRecords }: Rep
                         </TableCell>
                         <TableCell className="p-2 text-right font-mono font-bold text-lg">{totalBagsIn}</TableCell>
                         <TableCell className="p-2 text-right font-mono font-bold text-lg hidden xl:table-cell">{totalWeight.toFixed(2)}</TableCell>
-                        <TableCell className="p-2 print-hide hidden xl:table-cell"></TableCell>
+                        <TableCell className="p-2 print-hide"></TableCell>
                     </TableRow>
                 </TableFooter>
             </Table>

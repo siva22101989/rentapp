@@ -21,6 +21,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { Skeleton } from "@/components/ui/skeleton"
 
 
 export type ComboboxOption = {
@@ -53,6 +54,10 @@ export function Combobox({
   const isMobile = useIsMobile()
 
   const selectedLabel = options.find((option) => option.value === value)?.label;
+
+  if (isMobile === undefined) {
+    return <Skeleton className="h-9 w-full" />;
+  }
 
   if (isMobile) {
     return (

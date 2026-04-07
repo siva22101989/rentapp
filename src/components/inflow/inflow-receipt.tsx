@@ -37,7 +37,7 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
 
     if (record.inflowType === 'Plot') {
         return (
-            <div ref={ref} className="bg-white p-4 border-2 border-black font-sans text-xs" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+            <div ref={ref} className="bg-white p-4 border-2 border-black font-sans text-sm" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
                 <div className="text-center mb-2">
                     <div className="text-xs">Cell: {warehouseInfo?.phone || '9703503423, 9160606633'}</div>
                     <h1 className="text-base font-bold text-blue-900">{warehouseInfo?.name || 'GrainDost'}</h1>
@@ -142,7 +142,7 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
     }
 
     return (
-        <div ref={ref} className="bg-white p-4 border-2 border-black font-sans text-xs" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+        <div ref={ref} className="bg-white p-4 border-2 border-black font-sans text-sm" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
             <div className="text-center mb-4">
                 <p className="text-xs">Cell: {warehouseInfo?.phone || 'N/A'}</p>
                 <h1 className="text-lg font-bold text-blue-900">{warehouseInfo?.name || 'GrainDost'}</h1>

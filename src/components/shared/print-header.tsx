@@ -23,47 +23,27 @@ export function PrintHeader({ title, filename = 'document.pdf' }: { title: strin
 
         try {
             const { default: jsPDF } = await import('jspdf');
-            const { default: html2canvas } = await import('html2canvas');
-
-            const canvas = await html2canvas(printableArea, {
-                scale: 2,
-                useCORS: true,
-                backgroundColor: '#ffffff',
-                windowHeight: printableArea.scrollHeight,
-                windowWidth: printableArea.scrollWidth,
-            });
             
-            const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF({
                 orientation: 'p',
                 unit: 'mm',
                 format: 'a4',
             });
 
-            const imgProps = pdf.getImageProperties(imgData);
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfPageHeight = pdf.internal.pageSize.getHeight();
+            await pdf.html(printableArea, {
+                html2canvas: {
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: '#ffffff',
+                },
+                margin: [10, 10, 10, 10],
+                autoPaging: 'text',
+                width: 190, // A4 width (210mm) - 2*10mm margin
+                windowWidth: printableArea.scrollWidth
+            });
             
-            const imgHeight = imgProps.height;
-            const imgWidth = imgProps.width;
-            
-            const ratio = imgWidth / pdfWidth;
-            const totalPdfHeight = imgHeight / ratio;
-
-            let position = 0;
-            let heightLeft = totalPdfHeight;
-
-            pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, totalPdfHeight);
-            heightLeft -= pdfPageHeight;
-
-            while (heightLeft > 0) {
-                position -= pdfPageHeight;
-                pdf.addPage();
-                pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, totalPdfHeight);
-                heightLeft -= pdfPageHeight;
-            }
-
             pdf.save(filename);
+
         } catch (error) {
             console.error("Error generating PDF:", error);
         } finally {

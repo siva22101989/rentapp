@@ -54,16 +54,11 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
           hamaliPerBag: undefined,
           billNo: nextBillNo,
         },
-        values: { 
-            customerId: '',
-            commodityDescription: '',
-            lorryTractorNo: '',
-            unloadingDate: getLocalDateTimeForInput(),
-            bagsUnloaded: undefined,
-            hamaliPerBag: undefined,
-            billNo: nextBillNo,
-        }
       });
+
+    useEffect(() => {
+        form.setValue('billNo', nextBillNo);
+    }, [nextBillNo, form]);
     
     const customerOptions = customers.map(c => ({ value: c.id, label: c.name }));
       
@@ -82,7 +77,7 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
             return;
         }
         
-        const receiptUrl = `/unloading/receipt/${nextBillNo}`;
+        const receiptUrl = `/unloading/receipt/${data.billNo}`;
         const receiptWindow = window.open(receiptUrl, '_blank');
         if (!receiptWindow) {
             toast({
@@ -100,14 +95,12 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
                 const rawRecord = {
                     ...data,
                     unloadingDate,
-                    billNo: nextBillNo,
                     status: 'Unloading' as const,
                     bagsSentToDrying: 0,
                     totalHamali,
                     workerHamaliPayable: totalHamali,
                 };
-                // Use billNo as the document ID
-                const docRef = doc(firestore, 'unloadingRecords', nextBillNo);
+                const docRef = doc(firestore, 'unloadingRecords', data.billNo);
                 await setDoc(docRef, cleanForFirestore(rawRecord));
                 
                 toast({ title: 'Success', description: 'Unloading record added.' });

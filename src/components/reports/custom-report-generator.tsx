@@ -99,7 +99,6 @@ export function CustomReportGenerator({
         }
 
         setIsDownloading(true);
-        document.body.classList.add('pdf-generating');
         
         try {
             const { default: jsPDF } = await import('jspdf');
@@ -119,19 +118,25 @@ export function CustomReportGenerator({
 
             const imgProps = pdf.getImageProperties(imgData);
             const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+            const pdfPageHeight = pdf.internal.pageSize.getHeight();
+            
+            const imgHeight = imgProps.height;
+            const imgWidth = imgProps.width;
+            
+            const ratio = imgWidth / pdfWidth;
+            const totalPdfHeight = imgHeight / ratio;
 
-            let heightLeft = pdfHeight;
             let position = 0;
+            let heightLeft = totalPdfHeight;
 
-            pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
-            heightLeft -= pdf.internal.pageSize.getHeight();
+            pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, totalPdfHeight);
+            heightLeft -= pdfPageHeight;
 
             while (heightLeft > 0) {
-              position = heightLeft - pdfHeight;
-              pdf.addPage();
-              pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
-              heightLeft -= pdf.internal.pageSize.getHeight();
+                position -= pdfPageHeight;
+                pdf.addPage();
+                pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, totalPdfHeight);
+                heightLeft -= pdfPageHeight;
             }
             
             pdf.save(`${selectedReport}-report.pdf`);
@@ -139,7 +144,6 @@ export function CustomReportGenerator({
             console.error("Error generating PDF:", error);
             toast({ title: "Download Error", description: "Failed to generate PDF.", variant: "destructive"});
         } finally {
-            document.body.classList.remove('pdf-generating');
             setIsDownloading(false);
             setIsPreviewOpen(false);
         }
@@ -214,7 +218,7 @@ export function CustomReportGenerator({
                     </Select>
                 </div>
                 <div className="self-end flex items-center gap-2">
-                     <Button onClick={handlePrint} variant="outline">
+                     <Button onClick={() => setIsPreviewOpen(true)} variant="outline">
                         <Printer className="mr-2 h-4 w-4" />
                         Print Report
                     </Button>
@@ -233,10 +237,10 @@ export function CustomReportGenerator({
                     <DialogHeader>
                         <DialogTitle>Report Preview</DialogTitle>
                         <DialogDescription>
-                            Review your report below. When ready, click Download PDF.
+                            Review your report below. When ready, click Download PDF or Print.
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="flex-1 overflow-y-auto p-2 border bg-secondary/30 rounded-md">
+                    <div className="flex-1 overflow-y-auto p-2 border bg-secondary/30 rounded-md printable-area">
                         <div ref={reportRef}>
                            {renderReport()}
                         </div>
@@ -245,6 +249,10 @@ export function CustomReportGenerator({
                         <DialogClose asChild>
                             <Button variant="outline">Close</Button>
                         </DialogClose>
+                         <Button onClick={handlePrint} variant="outline">
+                            <Printer className="mr-2 h-4 w-4" />
+                            Print
+                        </Button>
                         <Button onClick={handleDownload} disabled={isDownloading}>
                             {isDownloading ? (
                                 <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Downloading...</>

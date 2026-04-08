@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -36,6 +36,17 @@ export function ViewUnloadingReceiptDialog({
   );
   const { data: warehouseInfo, loading: loadingWarehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
+  useEffect(() => {
+    if (isOpen) {
+      document.body.classList.add('print-dialog-is-open');
+    } else {
+      document.body.classList.remove('print-dialog-is-open');
+    }
+    return () => {
+      document.body.classList.remove('print-dialog-is-open');
+    };
+  }, [isOpen]);
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
@@ -43,7 +54,7 @@ export function ViewUnloadingReceiptDialog({
         <DialogHeader>
           <DialogTitle>Unloading Bill</DialogTitle>
         </DialogHeader>
-        <div className="max-h-[70vh] overflow-y-auto p-2">
+        <div className="max-h-[70vh] overflow-y-auto p-2 printable-area">
             {loadingWarehouseInfo ? <div>Loading...</div> : (
               <UnloadingReceipt record={record} customer={customer} warehouseInfo={warehouseInfo} />
             )}

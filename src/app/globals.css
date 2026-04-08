@@ -30,8 +30,6 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 221.2 83.2% 53.3%;
     --radius: 1rem;
-    --logo-color: 145 58% 39%;
-    --logo-color-foreground: 145 58% 95%;
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
     --chart-3: 197 37% 24%;
@@ -130,10 +128,19 @@
     padding: 1rem;
     margin: 0;
   }
-  .printable-area .card {
-    border: none !important;
-    box-shadow: none !important;
+  
+  /* If a dialog is printing, hide the main page's printable area */
+  body.print-dialog-is-open main .printable-area,
+  body.print-dialog-is-open main .printable-area * {
+      visibility: hidden !important;
   }
+  
+  /* Then ensure only the dialog's printable area is visible */
+  body.print-dialog-is-open div[data-radix-dialog-content] .printable-area,
+  body.print-dialog-is-open div[data-radix-dialog-content] .printable-area * {
+      visibility: visible !important;
+  }
+
   body {
       background-image: none !important;
   }

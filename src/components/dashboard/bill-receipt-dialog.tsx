@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -39,8 +39,18 @@ export function BillReceiptDialog({
   );
   const { data: warehouseInfo, loading: loadingWarehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
+  useEffect(() => {
+    if (isOpen) {
+      document.body.classList.add('print-dialog-is-open');
+    } else {
+      document.body.classList.remove('print-dialog-is-open');
+    }
+    return () => {
+      document.body.classList.remove('print-dialog-is-open');
+    };
+  }, [isOpen]);
+
   const handlePrint = () => {
-    // The print styles in globals.css will handle hiding other elements
     window.print();
   };
 

@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -24,6 +25,17 @@ type OutflowReceiptDialogProps = {
 export function OutflowReceiptDialog({ record, customer, warehouseInfo, outflow, children, deliveryOrderNo, deliveryOrderDate }: OutflowReceiptDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
 
+  useEffect(() => {
+    if (isOpen) {
+      document.body.classList.add('print-dialog-is-open');
+    } else {
+      document.body.classList.remove('print-dialog-is-open');
+    }
+    return () => {
+      document.body.classList.remove('print-dialog-is-open');
+    };
+  }, [isOpen]);
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
@@ -31,7 +43,7 @@ export function OutflowReceiptDialog({ record, customer, warehouseInfo, outflow,
         <DialogHeader>
           <DialogTitle>Outflow Bill</DialogTitle>
         </DialogHeader>
-        <div className="max-h-[70vh] overflow-y-auto p-2">
+        <div className="max-h-[70vh] overflow-y-auto p-2 printable-area">
             <OutflowReceipt
                 record={record}
                 customer={customer}

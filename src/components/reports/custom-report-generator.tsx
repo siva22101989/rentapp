@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { Customer, StorageRecord, UnloadingRecord, Expense, WarehouseInfo, Borrowing, Lending, OtherIncome } from "@/lib/definitions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -75,6 +76,17 @@ export function CustomReportGenerator({
     const reportRef = useRef<HTMLDivElement>(null);
     const { toast } = useToast();
     
+    useEffect(() => {
+        if (isPreviewOpen) {
+          document.body.classList.add('print-dialog-is-open');
+        } else {
+          document.body.classList.remove('print-dialog-is-open');
+        }
+        return () => {
+          document.body.classList.remove('print-dialog-is-open');
+        };
+    }, [isPreviewOpen]);
+
     const handlePrint = () => {
         window.print();
     };

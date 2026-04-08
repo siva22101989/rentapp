@@ -105,48 +105,35 @@ export function CustomReportGenerator({
             const { default: jsPDF } = await import('jspdf');
             const { default: html2canvas } = await import('html2canvas');
             
-            const canvas = await html2canvas(printableArea, { 
+            const canvas = await html2canvas(printableArea, {
                 scale: 2,
                 useCORS: true,
-                onclone: (document) => {
-                    const printStyles = document.createElement('style');
-                    printStyles.innerHTML = `
-                        .pdf-generating .print-hide { display: none !important; }
-                        .pdf-generating .badge-print, .pdf-generating [data-badge] {
-                            background-color: transparent !important;
-                            color: #000 !important;
-                            border: 1px solid #ccc !important;
-                            box-shadow: none !important;
-                            -webkit-print-color-adjust: exact !important;
-                            print-color-adjust: exact !important;
-                        }
-                    `;
-                    document.head.appendChild(printStyles);
-                }
             });
 
             const imgData = canvas.toDataURL('image/png');
-            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pdf = new jsPDF({
+                orientation: 'p',
+                unit: 'mm',
+                format: 'a4',
+            });
+
+            const imgProps = pdf.getImageProperties(imgData);
             const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = pdf.internal.pageSize.getHeight();
-            const canvasWidth = canvas.width;
-            const canvasHeight = canvas.height;
-            const ratio = canvasWidth / pdfWidth;
-            const imgHeight = canvasHeight / ratio;
-            
-            let heightLeft = imgHeight;
+            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+            let heightLeft = pdfHeight;
             let position = 0;
 
-            pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
-            heightLeft -= pdfHeight;
+            pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+            heightLeft -= pdf.internal.pageSize.getHeight();
 
             while (heightLeft > 0) {
-                position -= pdfHeight;
-                pdf.addPage();
-                pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
-                heightLeft -= pdfHeight;
+              position = heightLeft - pdfHeight;
+              pdf.addPage();
+              pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+              heightLeft -= pdf.internal.pageSize.getHeight();
             }
-
+            
             pdf.save(`${selectedReport}-report.pdf`);
         } catch (error) {
             console.error("Error generating PDF:", error);

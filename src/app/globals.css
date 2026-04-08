@@ -114,39 +114,59 @@
 }
 
 @media print {
-  body * {
+  .print-hide {
+    display: none !important;
+  }
+
+  /* When a dialog is not open for printing, hide everything except the main printable area */
+  body:not(.print-dialog-is-open) * {
     visibility: hidden;
   }
-  .printable-area, .printable-area * {
+  body:not(.print-dialog-is-open) .printable-area,
+  body:not(.print-dialog-is-open) .printable-area * {
     visibility: visible;
   }
-  .printable-area {
+  body:not(.print-dialog-is-open) .printable-area {
     position: absolute;
     left: 0;
     top: 0;
     width: 100%;
-    padding: 1rem;
-    margin: 0;
+  }
+
+  /* When a dialog IS open for printing, hide everything in the body by default */
+  body.print-dialog-is-open * {
+    visibility: hidden;
   }
   
-  /* If a dialog is printing, hide the main page's printable area */
-  body.print-dialog-is-open main .printable-area,
-  body.print-dialog-is-open main .printable-area * {
-      visibility: hidden !important;
-  }
-  
-  /* Then ensure only the dialog's printable area is visible */
+  /* Then, make ONLY the dialog's printable area and its contents visible */
   body.print-dialog-is-open div[data-radix-dialog-content] .printable-area,
   body.print-dialog-is-open div[data-radix-dialog-content] .printable-area * {
-      visibility: visible !important;
+    visibility: visible !important;
+  }
+  
+  /* Crucially, reset the dialog container and the printable area itself for printing */
+  body.print-dialog-is-open div[data-radix-dialog-content],
+  body.print-dialog-is-open div[data-radix-dialog-content] .printable-area {
+    position: static !important;
+    width: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    transform: none !important;
+    display: block !important; /* Change from flex/grid to block */
+    box-shadow: none !important;
+    border: none !important;
+  }
+  
+  /* Remove padding from the dialog content wrapper when printing */
+  body.print-dialog-is-open div[data-radix-dialog-content] {
+      padding: 0 !important;
   }
 
   body {
-      background-image: none !important;
+    background-image: none !important;
   }
-  .print-hide {
-    display: none !important;
-  }
+
   .printable-area td .rounded-full {
     background-color: transparent !important;
     color: #000 !important;

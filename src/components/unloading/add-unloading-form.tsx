@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase/provider';
 import type { Customer, Commodity, UnloadingRecord, WarehouseInfo } from '@/lib/definitions';
-import { addDoc, collection, Timestamp, doc } from 'firebase/firestore';
+import { setDoc, collection, Timestamp, doc } from 'firebase/firestore';
 import { formatCurrency, cleanForFirestore } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 import { Combobox } from '../ui/combobox';
@@ -101,13 +101,14 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
                     ...data,
                     unloadingDate,
                     billNo: nextBillNo,
+                    status: 'Unloading' as const,
                     bagsSentToDrying: 0,
                     totalHamali,
                     workerHamaliPayable: totalHamali,
                 };
                 // Use billNo as the document ID
                 const docRef = doc(firestore, 'unloadingRecords', nextBillNo);
-                await docRef.set(cleanForFirestore(rawRecord));
+                await setDoc(docRef, cleanForFirestore(rawRecord));
                 
                 toast({ title: 'Success', description: 'Unloading record added.' });
                 

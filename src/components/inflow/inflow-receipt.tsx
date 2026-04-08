@@ -39,14 +39,13 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
 
     if (record.inflowType === 'Plot') {
         return (
-            <div ref={ref} className="bg-white p-4 sm:p-6 border-2 border-black font-sans text-base text-black">
+            <div ref={ref} className="bg-white p-4 sm:p-6 border-2 border-black font-sans text-lg text-black">
                 {/* Header */}
                 <div className="text-center mb-4">
-                    <h1 className="text-xl font-bold tracking-wider">{warehouseInfo?.name || 'GrainDost'}</h1>
+                    <h1 className="text-xl font-bold tracking-wider underline">INFLOW BILL</h1>
                     <p className="text-sm">{warehouseInfo?.addressLine1 || 'Survey No. 165,237/2, Owk - Koilakuntla Road, OWK - 518 122,'}</p>
                     <p className="text-sm">{warehouseInfo?.addressLine2 || 'Owk (M), Kurnool (Dt.), A.P.'} Cell: {warehouseInfo?.phone || '9703503423, 9160606633'}</p>
                 </div>
-                 <h2 className="font-bold underline text-center mb-4 text-lg">INFLOW BILL</h2>
 
                 {/* Customer Details */}
                 <div className="grid grid-cols-2 gap-x-4 mb-4 text-base">
@@ -70,7 +69,7 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
                         <p><span className="font-bold">Unloading Bill No.:</span> {unloadingRecord?.billNo || 'N/A'}</p>
                         <p><span className="font-bold">Unloading Date:</span> {unloadingRecord ? format(toDate(unloadingRecord.unloadingDate), 'dd/MM/yy') : 'N/A'}</p>
                         
-                        <p className="col-span-2"><span className="font-bold">2. Name of the Commodity:</span> {record.commodityDescription}</p>
+                        <p className="col-span-2"><span className="font-bold">2. Commodity:</span> {record.commodityDescription}</p>
                         
                         <p><span className="font-bold">Bags for Plot:</span> {record.bagsForDrying || 'N/A'}</p>
                         <p><span className="font-bold">Bags Packed (Stock):</span> {record.bagsIn}</p>
@@ -131,14 +130,13 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
     }
 
     return (
-        <div ref={ref} className="bg-white p-4 sm:p-6 border-2 border-black font-sans text-base text-black">
+        <div ref={ref} className="bg-white p-4 sm:p-6 border-2 border-black font-sans text-lg text-black">
             {/* Header */}
             <div className="text-center mb-4">
-                <h1 className="text-2xl font-bold tracking-wider">{warehouseInfo?.name || 'GrainDost'}</h1>
+                <h1 className="text-2xl font-bold tracking-wider underline">INFLOW BILL</h1>
                 <p className="text-sm">{warehouseInfo?.addressLine1 || 'Survey No. 165,237/2, Owk - Koilakuntla Road, OWK - 518 122,'}</p>
                 <p className="text-sm">{warehouseInfo?.addressLine2 || 'Owk (M), Kurnool (Dt.), A.P.'} Cell: {warehouseInfo?.phone || '9703503423, 9160606633'}</p>
             </div>
-            <h2 className="font-bold underline text-center mb-4 text-lg">INFLOW BILL</h2>
     
             {/* Customer Details */}
             <div className="grid grid-cols-2 gap-x-4 mb-4 text-base">
@@ -159,9 +157,9 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
                 <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-base">
                     <p><span className="font-bold">1. Warehouse Receipt No.:</span> {record.id}</p>
                     <p><span className="font-bold">Date:</span> {formattedDate}</p>
-                    <p><span className="font-bold">2. Name of the Commodity:</span> {record.commodityDescription}</p>
+                    <p><span className="font-bold">2. Commodity:</span> {record.commodityDescription}</p>
                     <p><span className="font-bold">Quantity:</span> {record.weight ? `${record.weight} Kgs` : 'N/A'}</p>
-                    <p><span className="font-bold">No. of Bags:</span> {record.bagsIn}</p>
+                    <p><span className="font-bold">No of Bags:</span> {record.bagsIn}</p>
                     <p><span className="font-bold">Net Weight:</span> {record.weight ? `${record.weight} Kgs` : 'N/A'}</p>
                     <p><span className="font-bold">3. Godown No.:</span> {record.location || 'N/A'}</p>
                     <p><span className="font-bold">Lot No.:</span> {record.location || 'N/A'}</p>
@@ -215,3 +213,5 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
     );
 });
 InflowReceipt.displayName = 'InflowReceipt';
+
+    

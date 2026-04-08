@@ -109,31 +109,34 @@
   }
 }
 
-.pdf-generating .print-hide {
-    display: none !important;
-}
-
 @media print {
+  body, html {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
   .print-hide {
     display: none !important;
   }
-
+  
   /* When printing a full page (not a dialog) */
-  body:not(.print-dialog-is-open) > div > *:not(.printable-area) {
-    display: none;
-  }
   body:not(.print-dialog-is-open) .printable-area {
+    display: block;
     position: absolute;
     left: 0;
     top: 0;
     width: 100%;
+    height: auto;
     margin: 0;
     padding: 0;
   }
+   body:not(.print-dialog-is-open) > *:not(.printable-area) {
+    display: none;
+  }
   
   /* When printing a dialog, hide the main page completely */
-  body.print-dialog-is-open > div > *:not([data-radix-dialog-portal]) {
-    display: none;
+  body.print-dialog-is-open > *:not([data-radix-dialog-portal]) {
+    display: none !important;
   }
 
   /* Then, display the portal and reset the dialog's styles for printing */
@@ -163,9 +166,5 @@
   body.print-dialog-is-open [data-radix-dialog-content] .printable-area {
     height: auto !important;
     overflow: visible !important;
-  }
-
-  body {
-    background-image: none !important;
   }
 }

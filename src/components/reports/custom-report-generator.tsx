@@ -107,6 +107,9 @@ export function CustomReportGenerator({
             const canvas = await html2canvas(printableArea, {
                 scale: 2,
                 useCORS: true,
+                backgroundColor: '#ffffff',
+                windowHeight: printableArea.scrollHeight,
+                windowWidth: printableArea.scrollWidth,
             });
 
             const imgData = canvas.toDataURL('image/png');

@@ -20,7 +20,7 @@ export function PrintHeader({ title, filename = 'document.pdf' }: { title: strin
         }
 
         setIsDownloading(true);
-        printableArea.classList.add('pdf-generating');
+        document.body.classList.add('pdf-generating');
 
         try {
             const { default: jsPDF } = await import('jspdf');
@@ -40,6 +40,7 @@ export function PrintHeader({ title, filename = 'document.pdf' }: { title: strin
             const canvasHeight = canvas.height;
             const ratio = canvasWidth / pdfWidth;
             const imgHeight = canvasHeight / ratio;
+            
             let heightLeft = imgHeight;
             let position = 0;
 
@@ -47,7 +48,7 @@ export function PrintHeader({ title, filename = 'document.pdf' }: { title: strin
             heightLeft -= pdfHeight;
 
             while (heightLeft > 0) {
-                position = heightLeft - imgHeight;
+                position -= pdfHeight;
                 pdf.addPage();
                 pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
                 heightLeft -= pdfHeight;
@@ -57,7 +58,7 @@ export function PrintHeader({ title, filename = 'document.pdf' }: { title: strin
         } catch (error) {
             console.error("Error generating PDF:", error);
         } finally {
-            printableArea.classList.remove('pdf-generating');
+            document.body.classList.remove('pdf-generating');
             setIsDownloading(false);
         }
     };

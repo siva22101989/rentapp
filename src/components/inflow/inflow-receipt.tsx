@@ -39,7 +39,7 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
             <div ref={ref} className="bg-white p-4 sm:p-6 border-2 border-black font-sans text-sm text-black">
                 {/* Header */}
                 <div className="text-center mb-4">
-                    <h1 className="text-2xl font-bold tracking-wider">{warehouseInfo?.name || 'GrainDost'}</h1>
+                    <h1 className="text-xl font-bold tracking-wider">{warehouseInfo?.name || 'GrainDost'}</h1>
                     <p className="text-xs">{warehouseInfo?.addressLine1 || 'Survey No. 165,237/2, Owk - Koilakuntla Road, OWK - 518 122,'}</p>
                     <p className="text-xs">{warehouseInfo?.addressLine2 || 'Owk (M), Kurnool (Dt.), A.P.'} Cell: {warehouseInfo?.phone || '9703503423, 9160606633'}</p>
                 </div>
@@ -50,6 +50,7 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
                         <p><span className="font-bold">Bill No.:</span> {record.id}</p>
                         <p><span className="font-bold">Depositor Name:</span> {customer.name}</p>
                         <p><span className="font-bold">Address:</span> {customer.village || 'N/A'}</p>
+                        <p><span className="font-bold">Phone:</span> {customer.phone || 'N/A'}</p>
                     </div>
                     <div className="text-right">
                         <p><span className="font-bold">Date:</span> {formattedDate}</p>
@@ -140,6 +141,7 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
                     <p><span className="font-bold">Bill No.:</span> {record.id}</p>
                     <p><span className="font-bold">Depositor Name:</span> {customer.name}</p>
                     <p><span className="font-bold">Address:</span> {customer.village || 'N/A'}</p>
+                    <p><span className="font-bold">Phone:</span> {customer.phone || 'N/A'}</p>
                 </div>
                 <div className="text-right">
                     <p><span className="font-bold">Date:</span> {formattedDate}</p>

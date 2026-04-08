@@ -39,8 +39,8 @@ export default function OutflowReceiptPage() {
     }
     const recordRef = doc(firestore, 'storageRecords', recordId as string);
     let attempts = 0;
-    const maxAttempts = 10;
-    const intervalTime = 500;
+    const maxAttempts = 20;
+    const intervalTime = 1000;
 
     const pollDocument = async () => {
       attempts++;

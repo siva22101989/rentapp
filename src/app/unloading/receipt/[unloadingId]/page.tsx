@@ -33,8 +33,8 @@ export default function UnloadingReceiptPage() {
     }
     const recordRef = doc(firestore, 'unloadingRecords', unloadingId);
     let attempts = 0;
-    const maxAttempts = 10;
-    const intervalTime = 500;
+    const maxAttempts = 20;
+    const intervalTime = 1000;
 
     const pollDocument = async () => {
       attempts++;

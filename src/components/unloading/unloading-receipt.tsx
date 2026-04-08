@@ -27,16 +27,14 @@ export const UnloadingReceipt = React.forwardRef<HTMLDivElement, { record: Unloa
     }
     
     return (
-        <div ref={ref} className="bg-white p-4 border-2 border-black font-sans text-base" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
-            <div className="text-center mb-2">
-                <div className="text-sm">Cell: {warehouseInfo?.phone || '9703503423, 9160606633'}</div>
-                <h1 className="text-xl font-bold text-blue-900">{warehouseInfo?.name || 'GrainDost'}</h1>
+        <div ref={ref} className="bg-white p-4 border-2 border-black font-sans text-lg text-black">
+            <div className="text-center mb-4">
+                <h1 className="text-2xl font-bold tracking-wider">{warehouseInfo?.name || 'GrainDost'}</h1>
                 {warehouseInfo?.ownerName && <p className="text-sm">Prop: {warehouseInfo.ownerName}</p>}
                 <p className="text-sm">{warehouseInfo?.addressLine1 || 'Survey No. 165,237/2, Owk - Koilakuntla Road, OWK - 518 122,'}</p>
-                <p className="text-sm">{warehouseInfo?.addressLine2 || 'Owk (M), Kurnool (Dt.), A.P.'}</p>
+                <p className="text-sm">{warehouseInfo?.addressLine2 || 'Owk (M), Kurnool (Dt.), A.P.'} Cell: {warehouseInfo?.phone || '9703503423, 9160606633'}</p>
+                <h2 className="font-bold underline text-center text-lg mt-4">UNLOADING BILL</h2>
             </div>
-            
-            <h2 className="font-bold underline text-center text-lg">UNLOADING BILL</h2>
             
             <div className="flex justify-between items-baseline my-2 text-base">
                 <div><span className="font-bold">Bill No.</span> {record.billNo}</div>
@@ -51,7 +49,7 @@ export const UnloadingReceipt = React.forwardRef<HTMLDivElement, { record: Unloa
                 <div className="flex"><span className="w-1/3 font-bold">PRODUCT</span><span>: {record.commodityDescription}</span></div>
             </div>
 
-            <Table className="text-base">
+            <Table className="text-lg">
                 <TableHeader>
                     <TableRow>
                         <TableHead className="text-black">Description</TableHead>
@@ -78,10 +76,11 @@ export const UnloadingReceipt = React.forwardRef<HTMLDivElement, { record: Unloa
             
             <div className="mt-16 pt-8 flex justify-between text-center">
                 <div className="w-1/2">
-                    <div className="mt-12 border-t border-gray-400 mx-4 pt-1">Manager Signature</div>
+                    <div className="mt-12 border-t border-gray-400 mx-4 pt-1">Customer Signature</div>
                 </div>
                 <div className="w-1/2">
-                    <div className="mt-12 border-t border-gray-400 mx-4 pt-1">Customer Signature</div>
+                    <div className="mt-12 border-t border-gray-400 mx-4 pt-1">Manager Signature</div>
+                    <p className="text-xs mt-1">For {warehouseInfo?.name || 'GrainDost'}</p>
                 </div>
             </div>
         </div>

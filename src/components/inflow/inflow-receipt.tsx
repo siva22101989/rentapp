@@ -42,9 +42,10 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
             <div ref={ref} className="bg-white p-4 sm:p-6 border-2 border-black font-sans text-lg text-black">
                 {/* Header */}
                 <div className="text-center mb-4">
-                    <h1 className="text-xl font-bold tracking-wider underline">INFLOW BILL</h1>
+                    <h1 className="text-2xl font-bold tracking-wider">{warehouseInfo?.name || 'GrainDost'}</h1>
                     <p className="text-sm">{warehouseInfo?.addressLine1 || 'Survey No. 165,237/2, Owk - Koilakuntla Road, OWK - 518 122,'}</p>
                     <p className="text-sm">{warehouseInfo?.addressLine2 || 'Owk (M), Kurnool (Dt.), A.P.'} Cell: {warehouseInfo?.phone || '9703503423, 9160606633'}</p>
+                    <h2 className="font-bold underline text-center mt-4 text-base">INFLOW BILL (FROM PLOT)</h2>
                 </div>
 
                 {/* Customer Details */}
@@ -82,7 +83,7 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
                 </div>
 
                 {/* Charges Table */}
-                <Table className="text-base">
+                <Table className="text-lg">
                     <TableHeader>
                         <TableRow>
                             <TableHead className="text-black font-bold">PARTICULARS</TableHead>
@@ -95,7 +96,7 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
                             record.hamaliDetails.map((item, index) => (
                                 <TableRow key={index}>
                                     <TableCell className="py-1">{item.description}</TableCell>
-                                    <TableCell className="text-center font-mono text-sm py-1">{item.bags && item.rate ? `${item.bags} bags x ${formatCurrency(item.rate)}` : '-'}</TableCell>
+                                    <TableCell className="text-center font-mono text-base py-1">{item.bags && item.rate ? `${item.bags} bags x ${formatCurrency(item.rate)}` : '-'}</TableCell>
                                     <TableCell className="text-right font-mono py-1">{formatCurrency(item.amount)}</TableCell>
                                 </TableRow>
                             ))
@@ -123,6 +124,7 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
                     </div>
                     <div className="w-1/2">
                         <div className="mt-12 border-t border-gray-400 mx-4 pt-1">Warehouse Manager</div>
+                        <p className="text-xs mt-1">For {warehouseInfo?.name || 'GrainDost'}</p>
                     </div>
                 </div>
             </div>
@@ -133,9 +135,10 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
         <div ref={ref} className="bg-white p-4 sm:p-6 border-2 border-black font-sans text-lg text-black">
             {/* Header */}
             <div className="text-center mb-4">
-                <h1 className="text-2xl font-bold tracking-wider underline">INFLOW BILL</h1>
+                <h1 className="text-2xl font-bold tracking-wider">{warehouseInfo?.name || 'GrainDost'}</h1>
                 <p className="text-sm">{warehouseInfo?.addressLine1 || 'Survey No. 165,237/2, Owk - Koilakuntla Road, OWK - 518 122,'}</p>
                 <p className="text-sm">{warehouseInfo?.addressLine2 || 'Owk (M), Kurnool (Dt.), A.P.'} Cell: {warehouseInfo?.phone || '9703503423, 9160606633'}</p>
+                 <h2 className="font-bold underline text-center mt-4 text-lg">INFLOW BILL</h2>
             </div>
     
             {/* Customer Details */}
@@ -168,7 +171,7 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
             </div>
             
             {/* Charges Table */}
-            <Table className="text-base">
+            <Table className="text-lg">
                  <TableHeader>
                     <TableRow>
                         <TableHead className="text-black font-bold">PARTICULARS</TableHead>
@@ -180,7 +183,7 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
                      {record.hamaliPayable > 0 && (
                         <TableRow>
                             <TableCell>1. Unloading Charges (Hamali)</TableCell>
-                            <TableCell className="text-center font-mono text-sm">{record.bagsIn} bags x {formatCurrency(hamaliRate)}</TableCell>
+                            <TableCell className="text-center font-mono text-base">{record.bagsIn} bags x {formatCurrency(hamaliRate)}</TableCell>
                             <TableCell className="text-right font-mono">{formatCurrency(record.hamaliPayable)}</TableCell>
                         </TableRow>
                     )}
@@ -207,6 +210,7 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
                 </div>
                 <div className="w-1/2">
                     <div className="mt-12 border-t border-gray-400 mx-4 pt-1">Warehouse Manager</div>
+                    <p className="text-xs mt-1">For {warehouseInfo?.name || 'GrainDost'}</p>
                 </div>
             </div>
         </div>

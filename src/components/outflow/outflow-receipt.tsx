@@ -55,7 +55,7 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
     }
 
     return (
-      <div ref={ref} className="bg-white p-4 sm:p-6 border-2 border-black font-sans text-base text-black">
+      <div ref={ref} className="bg-white p-4 sm:p-6 border-2 border-black font-sans text-lg text-black">
           <div className="text-center mb-4">
               <h1 className="text-2xl font-bold tracking-wider">{warehouseInfo?.name || 'GrainDost'}</h1>
               <p className="text-sm">{warehouseInfo?.addressLine1 || 'Survey No. 165,237/2, Owk - Koilakuntla Road, OWK - 518 122,'}</p>
@@ -92,7 +92,7 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
               </div>
           </div>
 
-          <Table className="text-base">
+          <Table className="text-lg">
               <TableHeader>
                   <TableRow>
                       <TableHead className="text-black font-bold w-[50%]">PARTICULARS</TableHead>
@@ -157,6 +157,7 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
               </div>
               <div className="w-1/2">
                   <div className="mt-12 border-t border-gray-400 mx-4 pt-1">Warehouse Manager</div>
+                  <p className="text-xs mt-1">For {warehouseInfo?.name || 'GrainDost'}</p>
               </div>
           </div>
       </div>

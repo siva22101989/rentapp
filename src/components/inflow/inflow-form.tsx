@@ -165,6 +165,7 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                     billingCycle: '6-Month Initial' as const,
                     payments,
                     hamaliPayable,
+                    hamaliRate: hamaliRate,
                     workerHamaliPayable: hamaliPayable,
                     totalRentBilled: 0,
                     lorryTractorNo: lorryTractorNo,

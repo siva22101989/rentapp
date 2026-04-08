@@ -27,23 +27,23 @@ export const UnloadingReceipt = React.forwardRef<HTMLDivElement, { record: Unloa
     }
     
     return (
-        <div ref={ref} className="bg-white p-4 border-2 border-black font-sans text-sm" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+        <div ref={ref} className="bg-white p-4 border-2 border-black font-sans text-base" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
             <div className="text-center mb-2">
-                <div className="text-xs">Cell: {warehouseInfo?.phone || '9703503423, 9160606633'}</div>
+                <div className="text-sm">Cell: {warehouseInfo?.phone || '9703503423, 9160606633'}</div>
                 <h1 className="text-xl font-bold text-blue-900">{warehouseInfo?.name || 'GrainDost'}</h1>
-                {warehouseInfo?.ownerName && <p className="text-xs">Prop: {warehouseInfo.ownerName}</p>}
-                <p className="text-xs">{warehouseInfo?.addressLine1 || 'Survey No. 165,237/2, Owk - Koilakuntla Road, OWK - 518 122,'}</p>
-                <p className="text-xs">{warehouseInfo?.addressLine2 || 'Owk (M), Kurnool (Dt.), A.P.'}</p>
+                {warehouseInfo?.ownerName && <p className="text-sm">Prop: {warehouseInfo.ownerName}</p>}
+                <p className="text-sm">{warehouseInfo?.addressLine1 || 'Survey No. 165,237/2, Owk - Koilakuntla Road, OWK - 518 122,'}</p>
+                <p className="text-sm">{warehouseInfo?.addressLine2 || 'Owk (M), Kurnool (Dt.), A.P.'}</p>
             </div>
             
-            <h2 className="font-bold underline text-center">UNLOADING BILL</h2>
+            <h2 className="font-bold underline text-center text-lg">UNLOADING BILL</h2>
             
-            <div className="flex justify-between items-baseline my-2">
+            <div className="flex justify-between items-baseline my-2 text-base">
                 <div><span className="font-bold">Bill No.</span> {record.billNo}</div>
                 <div><span className="font-bold">Date:</span> {formattedDate}</div>
             </div>
 
-            <div className="space-y-1 mb-2">
+            <div className="space-y-1 mb-2 text-base">
                 <div className="flex"><span className="w-1/3 font-bold">CUSTOMER</span><span>: {customer.name}</span></div>
                 {customer.fatherName && <div className="flex"><span className="w-1/3 font-bold">FATHER'S NAME</span><span>: {customer.fatherName}</span></div>}
                 <div className="flex"><span className="w-1/3 font-bold">VILLAGE</span><span>: {customer.village || 'N/A'}</span></div>
@@ -51,7 +51,7 @@ export const UnloadingReceipt = React.forwardRef<HTMLDivElement, { record: Unloa
                 <div className="flex"><span className="w-1/3 font-bold">PRODUCT</span><span>: {record.commodityDescription}</span></div>
             </div>
 
-            <Table>
+            <Table className="text-base">
                 <TableHeader>
                     <TableRow>
                         <TableHead className="text-black">Description</TableHead>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -33,19 +34,22 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
             </div>
         );
     }
+    
+    const hamaliRate = record.hamaliRate ?? (record.bagsIn > 0 ? record.hamaliPayable / record.bagsIn : 0);
 
     if (record.inflowType === 'Plot') {
         return (
-            <div ref={ref} className="bg-white p-4 sm:p-6 border-2 border-black font-sans text-sm text-black">
+            <div ref={ref} className="bg-white p-4 sm:p-6 border-2 border-black font-sans text-base text-black">
                 {/* Header */}
                 <div className="text-center mb-4">
                     <h1 className="text-xl font-bold tracking-wider">{warehouseInfo?.name || 'GrainDost'}</h1>
-                    <p className="text-xs">{warehouseInfo?.addressLine1 || 'Survey No. 165,237/2, Owk - Koilakuntla Road, OWK - 518 122,'}</p>
-                    <p className="text-xs">{warehouseInfo?.addressLine2 || 'Owk (M), Kurnool (Dt.), A.P.'} Cell: {warehouseInfo?.phone || '9703503423, 9160606633'}</p>
+                    <p className="text-sm">{warehouseInfo?.addressLine1 || 'Survey No. 165,237/2, Owk - Koilakuntla Road, OWK - 518 122,'}</p>
+                    <p className="text-sm">{warehouseInfo?.addressLine2 || 'Owk (M), Kurnool (Dt.), A.P.'} Cell: {warehouseInfo?.phone || '9703503423, 9160606633'}</p>
                 </div>
+                 <h2 className="font-bold underline text-center mb-4 text-lg">INFLOW BILL</h2>
 
                 {/* Customer Details */}
-                <div className="grid grid-cols-2 gap-x-4 mb-4">
+                <div className="grid grid-cols-2 gap-x-4 mb-4 text-base">
                     <div>
                         <p><span className="font-bold">Bill No.:</span> {record.id}</p>
                         <p><span className="font-bold">Depositor Name:</span> {customer.name}</p>
@@ -59,8 +63,8 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
 
                 {/* Particulars Section */}
                 <div className="border-y-2 border-black py-2 mb-4">
-                    <h2 className="font-bold text-center mb-2">PARTICULARS OF DEPOSIT (FROM PLOT)</h2>
-                    <div className="grid grid-cols-2 gap-x-8 gap-y-1">
+                    <h2 className="font-bold text-center mb-2 text-base">PARTICULARS OF DEPOSIT (FROM PLOT)</h2>
+                    <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-base">
                         <p><span className="font-bold">1. Warehouse Receipt No.:</span> {record.id}</p>
                         <p><span className="font-bold">Storage Date:</span> {formattedDate}</p>
                         <p><span className="font-bold">Unloading Bill No.:</span> {unloadingRecord?.billNo || 'N/A'}</p>
@@ -79,7 +83,7 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
                 </div>
 
                 {/* Charges Table */}
-                <Table className="text-sm">
+                <Table className="text-base">
                     <TableHeader>
                         <TableRow>
                             <TableHead className="text-black font-bold">PARTICULARS</TableHead>
@@ -92,7 +96,7 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
                             record.hamaliDetails.map((item, index) => (
                                 <TableRow key={index}>
                                     <TableCell className="py-1">{item.description}</TableCell>
-                                    <TableCell className="text-center font-mono text-xs py-1">{item.bags && item.rate ? `${item.bags} bags x ${formatCurrency(item.rate)}` : '-'}</TableCell>
+                                    <TableCell className="text-center font-mono text-sm py-1">{item.bags && item.rate ? `${item.bags} bags x ${formatCurrency(item.rate)}` : '-'}</TableCell>
                                     <TableCell className="text-right font-mono py-1">{formatCurrency(item.amount)}</TableCell>
                                 </TableRow>
                             ))
@@ -127,16 +131,17 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
     }
 
     return (
-        <div ref={ref} className="bg-white p-4 sm:p-6 border-2 border-black font-sans text-sm text-black">
+        <div ref={ref} className="bg-white p-4 sm:p-6 border-2 border-black font-sans text-base text-black">
             {/* Header */}
             <div className="text-center mb-4">
                 <h1 className="text-2xl font-bold tracking-wider">{warehouseInfo?.name || 'GrainDost'}</h1>
-                <p className="text-xs">{warehouseInfo?.addressLine1 || 'Survey No. 165,237/2, Owk - Koilakuntla Road, OWK - 518 122,'}</p>
-                <p className="text-xs">{warehouseInfo?.addressLine2 || 'Owk (M), Kurnool (Dt.), A.P.'} Cell: {warehouseInfo?.phone || '9703503423, 9160606633'}</p>
+                <p className="text-sm">{warehouseInfo?.addressLine1 || 'Survey No. 165,237/2, Owk - Koilakuntla Road, OWK - 518 122,'}</p>
+                <p className="text-sm">{warehouseInfo?.addressLine2 || 'Owk (M), Kurnool (Dt.), A.P.'} Cell: {warehouseInfo?.phone || '9703503423, 9160606633'}</p>
             </div>
+            <h2 className="font-bold underline text-center mb-4 text-lg">INFLOW BILL</h2>
     
             {/* Customer Details */}
-            <div className="grid grid-cols-2 gap-x-4 mb-4">
+            <div className="grid grid-cols-2 gap-x-4 mb-4 text-base">
                 <div>
                     <p><span className="font-bold">Bill No.:</span> {record.id}</p>
                     <p><span className="font-bold">Depositor Name:</span> {customer.name}</p>
@@ -150,8 +155,8 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
     
             {/* Particulars Section */}
             <div className="border-y-2 border-black py-2 mb-4">
-                <h2 className="font-bold text-center mb-2">PARTICULARS OF DEPOSIT</h2>
-                <div className="grid grid-cols-2 gap-x-8 gap-y-1">
+                <h2 className="font-bold text-center mb-2 text-base">PARTICULARS OF DEPOSIT</h2>
+                <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-base">
                     <p><span className="font-bold">1. Warehouse Receipt No.:</span> {record.id}</p>
                     <p><span className="font-bold">Date:</span> {formattedDate}</p>
                     <p><span className="font-bold">2. Name of the Commodity:</span> {record.commodityDescription}</p>
@@ -165,30 +170,33 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
             </div>
             
             {/* Charges Table */}
-            <Table className="text-sm">
-                <TableHeader>
+            <Table className="text-base">
+                 <TableHeader>
                     <TableRow>
-                        <TableHead className="text-black font-bold w-[50%]">PARTICULARS</TableHead>
+                        <TableHead className="text-black font-bold">PARTICULARS</TableHead>
+                        <TableHead className="text-center text-black font-bold">Calculation</TableHead>
                         <TableHead className="text-right text-black font-bold">Amount</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {record.hamaliPayable > 0 && (
+                     {record.hamaliPayable > 0 && (
                         <TableRow>
                             <TableCell>1. Unloading Charges (Hamali)</TableCell>
+                            <TableCell className="text-center font-mono text-sm">{record.bagsIn} bags x {formatCurrency(hamaliRate)}</TableCell>
                             <TableCell className="text-right font-mono">{formatCurrency(record.hamaliPayable)}</TableCell>
                         </TableRow>
                     )}
                     {record.khataAmount && record.khataAmount > 0 && (
                         <TableRow>
                             <TableCell>2. Khata (Weighbridge) Charges</TableCell>
+                             <TableCell></TableCell>
                             <TableCell className="text-right font-mono">{formatCurrency(record.khataAmount)}</TableCell>
                         </TableRow>
                     )}
                 </TableBody>
                 <TableFooter>
                     <TableRow className="font-bold border-t-2 border-black">
-                        <TableCell className="text-right">TOTAL</TableCell>
+                        <TableCell colSpan={2} className="text-right">TOTAL</TableCell>
                         <TableCell className="text-right font-mono">{formatCurrency((record.hamaliPayable || 0) + (record.khataAmount || 0))}</TableCell>
                     </TableRow>
                 </TableFooter>

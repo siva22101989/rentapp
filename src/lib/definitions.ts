@@ -63,6 +63,7 @@ export type StorageRecord = {
   billingCycle: '6-Month Initial' | '1-Year Rollover' | '1-Year Renewal' | 'Completed';
   payments: Payment[];
   hamaliPayable: number;
+  hamaliRate?: number;
   workerHamaliPayable?: number;
   totalRentBilled: number;
   lorryTractorNo?: string;

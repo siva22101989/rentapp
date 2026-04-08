@@ -55,14 +55,16 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
     }
 
     return (
-      <div ref={ref} className="bg-white p-4 sm:p-6 border-2 border-black font-sans text-sm text-black">
+      <div ref={ref} className="bg-white p-4 sm:p-6 border-2 border-black font-sans text-base text-black">
           <div className="text-center mb-4">
               <h1 className="text-2xl font-bold tracking-wider">{warehouseInfo?.name || 'GrainDost'}</h1>
-              <p className="text-xs">{warehouseInfo?.addressLine1 || 'Survey No. 165,237/2, Owk - Koilakuntla Road, OWK - 518 122,'}</p>
-              <p className="text-xs">{warehouseInfo?.addressLine2 || 'Owk (M), Kurnool (Dt.), A.P.'} Cell: {warehouseInfo?.phone || '9703503423, 9160606633'}</p>
+              <p className="text-sm">{warehouseInfo?.addressLine1 || 'Survey No. 165,237/2, Owk - Koilakuntla Road, OWK - 518 122,'}</p>
+              <p className="text-sm">{warehouseInfo?.addressLine2 || 'Owk (M), Kurnool (Dt.), A.P.'} Cell: {warehouseInfo?.phone || '9703503423, 9160606633'}</p>
           </div>
           
-          <div className="grid grid-cols-2 gap-x-4 mb-4">
+          <h2 className="font-bold underline text-center mb-4 text-lg">OUTFLOW BILL</h2>
+          
+          <div className="grid grid-cols-2 gap-x-4 mb-4 text-base">
               <div>
                   <p><span className="font-bold">Bill No.:</span> {deliveryOrderNo}</p>
                   <p><span className="font-bold">Depositor Name:</span> {customer.name}</p>
@@ -75,8 +77,8 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
           </div>
 
           <div className="border-y-2 border-black py-2 mb-4">
-              <h2 className="font-bold text-center mb-2">PARTICULARS OF WITHDRAWAL</h2>
-              <div className="grid grid-cols-2 gap-x-8 gap-y-1">
+              <h2 className="font-bold text-center mb-2 text-base">PARTICULARS OF WITHDRAWAL</h2>
+              <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-base">
                   <p><span className="font-bold">1. Warehouse Receipt No.:</span> {record.id}</p>
                   <p><span className="font-bold">Date:</span> {formattedStartDate}</p>
                   <p><span className="font-bold">Delivery Order No.:</span> {deliveryOrderNo}</p>
@@ -90,7 +92,7 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
               </div>
           </div>
 
-          <Table className="text-sm">
+          <Table className="text-base">
               <TableHeader>
                   <TableRow>
                       <TableHead className="text-black font-bold w-[50%]">PARTICULARS</TableHead>

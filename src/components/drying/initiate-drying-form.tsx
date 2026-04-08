@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useTransition, useState, useEffect, useMemo } from 'react';
@@ -203,6 +204,15 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
         }
     }, [unloadingRecords, selectedUnloadingRecordId, form, toast]);
 
+    const nextId = useMemo(() => {
+        if (!storageRecords) return '1';
+        const maxId = storageRecords.reduce((max, r) => {
+            const idNum = parseInt(r.id.replace(/[^0-9]/g, ''), 10);
+            return isNaN(idNum) ? max : Math.max(max, idNum);
+        }, 0);
+        return (maxId + 1).toString();
+    }, [storageRecords]);
+
 
     const onSubmit = (data: DryingFormData) => {
         if (!firestore) {
@@ -222,8 +232,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
           return;
         }
 
-        const newStorageRecordRef = doc(collection(firestore, 'storageRecords'));
-        const receiptUrl = `/inflow/receipt/${newStorageRecordRef.id}`;
+        const receiptUrl = `/inflow/receipt/${nextId}`;
         const receiptWindow = window.open(receiptUrl, '_blank');
         if (!receiptWindow) {
             toast({
@@ -319,6 +328,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                     hamaliDetails: hamaliDetails,
                 };
                 
+                const newStorageRecordRef = doc(firestore, 'storageRecords', nextId);
                 batch.set(newStorageRecordRef, cleanForFirestore(newStorageRecord));
 
                 const unloadingRecordRef = doc(firestore, 'unloadingRecords', data.unloadingRecordId);

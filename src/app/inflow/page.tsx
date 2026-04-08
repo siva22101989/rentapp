@@ -43,11 +43,8 @@ export default function InflowPage() {
   const nextId = useMemo(() => {
     if (!records) return '1';
     const maxId = records.reduce((max, r) => {
-        if (/^\d+$/.test(r.id)) {
-            const idNum = parseInt(r.id, 10);
-            return Math.max(max, idNum);
-        }
-        return max;
+        const idNum = parseInt(r.id.replace(/[^0-9]/g, ''), 10);
+        return isNaN(idNum) ? max : Math.max(max, idNum);
     }, 0);
     return (maxId + 1).toString();
   }, [records]);

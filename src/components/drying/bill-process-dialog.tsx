@@ -81,28 +81,17 @@ export function BillProcessDialog({
 
     startTransition(async () => {
       try {
-        // 1. Get next serial number
-        const storageCollectionRef = collection(firestore, 'storageRecords');
-        const querySnapshot = await getDocs(storageCollectionRef);
-        const records = querySnapshot.docs.map(doc => doc.data() as { id: string });
-        let nextSerialNumber = '1';
-        if (records.length > 0) {
-            const maxId = records.reduce((max, r) => {
-                let idNum = parseInt(r.id, 10);
-                if (isNaN(idNum)) {
-                  idNum = parseInt(r.id.replace(/[^0-9]/g, ''), 10);
-                }
-                return isNaN(idNum) ? max : Math.max(max, idNum);
-            }, 0);
-            nextSerialNumber = `${maxId + 1}`;
-        }
+        const maxId = storageRecords.reduce((max, r) => {
+            const idNum = parseInt(r.id.replace(/[^0-9]/g, ''), 10);
+            return isNaN(idNum) ? max : Math.max(max, idNum);
+        }, 0);
+        const nextSerialNumber = (maxId + 1).toString();
         
         // 2. Prepare new storage record
         const billingDate = new Date();
         const bagsStored = record.bagsPacked || 0;
 
-        const newStorageRecord: Omit<StorageRecord, 'id'> & { id: string } = {
-            id: nextSerialNumber,
+        const newStorageRecord: Omit<StorageRecord, 'id'> = {
             customerId: record.customerId,
             commodityDescription: record.commodityDescription,
             location: location.trim(),

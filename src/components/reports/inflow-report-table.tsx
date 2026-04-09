@@ -30,67 +30,67 @@ export function InflowReportTable({ records, customers, title, allRecords }: Rep
 
     return (
         <div className="bg-white p-4 rounded-lg">
-             <div className="mb-4">
+             <div className="mb-4 text-center">
                 <h2 className="text-xl font-bold">GrainDost</h2>
                 <p className="text-muted-foreground">{title}</p>
                 <p className="text-xs text-muted-foreground">Generated on: {generatedDate}</p>
             </div>
-            <Table className="text-xs">
+            <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead className="h-auto py-2 px-2">Date</TableHead>
-                        <TableHead className="h-auto py-2 px-2">Bill No</TableHead>
-                        <TableHead className="h-auto py-2 px-2">Customer</TableHead>
-                        <TableHead className="h-auto py-2 px-2 hidden md:table-cell">Commodity</TableHead>
-                        <TableHead className="h-auto py-2 px-2 hidden lg:table-cell">Inflow Type</TableHead>
-                        <TableHead className="h-auto py-2 px-2 hidden lg:table-cell">Lorry/Tractor No</TableHead>
-                        <TableHead className="h-auto py-2 px-2 hidden md:table-cell">Lot No</TableHead>
-                        <TableHead className="h-auto py-2 px-2 text-right">Bags</TableHead>
-                        <TableHead className="h-auto py-2 px-2 text-right hidden xl:table-cell">Weight (Kgs)</TableHead>
-                        <TableHead className="h-auto py-2 px-2 w-[50px] text-right print-hide">Actions</TableHead>
+                        <TableHead className="h-auto p-3">Date</TableHead>
+                        <TableHead className="h-auto p-3">Bill No</TableHead>
+                        <TableHead className="h-auto p-3 min-w-[120px]">Customer</TableHead>
+                        <TableHead className="h-auto p-3 hidden sm:table-cell">Commodity</TableHead>
+                        <TableHead className="h-auto p-3 hidden lg:table-cell">Inflow Type</TableHead>
+                        <TableHead className="h-auto p-3 hidden md:table-cell">Lorry/Tractor No</TableHead>
+                        <TableHead className="h-auto p-3 hidden md:table-cell">Lot No</TableHead>
+                        <TableHead className="h-auto p-3 text-right">Bags</TableHead>
+                        <TableHead className="h-auto p-3 text-right hidden xl:table-cell">Weight (Kgs)</TableHead>
+                        <TableHead className="h-auto p-3 w-[50px] text-right print-hide">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {records.length > 0 ? (
                         records.map((record) => (
                             <TableRow key={record.id}>
-                                <TableCell className="p-2">{format(toDate(record.storageStartDate), 'dd MMM yyyy')}</TableCell>
-                                <TableCell className="p-2">{record.id}</TableCell>
-                                <TableCell className="p-2 font-medium">{getCustomerName(record.customerId)}</TableCell>
-                                <TableCell className="p-2 hidden md:table-cell">{record.commodityDescription}</TableCell>
-                                <TableCell className="p-2 hidden lg:table-cell">
+                                <TableCell className="p-3">{format(toDate(record.storageStartDate), 'dd MMM yyyy')}</TableCell>
+                                <TableCell className="p-3">{record.id}</TableCell>
+                                <TableCell className="p-3 font-medium">{getCustomerName(record.customerId)}</TableCell>
+                                <TableCell className="p-3 hidden sm:table-cell">{record.commodityDescription}</TableCell>
+                                <TableCell className="p-3 hidden lg:table-cell">
                                     <Badge variant={record.inflowType === 'Direct' ? 'default' : 'secondary'} className={record.inflowType === 'Plot' ? 'bg-purple-100 text-purple-800' : ''}>
                                         {record.inflowType || 'Direct'}
                                     </Badge>
                                 </TableCell>
-                                <TableCell className="p-2 hidden lg:table-cell">{record.lorryTractorNo}</TableCell>
-                                <TableCell className="p-2 hidden md:table-cell">{record.location}</TableCell>
-                                <TableCell className="p-2 text-right font-mono">{record.bagsIn}</TableCell>
-                                <TableCell className="p-2 text-right font-mono hidden xl:table-cell">{record.weight}</TableCell>
-                                <TableCell className="p-2 text-right print-hide">
+                                <TableCell className="p-3 hidden md:table-cell">{record.lorryTractorNo}</TableCell>
+                                <TableCell className="p-3 hidden md:table-cell">{record.location}</TableCell>
+                                <TableCell className="p-3 text-right font-mono">{record.bagsIn}</TableCell>
+                                <TableCell className="p-3 text-right font-mono hidden xl:table-cell">{record.weight ? record.weight.toFixed(2) : ''}</TableCell>
+                                <TableCell className="p-3 text-right print-hide">
                                     <ActionsMenu record={record} customers={customers} allRecords={allRecords} />
                                 </TableCell>
                             </TableRow>
                         ))
                     ) : (
                         <TableRow>
-                            <TableCell colSpan={10} className="p-2 text-center text-muted-foreground">
+                            <TableCell colSpan={10} className="p-3 text-center text-muted-foreground">
                                 No inflow records found for the selected criteria.
                             </TableCell>
                         </TableRow>
                     )}
                 </TableBody>
                 <TableFooter>
-                    <TableRow className="border-t-2 border-primary">
+                    <TableRow className="border-t-2 border-primary bg-secondary">
                         <TableCell 
                             colSpan={7}
-                            className="p-2 text-right font-bold text-lg"
+                            className="p-3 text-right font-bold text-lg"
                         >
                             Grand Total
                         </TableCell>
-                        <TableCell className="p-2 text-right font-mono font-bold text-lg">{totalBagsIn}</TableCell>
-                        <TableCell className="p-2 text-right font-mono font-bold text-lg hidden xl:table-cell">{totalWeight.toFixed(2)}</TableCell>
-                        <TableCell className="p-2 print-hide"></TableCell>
+                        <TableCell className="p-3 text-right font-mono font-bold text-lg">{totalBagsIn}</TableCell>
+                        <TableCell className="p-3 text-right font-mono font-bold text-lg hidden xl:table-cell">{totalWeight.toFixed(2)}</TableCell>
+                        <TableCell className="p-3 print-hide"></TableCell>
                     </TableRow>
                 </TableFooter>
             </Table>

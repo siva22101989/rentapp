@@ -7,6 +7,7 @@ import {
   useState,
   useEffect,
   useMemo,
+  useRef,
 } from 'react';
 import type { DateRange } from 'react-day-picker';
 
@@ -27,8 +28,14 @@ const FirebaseContext = createContext<FirebaseContextValue | null>(null);
 
 export function FirebaseProvider({ children }: { children: ReactNode }) {
   const [value, setValue] = useState<FirebaseContextValue | null>(null);
+  const initialized = useRef(false);
 
   useEffect(() => {
+    if (initialized.current) {
+      return;
+    }
+    initialized.current = true;
+
     const app =
       getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
     const auth = getAuth(app);

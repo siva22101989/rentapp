@@ -114,6 +114,8 @@ export function CustomReportGenerator({
                     scale: 2,
                     useCORS: true,
                     backgroundColor: '#ffffff',
+                    height: printableArea.scrollHeight,
+                    windowHeight: printableArea.scrollHeight
                 },
                 margin: [10, 10, 10, 10],
                 autoPaging: 'text',

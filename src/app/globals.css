@@ -121,17 +121,18 @@
     display: none !important;
   }
   
-  /* When printing from a full page view (not a dialog), hide everything by default */
-  body:not(.print-dialog-is-open) * {
+  /* Hide everything on the page by default */
+  body * {
     visibility: hidden;
   }
-  /* Then, make only the printable area and its contents visible */
-  body:not(.print-dialog-is-open) .printable-area,
-  body:not(.print-dialog-is-open) .printable-area * {
+  
+  /* Make the printable area and everything inside it visible */
+  .printable-area, .printable-area * {
     visibility: visible;
   }
-  /* Position the printable area at the top of the page */
-  body:not(.print-dialog-is-open) .printable-area {
+
+  /* Position the printable area at the top-left of the page */
+  .printable-area {
     position: absolute;
     left: 0;
     top: 0;
@@ -139,39 +140,7 @@
     height: auto;
     margin: 0;
     padding: 0;
-  }
-  
-  /* When printing a dialog, hide the main page completely */
-  body.print-dialog-is-open > *:not([data-radix-dialog-portal]) {
-    display: none !important;
-  }
-
-  /* Then, display the portal and reset the dialog's styles for printing */
-  body.print-dialog-is-open [data-radix-dialog-portal] {
-    display: block !important;
-    position: static !important;
-  }
-  body.print-dialog-is-open [data-radix-dialog-overlay] {
-    display: none !important;
-  }
-  body.print-dialog-is-open [data-radix-dialog-content] {
-    display: block !important;
-    position: static !important;
-    width: 100% !important;
-    max-width: none !important;
-    height: auto !important;
-    max-height: none !important;
-    box-shadow: none !important;
     border: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    animation: none !important;
-    transform: none !important;
-  }
-  
-  /* Make sure the scrollable content area inside the dialog is also print-friendly */
-  body.print-dialog-is-open [data-radix-dialog-content] .printable-area {
-    height: auto !important;
-    overflow: visible !important;
+    box-shadow: none !important;
   }
 }

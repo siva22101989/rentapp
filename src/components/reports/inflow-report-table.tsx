@@ -15,10 +15,11 @@ type ReportTableProps = {
     records: StorageRecord[];
     customers: Customer[];
     title: string;
+    description: string;
     allRecords: StorageRecord[];
 }
 
-export function InflowReportTable({ records, customers, title, allRecords }: ReportTableProps) {
+export function InflowReportTable({ records, customers, title, description, allRecords }: ReportTableProps) {
     const generatedDate = useMemo(() => format(new Date(), 'dd MMM yyyy, hh:mm a'), []);
 
     const getCustomerName = (customerId: string) => {
@@ -32,7 +33,8 @@ export function InflowReportTable({ records, customers, title, allRecords }: Rep
         <div className="bg-white p-4 rounded-lg">
              <div className="mb-4 text-center report-component-header">
                 <h2 className="text-xl font-bold">GrainDost</h2>
-                <p className="text-muted-foreground">{title}</p>
+                <p className="text-lg font-semibold">{title}</p>
+                <p className="text-sm text-muted-foreground">{description}</p>
                 <p className="text-xs text-muted-foreground">Generated on: {generatedDate}</p>
             </div>
             <Table>

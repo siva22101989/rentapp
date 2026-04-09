@@ -43,14 +43,15 @@ export function InflowReport({ records, customers }: InflowReportProps) {
     }, [records, selectedCustomerId, dateRange]);
 
     const customer = customers.find(c => c.id === selectedCustomerId);
+    const description = "A log of all items received into storage.";
     const title = `Inflow Register ${customer ? `for ${customer.name}` : ''}`;
 
     return (
-        <Card>
+        <Card className="report-card">
             <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div className="flex-1">
                     <CardTitle>Inflow Register</CardTitle>
-                    <CardDescription>A log of all items received into storage.</CardDescription>
+                    <CardDescription>{description}</CardDescription>
                 </div>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto flex-wrap">
                     <Select onValueChange={setSelectedCustomerId} value={selectedCustomerId}>
@@ -74,6 +75,7 @@ export function InflowReport({ records, customers }: InflowReportProps) {
                         records={inflowRecords} 
                         customers={customers}
                         title={title}
+                        description={description}
                         allRecords={records}
                     />
                 </div>

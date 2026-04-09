@@ -121,9 +121,17 @@
     display: none !important;
   }
   
-  /* When printing a full page (not a dialog) */
+  /* When printing from a full page view (not a dialog), hide everything by default */
+  body:not(.print-dialog-is-open) * {
+    visibility: hidden;
+  }
+  /* Then, make only the printable area and its contents visible */
+  body:not(.print-dialog-is-open) .printable-area,
+  body:not(.print-dialog-is-open) .printable-area * {
+    visibility: visible;
+  }
+  /* Position the printable area at the top of the page */
   body:not(.print-dialog-is-open) .printable-area {
-    display: block;
     position: absolute;
     left: 0;
     top: 0;
@@ -131,9 +139,6 @@
     height: auto;
     margin: 0;
     padding: 0;
-  }
-   body:not(.print-dialog-is-open) > *:not(.printable-area) {
-    display: none;
   }
   
   /* When printing a dialog, hide the main page completely */

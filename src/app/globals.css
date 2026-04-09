@@ -121,17 +121,14 @@
     display: none !important;
   }
   
-  /* Hide everything on the page by default */
   body * {
     visibility: hidden;
   }
   
-  /* Make the printable area and everything inside it visible */
   .printable-area, .printable-area * {
     visibility: visible;
   }
 
-  /* Position the printable area at the top-left of the page */
   .printable-area {
     position: absolute;
     left: 0;
@@ -142,5 +139,18 @@
     padding: 0;
     border: none !important;
     box-shadow: none !important;
+  }
+
+  thead {
+    display: table-header-group !important;
+  }
+
+  tfoot {
+    display: table-footer-group !important;
+  }
+
+  /* Try to prevent rows and the main report header from splitting weirdly */
+  tr, .report-component-header {
+    page-break-inside: avoid !important;
   }
 }

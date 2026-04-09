@@ -30,7 +30,7 @@ export function InflowReportTable({ records, customers, title, allRecords }: Rep
 
     return (
         <div className="bg-white p-4 rounded-lg">
-             <div className="mb-4 text-center">
+             <div className="mb-4 text-center report-component-header">
                 <h2 className="text-xl font-bold">GrainDost</h2>
                 <p className="text-muted-foreground">{title}</p>
                 <p className="text-xs text-muted-foreground">Generated on: {generatedDate}</p>

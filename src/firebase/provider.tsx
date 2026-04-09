@@ -13,7 +13,7 @@ import type { DateRange } from 'react-day-picker';
 import { getApp, getApps, initializeApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
 // Import a common function like `collection` to hint the bundler against tree-shaking.
-import { getFirestore, collection, type Firestore } from 'firebase/firestore';
+import { getFirestore, collection, type Firestore, enableIndexedDbPersistence } from 'firebase/firestore';
 import { firebaseConfig } from './config';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
@@ -33,6 +33,14 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
       getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const firestore = getFirestore(app);
+
+    enableIndexedDbPersistence(firestore).catch((err) => {
+      if (err.code === 'failed-precondition') {
+        console.warn('Firestore persistence failed: multiple tabs open. Offline functionality may be limited.');
+      } else if (err.code === 'unimplemented') {
+        console.warn('Firestore persistence is not supported in this browser.');
+      }
+    });
 
     setValue({ firebaseApp: app, auth, firestore });
   }, []); // Empty dependency array ensures this runs only once on the client.

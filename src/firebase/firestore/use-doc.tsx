@@ -55,13 +55,18 @@ export function useDoc<T extends DocumentData>(
         setLoading(false);
         setError(null);
       },
-      (err) => {
-        const permissionError = new FirestorePermissionError({
-          path: ref.path,
-          operation: 'get',
-        });
-        errorEmitter.emit('permission-error', permissionError, auth?.currentUser || null);
-        setError(permissionError);
+      (err: any) => {
+        if (err.code === 'permission-denied') {
+            const permissionError = new FirestorePermissionError({
+              path: ref.path,
+              operation: 'get',
+            });
+            errorEmitter.emit('permission-error', permissionError, auth?.currentUser || null);
+            setError(permissionError);
+        } else {
+            console.error("useDoc error:", err);
+            setError(err);
+        }
         setLoading(false);
       }
     );

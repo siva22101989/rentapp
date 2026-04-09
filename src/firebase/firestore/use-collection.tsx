@@ -56,13 +56,18 @@ export function useCollection<T extends DocumentData>(
         setLoading(false);
         setError(null);
       },
-      (err) => {
-        const permissionError = new FirestorePermissionError({
-          path: (q && 'path' in q) ? (q as any).path : '/unknown-query-path',
-          operation: 'list',
-        });
-        errorEmitter.emit('permission-error', permissionError, auth?.currentUser || null);
-        setError(permissionError);
+      (err: any) => {
+        if (err.code === 'permission-denied') {
+            const permissionError = new FirestorePermissionError({
+              path: (q && 'path' in q) ? (q as any).path : '/unknown-query-path',
+              operation: 'list',
+            });
+            errorEmitter.emit('permission-error', permissionError, auth?.currentUser || null);
+            setError(permissionError);
+        } else {
+            console.error("useCollection error:", err);
+            setError(err);
+        }
         setLoading(false);
       }
     );

@@ -27,8 +27,6 @@ export function InflowReportTable({ records, customers, title, allRecords }: Rep
 
     const totalBagsIn = records.reduce((acc, record) => acc + (record.bagsIn || 0), 0);
     const totalWeight = records.reduce((acc, record) => acc + (record.weight || 0), 0);
-    
-    const RECORDS_PER_PAGE = 25; // Define how many records per "page"
 
     return (
         <div className="bg-white p-4 rounded-lg">
@@ -54,51 +52,26 @@ export function InflowReportTable({ records, customers, title, allRecords }: Rep
                 </TableHeader>
                 <TableBody>
                     {records.length > 0 ? (
-                        (() => {
-                            const rows: React.ReactNode[] = [];
-                            let pageBagsIn = 0;
-                            let pageWeight = 0;
-
-                            records.forEach((record, index) => {
-                                pageBagsIn += record.bagsIn || 0;
-                                pageWeight += record.weight || 0;
-
-                                rows.push(
-                                    <TableRow key={record.id}>
-                                        <TableCell className="p-2">{format(toDate(record.storageStartDate), 'dd MMM yyyy')}</TableCell>
-                                        <TableCell className="p-2">{record.id}</TableCell>
-                                        <TableCell className="p-2 font-medium">{getCustomerName(record.customerId)}</TableCell>
-                                        <TableCell className="p-2 hidden md:table-cell">{record.commodityDescription}</TableCell>
-                                        <TableCell className="p-2 hidden lg:table-cell">
-                                            <Badge variant={record.inflowType === 'Direct' ? 'default' : 'secondary'} className={record.inflowType === 'Plot' ? 'bg-purple-100 text-purple-800' : ''}>
-                                                {record.inflowType || 'Direct'}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell className="p-2 hidden lg:table-cell">{record.lorryTractorNo}</TableCell>
-                                        <TableCell className="p-2 hidden md:table-cell">{record.location}</TableCell>
-                                        <TableCell className="p-2 text-right font-mono">{record.bagsIn}</TableCell>
-                                        <TableCell className="p-2 text-right font-mono hidden xl:table-cell">{record.weight}</TableCell>
-                                        <TableCell className="p-2 text-right print-hide">
-                                            <ActionsMenu record={record} customers={customers} allRecords={allRecords} />
-                                        </TableCell>
-                                    </TableRow>
-                                );
-
-                                if ((index + 1) % RECORDS_PER_PAGE === 0 && index < records.length - 1) {
-                                    rows.push(
-                                        <TableRow key={`subtotal-${index}`} className="bg-muted/50 hover:bg-muted/50 font-bold">
-                                            <TableCell colSpan={7} className="p-2 text-right">Page Total</TableCell>
-                                            <TableCell className="p-2 text-right font-mono">{pageBagsIn}</TableCell>
-                                            <TableCell className="p-2 text-right font-mono hidden xl:table-cell">{pageWeight.toFixed(2)}</TableCell>
-                                            <TableCell className="p-2 print-hide"></TableCell>
-                                        </TableRow>
-                                    );
-                                    pageBagsIn = 0;
-                                    pageWeight = 0;
-                                }
-                            });
-                            return rows;
-                        })()
+                        records.map((record) => (
+                            <TableRow key={record.id}>
+                                <TableCell className="p-2">{format(toDate(record.storageStartDate), 'dd MMM yyyy')}</TableCell>
+                                <TableCell className="p-2">{record.id}</TableCell>
+                                <TableCell className="p-2 font-medium">{getCustomerName(record.customerId)}</TableCell>
+                                <TableCell className="p-2 hidden md:table-cell">{record.commodityDescription}</TableCell>
+                                <TableCell className="p-2 hidden lg:table-cell">
+                                    <Badge variant={record.inflowType === 'Direct' ? 'default' : 'secondary'} className={record.inflowType === 'Plot' ? 'bg-purple-100 text-purple-800' : ''}>
+                                        {record.inflowType || 'Direct'}
+                                    </Badge>
+                                </TableCell>
+                                <TableCell className="p-2 hidden lg:table-cell">{record.lorryTractorNo}</TableCell>
+                                <TableCell className="p-2 hidden md:table-cell">{record.location}</TableCell>
+                                <TableCell className="p-2 text-right font-mono">{record.bagsIn}</TableCell>
+                                <TableCell className="p-2 text-right font-mono hidden xl:table-cell">{record.weight}</TableCell>
+                                <TableCell className="p-2 text-right print-hide">
+                                    <ActionsMenu record={record} customers={customers} allRecords={allRecords} />
+                                </TableCell>
+                            </TableRow>
+                        ))
                     ) : (
                         <TableRow>
                             <TableCell colSpan={10} className="p-2 text-center text-muted-foreground">

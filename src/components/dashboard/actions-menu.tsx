@@ -2,11 +2,11 @@
 'use client';
 
 import { FileText, MoreHorizontal, Trash2 } from "lucide-react";
+import Link from 'next/link';
 import { Button } from "../ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import type { Customer, StorageRecord } from "@/lib/definitions";
 import { EditStorageDialog } from "./edit-storage-dialog";
-import { BillReceiptDialog } from "./bill-receipt-dialog";
 import { toDate } from "@/lib/utils";
 import { DeleteRecordDialog } from "./delete-record-dialog";
 
@@ -35,12 +35,12 @@ export function ActionsMenu({ record, customers, allRecords }: { record: Storage
                     </DropdownMenuItem>
                 </EditStorageDialog>
                 {customer && (
-                    <BillReceiptDialog record={safeRecord} customer={customer}>
-                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                    <DropdownMenuItem asChild>
+                        <Link href={`/inflow/receipt/${record.id}`} target="_blank">
                             <FileText className="mr-2 h-4 w-4" />
-                            View Bill
-                        </DropdownMenuItem>
-                    </BillReceiptDialog>
+                            View/Print Bill
+                        </Link>
+                    </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />
                 <DeleteRecordDialog recordId={safeRecord.id}>

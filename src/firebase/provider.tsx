@@ -34,15 +34,20 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
     const auth = getAuth(app);
     const firestore = getFirestore(app);
 
-    enableIndexedDbPersistence(firestore).catch((err) => {
-      if (err.code === 'failed-precondition') {
-        console.warn('Firestore persistence failed: multiple tabs open. Offline functionality may be limited.');
-      } else if (err.code === 'unimplemented') {
-        console.warn('Firestore persistence is not supported in this browser.');
-      }
-    });
-
-    setValue({ firebaseApp: app, auth, firestore });
+    enableIndexedDbPersistence(firestore)
+      .then(() => {
+        // Persistence enabled successfully
+        setValue({ firebaseApp: app, auth, firestore });
+      })
+      .catch((err) => {
+        if (err.code === 'failed-precondition') {
+          console.warn('Firestore persistence failed: multiple tabs open. Offline functionality may be limited.');
+        } else if (err.code === 'unimplemented') {
+          console.warn('Firestore persistence is not supported in this browser.');
+        }
+        // Proceed without persistence
+        setValue({ firebaseApp: app, auth, firestore });
+      });
   }, []); // Empty dependency array ensures this runs only once on the client.
 
   if (!value) {

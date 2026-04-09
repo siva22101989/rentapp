@@ -76,7 +76,7 @@ export function PaymentReport({ records, unloadingRecords, customers }: PaymentR
 
     return (
         <Card>
-            <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4 print-hide">
                 <div className="flex-1">
                     <CardTitle>Payment Register</CardTitle>
                     <CardDescription>A log of all payments received.</CardDescription>

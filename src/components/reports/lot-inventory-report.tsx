@@ -121,7 +121,7 @@ export function LotInventoryReport({ records, customers }: LotInventoryReportPro
 
     return (
         <Card>
-            <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4 print-hide">
                 <div className="flex-1">
                     <CardTitle>Lot Inventory Report</CardTitle>
                     <CardDescription>A summary of active stock present in each lot.</CardDescription>

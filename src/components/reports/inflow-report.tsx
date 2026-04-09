@@ -48,7 +48,7 @@ export function InflowReport({ records, customers }: InflowReportProps) {
 
     return (
         <Card className="report-card">
-            <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4 print-hide">
                 <div className="flex-1">
                     <CardTitle>Inflow Register</CardTitle>
                     <CardDescription>{description}</CardDescription>

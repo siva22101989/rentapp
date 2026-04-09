@@ -158,7 +158,7 @@ export function CustomReportGenerator({
                             initialCustomerId={initialCustomerId}
                         />;
             case 'active-inventory':
-                return <Card><CardHeader><CardTitle>Active Inventory Summary</CardTitle></CardHeader><CardContent><StorageTable /></CardContent></Card>;
+                return <Card><CardHeader className="print-hide"><CardTitle>Active Inventory Summary</CardTitle></CardHeader><CardContent><StorageTable /></CardContent></Card>;
             case 'pending-dues':
                 return <PendingPaymentsTable records={records} customers={customers} unloadingRecords={unloadingRecords} />;
             case 'hamali-register':

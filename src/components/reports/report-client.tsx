@@ -29,7 +29,7 @@ export function ReportClient({ records, customers, unloadingRecords, initialCust
 
     return (
         <Card>
-            <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4 print-hide">
                 <div className="flex-1">
                     <CardTitle>Customer Statement of Account</CardTitle>
                     <CardDescription>Select a customer to generate a detailed statement of their account activity.</CardDescription>

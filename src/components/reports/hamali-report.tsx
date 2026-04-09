@@ -185,7 +185,7 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
 
     return (
         <Card>
-            <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4 print-hide">
                 <div className="flex-1">
                     <CardTitle>Hamali Register</CardTitle>
                     <CardDescription>View ledgers for customer charges or worker payments.</CardDescription>

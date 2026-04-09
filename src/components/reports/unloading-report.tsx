@@ -48,7 +48,7 @@ export function UnloadingReport({ unloadingRecords, customers }: UnloadingReport
 
     return (
         <Card>
-            <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4 print-hide">
                 <div className="flex-1">
                     <CardTitle>Unloading Register</CardTitle>
                     <CardDescription>A log of all vehicle unloading activities.</CardDescription>

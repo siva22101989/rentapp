@@ -276,7 +276,7 @@ export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecor
 
   return (
     <Card>
-        <CardHeader>
+        <CardHeader className="print-hide">
             <div className="flex-1">
                 <CardTitle>Profit & Loss Statement</CardTitle>
                 <CardDescription>A P&L statement for the selected financial period.</CardDescription>

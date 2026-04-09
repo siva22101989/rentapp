@@ -193,7 +193,7 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
     
     return (
         <Card>
-            <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4 print-hide">
                 <div className="flex-1">
                     <CardTitle>Daily Summary Report</CardTitle>
                     <CardDescription>A summary of all transactions for a selected day.</CardDescription>

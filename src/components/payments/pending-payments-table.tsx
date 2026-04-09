@@ -1,3 +1,4 @@
+
 'use client';
 import { useMemo } from "react";
 import type { Customer, StorageRecord, UnloadingRecord } from "@/lib/definitions";
@@ -75,7 +76,7 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords }: {
 
     return (
         <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-row items-center justify-between print-hide">
                 <CardTitle>Outstanding Balances</CardTitle>
             </CardHeader>
             <CardContent>

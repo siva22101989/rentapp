@@ -40,7 +40,7 @@ export function InflowReportTable({ records, customers, title, allRecords }: Rep
                     <TableRow>
                         <TableHead className="h-auto p-3">Date</TableHead>
                         <TableHead className="h-auto p-3">Bill No</TableHead>
-                        <TableHead className="h-auto p-3 min-w-[120px]">Customer</TableHead>
+                        <TableHead className="h-auto p-3 min-w-[180px]">Customer</TableHead>
                         <TableHead className="h-auto p-3 hidden sm:table-cell">Commodity</TableHead>
                         <TableHead className="h-auto p-3 hidden lg:table-cell">Inflow Type</TableHead>
                         <TableHead className="h-auto p-3 hidden md:table-cell">Lorry/Tractor No</TableHead>
@@ -56,7 +56,7 @@ export function InflowReportTable({ records, customers, title, allRecords }: Rep
                             <TableRow key={record.id}>
                                 <TableCell className="p-3">{format(toDate(record.storageStartDate), 'dd MMM yyyy')}</TableCell>
                                 <TableCell className="p-3">{record.id}</TableCell>
-                                <TableCell className="p-3 font-medium">{getCustomerName(record.customerId)}</TableCell>
+                                <TableCell className="p-3 font-medium whitespace-nowrap">{getCustomerName(record.customerId)}</TableCell>
                                 <TableCell className="p-3 hidden sm:table-cell">{record.commodityDescription}</TableCell>
                                 <TableCell className="p-3 hidden lg:table-cell">
                                     <Badge variant={record.inflowType === 'Direct' ? 'default' : 'secondary'} className={record.inflowType === 'Plot' ? 'bg-purple-100 text-purple-800' : ''}>

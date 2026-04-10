@@ -62,10 +62,10 @@ export function OutflowReportTable({ events, customers, title, allRecords }: Rep
                         <TableHead className="h-auto py-2 px-2">Bill No</TableHead>
                         <TableHead className="h-auto py-2 px-2">Customer</TableHead>
                         <TableHead className="h-auto py-2 px-2 hidden md:table-cell">Commodity</TableHead>
-                        <TableHead className="h-auto py-2 px-2 hidden md:table-cell">Lot No</TableHead>
+                        <TableHead className="h-auto py-2 px-2">Lot No</TableHead>
                         <TableHead className="h-auto py-2 px-2 text-right">Bags Withdrawn</TableHead>
                         <TableHead className="h-auto py-2 px-2 text-right hidden md:table-cell">Rent Billed</TableHead>
-                        <TableHead className="h-auto py-2 px-2 w-[50px] text-right print:hidden">Actions</TableHead>
+                        <TableHead className="h-auto py-2 px-2 w-[50px] text-right print-hide">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -90,10 +90,10 @@ export function OutflowReportTable({ events, customers, title, allRecords }: Rep
                             <TableCell className="p-2">{deliveryOrderNo}</TableCell>
                             <TableCell className="p-2 font-medium">{getCustomerName(event.customerId)}</TableCell>
                             <TableCell className="p-2 hidden md:table-cell">{event.commodityDescription}</TableCell>
-                            <TableCell className="p-2 hidden md:table-cell">{event.location}</TableCell>
+                            <TableCell className="p-2">{event.location}</TableCell>
                             <TableCell className="p-2 text-right font-mono">{event.bagsWithdrawn}</TableCell>
                             <TableCell className="p-2 text-right font-mono hidden md:table-cell">{formatCurrency(event.rentBilled)}</TableCell>
-                            <TableCell className="p-2 print:hidden text-right">
+                            <TableCell className="p-2 print-hide text-right">
                                 {fullRecord && customer && outflowIndex !== -1 && (
                                     <OutflowActionsMenu
                                         record={fullRecord}
@@ -118,11 +118,11 @@ export function OutflowReportTable({ events, customers, title, allRecords }: Rep
                 </TableBody>
                 <TableFooter>
                     <TableRow>
-                        <TableCell colSpan={3} className="p-2 text-right font-bold md:hidden">Totals</TableCell>
+                        <TableCell colSpan={4} className="p-2 text-right font-bold md:hidden">Totals</TableCell>
                         <TableCell colSpan={5} className="p-2 text-right font-bold hidden md:table-cell">Totals</TableCell>
                         <TableCell className="p-2 text-right font-mono font-bold">{totalBagsWithdrawn}</TableCell>
                         <TableCell className="p-2 text-right font-mono font-bold hidden md:table-cell">{formatCurrency(totalRentBilled)}</TableCell>
-                        <TableCell className="p-2 print:hidden"></TableCell>
+                        <TableCell className="p-2 print-hide"></TableCell>
                     </TableRow>
                 </TableFooter>
             </Table>

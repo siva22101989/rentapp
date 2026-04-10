@@ -65,7 +65,7 @@ export function OutflowReportTable({ events, customers, title, allRecords }: Rep
                         <TableHead className="h-auto py-2 px-2 hidden lg:table-cell">Lot No</TableHead>
                         <TableHead className="h-auto py-2 px-2 text-right">Bags Withdrawn</TableHead>
                         <TableHead className="h-auto py-2 px-2 text-right hidden md:table-cell">Rent Billed</TableHead>
-                        <TableHead className="h-auto py-2 px-2 w-[50px] text-right print-hide">Actions</TableHead>
+                        <TableHead className="h-auto py-2 px-2 w-[50px] text-right print:hidden">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -93,7 +93,7 @@ export function OutflowReportTable({ events, customers, title, allRecords }: Rep
                             <TableCell className="p-2 hidden lg:table-cell">{event.location}</TableCell>
                             <TableCell className="p-2 text-right font-mono">{event.bagsWithdrawn}</TableCell>
                             <TableCell className="p-2 text-right font-mono hidden md:table-cell">{formatCurrency(event.rentBilled)}</TableCell>
-                            <TableCell className="p-2 print-hide text-right">
+                            <TableCell className="p-2 print:hidden text-right">
                                 {fullRecord && customer && outflowIndex !== -1 && (
                                     <OutflowActionsMenu
                                         record={fullRecord}
@@ -122,7 +122,7 @@ export function OutflowReportTable({ events, customers, title, allRecords }: Rep
                         <TableCell colSpan={5} className="p-2 text-right font-bold hidden md:table-cell">Totals</TableCell>
                         <TableCell className="p-2 text-right font-mono font-bold">{totalBagsWithdrawn}</TableCell>
                         <TableCell className="p-2 text-right font-mono font-bold hidden md:table-cell">{formatCurrency(totalRentBilled)}</TableCell>
-                        <TableCell className="p-2 print-hide"></TableCell>
+                        <TableCell className="p-2 print:hidden"></TableCell>
                     </TableRow>
                 </TableFooter>
             </Table>

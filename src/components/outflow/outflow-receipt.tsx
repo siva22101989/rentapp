@@ -35,10 +35,7 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
     if (months > 0 || years === 0) durationStr += `${months} month${months > 1 ? 's' : ''}`;
     if (durationStr === '') durationStr = 'Less than a month';
 
-    const { rentPerBag } = calculateFinalRent({
-        ...record,
-        storageStartDate: startDate,
-    }, deliveryOrderDate, withdrawnBags);
+    const rentPerBag = withdrawnBags > 0 ? finalRent / withdrawnBags : 0;
 
     const originalHamaliPayable = record.hamaliPayable || 0;
     const hamaliPaid = (record.payments || [])
@@ -165,3 +162,5 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
 })
 
 OutflowReceipt.displayName = 'OutflowReceipt';
+
+    

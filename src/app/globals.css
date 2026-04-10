@@ -112,45 +112,66 @@
 }
 
 @media print {
-  body, html {
-    background: #fff !important;
-    color: #000 !important;
-  }
-
-  .print-hide {
-    display: none !important;
-  }
-  
+  /* Hide all elements on the page by default */
   body * {
     visibility: hidden;
   }
-  
+
+  /* Make only the printable area and its children visible */
   .printable-area, .printable-area * {
     visibility: visible;
   }
 
+  /* Position the printable area to take up the whole page */
   .printable-area {
     position: absolute;
     left: 0;
     top: 0;
     width: 100%;
-    height: auto;
     margin: 0;
-    padding: 0;
+    padding: 1rem; /* Add some padding for print */
     border: none !important;
     box-shadow: none !important;
+    font-size: 10pt;
   }
 
+  /* Ensure table headers are repeated on each page */
   thead {
     display: table-header-group !important;
   }
-
+  
   tfoot {
     display: table-footer-group !important;
   }
 
-  /* Try to prevent rows from splitting across pages */
-  tr {
-    page-break-inside: avoid !important;
+  /* Prevent elements from being split across pages */
+  tr, td, th, h1, h2, h3, h4, h5, h6 {
+    page-break-inside: avoid;
+  }
+
+  /* Remove background colors and shadows for print, and set text color to black */
+  .printable-area * {
+    background: transparent !important;
+    color: #000 !important; 
+    box-shadow: none !important;
+    text-shadow: none !important;
+    border-color: #ddd !important; /* Lighter borders for print */
+  }
+
+  /* Override specific component styles that might interfere with printing */
+  .printable-area .report-card,
+  .printable-area .card {
+      border: none !important;
+      box-shadow: none !important;
+  }
+
+  /* Remove any forced no-wrap for cleaner text flow */
+  .printable-area .whitespace-nowrap {
+      white-space: normal !important;
+  }
+
+  /* Hide elements specifically marked to be hidden in print */
+  .print-hide {
+    display: none !important;
   }
 }

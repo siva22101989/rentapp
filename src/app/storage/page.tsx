@@ -8,7 +8,7 @@ import { ArrowDown, ArrowUp, Warehouse, IndianRupee } from "lucide-react";
 import { calculateFinalRent } from "@/lib/billing";
 import { formatCurrency } from "@/lib/utils";
 import { useMemo } from "react";
-import type { StorageRecord } from "@/lib/definitions";
+import type { StorageRecord, Commodity } from "@/lib/definitions";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { useFirestore } from "@/firebase/provider";
 import { collection } from "firebase/firestore";
@@ -24,10 +24,16 @@ export default function StoragePage() {
     () => (firestore && appUser ? collection(firestore, 'storageRecords') : null),
     [firestore, appUser]
   );
-  const { data: allRecords, loading } = useCollection<StorageRecord>(recordsQuery);
+  const { data: allRecords, loading: loadingRecords } = useCollection<StorageRecord>(recordsQuery);
+
+  const commoditiesQuery = useMemoFirebase(
+    () => (firestore && appUser ? collection(firestore, 'commodities') : null),
+    [firestore, appUser]
+  );
+  const { data: allCommodities, loading: loadingCommodities } = useCollection<Commodity>(commoditiesQuery);
 
   const stats = useMemo(() => {
-    if (!allRecords) return { totalInflow: 0, totalOutflow: 0, balanceStock: 0, estimatedRent: 0 };
+    if (!allRecords || !allCommodities) return { totalInflow: 0, totalOutflow: 0, balanceStock: 0, estimatedRent: 0 };
     
     const totalInflow = allRecords.reduce((acc, record) => acc + (record.bagsIn || 0), 0);
     const totalOutflow = allRecords.reduce((acc, record) => acc + (record.bagsOut || 0), 0);
@@ -35,13 +41,23 @@ export default function StoragePage() {
 
     const activeRecords = allRecords.filter(r => !r.storageEndDate);
     const estimatedRent = activeRecords.reduce((total, record) => {
-      const { rent } = calculateFinalRent(record, new Date(), record.bagsStored);
+      let recordWithRates = { ...record };
+      if (record.rate6Months === undefined || record.rate1Year === undefined) {
+        const commodity = allCommodities.find(c => c.name === record.commodityDescription);
+        if (commodity) {
+            recordWithRates.rate6Months = commodity.rate6Months;
+            recordWithRates.rate1Year = commodity.rate1Year;
+        }
+      }
+      const { rent } = calculateFinalRent(recordWithRates, new Date(), record.bagsStored);
       return total + rent;
     }, 0);
 
     return { totalInflow, totalOutflow, balanceStock, estimatedRent };
 
-  }, [allRecords]);
+  }, [allRecords, allCommodities]);
+  
+  const loading = loadingRecords || loadingCommodities;
 
   if (loading) {
     return (

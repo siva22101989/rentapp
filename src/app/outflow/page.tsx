@@ -3,7 +3,7 @@
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
 import { OutflowForm } from "@/components/outflow/outflow-form";
-import type { Customer, StorageRecord } from "@/lib/definitions";
+import type { Customer, StorageRecord, Commodity } from "@/lib/definitions";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { collection, query, where } from "firebase/firestore";
 import { useFirestore } from "@/firebase/provider";
@@ -26,7 +26,13 @@ export default function OutflowPage() {
   );
   const { data: activeRecords, loading: loadingRecords } = useCollection<StorageRecord>(activeRecordsQuery);
 
-  if (loadingCustomers || loadingRecords) {
+  const commoditiesQuery = useMemoFirebase(
+    () => (firestore && appUser ? collection(firestore, 'commodities') : null),
+    [firestore, appUser]
+  );
+  const { data: commodities, loading: loadingCommodities } = useCollection<Commodity>(commoditiesQuery);
+
+  if (loadingCustomers || loadingRecords || loadingCommodities) {
     return <AppLayout><div>Loading...</div></AppLayout>;
   }
 
@@ -36,7 +42,7 @@ export default function OutflowPage() {
         title="Process Outflow"
         description="Select one or more records to process for full withdrawal."
       />
-      <OutflowForm records={activeRecords || []} customers={customers || []} />
+      <OutflowForm records={activeRecords || []} customers={customers || []} commodities={commodities || []} />
     </AppLayout>
   );
 }

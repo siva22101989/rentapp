@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useTransition, useMemo } from 'react';
@@ -8,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import type { Customer, StorageRecord, Payment, Outflow, WarehouseInfo } from '@/lib/definitions';
+import type { Customer, StorageRecord, Payment, Outflow, WarehouseInfo, Commodity } from '@/lib/definitions';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Separator } from '../ui/separator';
@@ -33,7 +34,7 @@ function SubmitButton({ isPending }: { isPending: boolean }) {
     );
 }
 
-export function OutflowForm({ records, customers }: { records: StorageRecord[], customers: Customer[] }) {
+export function OutflowForm({ records, customers, commodities }: { records: StorageRecord[], customers: Customer[], commodities: Commodity[] }) {
     const { toast } = useToast();
     const router = useRouter();
     const firestore = useFirestore();
@@ -86,7 +87,16 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
             const bagsToWithdraw = Number(bags);
             const record = records.find(r => r.id === recordId);
             if (record) {
-                const { rent } = calculateFinalRent({ ...record, storageStartDate: toDate(record.storageStartDate) }, withdrawalDate, bagsToWithdraw);
+                let recordWithRates = { ...record };
+                if (record.rate6Months === undefined || record.rate1Year === undefined) {
+                    const commodity = commodities.find(c => c.name === record.commodityDescription);
+                    if (commodity) {
+                        recordWithRates.rate6Months = commodity.rate6Months;
+                        recordWithRates.rate1Year = commodity.rate1Year;
+                    }
+                }
+
+                const { rent } = calculateFinalRent({ ...recordWithRates, storageStartDate: toDate(recordWithRates.storageStartDate) }, withdrawalDate, bagsToWithdraw);
                 runningRent += rent;
                 
                 if (!hamaliCalculatedRecords.has(recordId)) {
@@ -101,8 +111,8 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
         
         setTotalRent(runningRent);
         setTotalPendingHamali(runningHamali);
-        setTotalBags(totalBags);
-    }, [withdrawals, withdrawalDate, records]);
+        setTotalBags(runningBags);
+    }, [withdrawals, withdrawalDate, records, commodities]);
 
     const resetForm = () => {
         setSelectedCustomerId('');
@@ -147,7 +157,17 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
             const [recordId] = withdrawalEntries[0];
             const queryParams = new URLSearchParams();
             const bagsToWithdraw = Number(withdrawals[recordId]);
-            const { rent: rentForThisWithdrawal } = calculateFinalRent({ ...records.find(r => r.id === recordId)!, storageStartDate: toDate(records.find(r => r.id === recordId)!.storageStartDate) }, withdrawalDate, bagsToWithdraw);
+            
+            let recordWithRates = { ...records.find(r => r.id === recordId)! };
+             if (recordWithRates.rate6Months === undefined || recordWithRates.rate1Year === undefined) {
+                const commodity = commodities.find(c => c.name === recordWithRates.commodityDescription);
+                if (commodity) {
+                    recordWithRates.rate6Months = commodity.rate6Months;
+                    recordWithRates.rate1Year = commodity.rate1Year;
+                }
+            }
+
+            const { rent: rentForThisWithdrawal } = calculateFinalRent({ ...recordWithRates, storageStartDate: toDate(recordWithRates.storageStartDate) }, withdrawalDate, bagsToWithdraw);
             
             queryParams.set('withdrawn', String(bagsToWithdraw));
             queryParams.set('rent', String(rentForThisWithdrawal));
@@ -175,7 +195,16 @@ export function OutflowForm({ records, customers }: { records: StorageRecord[], 
                     const bagsToWithdraw = Number(withdrawals[record.id]);
                     if (bagsToWithdraw <= 0) continue;
 
-                    const { rent: rentForThisWithdrawal } = calculateFinalRent({ ...record, storageStartDate: toDate(record.storageStartDate) }, withdrawalDate, bagsToWithdraw);
+                    let recordWithRates = { ...record };
+                    if (record.rate6Months === undefined || record.rate1Year === undefined) {
+                        const commodity = commodities.find(c => c.name === record.commodityDescription);
+                        if (commodity) {
+                            recordWithRates.rate6Months = commodity.rate6Months;
+                            recordWithRates.rate1Year = commodity.rate1Year;
+                        }
+                    }
+
+                    const { rent: rentForThisWithdrawal } = calculateFinalRent({ ...recordWithRates, storageStartDate: toDate(recordWithRates.storageStartDate) }, withdrawalDate, bagsToWithdraw);
                     
                     const newOutflow: Partial<Outflow> = {
                         date: withdrawalDate,

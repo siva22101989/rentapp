@@ -7,7 +7,7 @@ import { TrendingUp, TrendingDown, Scale, Banknote, IndianRupee } from "lucide-r
 import { formatCurrency, toDate } from "@/lib/utils";
 import { useMemo, useState, useEffect } from "react";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import type { Expense, StorageRecord, UnloadingRecord, WarehouseInfo, Borrowing, Lending, OtherIncome } from "@/lib/definitions";
+import type { Expense, StorageRecord, UnloadingRecord, WarehouseInfo, Borrowing, Lending, OtherIncome, Commodity } from "@/lib/definitions";
 import { format, differenceInCalendarMonths, differenceInCalendarYears } from "date-fns";
 import { ExpenseActionsMenu } from "@/components/expenses/expense-actions-menu";
 import { useCollection } from "@/firebase/firestore/use-collection";
@@ -304,6 +304,9 @@ export default function ExpensesPage() {
   const recordsQuery = useMemoFirebase(() => (firestore && appUser ? collection(firestore, 'storageRecords') : null), [firestore, appUser]);
   const { data: allRecords, loading: loadingRecords } = useCollection<StorageRecord>(recordsQuery);
 
+  const commoditiesQuery = useMemoFirebase(() => (firestore && appUser ? collection(firestore, 'commodities') : null), [firestore, appUser]);
+  const { data: allCommodities, loading: loadingCommodities } = useCollection<Commodity>(commoditiesQuery);
+
   const expensesQuery = useMemoFirebase(() => (firestore && appUser ? collection(firestore, 'expenses') : null), [firestore, appUser]);
   const { data: allExpenses, loading: loadingExpenses } = useCollection<Expense>(expensesQuery);
   
@@ -321,7 +324,7 @@ export default function ExpensesPage() {
 
 
   const { periodIncome, periodExpenses, periodBalance, filteredExpenses, filteredIncomes, interestOnCapital, estimatedRent, activeBags } = useMemo(() => {
-    if (!allRecords || !allExpenses || !allUnloadingRecords || !otherIncomes) {
+    if (!allRecords || !allExpenses || !allUnloadingRecords || !otherIncomes || !allCommodities) {
         return { periodIncome: 0, periodExpenses: 0, periodBalance: 0, filteredExpenses: [], filteredIncomes: [], interestOnCapital: 0, estimatedRent: 0, activeBags: 0 };
     }
 
@@ -368,7 +371,15 @@ export default function ExpensesPage() {
 
     const activeRecords = allRecords.filter(r => !r.storageEndDate && r.bagsStored > 0);
     const rentEstimate = activeRecords.reduce((total, record) => {
-      const { rent } = calculateFinalRent(record, new Date(), record.bagsStored);
+      let recordWithRates = { ...record };
+      if (record.rate6Months === undefined || record.rate1Year === undefined) {
+          const commodity = allCommodities.find(c => c.name === record.commodityDescription);
+          if (commodity) {
+              recordWithRates.rate6Months = commodity.rate6Months;
+              recordWithRates.rate1Year = commodity.rate1Year;
+          }
+      }
+      const { rent } = calculateFinalRent(recordWithRates, new Date(), record.bagsStored);
       return total + rent;
     }, 0);
     
@@ -385,10 +396,10 @@ export default function ExpensesPage() {
       estimatedRent: rentEstimate,
       activeBags: totalActiveBags
     };
-  }, [allRecords, allExpenses, allUnloadingRecords, otherIncomes, dateRange, warehouseInfo, financialYear]);
+  }, [allRecords, allExpenses, allUnloadingRecords, otherIncomes, dateRange, warehouseInfo, financialYear, allCommodities]);
 
 
-  if (loadingRecords || loadingExpenses || loadingUnloading || loadingWarehouseInfo || loadingBorrowings || loadingLendings || loadingOtherIncomes) {
+  if (loadingRecords || loadingExpenses || loadingUnloading || loadingWarehouseInfo || loadingBorrowings || loadingLendings || loadingOtherIncomes || loadingCommodities) {
     return (
       <AppLayout>
         <div>Loading...</div>

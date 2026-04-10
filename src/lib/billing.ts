@@ -3,10 +3,6 @@ import { differenceInMonths, startOfDay } from 'date-fns';
 import type { StorageRecord } from '@/lib/definitions';
 import { toDate } from './utils';
 
-// Default rates for backward compatibility
-export const RATE_6_MONTHS = 36;
-export const RATE_1_YEAR = 55;
-
 export type RecordStatusInfo = {
   status: string;
   nextBillingDate: Date | null;
@@ -68,18 +64,14 @@ export function calculateFinalRent(
     rentPerBag = billingMonths * monthlyRate;
   } else {
     // Slab billing logic with stacking as per user's requirement
-    const slab6Months = record.rate6Months ?? RATE_6_MONTHS;
-    const slab1Year = record.rate1Year ?? RATE_1_YEAR;
+    const slab6Months = record.rate6Months ?? 0;
+    const slab1Year = record.rate1Year ?? 0;
     
     if (billingMonths <= 0) {
         rentPerBag = 0;
-    } else if (billingMonths <= 6) {
-        rentPerBag = slab6Months;
-    } else if (billingMonths <= 12) {
-        rentPerBag = slab1Year;
     } else {
-        const years = Math.floor(billingMonths / 12);
-        const remainingMonths = billingMonths % 12;
+        const years = Math.floor((billingMonths - 1) / 12);
+        const remainingMonths = billingMonths - (years * 12);
 
         rentPerBag = years * slab1Year;
         

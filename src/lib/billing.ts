@@ -67,11 +67,13 @@ export function calculateFinalRent(
     const monthlyRate = record.monthlyRate || 0;
     rentPerBag = billingMonths * monthlyRate;
   } else {
-    // Slab billing logic
+    // Slab billing logic with stacking as per user's requirement
     const slab6Months = record.rate6Months ?? RATE_6_MONTHS;
     const slab1Year = record.rate1Year ?? RATE_1_YEAR;
     
-    if (billingMonths <= 6) {
+    if (billingMonths <= 0) {
+        rentPerBag = 0;
+    } else if (billingMonths <= 6) {
         rentPerBag = slab6Months;
     } else if (billingMonths <= 12) {
         rentPerBag = slab1Year;
@@ -80,7 +82,7 @@ export function calculateFinalRent(
         const remainingMonths = billingMonths % 12;
 
         rentPerBag = years * slab1Year;
-
+        
         if (remainingMonths > 0 && remainingMonths <= 6) {
             rentPerBag += slab6Months;
         } else if (remainingMonths > 6) {

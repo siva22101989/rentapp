@@ -6,7 +6,7 @@ import { useCollection } from "@/firebase/firestore/use-collection";
 import { collection } from "firebase/firestore";
 import { useFirestore } from "@/firebase/provider";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
-import type { Customer, UnloadingRecord, Lot, StorageRecord } from "@/lib/definitions";
+import type { Customer, UnloadingRecord, Lot, StorageRecord, Commodity } from "@/lib/definitions";
 import { AddCustomerDialog } from "@/components/customers/add-customer-dialog";
 import { InitiateDryingForm } from "@/components/drying/initiate-drying-form";
 import { useMemo } from "react";
@@ -41,6 +41,12 @@ export default function DryingPage() {
   );
   const { data: storageRecords, loading: loadingStorageRecords } = useCollection<StorageRecord>(storageRecordsQuery);
 
+  const commoditiesQuery = useMemoFirebase(
+    () => (firestore && appUser ? collection(firestore, 'commodities') : null),
+    [firestore, appUser]
+  );
+  const { data: commodities, loading: loadingCommodities } = useCollection<Commodity>(commoditiesQuery);
+
 
   const availableForDryingRecords = useMemo(() => {
     if (!unloadingRecords) return [];
@@ -49,7 +55,7 @@ export default function DryingPage() {
   }, [unloadingRecords]);
 
 
-  if (loadingCustomers || loadingUnloadingRecords || loadingLots || loadingStorageRecords) {
+  if (loadingCustomers || loadingUnloadingRecords || loadingLots || loadingStorageRecords || loadingCommodities) {
     return <AppLayout><div>Loading...</div></AppLayout>;
   }
 
@@ -69,6 +75,7 @@ export default function DryingPage() {
                 unloadingRecords={availableForDryingRecords || []}
                 lots={lots || []}
                 storageRecords={storageRecords || []}
+                commodities={commodities || []}
             />
         </div>
       </div>

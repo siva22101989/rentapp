@@ -13,7 +13,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase/provider';
-import type { Customer, UnloadingRecord, Lot, StorageRecord, HamaliChargeItem, WarehouseInfo } from '@/lib/definitions';
+import type { Customer, UnloadingRecord, Lot, StorageRecord, HamaliChargeItem, Commodity } from '@/lib/definitions';
 import { doc, writeBatch, increment, collection } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { formatCurrency, cleanForFirestore, toDate } from '@/lib/utils';
@@ -49,9 +49,10 @@ interface InitiateDryingFormProps {
     unloadingRecords: UnloadingRecord[];
     lots: Lot[];
     storageRecords: StorageRecord[];
+    commodities: Commodity[];
 }
 
-export function InitiateDryingForm({ customers, unloadingRecords, lots, storageRecords }: InitiateDryingFormProps) {
+export function InitiateDryingForm({ customers, unloadingRecords, lots, storageRecords, commodities }: InitiateDryingFormProps) {
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
     const firestore = useFirestore();
@@ -245,6 +246,13 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
 
         startTransition(async () => {
             try {
+                const commodityDetails = commodities.find(c => c.name === selectedRecordOnSubmit.commodityDescription);
+                if (!commodityDetails) {
+                    toast({ title: 'Error', description: `Commodity details for "${selectedRecordOnSubmit.commodityDescription}" not found. Please ensure it is set up in settings.`, variant: 'destructive' });
+                    if (receiptWindow) receiptWindow.close();
+                    return;
+                }
+                
                 // Prepare new storage record
                 const finalStorageDate = new Date(data.dryingEndDate);
                 const bagsStored = data.bagsPacked;
@@ -326,6 +334,10 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                     dryingStartDate: new Date(data.dryingStartDate),
                     dryingEndDate: new Date(data.dryingEndDate),
                     hamaliDetails: hamaliDetails,
+                    billingType: commodityDetails.billingType,
+                    monthlyRate: commodityDetails.monthlyRate,
+                    rate6Months: commodityDetails.rate6Months,
+                    rate1Year: commodityDetails.rate1Year,
                 };
                 
                 const newStorageRecordRef = doc(firestore, 'storageRecords', nextId);

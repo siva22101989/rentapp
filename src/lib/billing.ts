@@ -76,18 +76,17 @@ export function calculateFinalRent(
     } else if (billingMonths <= 12) {
       rentPerBag = slab1Year;
     } else {
-      // More than 12 months
+      // More than 12 months: Full years + pro-rated remainder
       const yearsStored = Math.floor(billingMonths / 12);
       const remainingMonths = billingMonths % 12;
-      
+
       rentPerBag = yearsStored * slab1Year;
 
       if (remainingMonths > 0) {
-          if (remainingMonths <= 6) {
-              rentPerBag += slab6Months;
-          } else { // 7 to 12 remaining months
-              rentPerBag += slab1Year;
-          }
+          // Pro-rate the annual rate for the remaining months
+          // This provides a fairer calculation than applying a full new slab
+          const monthlyEquivalent = slab1Year / 12;
+          rentPerBag += monthlyEquivalent * remainingMonths;
       }
     }
   }

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import type { Customer, StorageRecord, UnloadingRecord, Expense, WarehouseInfo, Borrowing, Lending, OtherIncome } from "@/lib/definitions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -20,15 +20,6 @@ import { ProfitAndLossReport } from './profit-and-loss-report';
 import { Button } from '../ui/button';
 import { Printer, FileDown, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogClose,
-} from "@/components/ui/dialog";
 
 const reportTypes = [
     { value: 'daily-summary', label: 'Daily Summary Report' },
@@ -72,25 +63,9 @@ export function CustomReportGenerator({
 }: ReportGeneratorProps) {
     const [selectedReport, setSelectedReport] = useState<string>(initialReport || 'daily-summary');
     const [isDownloading, setIsDownloading] = useState(false);
-    const [isPreviewOpen, setIsPreviewOpen] = useState(false);
     const reportRef = useRef<HTMLDivElement>(null);
     const { toast } = useToast();
     
-    useEffect(() => {
-        if (isPreviewOpen) {
-          document.body.classList.add('print-dialog-is-open');
-        } else {
-          document.body.classList.remove('print-dialog-is-open');
-        }
-        return () => {
-          document.body.classList.remove('print-dialog-is-open');
-        };
-    }, [isPreviewOpen]);
-
-    const handlePrint = () => {
-        window.print();
-    };
-
     const handleDownload = async () => {
         const printableArea = reportRef.current;
         if (!printableArea) {
@@ -130,7 +105,6 @@ export function CustomReportGenerator({
             toast({ title: "Download Error", description: "Failed to generate PDF.", variant: "destructive"});
         } finally {
             setIsDownloading(false);
-            setIsPreviewOpen(false);
         }
     };
 
@@ -140,14 +114,14 @@ export function CustomReportGenerator({
                 return <DailySummaryReport records={records} customers={customers} unloadingRecords={unloadingRecords} expenses={expenses} otherIncomes={otherIncomes} />;
             case 'profit-and-loss':
                 return <ProfitAndLossReport 
-                    allRecords={records}
-                    allExpenses={expenses}
-                    allUnloadingRecords={unloadingRecords}
-                    otherIncomes={otherIncomes}
-                    warehouseInfo={warehouseInfo}
-                    borrowings={borrowings}
-                    lendings={lendings}
-                />;
+                            allRecords={records}
+                            allExpenses={expenses}
+                            allUnloadingRecords={unloadingRecords}
+                            otherIncomes={otherIncomes}
+                            warehouseInfo={warehouseInfo}
+                            borrowings={borrowings}
+                            lendings={lendings}
+                        />;
             case 'all-customers':
                 return <CustomersTable customers={customers} />;
             case 'customer-statement':
@@ -203,51 +177,22 @@ export function CustomReportGenerator({
                     </Select>
                 </div>
                 <div className="self-end flex items-center gap-2">
-                     <Button onClick={() => setIsPreviewOpen(true)} variant="outline">
+                     <Button onClick={() => window.print()} variant="outline">
                         <Printer className="mr-2 h-4 w-4" />
                         Print Report
                     </Button>
-                     <Button onClick={() => setIsPreviewOpen(true)}>
-                        <FileDown className="mr-2 h-4 w-4" />
-                        Download PDF
+                     <Button onClick={handleDownload} disabled={isDownloading}>
+                        {isDownloading ? (
+                            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Downloading...</>
+                        ) : (
+                            <><FileDown className="mr-2 h-4 w-4" /> Download PDF</>
+                        )}
                     </Button>
                 </div>
             </div>
-            <div className="mt-6 printable-area">
+            <div className="mt-6 printable-area" ref={reportRef}>
                 {renderReport()}
             </div>
-
-            <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-                <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
-                    <DialogHeader>
-                        <DialogTitle>Report Preview</DialogTitle>
-                        <DialogDescription>
-                            Review your report below. When ready, click Download PDF or Print.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="flex-1 overflow-y-auto p-2 border bg-secondary/30 rounded-md printable-area">
-                        <div ref={reportRef}>
-                           {renderReport()}
-                        </div>
-                    </div>
-                    <DialogFooter className="print-hide">
-                        <DialogClose asChild>
-                            <Button variant="outline">Close</Button>
-                        </DialogClose>
-                         <Button onClick={handlePrint} variant="outline">
-                            <Printer className="mr-2 h-4 w-4" />
-                            Print
-                        </Button>
-                        <Button onClick={handleDownload} disabled={isDownloading}>
-                            {isDownloading ? (
-                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Downloading...</>
-                            ) : (
-                                <><FileDown className="mr-2 h-4 w-4" /> Download PDF</>
-                            )}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
         </div>
     );
 }

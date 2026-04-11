@@ -45,7 +45,9 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer,
 
   const form = useForm<CustomerFormData>({
     resolver: zodResolver(CustomerSchema),
-    defaultValues: {
+    // Use `values` to make the form fully controlled by the `customer` prop.
+    // This ensures the form state is always in sync.
+    values: {
         name: customer.name || '',
         phone: customer.phone || '',
         email: customer.email || '',
@@ -71,18 +73,6 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer,
       }
     });
   };
-
-  useEffect(() => {
-    if (isOpen) {
-      form.reset({
-        name: customer.name || '',
-        phone: customer.phone || '',
-        email: customer.email || '',
-        fatherName: customer.fatherName || '',
-        village: customer.village || '',
-      });
-    }
-  }, [isOpen, customer, form]);
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>

@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import type { Customer, StorageRecord, UnloadingRecord, Expense, WarehouseInfo, Borrowing, Lending, OtherIncome } from "@/lib/definitions";
+import type { Customer, StorageRecord, UnloadingRecord, Expense, WarehouseInfo, Borrowing, Lending, OtherIncome, Commodity } from "@/lib/definitions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CustomersTable } from '@/components/customers/customers-table';
@@ -45,6 +45,7 @@ type ReportGeneratorProps = {
     borrowings: Borrowing[];
     lendings: Lending[];
     otherIncomes: OtherIncome[];
+    commodities: Commodity[];
     initialReport?: string;
     initialCustomerId?: string;
 }
@@ -57,7 +58,8 @@ export function CustomReportGenerator({
     warehouseInfo, 
     borrowings, 
     lendings, 
-    otherIncomes, 
+    otherIncomes,
+    commodities,
     initialReport, 
     initialCustomerId 
 }: ReportGeneratorProps) {
@@ -142,7 +144,7 @@ export function CustomReportGenerator({
             case 'outflow-register':
                 return <OutflowReport records={records} customers={customers} />;
             case 'unloading-register':
-                return <UnloadingReport unloadingRecords={unloadingRecords} customers={customers} />;
+                return <UnloadingReport unloadingRecords={unloadingRecords} customers={customers} commodities={commodities} />;
             case 'payment-register':
                 return <PaymentReport records={records} unloadingRecords={unloadingRecords} customers={customers} />;
             case 'lot-inventory':

@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import type { Customer, UnloadingRecord } from "@/lib/definitions";
+import type { Customer, UnloadingRecord, Commodity } from "@/lib/definitions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UnloadingReportTable } from './unloading-report-table';
@@ -17,9 +17,10 @@ import { useFirestore } from '@/firebase/provider';
 type UnloadingReportProps = {
     unloadingRecords: UnloadingRecord[];
     customers: Customer[];
+    commodities: Commodity[];
 }
 
-export function UnloadingReport({ unloadingRecords, customers }: UnloadingReportProps) {
+export function UnloadingReport({ unloadingRecords, customers, commodities }: UnloadingReportProps) {
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>('all');
     
     const { dateRange } = useDateFilter();
@@ -75,6 +76,7 @@ export function UnloadingReport({ unloadingRecords, customers }: UnloadingReport
                         records={filteredRecords} 
                         customers={customers}
                         title={title}
+                        commodities={commodities}
                     />
                 </div>
             </CardContent>

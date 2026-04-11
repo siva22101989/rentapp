@@ -2,7 +2,7 @@
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { CustomReportGenerator } from "@/components/reports/custom-report-generator";
-import type { Customer, StorageRecord, UnloadingRecord, Expense, WarehouseInfo, Borrowing, Lending, OtherIncome } from "@/lib/definitions";
+import type { Customer, StorageRecord, UnloadingRecord, Expense, WarehouseInfo, Borrowing, Lending, OtherIncome, Commodity } from "@/lib/definitions";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { collection, doc } from "firebase/firestore";
 import { useFirestore } from "@/firebase/provider";
@@ -43,8 +43,11 @@ export default function ReportsPage() {
     const otherIncomesQuery = useMemoFirebase(() => (firestore && appUser ? collection(firestore, 'otherIncomes') : null), [firestore, appUser]);
     const { data: otherIncomes, loading: loadingOtherIncomes } = useCollection<OtherIncome>(otherIncomesQuery);
 
+    const commoditiesQuery = useMemoFirebase(() => (firestore && appUser ? collection(firestore, 'commodities') : null), [firestore, appUser]);
+    const { data: allCommodities, loading: loadingCommodities } = useCollection<Commodity>(commoditiesQuery);
 
-    if (loadingRecords || loadingCustomers || loadingUnloadingRecords || loadingExpenses || loadingWarehouseInfo || loadingBorrowings || loadingLendings || loadingOtherIncomes) {
+
+    if (loadingRecords || loadingCustomers || loadingUnloadingRecords || loadingExpenses || loadingWarehouseInfo || loadingBorrowings || loadingLendings || loadingOtherIncomes || loadingCommodities) {
         return <AppLayout><div>Loading...</div></AppLayout>;
     }
     
@@ -59,6 +62,7 @@ export default function ReportsPage() {
         borrowings={borrowings || []}
         lendings={lendings || []}
         otherIncomes={otherIncomes || []}
+        commodities={allCommodities || []}
         initialReport={initialReport}
         initialCustomerId={initialCustomerId}
       />

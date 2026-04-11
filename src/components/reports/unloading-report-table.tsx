@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -37,8 +36,8 @@ export function UnloadingReportTable({ records, customers, title, commodities }:
                         <TableHead>Date</TableHead>
                         <TableHead>Bill No</TableHead>
                         <TableHead>Customer</TableHead>
-                        <TableHead className="hidden md:table-cell">Commodity</TableHead>
-                        <TableHead className="hidden lg:table-cell">Lorry/Tractor No</TableHead>
+                        <TableHead>Commodity</TableHead>
+                        <TableHead>Lorry/Tractor No</TableHead>
                         <TableHead className="text-right">Bags Unloaded</TableHead>
                         <TableHead className="w-[50px] print-hide"></TableHead>
                     </TableRow>
@@ -53,8 +52,8 @@ export function UnloadingReportTable({ records, customers, title, commodities }:
                                 <TableCell>{format(toDate(record.unloadingDate), 'dd MMM yyyy')}</TableCell>
                                 <TableCell>{record.billNo}</TableCell>
                                 <TableCell className="font-medium">{getCustomerName(record.customerId)}</TableCell>
-                                <TableCell className="hidden md:table-cell">{record.commodityDescription}</TableCell>
-                                <TableCell className="hidden lg:table-cell">{record.lorryTractorNo}</TableCell>
+                                <TableCell>{record.commodityDescription}</TableCell>
+                                <TableCell>{record.lorryTractorNo}</TableCell>
                                 <TableCell className="text-right font-mono">{record.bagsUnloaded}</TableCell>
                                 <TableCell className="text-right print-hide">
                                     <UnloadingTableActionsMenu 
@@ -76,9 +75,7 @@ export function UnloadingReportTable({ records, customers, title, commodities }:
                 </TableBody>
                 <TableFooter>
                     <TableRow>
-                        <TableCell colSpan={3} className="text-right font-bold md:hidden">Total</TableCell>
-                        <TableCell colSpan={4} className="text-right font-bold hidden md:table-cell lg:hidden">Total</TableCell>
-                        <TableCell colSpan={5} className="text-right font-bold hidden lg:table-cell">Total Bags Unloaded</TableCell>
+                        <TableCell colSpan={5} className="text-right font-bold">Total Bags Unloaded</TableCell>
                         <TableCell className="text-right font-mono font-bold">{totalBagsUnloaded}</TableCell>
                         <TableCell className="print-hide"></TableCell>
                     </TableRow>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -36,9 +35,9 @@ export function CustomerHamaliReportTable({ events, customers, title }: ReportTa
                     <TableRow>
                         <TableHead>Date</TableHead>
                         <TableHead>Customer</TableHead>
-                        <TableHead className="hidden sm:table-cell">Description</TableHead>
-                        <TableHead className="hidden md:table-cell">Reference ID</TableHead>
-                        <TableHead className="text-center hidden lg:table-cell">Bags</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Reference ID</TableHead>
+                        <TableHead className="text-center">Bags</TableHead>
                         <TableHead className="text-right">Charge</TableHead>
                         <TableHead className="text-right">Payment</TableHead>
                     </TableRow>
@@ -48,9 +47,9 @@ export function CustomerHamaliReportTable({ events, customers, title }: ReportTa
                         <TableRow key={index}>
                             <TableCell>{format(event.date, 'dd MMM yyyy')}</TableCell>
                             <TableCell className="font-medium">{getCustomerName(event.customerId)}</TableCell>
-                            <TableCell className="hidden sm:table-cell">{event.description}</TableCell>
-                            <TableCell className="hidden md:table-cell">{event.recordId}</TableCell>
-                            <TableCell className="text-center hidden lg:table-cell">{event.bags || ''}</TableCell>
+                            <TableCell>{event.description}</TableCell>
+                            <TableCell>{event.recordId}</TableCell>
+                            <TableCell className="text-center">{event.bags || ''}</TableCell>
                             <TableCell className="text-right font-mono">
                                 {event.type === 'charge' ? formatCurrency(event.amount) : ''}
                             </TableCell>
@@ -69,14 +68,12 @@ export function CustomerHamaliReportTable({ events, customers, title }: ReportTa
                 </TableBody>
                 <TableFooter>
                     <TableRow>
-                        <TableCell colSpan={2} className="text-right font-bold sm:hidden">Totals</TableCell>
-                        <TableCell colSpan={5} className="text-right font-bold hidden sm:table-cell">Totals</TableCell>
+                        <TableCell colSpan={5} className="text-right font-bold">Totals</TableCell>
                         <TableCell className="text-right font-mono font-bold">{formatCurrency(totalCharges)}</TableCell>
                         <TableCell className="text-right font-mono font-bold text-green-600">{formatCurrency(totalPayments)}</TableCell>
                     </TableRow>
                      <TableRow>
-                        <TableCell colSpan={2} className="text-right font-bold sm:hidden">Pending</TableCell>
-                        <TableCell colSpan={6} className="text-right font-bold hidden sm:table-cell">Pending Hamali</TableCell>
+                        <TableCell colSpan={6} className="text-right font-bold">Pending Hamali</TableCell>
                         <TableCell className="text-right font-mono font-bold text-destructive">{formatCurrency(totalCharges - totalPayments)}</TableCell>
                     </TableRow>
                 </TableFooter>

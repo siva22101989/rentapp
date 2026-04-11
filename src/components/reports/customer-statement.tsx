@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, forwardRef } from 'react';
@@ -204,13 +203,13 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                     <TableRow className="border-b-2 border-border">
                         <TableHead className="h-auto p-1.5 font-semibold text-muted-foreground">Date</TableHead>
                         <TableHead className="h-auto p-1.5 font-semibold text-muted-foreground">Particulars</TableHead>
-                        <TableHead className="h-auto p-1.5 font-semibold text-muted-foreground hidden sm:table-cell">Bill/DO No.</TableHead>
-                        <TableHead className="h-auto p-1.5 font-semibold text-muted-foreground hidden lg:table-cell">Lot No.</TableHead>
-                        <TableHead className="h-auto p-1.5 text-right font-semibold text-muted-foreground hidden xl:table-cell">Bags Rcvd</TableHead>
-                        <TableHead className="h-auto p-1.5 text-right font-semibold text-muted-foreground hidden xl:table-cell">Bags Dlvrd</TableHead>
+                        <TableHead className="h-auto p-1.5 font-semibold text-muted-foreground">Bill/DO No.</TableHead>
+                        <TableHead className="h-auto p-1.5 font-semibold text-muted-foreground">Lot No.</TableHead>
+                        <TableHead className="h-auto p-1.5 text-right font-semibold text-muted-foreground">Bags Rcvd</TableHead>
+                        <TableHead className="h-auto p-1.5 text-right font-semibold text-muted-foreground">Bags Dlvrd</TableHead>
                         <TableHead className="h-auto p-1.5 text-right font-semibold text-muted-foreground">Balance Bags</TableHead>
-                        <TableHead className="h-auto p-1.5 text-right font-semibold text-muted-foreground hidden md:table-cell">Debit</TableHead>
-                        <TableHead className="h-auto p-1.5 text-right font-semibold text-muted-foreground hidden md:table-cell">Credit</TableHead>
+                        <TableHead className="h-auto p-1.5 text-right font-semibold text-muted-foreground">Debit</TableHead>
+                        <TableHead className="h-auto p-1.5 text-right font-semibold text-muted-foreground">Credit</TableHead>
                         <TableHead className="h-auto p-1.5 text-right font-semibold text-muted-foreground">Balance Amt</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -219,28 +218,25 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                         <TableRow key={index} className="border-b border-border/50">
                             <TableCell className="p-1.5">{format(item.date, 'dd/MM/yy')}</TableCell>
                             <TableCell className="p-1.5">{item.description}</TableCell>
-                            <TableCell className="p-1.5 hidden sm:table-cell">{item.invoiceId}</TableCell>
-                            <TableCell className="p-1.5 hidden lg:table-cell">{item.lotNo}</TableCell>
-                            <TableCell className="p-1.5 text-right font-mono hidden xl:table-cell">{item.bagsReceived || ''}</TableCell>
-                            <TableCell className="p-1.5 text-right font-mono hidden xl:table-cell">{item.bagsDelivered || ''}</TableCell>
+                            <TableCell className="p-1.5">{item.invoiceId}</TableCell>
+                            <TableCell className="p-1.5">{item.lotNo}</TableCell>
+                            <TableCell className="p-1.5 text-right font-mono">{item.bagsReceived || ''}</TableCell>
+                            <TableCell className="p-1.5 text-right font-mono">{item.bagsDelivered || ''}</TableCell>
                             <TableCell className="p-1.5 text-right font-mono font-semibold">{item.balanceBags}</TableCell>
-                            <TableCell className="p-1.5 text-right font-mono text-destructive hidden md:table-cell">{item.debit > 0 ? formatCurrency(item.debit) : ''}</TableCell>
-                            <TableCell className="p-1.5 text-right font-mono text-green-600 hidden md:table-cell">{item.credit > 0 ? formatCurrency(item.credit) : ''}</TableCell>
+                            <TableCell className="p-1.5 text-right font-mono text-destructive">{item.debit > 0 ? formatCurrency(item.debit) : ''}</TableCell>
+                            <TableCell className="p-1.5 text-right font-mono text-green-600">{item.credit > 0 ? formatCurrency(item.credit) : ''}</TableCell>
                             <TableCell className="p-1.5 text-right font-mono font-semibold">{formatCurrency(item.balanceAmount)}</TableCell>
                         </TableRow>
                     ))}
                 </TableBody>
                  <TableFooter>
                     <TableRow className="border-t-2 border-foreground font-bold">
-                        <TableCell>Totals:</TableCell>
-                        <TableCell />
-                        <TableCell className="hidden sm:table-cell" />
-                        <TableCell className="hidden lg:table-cell" />
-                        <TableCell className="text-right font-mono hidden xl:table-cell">{summary.totalBagsIn}</TableCell>
-                        <TableCell className="text-right font-mono hidden xl:table-cell">{summary.totalBagsOut}</TableCell>
+                        <TableCell colSpan={4}>Totals:</TableCell>
+                        <TableCell className="text-right font-mono">{summary.totalBagsIn}</TableCell>
+                        <TableCell className="text-right font-mono">{summary.totalBagsOut}</TableCell>
                         <TableCell className="text-right font-mono">{summary.balanceStock}</TableCell>
-                        <TableCell className="text-right font-mono text-destructive hidden md:table-cell">{formatCurrency(summary.totalDebit)}</TableCell>
-                        <TableCell className="text-right font-mono text-green-600 hidden md:table-cell">{formatCurrency(summary.totalCredit)}</TableCell>
+                        <TableCell className="text-right font-mono text-destructive">{formatCurrency(summary.totalDebit)}</TableCell>
+                        <TableCell className="text-right font-mono text-green-600">{formatCurrency(summary.totalCredit)}</TableCell>
                         <TableCell className="text-right font-mono">{formatCurrency(summary.balanceDue)}</TableCell>
                     </TableRow>
                  </TableFooter>

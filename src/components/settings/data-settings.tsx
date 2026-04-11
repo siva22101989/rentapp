@@ -34,6 +34,7 @@ export function DataSettings() {
   const [isClearingDb, startClearingDbTransition] = useTransition();
   const [isExporting, startExportingTransition] = useTransition();
   const [isImporting, startImportingTransition] = useTransition();
+  const [isClearingUnloading, startClearingUnloadingTransition] = useTransition();
   
   const [dataToImport, setDataToImport] = useState<{ customersToCreate: Omit<Customer, 'id'>[], storageRecords: any[] } | null>(null);
   const [isImportAlertOpen, setIsImportAlertOpen] = useState(false);
@@ -112,6 +113,27 @@ export function DataSettings() {
              toast({
                 title: 'Error',
                 description: `Failed to clear database: ${error.message}`,
+                variant: 'destructive',
+            });
+        }
+    });
+  };
+
+  const handleClearUnloadingRecords = async () => {
+    startClearingUnloadingTransition(async () => {
+        try {
+            const deletedCount = await clearData(['unloadingRecords']);
+            toast({
+                title: 'Unloading Records Cleared',
+                description: `Successfully cleared all unloading records. Total documents removed: ${deletedCount}. The page will now reload.`,
+            });
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } catch (error: any) {
+             toast({
+                title: 'Error',
+                description: `Failed to clear unloading records: ${error.message}`,
                 variant: 'destructive',
             });
         }
@@ -388,6 +410,46 @@ export function DataSettings() {
                                     disabled={isClearingCache}
                                 >
                                     {isClearingCache ? 'Clearing...' : 'Yes, clear cache'}
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </CardContent>
+            </Card>
+
+            <Card className="w-full border-blue-500/50">
+                <CardHeader>
+                    <CardTitle className="text-blue-600">Clear All Unloading Bills</CardTitle>
+                    <CardDescription>
+                        This will permanently delete all unloading bills. This can be useful to clear out old records that are no longer valid, for example, if their associated customer has been deleted.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="outline" size="lg" className="text-blue-600 border-blue-500 hover:bg-blue-50 hover:text-blue-700">
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Clear Unloading Bills
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Are you sure you want to do this?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    This will permanently delete all unloading records from the database. This action cannot be undone.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                    onClick={handleClearUnloadingRecords}
+                                    disabled={isClearingUnloading}
+                                >
+                                    {isClearingUnloading ? (
+                                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Deleting...</>
+                                    ) : (
+                                        'Yes, delete all unloading bills'
+                                    )}
                                 </AlertDialogAction>
                             </AlertDialogFooter>
                         </AlertDialogContent>

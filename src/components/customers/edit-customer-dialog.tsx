@@ -104,7 +104,7 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer,
                     <FormItem>
                         <FormLabel>Name</FormLabel>
                         <FormControl>
-                        <Input placeholder="Customer's full name" {...field} value={field.value ?? ''} />
+                        <Input placeholder="Customer's full name" {...field} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -117,7 +117,7 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer,
                     <FormItem>
                         <FormLabel>Father's Name</FormLabel>
                         <FormControl>
-                        <Input placeholder="Father's name (optional)" {...field} value={field.value ?? ''} />
+                        <Input placeholder="Father's name (optional)" {...field} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -130,7 +130,7 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer,
                     <FormItem>
                         <FormLabel>Village</FormLabel>
                         <FormControl>
-                        <Input placeholder="Village (optional)" {...field} value={field.value ?? ''} />
+                        <Input placeholder="Village (optional)" {...field} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -143,7 +143,7 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer,
                     <FormItem>
                         <FormLabel>Phone</FormLabel>
                         <FormControl>
-                        <Input placeholder="10-digit phone number" {...field} value={field.value ?? ''} />
+                        <Input placeholder="10-digit phone number" {...field} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -156,7 +156,7 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer,
                     <FormItem>
                         <FormLabel>Email (Optional)</FormLabel>
                         <FormControl>
-                        <Input type="email" placeholder="example@email.com" {...field} value={field.value ?? ''} />
+                        <Input type="email" placeholder="example@email.com" {...field} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>

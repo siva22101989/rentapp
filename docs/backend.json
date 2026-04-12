@@ -201,7 +201,7 @@
           },
           "category": {
             "type": "string",
-            "enum": ["Worker Salary", "Petrol", "Maintenance", "Utilities", "Current Bill", "Hamali", "EMI for Godown", "Loan Repayment", "Home Expenses", "Other"],
+            "enum": ["Worker Salary", "Petrol", "Maintenance", "Utilities", "Current Bill", "Hamali", "EMI for Godown", "Godown Expense", "Loan Repayment", "Home Expenses", "Other"],
             "description": "The category of the expense."
           },
           "date": {

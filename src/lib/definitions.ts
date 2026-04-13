@@ -93,6 +93,7 @@ export type Expense = {
   category: ExpenseCategory | "Hamali Paid";
   date: Date | Timestamp;
   warehouseId?: string;
+  customerId?: string;
 };
 
 export type Borrowing = {

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useMemo } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,8 +23,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { addDoc, collection } from 'firebase/firestore';
-import { cleanForFirestore } from '@/lib/utils';
-import type { Customer } from '@/lib/definitions';
+import { cleanForFirestore, formatCurrency } from '@/lib/utils';
+import type { Customer, StorageRecord, UnloadingRecord, Expense } from '@/lib/definitions';
 import { Combobox } from '../ui/combobox';
 
 const HamaliPaymentSchema = z.object({
@@ -36,7 +36,19 @@ const HamaliPaymentSchema = z.object({
 
 type HamaliPaymentFormData = z.infer<typeof HamaliPaymentSchema>;
 
-export function RecordHamaliPaymentDialog({ children, customers }: { children: React.ReactNode, customers: Customer[] }) {
+export function RecordHamaliPaymentDialog({ 
+    children, 
+    customers,
+    storageRecords,
+    unloadingRecords,
+    expenses
+}: { 
+    children: React.ReactNode, 
+    customers: Customer[],
+    storageRecords: StorageRecord[],
+    unloadingRecords: UnloadingRecord[],
+    expenses: Expense[],
+}) {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -53,6 +65,37 @@ export function RecordHamaliPaymentDialog({ children, customers }: { children: R
   });
   
   const customerOptions = customers.map(c => ({ value: c.id, label: c.name }));
+  const selectedCustomerId = form.watch('customerId');
+
+  const pendingHamali = useMemo(() => {
+    if (!selectedCustomerId) return 0;
+    
+    let totalPayable = 0;
+    
+    storageRecords
+        .filter(r => r.customerId === selectedCustomerId && r.workerHamaliPayable)
+        .forEach(rec => {
+            totalPayable += rec.workerHamaliPayable!;
+        });
+
+    unloadingRecords
+        .filter(r => r.customerId === selectedCustomerId)
+        .forEach(rec => {
+            const hamali = rec.workerHamaliPayable ?? rec.totalHamali ?? 0;
+            totalPayable += hamali;
+        });
+    
+    let totalPaid = 0;
+    expenses
+        .filter(e => e.category === 'Hamali Paid' && e.customerId === selectedCustomerId)
+        .forEach(exp => {
+            totalPaid += exp.amount;
+        });
+
+    const pending = totalPayable - totalPaid;
+    return pending > 0 ? pending : 0;
+  }, [selectedCustomerId, storageRecords, unloadingRecords, expenses]);
+
 
   const onSubmit = (data: HamaliPaymentFormData) => {
     if (!firestore) {
@@ -70,11 +113,12 @@ export function RecordHamaliPaymentDialog({ children, customers }: { children: R
             }
         }
         
-        const newExpense = {
+        const newExpense: Partial<Expense> = {
           description: finalDescription,
           amount: data.amount,
           date: new Date(data.date),
           category: 'Hamali Paid' as const,
+          customerId: data.customerId || undefined,
         };
         await addDoc(collection(firestore, 'expenses'), cleanForFirestore(newExpense));
         
@@ -133,6 +177,14 @@ export function RecordHamaliPaymentDialog({ children, customers }: { children: R
                     </FormItem>
                 )}
               />
+               {selectedCustomerId && (
+                <div className="p-3 border rounded-md bg-secondary/50 space-y-1">
+                    <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Pending hamali for this customer:</span>
+                        <span className="font-semibold text-destructive">{formatCurrency(pendingHamali)}</span>
+                    </div>
+                </div>
+              )}
               <FormField
                 control={form.control}
                 name="description"

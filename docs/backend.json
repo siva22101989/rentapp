@@ -208,6 +208,10 @@
             "type": "string",
             "format": "date-time",
             "description": "The date the expense was incurred."
+          },
+          "customerId": {
+            "type": "string",
+            "description": "The ID of the customer this expense is associated with (e.g., for Hamali Paid)."
           }
         },
         "required": ["description", "amount", "category", "date"]

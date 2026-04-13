@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { Loader2, Hammer } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -24,16 +24,19 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { addDoc, collection } from 'firebase/firestore';
 import { cleanForFirestore } from '@/lib/utils';
+import type { Customer } from '@/lib/definitions';
+import { Combobox } from '../ui/combobox';
 
 const HamaliPaymentSchema = z.object({
   description: z.string().min(2, 'Description is required.'),
   amount: z.coerce.number().positive('Amount must be a positive number.'),
   date: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
+  customerId: z.string().optional(),
 });
 
 type HamaliPaymentFormData = z.infer<typeof HamaliPaymentSchema>;
 
-export function RecordHamaliPaymentDialog({ children }: { children: React.ReactNode }) {
+export function RecordHamaliPaymentDialog({ children, customers }: { children: React.ReactNode, customers: Customer[] }) {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -45,8 +48,11 @@ export function RecordHamaliPaymentDialog({ children }: { children: React.ReactN
       description: '',
       amount: undefined,
       date: new Date().toISOString().split('T')[0],
+      customerId: '',
     },
   });
+  
+  const customerOptions = customers.map(c => ({ value: c.id, label: c.name }));
 
   const onSubmit = (data: HamaliPaymentFormData) => {
     if (!firestore) {
@@ -56,8 +62,17 @@ export function RecordHamaliPaymentDialog({ children }: { children: React.ReactN
 
     startTransition(async () => {
       try {
+        let finalDescription = data.description;
+        if (data.customerId) {
+            const customer = customers.find(c => c.id === data.customerId);
+            if(customer) {
+                finalDescription = `For ${customer.name}: ${data.description}`;
+            }
+        }
+        
         const newExpense = {
-          ...data,
+          description: finalDescription,
+          amount: data.amount,
           date: new Date(data.date),
           category: 'Hamali Paid' as const,
         };
@@ -98,6 +113,24 @@ export function RecordHamaliPaymentDialog({ children }: { children: React.ReactN
                     </FormControl>
                     <FormMessage />
                   </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="customerId"
+                render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                        <FormLabel>Customer (Optional)</FormLabel>
+                        <Combobox
+                            options={customerOptions}
+                            value={field.value}
+                            onChange={field.onChange}
+                            placeholder="Select a customer..."
+                            searchPlaceholder="Search customers..."
+                            emptyPlaceholder="No customer found."
+                        />
+                        <FormMessage />
+                    </FormItem>
                 )}
               />
               <FormField

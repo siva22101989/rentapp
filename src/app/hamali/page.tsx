@@ -40,7 +40,7 @@ export default function HamaliPage() {
             title="Hamali Management"
             description="Track hamali payable to workers and record payments made."
         >
-            <RecordHamaliPaymentDialog>
+            <RecordHamaliPaymentDialog customers={allCustomers || []}>
                 <Button>
                     <Hammer className="mr-2" />
                     Record Hamali Payment

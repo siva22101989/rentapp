@@ -21,7 +21,8 @@ import {
   Settings,
   Wind,
   ArrowDownFromLine,
-  LayoutDashboard
+  LayoutDashboard,
+  Hammer
 } from 'lucide-react';
 
 type NavItem = {
@@ -42,6 +43,7 @@ const navItems: NavItem[] = [
     { href: '/customers', label: 'Customers', icon: Users, roles: ['super-admin', 'owner', 'supervisor', 'biller'] },
     { href: '/reports', label: 'Reports', icon: FileText, roles: ['super-admin', 'owner', 'supervisor'] },
     { href: '/expenses', label: 'Profit & Loss', icon: Scale, roles: ['super-admin', 'owner'] },
+    { href: '/hamali', label: 'Hamali Payments', icon: Hammer, roles: ['super-admin', 'owner'] },
 ];
 
 const settingsNav: NavItem = { href: '/settings', label: 'Settings', icon: Settings, roles: ['super-admin', 'owner', 'supervisor', 'biller'] };

@@ -172,6 +172,7 @@ export function RecordHamaliPaymentDialog({
                             placeholder="Select a customer..."
                             searchPlaceholder="Search customers..."
                             emptyPlaceholder="No customer found."
+                            modal={true}
                         />
                         <FormMessage />
                     </FormItem>

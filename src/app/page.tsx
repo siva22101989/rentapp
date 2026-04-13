@@ -57,7 +57,6 @@ const navItems: NavItem[] = [
     { href: '/customers', label: 'Customers', icon: Users, description: 'Manage customer information.', roles: ['owner', 'supervisor', 'biller', 'super-admin'] },
     { href: '/reports', label: 'Reports', icon: FileText, description: 'Generate detailed business reports.', roles: ['owner', 'supervisor', 'super-admin'] },
     { href: '/expenses', label: 'Profit & Loss', icon: Scale, description: 'Track income, expenses, and profitability.', roles: ['owner', 'super-admin'] },
-    { href: '/hamali', label: 'Hamali Payments', icon: Hammer, description: 'Record and track payments made to workers.', roles: ['owner', 'super-admin'] },
 ];
 
 function NavCard({ href, label, icon: Icon, description }: Omit<NavItem, 'roles'>) {

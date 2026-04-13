@@ -2,7 +2,7 @@
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
-import type { Customer, StorageRecord, UnloadingRecord } from "@/lib/definitions";
+import type { Customer, StorageRecord, UnloadingRecord, Expense } from "@/lib/definitions";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { collection } from "firebase/firestore";
 import { useFirestore } from "@/firebase/provider";
@@ -10,6 +10,9 @@ import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 import { PendingPaymentsTable } from "@/components/payments/pending-payments-table";
 import { CustomerBulkPaymentDialog } from "@/components/payments/customer-bulk-payment-dialog";
 import { useAppUser } from "@/firebase/auth/use-user";
+import { RecordHamaliPaymentDialog } from "@/components/hamali/record-payment-dialog";
+import { Button } from "@/components/ui/button";
+import { Hammer } from "lucide-react";
 
 export default function PendingPaymentsPage() {
     const firestore = useFirestore();
@@ -32,9 +35,12 @@ export default function PendingPaymentsPage() {
         [firestore, appUser]
     );
     const { data: allUnloadingRecords, loading: loadingUnloadingRecords } = useCollection<UnloadingRecord>(unloadingRecordsQuery);
+    
+    const expensesQuery = useMemoFirebase(() => (firestore && appUser ? collection(firestore, 'expenses') : null), [firestore, appUser]);
+    const { data: allExpenses, loading: loadingExpenses } = useCollection<Expense>(expensesQuery);
 
 
-    if (loadingRecords || loadingCustomers || loadingUnloadingRecords) {
+    if (loadingRecords || loadingCustomers || loadingUnloadingRecords || loadingExpenses) {
         return <AppLayout><div>Loading...</div></AppLayout>;
     }
 
@@ -49,6 +55,17 @@ export default function PendingPaymentsPage() {
                     storageRecords={allRecords || []}
                     unloadingRecords={allUnloadingRecords || []}
                 />
+                 <RecordHamaliPaymentDialog 
+                    customers={allCustomers || []}
+                    storageRecords={allRecords || []}
+                    unloadingRecords={allUnloadingRecords || []}
+                    expenses={allExpenses || []}
+                >
+                    <Button variant="outline">
+                        <Hammer className="mr-2" />
+                        Record Hamali Payment
+                    </Button>
+                </RecordHamaliPaymentDialog>
             </PageHeader>
             <PendingPaymentsTable 
                 records={allRecords || []} 

@@ -20,6 +20,7 @@ import { ProfitAndLossReport } from './profit-and-loss-report';
 import { Button } from '../ui/button';
 import { Printer, FileDown, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { LotOutflowReport } from './lot-outflow-report';
 
 const reportTypes = [
     { value: 'daily-summary', label: 'Daily Summary Report' },
@@ -31,6 +32,7 @@ const reportTypes = [
     { value: 'unloading-register', label: 'Unloading Register (Date Range)' },
     { value: 'payment-register', label: 'Payment Register (Date Range)' },
     { value: 'lot-inventory', label: 'Lot Inventory (Patti mapping)' },
+    { value: 'lot-outflow', label: 'Lot-wise Outflow Report' },
     { value: 'active-inventory', label: 'Active Inventory (Stock)' },
     { value: 'pending-dues', label: 'Pending Dues List' },
     { value: 'all-customers', label: 'All Customers List' },
@@ -149,6 +151,8 @@ export function CustomReportGenerator({
                 return <PaymentReport records={records} unloadingRecords={unloadingRecords} customers={customers} />;
             case 'lot-inventory':
                 return <LotInventoryReport records={records} customers={customers} />;
+            case 'lot-outflow':
+                return <LotOutflowReport records={records} customers={customers} />;
             default:
                 return (
                     <Card>

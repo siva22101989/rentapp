@@ -58,7 +58,7 @@
         },
         "insuranceRate": {
             "type": "number",
-            "description": "The insurance rate per bag per month, if billingType is 'monthly'."
+            "description": "The insurance rate per bag per year, if billingType is 'monthly'."
         },
         "rate6Months": {
           "type": "number",
@@ -173,7 +173,7 @@
         },
         "insuranceRate": {
             "type": "number",
-            "description": "The insurance rate per bag per month at time of inflow."
+            "description": "The insurance rate per bag per year at time of inflow."
         }
       },
       "required": [

@@ -54,7 +54,7 @@ export function CommoditiesTable() {
                 </TableCell>
                 <TableCell className="text-right font-mono">
                   {commodity.billingType === 'monthly'
-                    ? `${formatCurrency(commodity.monthlyRate || 0)}/mo ${commodity.insuranceRate ? `+ ${formatCurrency(commodity.insuranceRate)} ins` : ''} ${commodity.minBillingMonths ? `(min ${commodity.minBillingMonths}m)` : ''}`
+                    ? `${formatCurrency(commodity.monthlyRate || 0)}/mo ${commodity.insuranceRate ? `+ ${formatCurrency(commodity.insuranceRate)} ins/yr` : ''} ${commodity.minBillingMonths ? `(min ${commodity.minBillingMonths}m)` : ''}`
                     : `${formatCurrency(commodity.rate6Months || 0)} / 6M, ${formatCurrency(commodity.rate1Year || 0)} / 1Y`
                   }
                 </TableCell>

@@ -64,8 +64,12 @@ export function calculateFinalRent(
     const effectiveMonths = Math.max(billingMonths, record.minBillingMonths || 0);
     rentPerBag = effectiveMonths * monthlyRate;
     
-    const insuranceCharge = (record.insuranceRate || 0) * billingMonths;
-    rentPerBag += insuranceCharge;
+    if (record.insuranceRate && record.insuranceRate > 0) {
+        // Calculate number of years, rounding up. e.g., 1-12 months = 1 year, 13-24 months = 2 years.
+        const yearsStored = Math.ceil(billingMonths / 12);
+        const insuranceCharge = (record.insuranceRate || 0) * (yearsStored > 0 ? yearsStored : 1);
+        rentPerBag += insuranceCharge;
+    }
   } else {
     // Slab billing logic with stacking as per user's requirement
     const slab6Months = record.rate6Months ?? 0;

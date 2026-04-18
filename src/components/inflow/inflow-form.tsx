@@ -177,6 +177,8 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                     monthlyRate: commodityDetails.monthlyRate,
                     rate6Months: commodityDetails.rate6Months,
                     rate1Year: commodityDetails.rate1Year,
+                    insuranceRate: commodityDetails.insuranceRate,
+                    minBillingMonths: commodityDetails.minBillingMonths,
                 };
 
                 const docRef = doc(firestore, "storageRecords", nextId);

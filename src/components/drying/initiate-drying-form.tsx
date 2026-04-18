@@ -336,6 +336,8 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                     hamaliDetails: hamaliDetails,
                     billingType: commodityDetails.billingType,
                     monthlyRate: commodityDetails.monthlyRate,
+                    minBillingMonths: commodityDetails.minBillingMonths,
+                    insuranceRate: commodityDetails.insuranceRate,
                     rate6Months: commodityDetails.rate6Months,
                     rate1Year: commodityDetails.rate1Year,
                 };

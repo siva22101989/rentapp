@@ -18,6 +18,7 @@ export type Commodity = {
   billingType: 'monthly' | 'slab';
   monthlyRate?: number;
   minBillingMonths?: number;
+  insuranceRate?: number;
   rate6Months?: number;
   rate1Year?: number;
   warehouseId?: string;
@@ -79,6 +80,7 @@ export type StorageRecord = {
   billingType?: 'monthly' | 'slab';
   monthlyRate?: number;
   minBillingMonths?: number;
+  insuranceRate?: number;
   rate6Months?: number;
   rate1Year?: number;
   warehouseId?: string;

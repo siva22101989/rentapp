@@ -30,6 +30,7 @@ const CommoditySchema = z.object({
   billingType: z.enum(['monthly', 'slab']),
   monthlyRate: z.coerce.number().optional(),
   minBillingMonths: z.coerce.number().int().nonnegative("Must be a non-negative number.").optional(),
+  insuranceRate: z.coerce.number().nonnegative("Must be a non-negative number.").optional(),
   rate6Months: z.coerce.number().optional(),
   rate1Year: z.coerce.number().optional(),
 }).superRefine((data, ctx) => {
@@ -74,6 +75,7 @@ export function AddCommodityDialog() {
       name: '',
       billingType: 'slab',
       minBillingMonths: undefined,
+      insuranceRate: undefined,
     },
   });
 
@@ -184,6 +186,19 @@ export function AddCommodityDialog() {
                         <FormLabel>Min. Months</FormLabel>
                         <FormControl>
                             <Input type="number" placeholder="e.g. 3" {...field} value={field.value ?? ''} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                    <FormField
+                    control={form.control}
+                    name="insuranceRate"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Insurance Rate</FormLabel>
+                        <FormControl>
+                            <Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>

@@ -56,6 +56,10 @@
             "type": "number",
             "description": "The minimum number of months to charge for if billingType is 'monthly'."
         },
+        "insuranceRate": {
+            "type": "number",
+            "description": "The insurance rate per bag per month, if billingType is 'monthly'."
+        },
         "rate6Months": {
           "type": "number",
           "description": "The rent rate per bag for a 6-month period, if billingType is 'slab'."
@@ -166,6 +170,10 @@
                     "amount": { "type": "number" }
                 }
             }
+        },
+        "insuranceRate": {
+            "type": "number",
+            "description": "The insurance rate per bag per month at time of inflow."
         }
       },
       "required": [

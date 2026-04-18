@@ -63,6 +63,9 @@ export function calculateFinalRent(
     const monthlyRate = record.monthlyRate || 0;
     const effectiveMonths = Math.max(billingMonths, record.minBillingMonths || 0);
     rentPerBag = effectiveMonths * monthlyRate;
+    
+    const insuranceCharge = (record.insuranceRate || 0) * billingMonths;
+    rentPerBag += insuranceCharge;
   } else {
     // Slab billing logic with stacking as per user's requirement
     const slab6Months = record.rate6Months ?? 0;

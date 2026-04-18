@@ -29,6 +29,7 @@ const CommoditySchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
   billingType: z.enum(['monthly', 'slab']),
   monthlyRate: z.coerce.number().optional(),
+  minBillingMonths: z.coerce.number().int().nonnegative("Must be a non-negative number.").optional(),
   rate6Months: z.coerce.number().optional(),
   rate1Year: z.coerce.number().optional(),
 }).superRefine((data, ctx) => {
@@ -73,6 +74,7 @@ export function EditCommodityDialog({ commodity, children }: { commodity: Commod
       name: commodity.name,
       billingType: commodity.billingType || 'slab',
       monthlyRate: commodity.monthlyRate,
+      minBillingMonths: commodity.minBillingMonths,
       rate6Months: commodity.rate6Months,
       rate1Year: commodity.rate1Year,
     },
@@ -94,6 +96,7 @@ export function EditCommodityDialog({ commodity, children }: { commodity: Commod
             updateData.rate1Year = undefined;
         } else {
             updateData.monthlyRate = undefined;
+            updateData.minBillingMonths = undefined;
         }
 
         await updateCommodity(firestore, commodity.id, updateData);
@@ -165,19 +168,34 @@ export function EditCommodityDialog({ commodity, children }: { commodity: Commod
               />
 
               {billingType === 'monthly' && (
-                <FormField
-                  control={form.control}
-                  name="monthlyRate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Monthly Rate (per bag)</FormLabel>
-                      <FormControl>
-                        <Input type="number" step="0.01" {...field} value={field.value ?? ''} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                    control={form.control}
+                    name="monthlyRate"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Monthly Rate</FormLabel>
+                        <FormControl>
+                            <Input type="number" step="0.01" {...field} value={field.value ?? ''} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                    <FormField
+                    control={form.control}
+                    name="minBillingMonths"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Min. Months</FormLabel>
+                        <FormControl>
+                            <Input type="number" placeholder="e.g. 3" {...field} value={field.value ?? ''} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                </div>
               )}
 
               {billingType === 'slab' && (

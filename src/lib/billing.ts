@@ -61,7 +61,8 @@ export function calculateFinalRent(
 
   if (record.billingType === 'monthly') {
     const monthlyRate = record.monthlyRate || 0;
-    rentPerBag = billingMonths * monthlyRate;
+    const effectiveMonths = Math.max(billingMonths, record.minBillingMonths || 0);
+    rentPerBag = effectiveMonths * monthlyRate;
   } else {
     // Slab billing logic with stacking as per user's requirement
     const slab6Months = record.rate6Months ?? 0;

@@ -1,12 +1,13 @@
 
 'use client';
 
-import { MoreHorizontal, FileCheck, IndianRupee } from "lucide-react";
+import { MoreHorizontal, FileCheck, IndianRupee, Trash2 } from "lucide-react";
 import { Button } from "../ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from "../ui/dropdown-menu";
 import type { DryingRecord, UnloadingRecord, Lot, StorageRecord } from "@/lib/definitions";
 import { ManageDryingChargesDialog } from "./manage-drying-charges-dialog";
 import { BillProcessDialog } from "./bill-process-dialog";
+import { DeleteDryingRecordDialog } from "./delete-drying-record-dialog";
 
 export function DryingActionsMenu({ record, unloadingRecord, lots, storageRecords }: { record: DryingRecord, unloadingRecord?: UnloadingRecord, lots: Lot[], storageRecords: StorageRecord[] }) {
 
@@ -30,8 +31,6 @@ export function DryingActionsMenu({ record, unloadingRecord, lots, storageRecord
                         Update Packing & Charges
                     </DropdownMenuItem>
                 </ManageDryingChargesDialog>
-
-                <DropdownMenuSeparator />
                 
                 <BillProcessDialog record={record} unloadingRecord={unloadingRecord} lots={lots} storageRecords={storageRecords}>
                     <DropdownMenuItem 
@@ -43,6 +42,15 @@ export function DryingActionsMenu({ record, unloadingRecord, lots, storageRecord
                         Bill & Create Inflow
                     </DropdownMenuItem>
                 </BillProcessDialog>
+
+                <DropdownMenuSeparator />
+                
+                <DeleteDryingRecordDialog recordId={record.id}>
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} disabled={isBilled} className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                    </DropdownMenuItem>
+                </DeleteDryingRecordDialog>
             </DropdownMenuContent>
         </DropdownMenu>
     );

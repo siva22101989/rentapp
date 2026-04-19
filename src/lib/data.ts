@@ -16,8 +16,10 @@ import {
   arrayUnion,
   query,
   where,
+  runTransaction,
+  increment,
 } from 'firebase/firestore';
-import type { Customer, Expense, Payment, StorageRecord, Commodity, Outflow, UnloadingRecord, Borrowing, Lending, AppUser, ManagedWarehouse } from './definitions';
+import type { Customer, Expense, Payment, StorageRecord, Commodity, Outflow, UnloadingRecord, Borrowing, Lending, AppUser, ManagedWarehouse, DryingRecord } from './definitions';
 import { cleanForFirestore } from './utils';
 
 // These functions are intended for client-side use.
@@ -134,6 +136,34 @@ export const deleteUnloadingRecord = async (db: Firestore, id: string): Promise<
     }
     await deleteDoc(recordRef);
 };
+
+export const deleteDryingRecord = async (db: Firestore, dryingRecordId: string): Promise<void> => {
+  const dryingRecordRef = doc(db, 'dryingRecords', dryingRecordId);
+
+  await runTransaction(db, async (transaction) => {
+    const dryingRecordSnap = await transaction.get(dryingRecordRef);
+    if (!dryingRecordSnap.exists()) {
+      throw new Error("Drying record not found.");
+    }
+
+    const dryingRecordData = dryingRecordSnap.data() as DryingRecord;
+
+    if (dryingRecordData.status === 'Billed') {
+        throw new Error("Cannot delete a drying record that has already been billed and created a storage record.");
+    }
+
+    const unloadingRecordRef = doc(db, 'unloadingRecords', dryingRecordData.unloadingRecordId);
+    
+    // Decrement the bagsSentToDrying on the unloading record
+    transaction.update(unloadingRecordRef, {
+      bagsSentToDrying: increment(-(dryingRecordData.bagsForDrying || 0))
+    });
+
+    // Delete the drying record
+    transaction.delete(dryingRecordRef);
+  });
+};
+
 
 export const updateBorrowing = async (db: Firestore, id: string, data: Partial<Borrowing>): Promise<void> => {
     const borrowingRef = doc(db, 'borrowings', id);

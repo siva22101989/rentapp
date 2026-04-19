@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useTransition, useState, useEffect, useMemo } from 'react';
@@ -273,7 +272,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                 const dryingDay1CustomerHamali = data.bagsForDrying * data.customerHamaliPerBag;
                 if (dryingDay1CustomerHamali > 0) {
                     hamaliDetails.push({
-                        description: 'Drying Hamali (Day 1)',
+                        description: 'Customer Hamali',
                         bags: data.bagsForDrying,
                         rate: data.customerHamaliPerBag,
                         amount: dryingDay1CustomerHamali

@@ -504,7 +504,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                             name="customerHamaliPerBag"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Drying Hamali Rate</FormLabel>
+                                    <FormLabel>Customer Hamali Rate</FormLabel>
                                     <FormDescription className="text-xs h-8">Charge per bag (Day 1).</FormDescription>
                                     <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} disabled={!selectedUnloadingRecord} /></FormControl>
                                     <FormMessage />
@@ -516,7 +516,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                             name="workerHamaliPerBag"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Worker Drying Rate</FormLabel>
+                                    <FormLabel>Hamali Drying Rate</FormLabel>
                                     <FormDescription className="text-xs h-8">Payment per bag (Day 1).</FormDescription>
                                     <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} disabled={!selectedUnloadingRecord} /></FormControl>
                                     <FormMessage />

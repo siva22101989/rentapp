@@ -6,13 +6,12 @@ import { useCollection } from "@/firebase/firestore/use-collection";
 import { collection } from "firebase/firestore";
 import { useFirestore } from "@/firebase/provider";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
-import type { Customer, UnloadingRecord, Lot, StorageRecord, Commodity, DryingRecord } from "@/lib/definitions";
+import type { Customer, UnloadingRecord, Lot, StorageRecord, Commodity } from "@/lib/definitions";
 import { AddCustomerDialog } from "@/components/customers/add-customer-dialog";
 import { InitiateDryingForm } from "@/components/drying/initiate-drying-form";
 import { useMemo } from "react";
 import { toDate } from "@/lib/utils";
 import { useAppUser } from "@/firebase/auth/use-user";
-import { DryingHistoryTable } from "@/components/drying/drying-history-table";
 
 export default function DryingPage() {
   const firestore = useFirestore();
@@ -47,13 +46,6 @@ export default function DryingPage() {
     [firestore, appUser]
   );
   const { data: commodities, loading: loadingCommodities } = useCollection<Commodity>(commoditiesQuery);
-  
-  const dryingRecordsQuery = useMemoFirebase(
-    () => (firestore && appUser ? collection(firestore, 'dryingRecords') : null),
-    [firestore, appUser]
-  );
-  const { data: dryingRecords, loading: loadingDryingRecords } = useCollection<DryingRecord>(dryingRecordsQuery);
-
 
   const availableForDryingRecords = useMemo(() => {
     if (!unloadingRecords) return [];
@@ -61,13 +53,8 @@ export default function DryingPage() {
     return filtered.sort((a, b) => toDate(a.unloadingDate).getTime() - toDate(b.unloadingDate).getTime());
   }, [unloadingRecords]);
 
-  const activeDryingRecords = useMemo(() => {
-    if (!dryingRecords) return [];
-    return dryingRecords.filter(r => r.status !== 'Billed').sort((a,b) => toDate(a.dryingStartDate).getTime() - toDate(b.dryingStartDate).getTime());
-  }, [dryingRecords]);
 
-
-  if (loadingCustomers || loadingUnloadingRecords || loadingLots || loadingStorageRecords || loadingCommodities || loadingDryingRecords) {
+  if (loadingCustomers || loadingUnloadingRecords || loadingLots || loadingStorageRecords || loadingCommodities) {
     return <AppLayout><div>Loading...</div></AppLayout>;
   }
 
@@ -79,23 +66,13 @@ export default function DryingPage() {
       >
         <AddCustomerDialog />
       </PageHeader>
-
-      <div className="space-y-8">
-        <DryingHistoryTable 
-            dryingRecords={activeDryingRecords || []}
-            customers={customers || []}
-            unloadingRecords={unloadingRecords || []}
-            lots={lots || []}
-            storageRecords={storageRecords || []}
-        />
-        <InitiateDryingForm 
-            customers={customers || []} 
-            unloadingRecords={availableForDryingRecords || []}
-            lots={lots || []}
-            storageRecords={storageRecords || []}
-            commodities={commodities || []}
-        />
-      </div>
+      <InitiateDryingForm 
+          customers={customers || []} 
+          unloadingRecords={availableForDryingRecords || []}
+          lots={lots || []}
+          storageRecords={storageRecords || []}
+          commodities={commodities || []}
+      />
     </AppLayout>
   );
 }

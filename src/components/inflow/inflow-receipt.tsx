@@ -72,8 +72,10 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
                         
                         <p className="col-span-2"><span className="font-bold">2. Commodity:</span> {record.commodityDescription}</p>
                         
+                        <p><span className="font-bold">Unloaded Bags:</span> {unloadingRecord?.bagsUnloaded || 'N/A'}</p>
                         <p><span className="font-bold">Bags for Plot:</span> {record.bagsForDrying || 'N/A'}</p>
                         <p><span className="font-bold">Bags Packed (Stock):</span> {record.bagsIn}</p>
+                        <p></p>
                         
                         <p><span className="font-bold">3. Godown No.:</span> {record.location || 'N/A'}</p>
                         <p><span className="font-bold">Lot No.:</span> {record.location || 'N/A'}</p>
@@ -162,7 +164,7 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
                     <p><span className="font-bold">Date:</span> {formattedDate}</p>
                     <p><span className="font-bold">2. Commodity:</span> {record.commodityDescription}</p>
                     <p><span className="font-bold">Quantity:</span> {record.weight ? `${record.weight} Kgs` : 'N/A'}</p>
-                    <p><span className="font-bold">No of Bags:</span> {record.bagsIn}</p>
+                    <p><span className="font-bold">No. of Bags:</span> {record.bagsIn}</p>
                     <p><span className="font-bold">Net Weight:</span> {record.weight ? `${record.weight} Kgs` : 'N/A'}</p>
                     <p><span className="font-bold">3. Godown No.:</span> {record.location || 'N/A'}</p>
                     <p><span className="font-bold">Lot No.:</span> {record.location || 'N/A'}</p>

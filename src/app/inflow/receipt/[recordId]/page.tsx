@@ -85,17 +85,11 @@ export default function InflowReceiptPage() {
         if (record.inflowType === 'Plot' && record.dryingRecordId) {
             setLoadingUnloading(true);
             try {
-                const dryingRef = doc(firestore, 'dryingRecords', record.dryingRecordId);
-                const dryingSnap = await getDoc(dryingRef);
-                if (dryingSnap.exists()) {
-                    const dryingData = dryingSnap.data() as { unloadingRecordId?: string };
-                    if (dryingData.unloadingRecordId) {
-                        const unloadingRef = doc(firestore, 'unloadingRecords', dryingData.unloadingRecordId);
-                        const unloadingSnap = await getDoc(unloadingRef);
-                        if (unloadingSnap.exists()) {
-                            setUnloadingRecord({ id: unloadingSnap.id, ...unloadingSnap.data() } as UnloadingRecord);
-                        }
-                    }
+                // Correctly fetch from unloadingRecords using the ID stored in dryingRecordId
+                const unloadingRef = doc(firestore, 'unloadingRecords', record.dryingRecordId);
+                const unloadingSnap = await getDoc(unloadingRef);
+                if (unloadingSnap.exists()) {
+                    setUnloadingRecord({ id: unloadingSnap.id, ...unloadingSnap.data() } as UnloadingRecord);
                 }
             } catch (e) {
                console.error("Error fetching related unloading record", e);

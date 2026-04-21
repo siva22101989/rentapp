@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -45,16 +44,26 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer,
 
   const form = useForm<CustomerFormData>({
     resolver: zodResolver(CustomerSchema),
-    // Use `values` to make the form fully controlled by the `customer` prop.
-    // This ensures the form state is always in sync.
-    values: {
+    defaultValues: {
+      name: customer.name || '',
+      phone: customer.phone || '',
+      email: customer.email || '',
+      fatherName: customer.fatherName || '',
+      village: customer.village || '',
+    },
+  });
+
+  useEffect(() => {
+    if (isOpen) {
+      form.reset({
         name: customer.name || '',
         phone: customer.phone || '',
         email: customer.email || '',
         fatherName: customer.fatherName || '',
         village: customer.village || '',
-    },
-  });
+      });
+    }
+  }, [isOpen, customer, form]);
 
   const onSubmit = (data: CustomerFormData) => {
     if (!firestore || !appUser) {

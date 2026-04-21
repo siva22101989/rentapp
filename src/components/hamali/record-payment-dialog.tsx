@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useMemo } from 'react';
@@ -16,7 +15,6 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Textarea } from '../ui/textarea';
 import { useFirestore } from '@/firebase/provider';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -25,9 +23,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { addDoc, collection } from 'firebase/firestore';
 import { cleanForFirestore } from '@/lib/utils';
 import type { Expense } from '@/lib/definitions';
+import { format } from 'date-fns';
 
 const HamaliPaymentSchema = z.object({
-  description: z.string().min(2, 'Description is required.'),
   amount: z.coerce.number().positive('Amount must be a positive number.'),
   date: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
 });
@@ -47,7 +45,6 @@ export function RecordHamaliPaymentDialog({
   const form = useForm<HamaliPaymentFormData>({
     resolver: zodResolver(HamaliPaymentSchema),
     defaultValues: {
-      description: '',
       amount: undefined,
       date: new Date().toISOString().split('T')[0],
     },
@@ -62,7 +59,7 @@ export function RecordHamaliPaymentDialog({
     startTransition(async () => {
       try {
         const newExpense: Partial<Expense> = {
-          description: data.description,
+          description: `Hamali Payment on ${format(new Date(data.date), 'dd MMM yyyy')}`,
           amount: data.amount,
           date: new Date(data.date),
           category: 'Hamali Paid' as const,
@@ -83,13 +80,13 @@ export function RecordHamaliPaymentDialog({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-sm">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <DialogHeader>
               <DialogTitle>Record Hamali Payment</DialogTitle>
               <DialogDescription>
-                Record a payment made to workers for hamali (labor charges).
+                Record a payment made to workers for hamali. This will be deducted from the total pending hamali balance.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -98,22 +95,9 @@ export function RecordHamaliPaymentDialog({
                 name="date"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Date</FormLabel>
+                    <FormLabel>Payment Date</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea placeholder="e.g., Hamali for week 1, paid to..." {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -124,7 +108,7 @@ export function RecordHamaliPaymentDialog({
                 name="amount"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Amount</FormLabel>
+                    <FormLabel>Amount Paid</FormLabel>
                     <FormControl>
                       <Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} />
                     </FormControl>

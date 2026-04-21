@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -66,7 +67,7 @@ export function PaymentReport({ records, unloadingRecords, customers }: PaymentR
             filteredEvents = filteredEvents.filter(e => e.date <= toDateObj);
         }
 
-        const sortedEvents = filteredEvents.sort((a,b) => a.date.getTime() - b.date.getTime());
+        const sortedEvents = filteredEvents.sort((a,b) => b.date.getTime() - a.date.getTime());
 
         return sortedEvents.map((event, index) => ({
             ...event,
@@ -113,3 +114,5 @@ export function PaymentReport({ records, unloadingRecords, customers }: PaymentR
         </Card>
     );
 }
+
+    

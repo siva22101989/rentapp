@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -67,7 +68,9 @@ export function DryingHistoryTable({ dryingRecords, customers, unloadingRecords,
                 </TableRow>
             </TableHeader>
             <TableBody>
-                {dryingRecords.map((record) => {
+                {dryingRecords
+                    .sort((a,b) => toDate(b.dryingStartDate).getTime() - toDate(a.dryingStartDate).getTime())
+                    .map((record) => {
                     const dryingStartDate = toDate(record.dryingStartDate);
                     return (
                     <TableRow key={record.id}>
@@ -101,3 +104,5 @@ export function DryingHistoryTable({ dryingRecords, customers, unloadingRecords,
       </Card>
     );
 }
+
+    

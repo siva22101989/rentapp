@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import type { Customer, StorageRecord, UnloadingRecord } from "@/lib/definitions";
 import { PendingDuesReportTable } from "../reports/pending-dues-report-table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toDate } from "@/lib/utils";
 
 type PendingRecord = (StorageRecord | UnloadingRecord) & {
     recordType: 'storage' | 'unloading';
@@ -71,7 +72,11 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords }: {
         
         const allDues: PendingRecord[] = [...storageRecordDues, ...unloadingRecordDues];
 
-        return allDues.filter(record => record.balanceDue > 0.5); // Use a small buffer for floating point issues
+        return allDues.filter(record => record.balanceDue > 0.5).sort((a, b) => {
+            const dateA = a.recordType === 'storage' ? toDate((a as StorageRecord).storageStartDate) : toDate((a as UnloadingRecord).unloadingDate);
+            const dateB = b.recordType === 'storage' ? toDate((b as StorageRecord).storageStartDate) : toDate((b as UnloadingRecord).unloadingDate);
+            return dateB.getTime() - dateA.getTime();
+        }); // Use a small buffer for floating point issues
     }, [records, unloadingRecords]);
 
     return (
@@ -91,3 +96,5 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords }: {
         </Card>
   );
 }
+
+    

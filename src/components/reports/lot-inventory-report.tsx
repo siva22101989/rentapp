@@ -104,14 +104,9 @@ export function LotInventoryReport({ records, customers }: LotInventoryReportPro
             return acc;
         }, {} as GroupedLots);
 
-        // Sort records within each lot by customer name
+        // Sort records within each lot by date
         for (const lotKey in lots) {
-            const customerMap = new Map(customers.map(c => [c.id, c.name]));
-            lots[lotKey].records.sort((a, b) => {
-                const nameA = customerMap.get(a.customerId) || '';
-                const nameB = customerMap.get(b.customerId) || '';
-                return nameA.localeCompare(nameB);
-            });
+            lots[lotKey].records.sort((a, b) => toDate(b.storageStartDate).getTime() - toDate(a.storageStartDate).getTime());
         }
 
         return lots;
@@ -139,3 +134,5 @@ export function LotInventoryReport({ records, customers }: LotInventoryReportPro
         </Card>
     );
 }
+
+    

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -119,7 +120,7 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
             filteredEvents = filteredEvents.filter(e => e.date <= toDateObj);
         }
 
-        const sortedEvents = filteredEvents.sort((a,b) => a.date.getTime() - b.date.getTime());
+        const sortedEvents = filteredEvents.sort((a,b) => b.date.getTime() - a.date.getTime());
 
         let paymentCounter = 1;
         return sortedEvents.map(event => {
@@ -189,7 +190,7 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
             filtered = filtered.filter(e => e.date <= toDateObj);
         }
 
-        const sortedEvents = filtered.sort((a,b) => a.date.getTime() - b.date.getTime());
+        const sortedEvents = filtered.sort((a,b) => b.date.getTime() - a.date.getTime());
 
         let paymentCounter = 1;
         return sortedEvents.map(event => {
@@ -257,3 +258,5 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
         </Card>
     );
 }
+
+    

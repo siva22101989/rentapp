@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, forwardRef } from 'react';
@@ -100,7 +101,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
     });
     
     // --- PROCESS TRANSACTIONS ---
-    const sortedEvents = events.sort((a, b) => a.date.getTime() - b.date.getTime());
+    const sortedEvents = events.sort((a, b) => b.date.getTime() - a.date.getTime());
 
     let runningBagsBalance = 0;
     let runningAmountBalance = 0;
@@ -257,3 +258,5 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
 });
 
 CustomerStatement.displayName = 'CustomerStatement';
+
+    

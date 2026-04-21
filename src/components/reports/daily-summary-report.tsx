@@ -156,6 +156,7 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
                 }
             });
         });
+        data.outflows.sort((a, b) => b.outflowDate.getTime() - a.outflowDate.getTime());
 
         // Unloadings
         data.unloadings = unloadingRecords.filter(r => isSameDay(toDate(r.unloadingDate), date));
@@ -227,3 +228,5 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
         </Card>
     );
 }
+
+    

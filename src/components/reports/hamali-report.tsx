@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { Customer, StorageRecord, UnloadingRecord, Expense } from "@/lib/definitions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -38,6 +39,12 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>('all');
     
     const { dateRange } = useDateFilter();
+
+    useEffect(() => {
+        if (reportView === 'worker') {
+            setSelectedCustomerId('all');
+        }
+    }, [reportView]);
 
     const customerHamaliEvents = useMemo(() => {
         const events: CustomerHamaliEvent[] = [];
@@ -163,7 +170,7 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
         expenses.filter(e => e.category === 'Hamali Paid').forEach(exp => {
             events.push({
                 date: toDate(exp.date),
-                description: 'Payment',
+                description: exp.description,
                 recordId: exp.id,
                 payable: 0,
                 paid: exp.amount,
@@ -217,7 +224,7 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
                             <SelectItem value="worker">Worker Ledger</SelectItem>
                         </SelectContent>
                     </Select>
-                    <Select onValueChange={setSelectedCustomerId} value={selectedCustomerId}>
+                    <Select onValueChange={setSelectedCustomerId} value={selectedCustomerId} disabled={reportView === 'worker'}>
                         <SelectTrigger className="w-full sm:w-auto">
                             <SelectValue placeholder="All Customers" />
                         </SelectTrigger>

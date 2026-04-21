@@ -23,31 +23,21 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { addDoc, collection } from 'firebase/firestore';
-import { cleanForFirestore, formatCurrency } from '@/lib/utils';
-import type { Customer, StorageRecord, UnloadingRecord, Expense } from '@/lib/definitions';
-import { Combobox } from '../ui/combobox';
+import { cleanForFirestore } from '@/lib/utils';
+import type { Expense } from '@/lib/definitions';
 
 const HamaliPaymentSchema = z.object({
   description: z.string().min(2, 'Description is required.'),
   amount: z.coerce.number().positive('Amount must be a positive number.'),
   date: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
-  customerId: z.string().optional(),
 });
 
 type HamaliPaymentFormData = z.infer<typeof HamaliPaymentSchema>;
 
 export function RecordHamaliPaymentDialog({ 
     children, 
-    customers,
-    storageRecords,
-    unloadingRecords,
-    expenses
 }: { 
     children: React.ReactNode, 
-    customers: Customer[],
-    storageRecords: StorageRecord[],
-    unloadingRecords: UnloadingRecord[],
-    expenses: Expense[],
 }) {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
@@ -60,42 +50,8 @@ export function RecordHamaliPaymentDialog({
       description: '',
       amount: undefined,
       date: new Date().toISOString().split('T')[0],
-      customerId: '',
     },
   });
-  
-  const customerOptions = customers.map(c => ({ value: c.id, label: c.name }));
-  const selectedCustomerId = form.watch('customerId');
-
-  const pendingHamali = useMemo(() => {
-    if (!selectedCustomerId) return 0;
-    
-    let totalPayable = 0;
-    
-    storageRecords
-        .filter(r => r.customerId === selectedCustomerId && r.workerHamaliPayable)
-        .forEach(rec => {
-            totalPayable += rec.workerHamaliPayable!;
-        });
-
-    unloadingRecords
-        .filter(r => r.customerId === selectedCustomerId)
-        .forEach(rec => {
-            const hamali = rec.workerHamaliPayable ?? rec.totalHamali ?? 0;
-            totalPayable += hamali;
-        });
-    
-    let totalPaid = 0;
-    expenses
-        .filter(e => e.category === 'Hamali Paid' && e.customerId === selectedCustomerId)
-        .forEach(exp => {
-            totalPaid += exp.amount;
-        });
-
-    const pending = totalPayable - totalPaid;
-    return pending > 0 ? pending : 0;
-  }, [selectedCustomerId, storageRecords, unloadingRecords, expenses]);
-
 
   const onSubmit = (data: HamaliPaymentFormData) => {
     if (!firestore) {
@@ -105,20 +61,11 @@ export function RecordHamaliPaymentDialog({
 
     startTransition(async () => {
       try {
-        let finalDescription = data.description;
-        if (data.customerId) {
-            const customer = customers.find(c => c.id === data.customerId);
-            if(customer) {
-                finalDescription = `For ${customer.name}: ${data.description}`;
-            }
-        }
-        
         const newExpense: Partial<Expense> = {
-          description: finalDescription,
+          description: data.description,
           amount: data.amount,
           date: new Date(data.date),
           category: 'Hamali Paid' as const,
-          customerId: data.customerId || undefined,
         };
         await addDoc(collection(firestore, 'expenses'), cleanForFirestore(newExpense));
         
@@ -159,33 +106,6 @@ export function RecordHamaliPaymentDialog({
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="customerId"
-                render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                        <FormLabel>Customer (Optional)</FormLabel>
-                        <Combobox
-                            options={customerOptions}
-                            value={field.value}
-                            onChange={field.onChange}
-                            placeholder="Select a customer..."
-                            searchPlaceholder="Search customers..."
-                            emptyPlaceholder="No customer found."
-                            modal={true}
-                        />
-                        <FormMessage />
-                    </FormItem>
-                )}
-              />
-               {selectedCustomerId && (
-                <div className="p-3 border rounded-md bg-secondary/50 space-y-1">
-                    <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Pending hamali for this customer:</span>
-                        <span className="font-semibold text-destructive">{formatCurrency(pendingHamali)}</span>
-                    </div>
-                </div>
-              )}
               <FormField
                 control={form.control}
                 name="description"

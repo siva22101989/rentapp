@@ -170,11 +170,10 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
         expenses.filter(e => e.category === 'Hamali Paid').forEach(exp => {
             events.push({
                 date: toDate(exp.date),
-                description: exp.description,
+                description: "Payment to Hamali",
                 recordId: exp.id,
                 payable: 0,
                 paid: exp.amount,
-                customerId: exp.customerId,
             });
         });
 

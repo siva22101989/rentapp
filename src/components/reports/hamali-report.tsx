@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -80,7 +79,7 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
                 events.push({
                     date: toDate(payment.date),
                     customerId: sr.customerId,
-                    description: 'Payment (Storage)',
+                    description: 'Payment',
                     recordId: sr.id,
                     amount: payment.amount,
                     type: 'payment',
@@ -93,7 +92,7 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
                 events.push({
                     date: toDate(payment.date),
                     customerId: ur.customerId,
-                    description: 'Payment (Unloading)',
+                    description: 'Payment',
                     recordId: ur.billNo || 'N/A',
                     amount: payment.amount,
                     type: 'payment',
@@ -114,7 +113,15 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
             filteredEvents = filteredEvents.filter(e => e.date <= toDateObj);
         }
 
-        return filteredEvents.sort((a,b) => a.date.getTime() - b.date.getTime());
+        const sortedEvents = filteredEvents.sort((a,b) => a.date.getTime() - b.date.getTime());
+
+        let paymentCounter = 1;
+        return sortedEvents.map(event => {
+            if (event.type === 'payment') {
+                return { ...event, recordId: String(paymentCounter++) };
+            }
+            return event;
+        });
     }, [records, unloadingRecords, selectedCustomerId, dateRange]);
 
     const workerHamaliEvents = useMemo(() => {
@@ -177,7 +184,16 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
             filtered = filtered.filter(e => e.date <= toDateObj);
         }
 
-        return filtered.sort((a,b) => a.date.getTime() - b.date.getTime());
+        const sortedEvents = filtered.sort((a,b) => a.date.getTime() - b.date.getTime());
+
+        let paymentCounter = 1;
+        return sortedEvents.map(event => {
+            if (event.paid > 0) {
+                return { ...event, recordId: String(paymentCounter++) };
+            }
+            return event;
+        });
+
     }, [records, unloadingRecords, expenses, selectedCustomerId, dateRange]);
 
 

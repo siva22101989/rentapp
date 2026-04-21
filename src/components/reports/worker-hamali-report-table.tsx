@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -48,8 +49,8 @@ export function WorkerHamaliReportTable({ events, customers, title }: ReportTabl
                     {events.map((event, index) => (
                         <TableRow key={index}>
                             <TableCell>{format(event.date, 'dd MMM yyyy')}</TableCell>
-                            <TableCell className="font-medium">{getCustomerName(event.customerId)}</TableCell>
-                            <TableCell>{event.description}</TableCell>
+                            <TableCell className="font-medium">{event.paid > 0 ? 'Payment' : getCustomerName(event.customerId)}</TableCell>
+                            <TableCell>{event.paid > 0 ? 'Payment for Hamali done' : event.description}</TableCell>
                             <TableCell>{event.recordId}</TableCell>
                             <TableCell className="text-center font-mono">{event.bags || ''}</TableCell>
                             <TableCell className="text-right font-mono">

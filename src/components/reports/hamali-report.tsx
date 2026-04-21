@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -170,7 +169,7 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
         expenses.filter(e => e.category === 'Hamali Paid').forEach(exp => {
             events.push({
                 date: toDate(exp.date),
-                description: "Payment to Hamali",
+                description: "Payment",
                 recordId: exp.id,
                 payable: 0,
                 paid: exp.amount,

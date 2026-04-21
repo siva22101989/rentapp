@@ -24,7 +24,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         if (unloading.totalHamali > 0) {
             events.push({
                 date: toDate(unloading.unloadingDate),
-                description: `Unloading Charges`,
+                description: `Unloading Charges (${unloading.bagsUnloaded} bags)`,
                 invoiceId: unloading.billNo || unloading.id.substring(0, 5),
                 lotNo: '',
                 bagsReceived: 0,

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -50,7 +51,7 @@ export function WorkerHamaliReportTable({ events, customers, title }: ReportTabl
                             <TableCell>{format(event.date, 'dd MMM yyyy')}</TableCell>
                             <TableCell className="font-medium">{getCustomerName(event.customerId)}</TableCell>
                             <TableCell>{event.description}</TableCell>
-                            <TableCell>{event.recordId}</TableCell>
+                            <TableCell>{event.paid > 0 ? '' : event.recordId}</TableCell>
                             <TableCell className="text-center font-mono">{event.bags || ''}</TableCell>
                             <TableCell className="text-right font-mono">
                                 {event.payable > 0 ? formatCurrency(event.payable) : ''}

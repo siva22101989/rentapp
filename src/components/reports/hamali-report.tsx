@@ -94,7 +94,7 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
                     date: toDate(payment.date),
                     customerId: ur.customerId,
                     description: 'Payment (Unloading)',
-                    recordId: ur.billNo || ur.id.substring(0,5),
+                    recordId: ur.billNo || 'N/A',
                     amount: payment.amount,
                     type: 'payment',
                 });
@@ -156,10 +156,11 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
         expenses.filter(e => e.category === 'Hamali Paid').forEach(exp => {
             events.push({
                 date: toDate(exp.date),
-                description: exp.description,
-                recordId: exp.id.substring(0,5),
+                description: 'Payment',
+                recordId: exp.id,
                 payable: 0,
                 paid: exp.amount,
+                customerId: exp.customerId,
             });
         });
 

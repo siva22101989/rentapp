@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -179,6 +180,43 @@ export const deleteDryingRecord = async (db: Firestore, dryingRecordId: string):
     // Delete the drying record
     transaction.delete(dryingRecordRef);
   });
+};
+
+export const updateDryingRecord = async (db: Firestore, recordId: string, oldBagsForDrying: number, data: Partial<DryingRecord>): Promise<void> => {
+    const dryingRecordRef = doc(db, 'dryingRecords', recordId);
+    
+    await runTransaction(db, async (transaction) => {
+        const dryingRecordSnap = await transaction.get(dryingRecordRef);
+        if (!dryingRecordSnap.exists()) {
+            throw new Error("Drying record not found.");
+        }
+        const dryingRecordData = dryingRecordSnap.data() as DryingRecord;
+
+        transaction.update(dryingRecordRef, cleanForFirestore(data));
+
+        // If bagsForDrying changed, update the source unloading record
+        const newBagsForDrying = data.bagsForDrying;
+        if (newBagsForDrying !== undefined && newBagsForDrying !== oldBagsForDrying) {
+            const unloadingRecordRef = doc(db, 'unloadingRecords', dryingRecordData.unloadingRecordId);
+            const bagDifference = newBagsForDrying - oldBagsForDrying;
+            
+            const unloadingSnap = await transaction.get(unloadingRecordRef);
+            if (unloadingSnap.exists()) {
+                const unloadingData = unloadingSnap.data() as UnloadingRecord;
+                const bagsAvailable = unloadingData.bagsUnloaded - (unloadingData.bagsSentToDrying || 0);
+
+                if (bagDifference > bagsAvailable) {
+                    throw new Error(`Cannot increase bags. Only ${bagsAvailable} bags available on unloading bill.`);
+                }
+                
+                transaction.update(unloadingRecordRef, {
+                    bagsSentToDrying: increment(bagDifference)
+                });
+            } else {
+                throw new Error("Source unloading record not found. Cannot update bag count.");
+            }
+        }
+    });
 };
 
 

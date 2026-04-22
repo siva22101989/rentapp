@@ -196,9 +196,7 @@ export type DryingRecord = {
 
 export type SmsInfo = {
   id: string;
-  twilioAccountSid: string;
-  twilioAuthToken: string;
-  twilioPhoneNumber: string;
+  textbeeApiKey: string;
 };
 
 export const userRoles = ["super-admin", "owner", "supervisor", "biller"] as const;

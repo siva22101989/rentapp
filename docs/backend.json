@@ -494,23 +494,15 @@
     },
     "smsInfo": {
       "title": "SMS Info",
-      "description": "Settings for the SMS provider (Twilio).",
+      "description": "Settings for the SMS provider (textbee.dev).",
       "type": "object",
       "properties": {
-        "twilioAccountSid": {
+        "textbeeApiKey": {
           "type": "string",
-          "description": "Twilio Account SID."
-        },
-        "twilioAuthToken": {
-          "type": "string",
-          "description": "Twilio Auth Token."
-        },
-        "twilioPhoneNumber": {
-          "type": "string",
-          "description": "The Twilio phone number to send messages from."
+          "description": "Your textbee.dev API key."
         }
       },
-      "required": ["twilioAccountSid", "twilioAuthToken", "twilioPhoneNumber"]
+      "required": ["textbeeApiKey"]
     },
     "appUser": {
       "title": "App User",

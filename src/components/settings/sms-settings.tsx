@@ -21,9 +21,7 @@ import { Skeleton } from '../ui/skeleton';
 import { useAppUser } from '@/firebase/auth/use-user';
 
 const SmsInfoSchema = z.object({
-  twilioAccountSid: z.string().min(1, 'Twilio Account SID is required.'),
-  twilioAuthToken: z.string().min(1, 'Twilio Auth Token is required.'),
-  twilioPhoneNumber: z.string().min(1, 'Twilio Phone Number is required.'),
+  textbeeApiKey: z.string().min(1, 'textbee.dev API Key is required.'),
 });
 
 type SmsInfoFormData = z.infer<typeof SmsInfoSchema>;
@@ -43,18 +41,14 @@ export function SmsSettings() {
     const form = useForm<SmsInfoFormData>({
         resolver: zodResolver(SmsInfoSchema),
         defaultValues: {
-            twilioAccountSid: '',
-            twilioAuthToken: '',
-            twilioPhoneNumber: '',
+            textbeeApiKey: '',
         }
     });
 
     useEffect(() => {
         if (smsInfo) {
             form.reset({
-                twilioAccountSid: smsInfo.twilioAccountSid || '',
-                twilioAuthToken: smsInfo.twilioAuthToken || '',
-                twilioPhoneNumber: smsInfo.twilioPhoneNumber || '',
+                textbeeApiKey: smsInfo.textbeeApiKey || '',
             });
         }
     }, [smsInfo, form]);
@@ -86,8 +80,6 @@ export function SmsSettings() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-10 w-full" />
                     <div className="flex justify-end">
                         <Skeleton className="h-10 w-32" />
                     </div>
@@ -101,7 +93,7 @@ export function SmsSettings() {
         <CardHeader>
             <CardTitle>SMS Configuration</CardTitle>
             <CardDescription>
-                Configure your Twilio account to enable sending SMS notifications to customers.
+                Configure your textbee.dev account to enable sending SMS notifications to customers.
             </CardDescription>
         </CardHeader>
         <CardContent>
@@ -109,33 +101,11 @@ export function SmsSettings() {
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                     <FormField
                         control={form.control}
-                        name="twilioAccountSid"
+                        name="textbeeApiKey"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Twilio Account SID</FormLabel>
-                                <FormControl><Input placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" {...field} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="twilioAuthToken"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Twilio Auth Token</FormLabel>
-                                <FormControl><Input type="password" placeholder="••••••••••••••••••••" {...field} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="twilioPhoneNumber"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Twilio Phone Number</FormLabel>
-                                <FormControl><Input placeholder="+1234567890" {...field} /></FormControl>
+                                <FormLabel>textbee.dev API Key</FormLabel>
+                                <FormControl><Input type="password" placeholder="Enter your API key" {...field} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}

@@ -38,7 +38,7 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
     const [reportView, setReportView] = useState<'customer' | 'worker'>('customer');
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>('all');
     
-    const { dateRange } = useDateFilter();
+    const { dateRange, financialYear } = useDateFilter();
 
     useEffect(() => {
         if (reportView === 'worker') {
@@ -111,13 +111,16 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
         if (selectedCustomerId && selectedCustomerId !== 'all') {
             filteredEvents = filteredEvents.filter(e => e.customerId === selectedCustomerId);
         }
-        if (dateRange?.from) {
-            filteredEvents = filteredEvents.filter(e => e.date >= dateRange.from!);
-        }
-        if (dateRange?.to) {
-            const toDateObj = new Date(dateRange.to);
-            toDateObj.setHours(23, 59, 59, 999);
-            filteredEvents = filteredEvents.filter(e => e.date <= toDateObj);
+        
+        if (financialYear !== 'all-time' && dateRange) {
+            if (dateRange.from) {
+                filteredEvents = filteredEvents.filter(e => e.date >= dateRange.from!);
+            }
+            if (dateRange.to) {
+                const toDateObj = new Date(dateRange.to);
+                toDateObj.setHours(23, 59, 59, 999);
+                filteredEvents = filteredEvents.filter(e => e.date <= toDateObj);
+            }
         }
 
         const sortedEvents = filteredEvents.sort((a,b) => b.date.getTime() - a.date.getTime());
@@ -129,7 +132,7 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
             }
             return event;
         });
-    }, [records, unloadingRecords, selectedCustomerId, dateRange]);
+    }, [records, unloadingRecords, selectedCustomerId, dateRange, financialYear]);
 
     const workerHamaliEvents = useMemo(() => {
         const events: WorkerHamaliEvent[] = [];
@@ -181,13 +184,16 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
         if (selectedCustomerId && selectedCustomerId !== 'all') {
             filtered = filtered.filter(e => e.customerId === selectedCustomerId);
         }
-        if (dateRange?.from) {
-            filtered = filtered.filter(e => e.date >= dateRange.from!);
-        }
-        if (dateRange?.to) {
-            const toDateObj = new Date(dateRange.to);
-            toDateObj.setHours(23, 59, 59, 999);
-            filtered = filtered.filter(e => e.date <= toDateObj);
+        
+        if (financialYear !== 'all-time' && dateRange) {
+            if (dateRange.from) {
+                filtered = filtered.filter(e => e.date >= dateRange.from!);
+            }
+            if (dateRange.to) {
+                const toDateObj = new Date(dateRange.to);
+                toDateObj.setHours(23, 59, 59, 999);
+                filtered = filtered.filter(e => e.date <= toDateObj);
+            }
         }
 
         const sortedEvents = filtered.sort((a,b) => b.date.getTime() - a.date.getTime());
@@ -200,7 +206,7 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
             return event;
         });
 
-    }, [records, unloadingRecords, expenses, selectedCustomerId, dateRange]);
+    }, [records, unloadingRecords, expenses, selectedCustomerId, dateRange, financialYear]);
 
 
     const customer = customers.find(c => c.id === selectedCustomerId);
@@ -258,5 +264,3 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
         </Card>
     );
 }
-
-    

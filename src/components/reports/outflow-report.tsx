@@ -22,7 +22,7 @@ type OutflowReportProps = {
 export function OutflowReport({ records, customers }: OutflowReportProps) {
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>('all');
     
-    const { dateRange } = useDateFilter();
+    const { dateRange, financialYear } = useDateFilter();
 
     const outflowEvents = useMemo(() => {
         const events: OutflowEvent[] = [];
@@ -46,17 +46,20 @@ export function OutflowReport({ records, customers }: OutflowReportProps) {
         if (selectedCustomerId && selectedCustomerId !== 'all') {
             filteredEvents = filteredEvents.filter(r => r.customerId === selectedCustomerId);
         }
-        if (dateRange?.from) {
-            filteredEvents = filteredEvents.filter(r => r.date >= dateRange.from!);
-        }
-        if (dateRange?.to) {
-            const toDateObj = new Date(dateRange.to);
-            toDateObj.setHours(23, 59, 59, 999); // Include the whole day
-            filteredEvents = filteredEvents.filter(r => r.date <= toDateObj);
+
+        if (financialYear !== 'all-time' && dateRange) {
+            if (dateRange.from) {
+                filteredEvents = filteredEvents.filter(r => r.date >= dateRange.from!);
+            }
+            if (dateRange.to) {
+                const toDateObj = new Date(dateRange.to);
+                toDateObj.setHours(23, 59, 59, 999); // Include the whole day
+                filteredEvents = filteredEvents.filter(r => r.date <= toDateObj);
+            }
         }
 
         return filteredEvents.sort((a,b) => b.date.getTime() - a.date.getTime());
-    }, [records, selectedCustomerId, dateRange]);
+    }, [records, selectedCustomerId, dateRange, financialYear]);
     
     const customer = customers.find(c => c.id === selectedCustomerId);
     const title = `Outflow Register ${customer ? `for ${customer.name}` : ''}`;

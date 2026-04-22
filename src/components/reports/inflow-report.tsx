@@ -22,7 +22,7 @@ type InflowReportProps = {
 export function InflowReport({ records, customers }: InflowReportProps) {
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>('all');
     
-    const { dateRange } = useDateFilter();
+    const { dateRange, financialYear } = useDateFilter();
 
     const inflowRecords = useMemo(() => {
         let filteredRecords = records;
@@ -30,17 +30,20 @@ export function InflowReport({ records, customers }: InflowReportProps) {
         if (selectedCustomerId && selectedCustomerId !== 'all') {
             filteredRecords = filteredRecords.filter(r => r.customerId === selectedCustomerId);
         }
-        if (dateRange?.from) {
-            filteredRecords = filteredRecords.filter(r => toDate(r.storageStartDate) >= dateRange.from!);
-        }
-        if (dateRange?.to) {
-            const toDateObj = new Date(dateRange.to);
-            toDateObj.setHours(23, 59, 59, 999); // Include the whole day
-            filteredRecords = filteredRecords.filter(r => toDate(r.storageStartDate) <= toDateObj);
+        
+        if (financialYear !== 'all-time' && dateRange) {
+            if (dateRange.from) {
+                filteredRecords = filteredRecords.filter(r => toDate(r.storageStartDate) >= dateRange.from!);
+            }
+            if (dateRange.to) {
+                const toDateObj = new Date(dateRange.to);
+                toDateObj.setHours(23, 59, 59, 999); // Include the whole day
+                filteredRecords = filteredRecords.filter(r => toDate(r.storageStartDate) <= toDateObj);
+            }
         }
 
         return filteredRecords.sort((a,b) => toDate(b.storageStartDate).getTime() - toDate(a.storageStartDate).getTime());
-    }, [records, selectedCustomerId, dateRange]);
+    }, [records, selectedCustomerId, dateRange, financialYear]);
 
     const customer = customers.find(c => c.id === selectedCustomerId);
     const description = "A log of all items received into storage.";

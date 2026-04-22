@@ -23,7 +23,7 @@ type PaymentReportProps = {
 export function PaymentReport({ records, unloadingRecords, customers }: PaymentReportProps) {
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>('all');
     
-    const { dateRange } = useDateFilter();
+    const { dateRange, financialYear } = useDateFilter();
 
     const paymentEvents = useMemo(() => {
         const events: PaymentEvent[] = [];
@@ -58,13 +58,16 @@ export function PaymentReport({ records, unloadingRecords, customers }: PaymentR
         if (selectedCustomerId && selectedCustomerId !== 'all') {
             filteredEvents = filteredEvents.filter(e => e.customerId === selectedCustomerId);
         }
-        if (dateRange?.from) {
-            filteredEvents = filteredEvents.filter(e => e.date >= dateRange.from!);
-        }
-        if (dateRange?.to) {
-            const toDateObj = new Date(dateRange.to);
-            toDateObj.setHours(23, 59, 59, 999);
-            filteredEvents = filteredEvents.filter(e => e.date <= toDateObj);
+        
+        if (financialYear !== 'all-time' && dateRange) {
+            if (dateRange.from) {
+                filteredEvents = filteredEvents.filter(e => e.date >= dateRange.from!);
+            }
+            if (dateRange.to) {
+                const toDateObj = new Date(dateRange.to);
+                toDateObj.setHours(23, 59, 59, 999);
+                filteredEvents = filteredEvents.filter(e => e.date <= toDateObj);
+            }
         }
 
         const sortedEvents = filteredEvents.sort((a,b) => b.date.getTime() - a.date.getTime());
@@ -73,7 +76,7 @@ export function PaymentReport({ records, unloadingRecords, customers }: PaymentR
             ...event,
             recordId: String(index + 1)
         }));
-    }, [records, unloadingRecords, selectedCustomerId, dateRange]);
+    }, [records, unloadingRecords, selectedCustomerId, dateRange, financialYear]);
 
 
     const customer = customers.find(c => c.id === selectedCustomerId);
@@ -114,5 +117,3 @@ export function PaymentReport({ records, unloadingRecords, customers }: PaymentR
         </Card>
     );
 }
-
-    

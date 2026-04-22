@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo } from 'react';
@@ -96,7 +97,7 @@ type LotOutflowReportProps = {
 }
 
 export function LotOutflowReport({ records, customers }: LotOutflowReportProps) {
-    const { dateRange } = useDateFilter();
+    const { dateRange, financialYear } = useDateFilter();
 
     const groupedLots = useMemo(() => {
         const outflowEvents: OutflowEvent[] = [];
@@ -104,12 +105,14 @@ export function LotOutflowReport({ records, customers }: LotOutflowReportProps) 
             if (record.outflows && Array.isArray(record.outflows)) {
                 record.outflows.forEach(outflow => {
                     const outflowDate = toDate(outflow.date);
-                    // Date filtering
-                    if (dateRange?.from && outflowDate < dateRange.from) return;
-                    if (dateRange?.to) {
-                        const to = new Date(dateRange.to);
-                        to.setHours(23, 59, 59, 999);
-                        if (outflowDate > to) return;
+
+                    if (financialYear !== 'all-time' && dateRange) {
+                        if (dateRange.from && outflowDate < dateRange.from) return;
+                        if (dateRange.to) {
+                            const to = new Date(dateRange.to);
+                            to.setHours(23, 59, 59, 999);
+                            if (outflowDate > to) return;
+                        }
                     }
 
                     outflowEvents.push({
@@ -141,7 +144,7 @@ export function LotOutflowReport({ records, customers }: LotOutflowReportProps) 
         }
 
         return lots;
-    }, [records, dateRange]);
+    }, [records, dateRange, financialYear]);
 
     const title = `Lot-wise Outflow Report`;
     const description = "A summary of all items withdrawn from each lot.";

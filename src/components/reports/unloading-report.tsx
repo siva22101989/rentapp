@@ -23,7 +23,7 @@ type UnloadingReportProps = {
 export function UnloadingReport({ unloadingRecords, customers, commodities }: UnloadingReportProps) {
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>('all');
     
-    const { dateRange } = useDateFilter();
+    const { dateRange, financialYear } = useDateFilter();
 
     const filteredRecords = useMemo(() => {
         let records = unloadingRecords;
@@ -32,17 +32,19 @@ export function UnloadingReport({ unloadingRecords, customers, commodities }: Un
             records = records.filter(r => r.customerId === selectedCustomerId);
         }
 
-        if (dateRange?.from) {
-            records = records.filter(r => toDate(r.unloadingDate) >= dateRange.from!);
-        }
-        if (dateRange?.to) {
-            const toDateObj = new Date(dateRange.to);
-            toDateObj.setHours(23, 59, 59, 999); // Include the whole day
-            records = records.filter(r => toDate(r.unloadingDate) <= toDateObj);
+        if (financialYear !== 'all-time' && dateRange) {
+            if (dateRange.from) {
+                records = records.filter(r => toDate(r.unloadingDate) >= dateRange.from!);
+            }
+            if (dateRange.to) {
+                const toDateObj = new Date(dateRange.to);
+                toDateObj.setHours(23, 59, 59, 999); // Include the whole day
+                records = records.filter(r => toDate(r.unloadingDate) <= toDateObj);
+            }
         }
 
         return records.sort((a,b) => toDate(b.unloadingDate).getTime() - toDate(a.unloadingDate).getTime());
-    }, [unloadingRecords, selectedCustomerId, dateRange]);
+    }, [unloadingRecords, selectedCustomerId, dateRange, financialYear]);
 
     const customer = customers.find(c => c.id === selectedCustomerId);
     const title = `Unloading Register ${customer ? `for ${customer.name}` : ''}`;

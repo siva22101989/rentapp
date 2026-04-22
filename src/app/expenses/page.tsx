@@ -329,7 +329,9 @@ export default function ExpensesPage() {
     }
 
     const inRange = (date: Date) => {
-        if (!dateRange) return true; 
+        if (financialYear === 'all-time') return true;
+        if (!dateRange) return false;
+
         if (dateRange.from && date < dateRange.from) return false;
         if (dateRange.to) {
             const to = new Date(dateRange.to);

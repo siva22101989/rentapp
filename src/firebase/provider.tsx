@@ -107,8 +107,9 @@ export function DateFilterProvider({ children }: { children: ReactNode }) {
 
   const financialYears = useMemo(() => {
     const currentYear = new Date().getFullYear();
-    const currentMonth = new Date().getMonth(); // 0-indexed: Jan is 0, Nov is 10
-    const startYear = currentMonth >= 10 ? currentYear : currentYear - 1; // Nov-Oct cycle
+    const currentMonth = new Date().getMonth(); // 0-indexed: Jan is 0, Apr is 3
+    // If current month is April or later, the financial year started this year.
+    const startYear = currentMonth >= 3 ? currentYear : currentYear - 1;
     const years = [];
     for (let i = 0; i < 10; i++) {
       const year = startYear - i;
@@ -127,8 +128,9 @@ export function DateFilterProvider({ children }: { children: ReactNode }) {
       return;
     }
     const startYear = parseInt(fy.substring(0, 4), 10);
-    const fromDate = new Date(startYear, 10, 1); // November 1st
-    const toDate = new Date(startYear + 1, 9, 31); // October 31st
+    // Financial year is from April 1st to March 31st
+    const fromDate = new Date(startYear, 3, 1); // April is month 3
+    const toDate = new Date(startYear + 1, 2, 31); // March is month 2
     setDateRange({ from: fromDate, to: toDate });
   };
   

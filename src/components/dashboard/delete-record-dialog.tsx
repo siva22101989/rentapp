@@ -40,10 +40,10 @@ export function DeleteRecordDialog({
         await deleteStorageRecord(firestore, recordId);
         toast({ title: 'Success', description: 'Storage record deleted successfully.' });
         setIsOpen(false);
-      } catch (error) {
+      } catch (error: any) {
         toast({
-          title: 'Error',
-          description: 'Failed to delete storage record.',
+          title: 'Error Deleting Record',
+          description: error.message || 'An unexpected error occurred.',
           variant: 'destructive',
         });
         console.error("Failed to delete record:", error);

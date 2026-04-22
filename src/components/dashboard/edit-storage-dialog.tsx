@@ -16,10 +16,10 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import type { Customer, StorageRecord, Commodity, Lot } from '@/lib/definitions';
-import { format } from 'date-fns';
+import type { Customer, StorageRecord, Commodity, Lot, HamaliChargeItem } from '@/lib/definitions';
+import { format, differenceInDays } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { toDate, cleanForFirestore } from '@/lib/utils';
+import { toDate, cleanForFirestore, formatCurrency } from '@/lib/utils';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -36,14 +36,34 @@ const EditStorageRecordSchema = z.object({
   customerId: z.string().min(1, 'Customer is required.'),
   commodityDescription: z.string().min(1, 'Commodity is required.'),
   location: z.string().optional(),
-  storageStartDate: z.string().refine(val => !isNaN(Date.parse(val))),
+  storageStartDate: z.string().refine(val => !isNaN(Date.parse(val))), // This is Drying End Date for Plot
   bagsIn: z.coerce.number().int().nonnegative('Must be a non-negative number.'),
   weight: z.coerce.number().nonnegative('Must be a non-negative number.').optional(),
   lorryTractorNo: z.string().optional(),
-  hamaliPayable: z.coerce.number().nonnegative(),
   khataAmount: z.coerce.number().nonnegative().optional(),
+  // Plot specific fields
   bagsForDrying: z.coerce.number().int().nonnegative('Must be a non-negative number.').optional(),
   dryingStartDate: z.string().optional(),
+  customerHamaliPerBag: z.coerce.number().nonnegative().optional(),
+  workerHamaliPerBag: z.coerce.number().nonnegative().optional(),
+  pavHamaliPerBag: z.coerce.number().nonnegative().optional(),
+  cuppaHamaliPerBag: z.coerce.number().nonnegative().optional(),
+}).refine(data => {
+    if (data.dryingStartDate && data.storageStartDate) {
+        return new Date(data.storageStartDate) >= new Date(data.dryingStartDate)
+    }
+    return true;
+}, {
+    message: "Drying End Date must be on or after Drying Start Date.",
+    path: ["storageStartDate"],
+}).refine(data => {
+    if(data.bagsIn && data.bagsForDrying) {
+        return data.bagsIn <= data.bagsForDrying;
+    }
+    return true;
+}, {
+    message: "Bags packed cannot be more than bags for drying.",
+    path: ["bagsIn"],
 });
 
 type EditStorageRecordFormData = z.infer<typeof EditStorageRecordSchema>;
@@ -84,23 +104,71 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
 
   const handleOpenChange = (open: boolean) => {
     if (open) {
+      const getRate = (desc: string) => record.hamaliDetails?.find(d => d.description.startsWith(desc))?.rate;
+
       form.reset({
         customerId: record.customerId,
         commodityDescription: record.commodityDescription,
         location: record.location || '',
         storageStartDate: format(toDate(record.storageStartDate), 'yyyy-MM-dd'),
-        bagsIn: record.bagsIn ?? '',
-        weight: record.weight ?? '',
+        bagsIn: record.bagsIn ?? 0,
+        weight: record.weight ?? 0,
         lorryTractorNo: record.lorryTractorNo || '',
-        hamaliPayable: record.hamaliPayable ?? '',
-        khataAmount: record.khataAmount ?? '',
-        bagsForDrying: record.bagsForDrying ?? '',
+        khataAmount: record.khataAmount ?? 0,
+        // Plot specific
+        bagsForDrying: record.bagsForDrying ?? 0,
         dryingStartDate: record.dryingStartDate ? format(toDate(record.dryingStartDate), 'yyyy-MM-dd') : '',
+        customerHamaliPerBag: getRate('Customer Hamali'),
+        pavHamaliPerBag: getRate('Pav Hamali'),
+        cuppaHamaliPerBag: getRate('Cuppa Hamali'),
+        workerHamaliPerBag: undefined, // Cannot derive reliably, user must re-enter if they want to change worker payable.
       });
     }
     setIsOpen(open);
   }
   
+  const formValues = form.watch();
+
+  const calculatedHamali = useMemo(() => {
+    if (record.inflowType !== 'Plot') return null;
+
+    const { dryingStartDate, storageStartDate, bagsForDrying, customerHamaliPerBag, workerHamaliPerBag, pavHamaliPerBag, cuppaHamaliPerBag } = formValues;
+
+    const unloadingHamaliDetail = record.hamaliDetails?.find(d => d.description === 'Unloading Hamali');
+    const proportionalUnloadingHamali = unloadingHamaliDetail?.amount || 0;
+
+    const day1CustomerHamali = (Number(bagsForDrying) || 0) * (Number(customerHamaliPerBag) || 0);
+
+    let extraDryingDays = 0;
+    if (dryingStartDate && storageStartDate) {
+        const start = new Date(dryingStartDate);
+        const end = new Date(storageStartDate);
+        if (end >= start) {
+            const days = differenceInDays(end, start) + 1;
+            extraDryingDays = days > 1 ? days - 1 : 0;
+        }
+    }
+    
+    const pavHamali = (Number(bagsForDrying) || 0) * (Number(pavHamaliPerBag) || 0) * extraDryingDays;
+    const cuppaHamali = (Number(bagsForDrying) || 0) * (Number(cuppaHamaliPerBag) || 0) * extraDryingDays;
+    const totalCustomerCharge = proportionalUnloadingHamali + day1CustomerHamali + pavHamali + cuppaHamali;
+    
+    const day1WorkerHamali = (Number(bagsForDrying) || 0) * (Number(workerHamaliPerBag) || 0);
+    const totalWorkerPayable = proportionalUnloadingHamali + day1WorkerHamali + pavHamali + cuppaHamali;
+
+    return {
+        proportionalUnloadingHamali,
+        day1CustomerHamali,
+        pavHamali,
+        cuppaHamali,
+        totalCustomerCharge,
+        extraDryingDays,
+        totalWorkerPayable: workerHamaliPerBag !== undefined ? totalWorkerPayable : undefined,
+    }
+
+  }, [formValues, record.hamaliDetails, record.inflowType]);
+
+
   const onSubmit = (data: EditStorageRecordFormData) => {
     if (!firestore) {
       toast({ variant: 'destructive', title: 'Error', description: 'Firestore not available' });
@@ -123,14 +191,26 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
             bagsStored,
             weight: data.weight,
             lorryTractorNo: data.lorryTractorNo,
-            hamaliPayable: data.hamaliPayable,
             khataAmount: data.khataAmount,
         };
         
-        if (record.inflowType === 'Plot') {
+        if (record.inflowType === 'Plot' && calculatedHamali) {
             updateData.bagsForDrying = data.bagsForDrying;
             updateData.dryingStartDate = data.dryingStartDate ? new Date(data.dryingStartDate) : null;
             updateData.dryingEndDate = new Date(data.storageStartDate); 
+            
+            const hamaliDetails: HamaliChargeItem[] = [];
+            const unloadingHamaliDetail = record.hamaliDetails?.find(d => d.description === 'Unloading Hamali');
+            if(unloadingHamaliDetail) hamaliDetails.push(unloadingHamaliDetail);
+            if(calculatedHamali.day1CustomerHamali > 0) hamaliDetails.push({ description: 'Customer Hamali', bags: data.bagsForDrying || 0, rate: data.customerHamaliPerBag || 0, amount: calculatedHamali.day1CustomerHamali });
+            if(calculatedHamali.pavHamali > 0) hamaliDetails.push({ description: `Pav Hamali (${calculatedHamali.extraDryingDays} extra day${calculatedHamali.extraDryingDays !== 1 ? 's' : ''})`, bags: data.bagsForDrying || 0, rate: data.pavHamaliPerBag || 0, amount: calculatedHamali.pavHamali });
+            if(calculatedHamali.cuppaHamali > 0) hamaliDetails.push({ description: `Cuppa Hamali (${calculatedHamali.extraDryingDays} extra day${calculatedHamali.extraDryingDays !== 1 ? 's' : ''})`, bags: data.bagsForDrying || 0, rate: data.cuppaHamaliPerBag || 0, amount: calculatedHamali.cuppaHamali });
+
+            updateData.hamaliDetails = hamaliDetails;
+            updateData.hamaliPayable = calculatedHamali.totalCustomerCharge;
+            if (calculatedHamali.totalWorkerPayable !== undefined) {
+                updateData.workerHamaliPayable = calculatedHamali.totalWorkerPayable;
+            }
         }
 
         await updateStorageRecord(firestore, record.id, updateData);
@@ -150,7 +230,7 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-2xl">
         <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <DialogHeader>
@@ -159,7 +239,7 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
               Adjust the details for record {record.id}. Payment history cannot be edited here.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-4">
+          <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
              <FormField
                 control={form.control}
                 name="customerId"
@@ -204,136 +284,85 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
                   </FormItem>
                 )}
               />
-              <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="storageStartDate"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Start Date</FormLabel>
-                        <FormControl><Input type="date" {...field} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                 <FormField
-                    control={form.control}
-                    name="lorryTractorNo"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Lorry/Tractor No.</FormLabel>
-                        <FormControl><Input placeholder="AP 12 3456" {...field} value={field.value ?? ''} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                    control={form.control}
-                    name="bagsIn"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Bags In</FormLabel>
-                        <FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="weight"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Weight (Kgs)</FormLabel>
-                        <FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ''} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-              </div>
-               <div className="grid grid-cols-2 gap-4">
-                 <FormField
-                    control={form.control}
-                    name="hamaliPayable"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Hamali Payable</FormLabel>
-                        <FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ''} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="khataAmount"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Khata Amount</FormLabel>
-                        <FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ''} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-              </div>
-              <FormField
-                  control={form.control}
-                  name="location"
-                  render={({ field }) => (
-                  <FormItem>
-                      <FormLabel>Location</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                              <SelectTrigger><SelectValue placeholder="Select a lot..."/></SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                              {lots
-                                  ?.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
-                                  .map(lot => {
-                                      const occupied = lotOccupancy[lot.name] || 0;
-                                      const capacity = lot.capacity ? ` / ${lot.capacity}` : '';
-                                      return (
-                                          <SelectItem key={lot.id} value={lot.name}>
-                                              {lot.name} ({occupied}{capacity} bags)
-                                          </SelectItem>
-                                      )
-                              })}
-                          </SelectContent>
-                      </Select>
-                      <FormMessage />
-                  </FormItem>
-                  )}
-              />
-              {record.inflowType === 'Plot' && (
-                <div className="space-y-4 pt-4 mt-4 border-t">
-                    <h4 className="text-sm font-semibold text-muted-foreground">Drying Process Details</h4>
+              {record.inflowType === 'Plot' ? (
+                <>
+                    <Separator className="my-4" />
+                    <h4 className="text-sm font-semibold text-muted-foreground -mb-2">Drying & Hamali Details</h4>
+
                     <div className="grid grid-cols-2 gap-4">
-                        <FormField
-                            control={form.control}
-                            name="dryingStartDate"
-                            render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Drying Start Date</FormLabel>
-                                <FormControl><Input type="date" {...field} value={field.value ?? ''} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="bagsForDrying"
-                            render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Bags Sent for Drying</FormLabel>
-                                <FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                            )}
-                        />
+                        <FormField control={form.control} name="dryingStartDate" render={({ field }) => (
+                            <FormItem><FormLabel>Drying Start Date</FormLabel><FormControl><Input type="date" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                        )}/>
+                        <FormField control={form.control} name="storageStartDate" render={({ field }) => (
+                            <FormItem><FormLabel>Drying End Date (Storage Date)</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
+                        )}/>
                     </div>
-                    <p className="text-xs text-muted-foreground">Note: The "Start Date" field above corresponds to the "Drying End Date".</p>
-                </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                         <FormField control={form.control} name="bagsForDrying" render={({ field }) => (
+                            <FormItem><FormLabel>Bags Plotted for Drying</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                         )}/>
+                         <FormField control={form.control} name="bagsIn" render={({ field }) => (
+                            <FormItem><FormLabel>Bags Packed (Final Stock)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                         )}/>
+                    </div>
+
+                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <FormField control={form.control} name="customerHamaliPerBag" render={({ field }) => (
+                            <FormItem><FormLabel>Cust. Hamali/Bag</FormLabel><FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                        )}/>
+                         <FormField control={form.control} name="workerHamaliPerBag" render={({ field }) => (
+                            <FormItem><FormLabel>Worker Hamali/Bag</FormLabel><FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ''} placeholder="Re-enter to update" /></FormControl><FormMessage /></FormItem>
+                        )}/>
+                         <FormField control={form.control} name="pavHamaliPerBag" render={({ field }) => (
+                            <FormItem><FormLabel>Pav Hamali/Bag/Day</FormLabel><FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                        )}/>
+                         <FormField control={form.control} name="cuppaHamaliPerBag" render={({ field }) => (
+                            <FormItem><FormLabel>Cuppa Hamali/Bag/Day</FormLabel><FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                        )}/>
+                    </div>
+                    {calculatedHamali && (
+                        <div className="space-y-2 p-3 border rounded-md text-sm">
+                            <h5 className="font-medium">Live Summary</h5>
+                            <div className="flex justify-between"><span className="text-muted-foreground">Unloading Hamali:</span> <span className="font-mono">{formatCurrency(calculatedHamali.proportionalUnloadingHamali)}</span></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">Day 1 Hamali:</span> <span className="font-mono">{formatCurrency(calculatedHamali.day1CustomerHamali)}</span></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">Pav Hamali ({calculatedHamali.extraDryingDays} extra days):</span> <span className="font-mono">{formatCurrency(calculatedHamali.pavHamali)}</span></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">Cuppa Hamali ({calculatedHamali.extraDryingDays} extra days):</span> <span className="font-mono">{formatCurrency(calculatedHamali.cuppaHamali)}</span></div>
+                            <Separator/>
+                            <div className="flex justify-between font-semibold"><span >Total Hamali for Customer:</span> <span className="font-mono">{formatCurrency(calculatedHamali.totalCustomerCharge)}</span></div>
+                             {calculatedHamali.totalWorkerPayable !== undefined && <div className="flex justify-between font-semibold"><span >Total Payable to Worker:</span> <span className="font-mono">{formatCurrency(calculatedHamali.totalWorkerPayable)}</span></div>}
+                        </div>
+                    )}
+                    <Separator className="my-4" />
+                </>
+              ) : (
+                <>
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField control={form.control} name="storageStartDate" render={({ field }) => ( <FormItem><FormLabel>Start Date</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="lorryTractorNo" render={({ field }) => ( <FormItem><FormLabel>Lorry/Tractor No.</FormLabel><FormControl><Input placeholder="AP 12 3456" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem> )} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField control={form.control} name="bagsIn" render={({ field }) => ( <FormItem><FormLabel>Bags In</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="weight" render={({ field }) => ( <FormItem><FormLabel>Weight (Kgs)</FormLabel><FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem> )}/>
+                    </div>
+                </>
               )}
+               <FormField name="location" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Location</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Select a lot..."/></SelectTrigger></FormControl>
+                            <SelectContent>
+                                {lots?.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true })).map(lot => {
+                                    const occupied = lotOccupancy[lot.name] || 0;
+                                    const capacity = lot.capacity ? ` / ${lot.capacity}` : '';
+                                    return ( <SelectItem key={lot.id} value={lot.name}> {lot.name} ({occupied}{capacity} bags) </SelectItem> )
+                                })}
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                    </FormItem>
+                )}/>
           </div>
           <DialogFooter>
             <DialogClose asChild>

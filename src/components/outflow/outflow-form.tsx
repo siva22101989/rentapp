@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import type { Customer, StorageRecord, Payment, Outflow, WarehouseInfo, Commodity } from '@/lib/definitions';
+import type { Customer, StorageRecord, Payment, Outflow, WarehouseInfo, Commodity, SmsInfo } from '@/lib/definitions';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Separator } from '../ui/separator';
@@ -18,6 +18,11 @@ import { format } from 'date-fns';
 import { toDate, cleanForFirestore, formatCurrency } from '@/lib/utils';
 import { Combobox } from '../ui/combobox';
 import { useRouter } from 'next/navigation';
+import { useDoc } from '@/firebase/firestore/use-doc';
+import { useMemoFirebase } from '@/hooks/use-memo-firebase';
+import { Checkbox } from '@/components/ui/checkbox';
+import { sendSms } from '@/lib/sms';
+import { useAppUser } from '@/firebase/auth/use-user';
 
 function SubmitButton({ isPending }: { isPending: boolean }) {
     return (
@@ -38,7 +43,9 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
     const { toast } = useToast();
     const router = useRouter();
     const firestore = useFirestore();
+    const appUser = useAppUser();
     const [isPending, startTransition] = useTransition();
+    const [sendSmsNotification, setSendSmsNotification] = useState(true);
     
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
     const [withdrawals, setWithdrawals] = useState<Record<string, number | ''>>({});
@@ -50,6 +57,12 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
     const [totalRent, setTotalRent] = useState(0);
     const [totalPendingHamali, setTotalPendingHamali] = useState(0);
     const [totalBags, setTotalBags] = useState(0);
+
+    const smsInfoRef = useMemoFirebase(() => (firestore && appUser ? doc(firestore, 'settings', 'sms') : null), [firestore, appUser]);
+    const { data: smsInfo } = useDoc<SmsInfo>(smsInfoRef);
+
+    const warehouseInfoRef = useMemoFirebase(() => (firestore && appUser ? doc(firestore, 'settings', 'main') : null), [firestore, appUser]);
+    const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
     const customerOptions = customers.map(c => ({ value: c.id, label: c.name }));
 
@@ -240,6 +253,15 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                 
                 await batch.commit();
 
+                if (sendSmsNotification && smsInfo?.textbeeApiKey && selectedCustomer?.phone) {
+                    const message = `Dear ${selectedCustomer.name}, your withdrawal of ${totalBags} bags has been processed on ${format(withdrawalDate, 'dd/MM/yy')}. Total Payable: ${formatCurrency(totalPayable)}. Thank you. - ${warehouseInfo?.name || 'GrainDost'}`;
+                    sendSms({
+                        apiKey: smsInfo.textbeeApiKey,
+                        to: selectedCustomer.phone,
+                        message,
+                    }).catch(console.error);
+                }
+
                 if (isMultiLotWithdrawal) {
                     toast({ title: 'Success', description: `${withdrawalEntries.length} records processed. You can make a bulk payment from the Pending Payments page.`, duration: 7000 });
                     resetForm();
@@ -401,6 +423,20 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                                         {isMultiLotWithdrawal ? "Payment can only be recorded for single-lot withdrawals. For bulk, use the Pending Payments page after." : "Enter amount paid by customer. Leave blank if unpaid."}
                                     </p>
                                 </div>
+                            </div>
+                             <div className="flex items-center space-x-2 pt-4">
+                                <Checkbox 
+                                    id="sendSmsOutflow" 
+                                    checked={sendSmsNotification}
+                                    onCheckedChange={(checked) => setSendSmsNotification(Boolean(checked))}
+                                    disabled={!smsInfo?.textbeeApiKey || !selectedCustomer?.phone}
+                                />
+                                <label
+                                    htmlFor="sendSmsOutflow"
+                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                >
+                                    Send SMS Notification to Customer
+                                </label>
                             </div>
                         </>
                     )}

@@ -13,11 +13,17 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase/provider';
-import type { Customer, Commodity, UnloadingRecord, WarehouseInfo } from '@/lib/definitions';
+import type { Customer, Commodity, UnloadingRecord, WarehouseInfo, SmsInfo } from '@/lib/definitions';
 import { setDoc, collection, Timestamp, doc } from 'firebase/firestore';
 import { formatCurrency, cleanForFirestore } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 import { Combobox } from '../ui/combobox';
+import { Checkbox } from '@/components/ui/checkbox';
+import { sendSms } from '@/lib/sms';
+import { format } from 'date-fns';
+import { useDoc } from '@/firebase/firestore/use-doc';
+import { useMemoFirebase } from '@/hooks/use-memo-firebase';
+import { useAppUser } from '@/firebase/auth/use-user';
 
 const UnloadingRecordSchema = z.object({
   customerId: z.string().min(1, 'Customer is required.'),
@@ -43,6 +49,14 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
     const { toast } = useToast();
     const [isPending, setIsPending] = useState(false);
     const firestore = useFirestore();
+    const appUser = useAppUser();
+    const [sendSmsNotification, setSendSmsNotification] = useState(true);
+
+    const smsInfoRef = useMemoFirebase(() => (firestore && appUser ? doc(firestore, 'settings', 'sms') : null), [firestore, appUser]);
+    const { data: smsInfo } = useDoc<SmsInfo>(smsInfoRef);
+
+    const warehouseInfoRef = useMemoFirebase(() => (firestore && appUser ? doc(firestore, 'settings', 'main') : null), [firestore, appUser]);
+    const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
     const form = useForm<UnloadingFormData>({
         resolver: zodResolver(UnloadingRecordSchema),
@@ -103,6 +117,15 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
             };
             const docRef = doc(firestore, 'unloadingRecords', data.billNo);
             await setDoc(docRef, cleanForFirestore(rawRecord));
+
+            if (sendSmsNotification && smsInfo?.textbeeApiKey && selectedCustomer?.phone) {
+                const message = `Dear ${selectedCustomer.name}, we have received your delivery of ${data.bagsUnloaded} bags of ${data.commodityDescription} for unloading on ${format(unloadingDate, 'dd/MM/yy')}. Bill No: ${data.billNo}. Thank you. - ${warehouseInfo?.name || 'GrainDost'}`;
+                sendSms({
+                    apiKey: smsInfo.textbeeApiKey,
+                    to: selectedCustomer.phone,
+                    message,
+                }).catch(console.error);
+            }
             
             toast({ title: 'Success', description: 'Unloading record added.' });
             
@@ -241,6 +264,21 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
                             <span className="font-mono">{formatCurrency(totalHamali)}</span>
                         </div>
                          <p className="text-xs text-muted-foreground">This amount will be charged to the customer and is payable to the worker.</p>
+                    </div>
+
+                     <div className="flex items-center space-x-2 pt-4">
+                        <Checkbox 
+                            id="sendSmsUnloading" 
+                            checked={sendSmsNotification}
+                            onCheckedChange={(checked) => setSendSmsNotification(Boolean(checked))}
+                            disabled={!smsInfo?.textbeeApiKey || !selectedCustomer?.phone}
+                        />
+                        <label
+                            htmlFor="sendSmsUnloading"
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                            Send SMS Notification to Customer
+                        </label>
                     </div>
 
                 </CardContent>

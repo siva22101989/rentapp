@@ -96,6 +96,7 @@
   }
   body {
     @apply bg-background text-foreground;
+    touch-action: manipulation;
   }
   /* Hide arrows from number inputs */
   /* Chrome, Safari, Edge, Opera */

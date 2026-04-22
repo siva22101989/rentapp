@@ -1,4 +1,3 @@
-
 'use server';
 
 import { z } from 'zod';
@@ -19,7 +18,17 @@ export async function sendSms(formData: { apiKey: string; to: string; message: s
   }
 
   const { apiKey, to, message } = validatedFields.data;
-  const senderId = formData.senderId || 'GRNDST'; // Default sender ID
+  const senderId = formData.senderId || 'TXTBEE'; // Use the default TXTBEE sender ID for better reliability
+
+  // Clean the phone number to ensure it's just digits
+  const cleanedPhoneNumber = to.replace(/\D/g, '');
+  
+  if (cleanedPhoneNumber.length < 10) {
+      console.error(`SMS validation failed: Phone number "${to}" is too short after cleaning.`);
+      return;
+  }
+  // Take the last 10 digits to be safe, which is standard for Indian mobile numbers
+  const tenDigitPhoneNumber = cleanedPhoneNumber.slice(-10);
 
   try {
     const response = await fetch('https://api.textbee.dev/api/send', {
@@ -28,7 +37,7 @@ export async function sendSms(formData: { apiKey: string; to: string; message: s
       body: JSON.stringify({
         api_key: apiKey,
         sender: senderId,
-        to: `+91${to}`, // Assuming Indian numbers
+        to: `+91${tenDigitPhoneNumber}`, // Use the cleaned 10-digit number
         message,
       }),
     });

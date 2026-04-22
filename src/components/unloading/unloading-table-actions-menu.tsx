@@ -1,4 +1,3 @@
-
 'use client';
 
 import { MoreHorizontal, Pencil, Trash2, FileText } from "lucide-react";
@@ -20,6 +19,7 @@ export function UnloadingTableActionsMenu({ record, customers, commodities }: Ac
     const appUser = useAppUser();
     const canEdit = appUser?.role === 'owner' || appUser?.role === 'biller' || appUser?.role === 'super-admin';
     const canDelete = appUser?.role === 'owner' || appUser?.role === 'super-admin';
+    const isDeletable = (record.bagsSentToDrying || 0) === 0;
     
     const customer = customers.find(c => c.id === record.customerId);
     
@@ -54,7 +54,11 @@ export function UnloadingTableActionsMenu({ record, customers, commodities }: Ac
                     <>
                         <DropdownMenuSeparator />
                         <DeleteUnloadingRecordDialog recordId={record.id}>
-                            <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                            <DropdownMenuItem
+                                onSelect={(e) => { if (!isDeletable) e.preventDefault(); }}
+                                disabled={!isDeletable}
+                                className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                            >
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 Delete
                             </DropdownMenuItem>

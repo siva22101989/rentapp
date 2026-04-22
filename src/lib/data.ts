@@ -52,15 +52,37 @@ export const deleteStorageRecord = async (db: Firestore, id: string): Promise<vo
             return;
         }
         const recordData = recordSnap.data() as StorageRecord;
+
+        // If the storage record came from a drying process...
         if (recordData.inflowType === 'Plot' && recordData.dryingRecordId) {
-            const unloadingRecordRef = doc(db, 'unloadingRecords', recordData.dryingRecordId);
-            const bagsToReturn = recordData.bagsForDrying || 0;
-            if (bagsToReturn > 0) {
-                 transaction.update(unloadingRecordRef, {
-                    bagsSentToDrying: increment(-bagsToReturn)
+            
+            // Get the drying record using the ID from the storage record.
+            const dryingRecordRef = doc(db, 'dryingRecords', recordData.dryingRecordId);
+            const dryingRecordSnap = await transaction.get(dryingRecordRef);
+            
+            if (dryingRecordSnap.exists()) {
+                const dryingRecordData = dryingRecordSnap.data() as DryingRecord;
+                
+                // Now get the original unloading record using the ID from the drying record.
+                const unloadingRecordRef = doc(db, 'unloadingRecords', dryingRecordData.unloadingRecordId);
+                const bagsToReturn = dryingRecordData.bagsForDrying || 0;
+
+                // Return the bags to the unloading record.
+                if (bagsToReturn > 0) {
+                     transaction.update(unloadingRecordRef, {
+                        bagsSentToDrying: increment(-bagsToReturn)
+                    });
+                }
+
+                // Revert the status of the drying record so it's no longer 'Billed'.
+                // This allows it to be edited or deleted from the drying page.
+                transaction.update(dryingRecordRef, {
+                    status: 'Packing',
+                    billingDate: null
                 });
             }
         }
+        // Finally, delete the storage record itself.
         transaction.delete(recordRef);
     });
 };

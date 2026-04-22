@@ -1,3 +1,4 @@
+
 'use client';
 
 import { MoreHorizontal, Pencil, Trash2, FileText } from "lucide-react";
@@ -55,7 +56,7 @@ export function UnloadingTableActionsMenu({ record, customers, commodities }: Ac
                         <DropdownMenuSeparator />
                         <DeleteUnloadingRecordDialog recordId={record.id}>
                             <DropdownMenuItem
-                                onSelect={(e) => { if (!isDeletable) e.preventDefault(); }}
+                                onSelect={(e) => e.preventDefault()}
                                 disabled={!isDeletable}
                                 className="text-destructive focus:text-destructive focus:bg-destructive/10"
                             >

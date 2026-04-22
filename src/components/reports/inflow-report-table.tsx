@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from "react";
@@ -39,43 +40,43 @@ export function InflowReportTable({ records, customers, title, description, allR
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead className="h-auto p-3">Date</TableHead>
-                        <TableHead className="h-auto p-3">Bill No</TableHead>
-                        <TableHead className="h-auto p-3 min-w-[180px]">Customer</TableHead>
-                        <TableHead className="h-auto p-3">Commodity</TableHead>
-                        <TableHead className="h-auto p-3">Inflow Type</TableHead>
-                        <TableHead className="h-auto p-3">Lorry/Tractor No</TableHead>
-                        <TableHead className="h-auto p-3">Lot No</TableHead>
-                        <TableHead className="h-auto p-3 text-right">Bags</TableHead>
-                        <TableHead className="h-auto p-3 text-right">Weight (Kgs)</TableHead>
-                        <TableHead className="h-auto p-3 w-[50px] text-right print-hide">Actions</TableHead>
+                        <TableHead className="h-auto p-2">Date</TableHead>
+                        <TableHead className="h-auto p-2">Bill No</TableHead>
+                        <TableHead className="h-auto p-2 min-w-[180px]">Customer</TableHead>
+                        <TableHead className="h-auto p-2">Commodity</TableHead>
+                        <TableHead className="h-auto p-2">Inflow Type</TableHead>
+                        <TableHead className="h-auto p-2">Lorry/Tractor No</TableHead>
+                        <TableHead className="h-auto p-2">Lot No</TableHead>
+                        <TableHead className="h-auto p-2 text-right">Bags</TableHead>
+                        <TableHead className="h-auto p-2 text-right">Weight (Kgs)</TableHead>
+                        <TableHead className="h-auto p-2 w-[50px] text-right print-hide">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {records.length > 0 ? (
                         records.map((record) => (
                             <TableRow key={record.id}>
-                                <TableCell className="p-3">{format(toDate(record.storageStartDate), 'dd MMM yyyy')}</TableCell>
-                                <TableCell className="p-3">{record.id}</TableCell>
-                                <TableCell className="p-3 font-medium whitespace-nowrap">{getCustomerName(record.customerId)}</TableCell>
-                                <TableCell className="p-3">{record.commodityDescription}</TableCell>
-                                <TableCell className="p-3">
+                                <TableCell className="p-2">{format(toDate(record.storageStartDate), 'dd MMM yyyy')}</TableCell>
+                                <TableCell className="p-2">{record.id}</TableCell>
+                                <TableCell className="p-2 font-medium whitespace-nowrap">{getCustomerName(record.customerId)}</TableCell>
+                                <TableCell className="p-2">{record.commodityDescription}</TableCell>
+                                <TableCell className="p-2">
                                     <Badge variant={record.inflowType === 'Direct' ? 'default' : 'secondary'} className={record.inflowType === 'Plot' ? 'bg-purple-100 text-purple-800' : ''}>
                                         {record.inflowType || 'Direct'}
                                     </Badge>
                                 </TableCell>
-                                <TableCell className="p-3">{record.lorryTractorNo}</TableCell>
-                                <TableCell className="p-3">{record.location}</TableCell>
-                                <TableCell className="p-3 text-right font-mono">{record.bagsIn}</TableCell>
-                                <TableCell className="p-3 text-right font-mono">{record.weight ? record.weight.toFixed(2) : ''}</TableCell>
-                                <TableCell className="p-3 text-right print-hide">
+                                <TableCell className="p-2">{record.lorryTractorNo}</TableCell>
+                                <TableCell className="p-2">{record.location}</TableCell>
+                                <TableCell className="p-2 text-right font-mono">{record.bagsIn}</TableCell>
+                                <TableCell className="p-2 text-right font-mono">{record.weight ? record.weight.toFixed(2) : ''}</TableCell>
+                                <TableCell className="p-2 text-right print-hide">
                                     <ActionsMenu record={record} customers={customers} allRecords={allRecords} />
                                 </TableCell>
                             </TableRow>
                         ))
                     ) : (
                         <TableRow>
-                            <TableCell colSpan={10} className="p-3 text-center text-muted-foreground">
+                            <TableCell colSpan={10} className="p-2 text-center text-muted-foreground">
                                 No inflow records found for the selected criteria.
                             </TableCell>
                         </TableRow>
@@ -85,13 +86,13 @@ export function InflowReportTable({ records, customers, title, description, allR
                     <TableRow className="border-t-2 border-primary bg-secondary">
                         <TableCell 
                             colSpan={7}
-                            className="p-3 text-right font-bold text-lg"
+                            className="p-2 text-right font-bold text-lg"
                         >
                             Grand Total
                         </TableCell>
-                        <TableCell className="p-3 text-right font-mono font-bold text-lg">{totalBagsIn}</TableCell>
-                        <TableCell className="p-3 text-right font-mono font-bold text-lg">{totalWeight.toFixed(2)}</TableCell>
-                        <TableCell className="p-3 print-hide"></TableCell>
+                        <TableCell className="p-2 text-right font-mono font-bold text-lg">{totalBagsIn}</TableCell>
+                        <TableCell className="p-2 text-right font-mono font-bold text-lg">{totalWeight.toFixed(2)}</TableCell>
+                        <TableCell className="p-2 print-hide"></TableCell>
                     </TableRow>
                 </TableFooter>
             </Table>

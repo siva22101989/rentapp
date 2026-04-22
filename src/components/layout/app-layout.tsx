@@ -201,7 +201,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     return (
         <div className="flex min-h-screen w-full flex-col">
             {header}
-            <main className="flex flex-1 flex-col gap-4 p-4 md:p-6">{children}</main>
+            <main className="flex flex-1 flex-col gap-4 p-2 md:p-6">{children}</main>
         </div>
     );
 }

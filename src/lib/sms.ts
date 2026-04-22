@@ -1,3 +1,4 @@
+
 'use server';
 
 import { z } from 'zod';
@@ -25,7 +26,7 @@ export async function sendSms(formData: { apiKey: string; to: string; message: s
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        apiKey,
+        api_key: apiKey,
         sender: senderId,
         to: `+91${to}`, // Assuming Indian numbers
         message,

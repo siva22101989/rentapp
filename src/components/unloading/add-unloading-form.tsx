@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useTransition, useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -40,7 +41,7 @@ const getLocalDateTimeForInput = () => {
 
 export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: { customers: Customer[], commodities: Commodity[], nextBillNo: string }) {
     const { toast } = useToast();
-    const [isPending, startTransition] = useTransition();
+    const [isPending, setIsPending] = useState(false);
     const firestore = useFirestore();
 
     const form = useForm<UnloadingFormData>({
@@ -71,7 +72,7 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
         return customers.find(c => c.id === selectedCustomerId);
     }, [selectedCustomerId, customers]);
 
-    const onSubmit = (data: UnloadingFormData) => {
+    const onSubmit = async (data: UnloadingFormData) => {
         if (!firestore) {
             toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
             return;
@@ -87,31 +88,32 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
             });
             return;
         }
-
-        startTransition(async () => {
-            try {
-                const totalHamali = data.bagsUnloaded * data.hamaliPerBag;
-                const unloadingDate = new Date(data.unloadingDate);
-                const rawRecord = {
-                    ...data,
-                    unloadingDate,
-                    status: 'Unloading' as const,
-                    bagsSentToDrying: 0,
-                    totalHamali,
-                    workerHamaliPayable: totalHamali,
-                };
-                const docRef = doc(firestore, 'unloadingRecords', data.billNo);
-                await setDoc(docRef, cleanForFirestore(rawRecord));
-                
-                toast({ title: 'Success', description: 'Unloading record added.' });
-                
-                form.reset();
-            } catch (error) {
-                console.error(error);
-                toast({ title: 'Error', description: 'Failed to add unloading record.', variant: 'destructive' });
-                if (receiptWindow) receiptWindow.close();
-            }
-        });
+        
+        setIsPending(true);
+        try {
+            const totalHamali = data.bagsUnloaded * data.hamaliPerBag;
+            const unloadingDate = new Date(data.unloadingDate);
+            const rawRecord = {
+                ...data,
+                unloadingDate,
+                status: 'Unloading' as const,
+                bagsSentToDrying: 0,
+                totalHamali,
+                workerHamaliPayable: totalHamali,
+            };
+            const docRef = doc(firestore, 'unloadingRecords', data.billNo);
+            await setDoc(docRef, cleanForFirestore(rawRecord));
+            
+            toast({ title: 'Success', description: 'Unloading record added.' });
+            
+            form.reset();
+        } catch (error) {
+            console.error(error);
+            toast({ title: 'Error', description: 'Failed to add unloading record.', variant: 'destructive' });
+            if (receiptWindow) receiptWindow.close();
+        } finally {
+            setIsPending(false);
+        }
     };
 
   return (

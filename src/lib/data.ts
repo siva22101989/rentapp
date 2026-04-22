@@ -53,36 +53,23 @@ export const deleteStorageRecord = async (db: Firestore, id: string): Promise<vo
         }
         const recordData = recordSnap.data() as StorageRecord;
 
-        // If the storage record came from a drying process...
+        // If the storage record was created from the drying process ('Plot' inflow)
         if (recordData.inflowType === 'Plot' && recordData.dryingRecordId) {
-            
-            // Get the drying record using the ID from the storage record.
-            const dryingRecordRef = doc(db, 'dryingRecords', recordData.dryingRecordId);
-            const dryingRecordSnap = await transaction.get(dryingRecordRef);
-            
-            if (dryingRecordSnap.exists()) {
-                const dryingRecordData = dryingRecordSnap.data() as DryingRecord;
-                
-                // Now get the original unloading record using the ID from the drying record.
-                const unloadingRecordRef = doc(db, 'unloadingRecords', dryingRecordData.unloadingRecordId);
-                const bagsToReturn = dryingRecordData.bagsForDrying || 0;
+            const unloadingRecordRef = doc(db, 'unloadingRecords', recordData.dryingRecordId);
+            const bagsToReturn = recordData.bagsForDrying || 0;
 
-                // Return the bags to the unloading record.
-                if (bagsToReturn > 0) {
-                     transaction.update(unloadingRecordRef, {
+            if (bagsToReturn > 0) {
+                // Ensure the unloading record exists before trying to update it.
+                const unloadingSnap = await transaction.get(unloadingRecordRef);
+                if (unloadingSnap.exists()) {
+                    // Decrement the bagsSentToDrying on the original unloading record.
+                    transaction.update(unloadingRecordRef, {
                         bagsSentToDrying: increment(-bagsToReturn)
                     });
                 }
-
-                // Revert the status of the drying record so it's no longer 'Billed'.
-                // This allows it to be edited or deleted from the drying page.
-                transaction.update(dryingRecordRef, {
-                    status: 'Packing',
-                    billingDate: null
-                });
             }
         }
-        // Finally, delete the storage record itself.
+        // Finally, delete the storage record itself. This runs for both 'Direct' and 'Plot' types.
         transaction.delete(recordRef);
     });
 };

@@ -29,6 +29,7 @@ import { updateStorageRecord } from '@/lib/data';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 import { collection } from 'firebase/firestore';
+import { Separator } from '../ui/separator';
 
 
 const EditStorageRecordSchema = z.object({
@@ -41,6 +42,8 @@ const EditStorageRecordSchema = z.object({
   lorryTractorNo: z.string().optional(),
   hamaliPayable: z.coerce.number().nonnegative(),
   khataAmount: z.coerce.number().nonnegative().optional(),
+  bagsForDrying: z.coerce.number().int().nonnegative('Must be a non-negative number.').optional(),
+  dryingStartDate: z.string().optional(),
 });
 
 type EditStorageRecordFormData = z.infer<typeof EditStorageRecordSchema>;
@@ -91,6 +94,8 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
         lorryTractorNo: record.lorryTractorNo || '',
         hamaliPayable: record.hamaliPayable ?? '',
         khataAmount: record.khataAmount ?? '',
+        bagsForDrying: record.bagsForDrying ?? '',
+        dryingStartDate: record.dryingStartDate ? format(toDate(record.dryingStartDate), 'yyyy-MM-dd') : '',
       });
     }
     setIsOpen(open);
@@ -103,11 +108,31 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
     }
     startTransition(async () => {
       try {
-        const updateData = {
-          ...data,
-          storageStartDate: new Date(data.storageStartDate),
-          bagsStored: data.bagsIn - (record.bagsOut || 0)
+        const bagsStored = data.bagsIn - (record.bagsOut || 0);
+        if (bagsStored < 0) {
+            form.setError('bagsIn', { message: 'Bags in cannot be less than bags out.' });
+            return;
+        }
+
+        const updateData: Partial<StorageRecord> = {
+            customerId: data.customerId,
+            commodityDescription: data.commodityDescription,
+            location: data.location,
+            storageStartDate: new Date(data.storageStartDate),
+            bagsIn: data.bagsIn,
+            bagsStored,
+            weight: data.weight,
+            lorryTractorNo: data.lorryTractorNo,
+            hamaliPayable: data.hamaliPayable,
+            khataAmount: data.khataAmount,
         };
+        
+        if (record.inflowType === 'Plot') {
+            updateData.bagsForDrying = data.bagsForDrying;
+            updateData.dryingStartDate = data.dryingStartDate ? new Date(data.dryingStartDate) : null;
+            updateData.dryingEndDate = new Date(data.storageStartDate); 
+        }
+
         await updateStorageRecord(firestore, record.id, updateData);
         toast({ title: 'Success', description: 'Storage record updated.' });
         setIsOpen(false);
@@ -134,7 +159,7 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
               Adjust the details for record {record.id}. Payment history cannot be edited here.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+          <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-4">
              <FormField
                 control={form.control}
                 name="customerId"
@@ -279,6 +304,36 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
                   </FormItem>
                   )}
               />
+              {record.inflowType === 'Plot' && (
+                <div className="space-y-4 pt-4 mt-4 border-t">
+                    <h4 className="text-sm font-semibold text-muted-foreground">Drying Process Details</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                            control={form.control}
+                            name="dryingStartDate"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Drying Start Date</FormLabel>
+                                <FormControl><Input type="date" {...field} value={field.value ?? ''} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="bagsForDrying"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Bags Sent for Drying</FormLabel>
+                                <FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                    </div>
+                    <p className="text-xs text-muted-foreground">Note: The "Start Date" field above corresponds to the "Drying End Date".</p>
+                </div>
+              )}
           </div>
           <DialogFooter>
             <DialogClose asChild>

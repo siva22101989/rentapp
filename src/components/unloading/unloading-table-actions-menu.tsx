@@ -54,7 +54,7 @@ export function UnloadingTableActionsMenu({ record, customers, commodities }: Ac
                     <>
                         <DropdownMenuSeparator />
                         <DeleteUnloadingRecordDialog recordId={record.id}>
-                            <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                            <DropdownMenuItem onSelect={(e) => e.preventDefault()} disabled={(record.bagsSentToDrying || 0) > 0} className="text-destructive focus:text-destructive focus:bg-destructive/10">
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 Delete
                             </DropdownMenuItem>

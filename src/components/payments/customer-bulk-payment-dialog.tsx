@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import type { Payment, StorageRecord, Customer, UnloadingRecord } from '@/lib/definitions';
+import type { Payment, StorageRecord, Customer, UnloadingRecord, WarehouseInfo, SmsInfo } from '@/lib/definitions';
 import { formatCurrency, cleanForFirestore, toDate } from '@/lib/utils';
 import { useFirestore } from '@/firebase/provider';
 import { doc, writeBatch, arrayUnion } from 'firebase/firestore';
@@ -26,6 +26,12 @@ import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { Combobox } from '../ui/combobox';
 import { Separator } from '../ui/separator';
+import { useDoc } from '@/firebase/firestore/use-doc';
+import { useMemoFirebase } from '@/hooks/use-memo-firebase';
+import { useAppUser } from '@/firebase/auth/use-user';
+import { Checkbox } from '../ui/checkbox';
+import { sendSms } from '@/lib/sms';
+import { format } from 'date-fns';
 
 const BulkPaymentSchema = z.object({
   customerId: z.string().min(1, 'Please select a customer.'),
@@ -47,6 +53,15 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const firestore = useFirestore();
+  const appUser = useAppUser();
+  const [sendSmsNotification, setSendSmsNotification] = useState(true);
+
+  const smsInfoRef = useMemoFirebase(() => (firestore && appUser ? doc(firestore, 'settings', 'sms') : null), [firestore, appUser]);
+  const { data: smsInfo } = useDoc<SmsInfo>(smsInfoRef);
+
+  const warehouseInfoRef = useMemoFirebase(() => (firestore && appUser ? doc(firestore, 'settings', 'main') : null), [firestore, appUser]);
+  const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
+
 
   const customerOptions = customers.map(c => ({ value: c.id, label: c.name }));
 
@@ -62,6 +77,7 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
   
   const selectedCustomerId = form.watch('customerId');
   const discountAmount = form.watch('discount') || 0;
+  const selectedCustomer = useMemo(() => customers.find(c => c.id === selectedCustomerId), [customers, selectedCustomerId]);
 
   const { totalDue, totalHamaliDue, totalRentDue } = useMemo(() => {
     if (!selectedCustomerId) {
@@ -78,7 +94,7 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
             const totalRentBilled = rec.totalRentBilled || 0;
             const hamaliPaid = (rec.payments || []).filter(p => p.type === 'hamali').reduce((acc, p) => acc + p.amount, 0);
             const rentPaid = (rec.payments || []).filter(p => p.type === 'rent').reduce((acc, p) => acc + p.amount, 0);
-            const otherPaid = (rec.payments || []).filter(p => !p.type || p.type === 'other' || p.type === 'discount').reduce((acc, p) => acc + p.amount, 0);
+            const otherPaid = (rec.payments || []).filter(p => p.type === 'other' || !p.type || p.type === 'discount').reduce((acc, p) => acc + p.amount, 0);
             
             hamaliDue += Math.max(0, hamaliPayable - hamaliPaid);
             rentDue += Math.max(0, totalRentBilled - rentPaid - otherPaid);
@@ -145,7 +161,7 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
                 const totalRentBilled = sr.totalRentBilled || 0;
                 const hamaliPaid = (sr.payments || []).filter(p => p.type === 'hamali').reduce((acc, p) => acc + p.amount, 0);
                 const rentPaid = (sr.payments || []).filter(p => p.type === 'rent').reduce((acc, p) => acc + p.amount, 0);
-                const otherPaid = (sr.payments || []).filter(p => !p.type || p.type === 'other' || p.type === 'discount').reduce((acc, p) => acc + p.amount, 0);
+                const otherPaid = (sr.payments || []).filter(p => p.type === 'other' || !p.type || p.type === 'discount').reduce((acc, p) => acc + p.amount, 0);
                 
                 let hamaliDue = Math.max(0, hamaliPayable - hamaliPaid);
                 let rentDue = Math.max(0, totalRentBilled - rentPaid - otherPaid);
@@ -196,6 +212,15 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
         }
         if (settledRecordIds.length > 0) { description += ` Settled bills: ${settledRecordIds.join(', ')}.`; }
         if (partiallyPaidRecordIds.size > 0) { description += ` Partially paid: ${Array.from(partiallyPaidRecordIds).join(', ')}.`; }
+
+        if (sendSmsNotification && smsInfo?.textbeeApiKey && selectedCustomer?.phone) {
+            const message = `Dear ${selectedCustomer.name}, thank you for your payment of ${formatCurrency(data.paymentAmount)}. Your account has been updated. - ${warehouseInfo?.name || 'GrainDost'}`;
+            sendSms({
+                apiKey: smsInfo.textbeeApiKey,
+                to: selectedCustomer.phone,
+                message,
+            }).catch(console.error);
+        }
 
         toast({ title: 'Payment Recorded', description, duration: 10000 });
         setIsOpen(false);
@@ -312,6 +337,20 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
                         </FormItem>
                     )}
                 />
+                 <div className="flex items-center space-x-2 pt-4">
+                    <Checkbox 
+                        id="sendSmsPayment" 
+                        checked={sendSmsNotification}
+                        onCheckedChange={(checked) => setSendSmsNotification(Boolean(checked))}
+                        disabled={!smsInfo?.textbeeApiKey || !selectedCustomer?.phone}
+                    />
+                    <label
+                        htmlFor="sendSmsPayment"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                        Send SMS Notification to Customer
+                    </label>
+                </div>
                 </>
                 )}
             </div>

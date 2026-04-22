@@ -187,10 +187,10 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                     khataAmount: Number(khataAmount) || 0,
                     billingType: commodityDetails.billingType,
                     monthlyRate: commodityDetails.monthlyRate,
+                    minBillingMonths: commodityDetails.minBillingMonths,
+                    insuranceRate: commodityDetails.insuranceRate,
                     rate6Months: commodityDetails.rate6Months,
                     rate1Year: commodityDetails.rate1Year,
-                    insuranceRate: commodityDetails.insuranceRate,
-                    minBillingMonths: commodityDetails.minBillingMonths,
                 };
 
                 const docRef = doc(firestore, "storageRecords", nextId);

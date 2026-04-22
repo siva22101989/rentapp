@@ -1,11 +1,11 @@
 
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Loader2, CheckCircle, FileText, PlusCircle } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase/provider';
 import type { Customer, Commodity, UnloadingRecord, WarehouseInfo, SmsInfo } from '@/lib/definitions';
-import { setDoc, collection, Timestamp, doc } from 'firebase/firestore';
+import { setDoc, doc } from 'firebase/firestore';
 import { formatCurrency, cleanForFirestore } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 import { Combobox } from '../ui/combobox';
@@ -47,7 +47,7 @@ const getLocalDateTimeForInput = () => {
 
 export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: { customers: Customer[], commodities: Commodity[], nextBillNo: string }) {
     const { toast } = useToast();
-    const [isPending, setIsPending] = useState(false);
+    const [isPending, startTransition] = useTransition();
     const firestore = useFirestore();
     const appUser = useAppUser();
     const [sendSmsNotification, setSendSmsNotification] = useState(true);
@@ -103,40 +103,47 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
             return;
         }
         
-        setIsPending(true);
-        try {
-            const totalHamali = data.bagsUnloaded * data.hamaliPerBag;
-            const unloadingDate = new Date(data.unloadingDate);
-            const rawRecord = {
-                ...data,
-                unloadingDate,
-                status: 'Unloading' as const,
-                bagsSentToDrying: 0,
-                totalHamali,
-                workerHamaliPayable: totalHamali,
-            };
-            const docRef = doc(firestore, 'unloadingRecords', data.billNo);
-            await setDoc(docRef, cleanForFirestore(rawRecord));
+        startTransition(async () => {
+            try {
+                const totalHamali = data.bagsUnloaded * data.hamaliPerBag;
+                const unloadingDate = new Date(data.unloadingDate);
+                const rawRecord = {
+                    ...data,
+                    unloadingDate,
+                    status: 'Unloading' as const,
+                    bagsSentToDrying: 0,
+                    totalHamali,
+                    workerHamaliPayable: totalHamali,
+                };
+                const docRef = doc(firestore, 'unloadingRecords', data.billNo);
+                await setDoc(docRef, cleanForFirestore(rawRecord));
 
-            if (sendSmsNotification && smsInfo?.textbeeApiKey && selectedCustomer?.phone) {
-                const message = `Dear ${selectedCustomer.name}, we have received your delivery of ${data.bagsUnloaded} bags of ${data.commodityDescription} for unloading on ${format(unloadingDate, 'dd/MM/yy')}. Bill No: ${data.billNo}. Thank you. - ${warehouseInfo?.name || 'GrainDost'}`;
-                sendSms({
-                    apiKey: smsInfo.textbeeApiKey,
-                    to: selectedCustomer.phone,
-                    message,
-                }).catch(console.error);
+                if (sendSmsNotification && smsInfo?.textbeeApiKey && selectedCustomer?.phone) {
+                    const message = `Dear ${selectedCustomer.name}, we have received your delivery of ${data.bagsUnloaded} bags of ${data.commodityDescription} for unloading on ${format(unloadingDate, 'dd/MM/yy')}. Bill No: ${data.billNo}. Thank you. - ${warehouseInfo?.name || 'GrainDost'}`;
+                    sendSms({
+                        apiKey: smsInfo.textbeeApiKey,
+                        to: selectedCustomer.phone,
+                        message,
+                    }).catch(console.error);
+                }
+                
+                toast({ title: 'Success', description: 'Unloading record added.' });
+                
+                form.reset({
+                    ...form.getValues(),
+                    customerId: '',
+                    commodityDescription: '',
+                    lorryTractorNo: '',
+                    unloadingDate: getLocalDateTimeForInput(),
+                    bagsUnloaded: undefined,
+                    hamaliPerBag: undefined,
+                });
+            } catch (error) {
+                console.error(error);
+                toast({ title: 'Error', description: 'Failed to add unloading record.', variant: 'destructive' });
+                if (receiptWindow) receiptWindow.close();
             }
-            
-            toast({ title: 'Success', description: 'Unloading record added.' });
-            
-            form.reset();
-        } catch (error) {
-            console.error(error);
-            toast({ title: 'Error', description: 'Failed to add unloading record.', variant: 'destructive' });
-            if (receiptWindow) receiptWindow.close();
-        } finally {
-            setIsPending(false);
-        }
+        });
     };
 
   return (

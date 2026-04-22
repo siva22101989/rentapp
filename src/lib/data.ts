@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -44,7 +43,25 @@ export const updateStorageRecord = async (db: Firestore, id: string, data: Parti
 };
 
 export const deleteStorageRecord = async (db: Firestore, id: string): Promise<void> => {
-    await deleteDoc(doc(db, 'storageRecords', id));
+    const recordRef = doc(db, 'storageRecords', id);
+
+    await runTransaction(db, async (transaction) => {
+        const recordSnap = await transaction.get(recordRef);
+        if (!recordSnap.exists()) {
+            return;
+        }
+        const recordData = recordSnap.data() as StorageRecord;
+        if (recordData.inflowType === 'Plot' && recordData.dryingRecordId) {
+            const unloadingRecordRef = doc(db, 'unloadingRecords', recordData.dryingRecordId);
+            const bagsToReturn = recordData.bagsForDrying || 0;
+            if (bagsToReturn > 0) {
+                 transaction.update(unloadingRecordRef, {
+                    bagsSentToDrying: increment(-bagsToReturn)
+                });
+            }
+        }
+        transaction.delete(recordRef);
+    });
 };
 
 export const saveCommodity = async (db: Firestore, commodity: Omit<Commodity, 'id'>): Promise<string> => {

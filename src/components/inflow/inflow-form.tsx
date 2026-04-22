@@ -197,12 +197,22 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                 await setDoc(docRef, cleanForFirestore(rawRecord));
 
                 if (sendSmsNotification && smsInfo?.textbeeApiKey && selectedCustomer?.phone) {
-                    const message = `Dear ${selectedCustomer.name}, your inflow of ${bagsStored} bags of ${selectedCommodity} has been recorded on ${format(new Date(storageStartDate), 'dd/MM/yy')}. Bill No: ${nextId}. Thank you. - ${warehouseInfo?.name || 'GrainDost'}`;
+                    const defaultTemplate = `Dear {customerName}, your inflow of {bags} bags of {commodity} has been recorded on {date}. Bill No: {billNo}. Thank you. - {warehouseName}`;
+                    const template = warehouseInfo?.smsInflowTemplate || defaultTemplate;
+
+                    const message = template
+                        .replace('{customerName}', selectedCustomer.name)
+                        .replace('{bags}', String(bagsStored))
+                        .replace('{commodity}', selectedCommodity)
+                        .replace('{billNo}', nextId)
+                        .replace('{date}', format(new Date(storageStartDate), 'dd/MM/yy'))
+                        .replace('{warehouseName}', warehouseInfo?.name || 'GrainDost');
+
                     sendSms({
                         apiKey: smsInfo.textbeeApiKey,
                         to: selectedCustomer.phone,
                         message: message,
-                    }).catch(console.error); // Send SMS in background, don't block UI
+                    }).catch(console.error);
                 }
                 
                 toast({ title: 'Success', description: 'Inflow record created successfully.' });

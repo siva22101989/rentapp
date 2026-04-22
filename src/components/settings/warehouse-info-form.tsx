@@ -19,6 +19,7 @@ import { cleanForFirestore } from '@/lib/utils';
 import { Skeleton } from '../ui/skeleton';
 import { Textarea } from '../ui/textarea';
 import { useAppUser } from '@/firebase/auth/use-user';
+import { Separator } from '../ui/separator';
 
 const WarehouseInfoSchema = z.object({
   name: z.string().min(3, 'Warehouse name is required.'),
@@ -28,6 +29,9 @@ const WarehouseInfoSchema = z.object({
   addressLine2: z.string().optional(),
   ownerName: z.string().optional(),
   bankDetails: z.string().optional(),
+  smsInflowTemplate: z.string().optional(),
+  smsOutflowTemplate: z.string().optional(),
+  smsUnloadingTemplate: z.string().optional(),
 });
 
 type WarehouseInfoFormData = z.infer<typeof WarehouseInfoSchema>;
@@ -54,6 +58,9 @@ export function WarehouseInfoForm() {
             addressLine2: '',
             ownerName: '',
             bankDetails: '',
+            smsInflowTemplate: '',
+            smsOutflowTemplate: '',
+            smsUnloadingTemplate: '',
         }
     });
 
@@ -67,6 +74,9 @@ export function WarehouseInfoForm() {
                 addressLine2: warehouseInfo.addressLine2 || '',
                 ownerName: warehouseInfo.ownerName || '',
                 bankDetails: warehouseInfo.bankDetails || '',
+                smsInflowTemplate: warehouseInfo.smsInflowTemplate || '',
+                smsOutflowTemplate: warehouseInfo.smsOutflowTemplate || '',
+                smsUnloadingTemplate: warehouseInfo.smsUnloadingTemplate || '',
             });
         }
     }, [warehouseInfo, form]);
@@ -186,6 +196,46 @@ export function WarehouseInfoForm() {
                     </FormItem>
                 )}
             />
+
+            <Separator />
+            <h3 className="text-md font-semibold pt-2">SMS Templates</h3>
+            <FormField
+                control={form.control}
+                name="smsInflowTemplate"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Inflow SMS Template</FormLabel>
+                        <FormControl><Textarea placeholder="Default template will be used if empty." {...field} /></FormControl>
+                        <FormDescription>Placeholders: {`{customerName}, {bags}, {commodity}, {billNo}, {date}, {warehouseName}`}</FormDescription>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
+             <FormField
+                control={form.control}
+                name="smsOutflowTemplate"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Outflow SMS Template</FormLabel>
+                        <FormControl><Textarea placeholder="Default template will be used if empty." {...field} /></FormControl>
+                        <FormDescription>Placeholders: {`{customerName}, {bags}, {date}, {totalPayable}, {warehouseName}`}</FormDescription>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
+             <FormField
+                control={form.control}
+                name="smsUnloadingTemplate"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Unloading SMS Template</FormLabel>
+                        <FormControl><Textarea placeholder="Default template will be used if empty." {...field} /></FormControl>
+                        <FormDescription>Placeholders: {`{customerName}, {bags}, {commodity}, {billNo}, {date}, {warehouseName}`}</FormDescription>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
+
              <div className="flex justify-end">
                 <Button type="submit" disabled={isPending}>
                     {isPending ? (

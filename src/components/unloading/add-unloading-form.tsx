@@ -119,7 +119,17 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
             await setDoc(docRef, cleanForFirestore(rawRecord));
 
             if (sendSmsNotification && smsInfo?.textbeeApiKey && selectedCustomer?.phone) {
-                const message = `Dear ${selectedCustomer.name}, we have received your delivery of ${data.bagsUnloaded} bags of ${data.commodityDescription} for unloading on ${format(unloadingDate, 'dd/MM/yy')}. Bill No: ${data.billNo}. Thank you. - ${warehouseInfo?.name || 'GrainDost'}`;
+                const defaultTemplate = `Dear {customerName}, we have received your delivery of {bags} bags of {commodity} for unloading on {date}. Bill No: {billNo}. Thank you. - {warehouseName}`;
+                const template = warehouseInfo?.smsUnloadingTemplate || defaultTemplate;
+                
+                const message = template
+                    .replace('{customerName}', selectedCustomer.name)
+                    .replace('{bags}', String(data.bagsUnloaded))
+                    .replace('{commodity}', data.commodityDescription)
+                    .replace('{billNo}', data.billNo)
+                    .replace('{date}', format(unloadingDate, 'dd/MM/yy'))
+                    .replace('{warehouseName}', warehouseInfo?.name || 'GrainDost');
+
                 sendSms({
                     apiKey: smsInfo.textbeeApiKey,
                     to: selectedCustomer.phone,
@@ -129,7 +139,15 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
             
             toast({ title: 'Success', description: 'Unloading record added.' });
             
-            form.reset();
+            form.reset({
+                ...form.getValues(),
+                customerId: '',
+                commodityDescription: '',
+                lorryTractorNo: '',
+                unloadingDate: getLocalDateTimeForInput(),
+                bagsUnloaded: undefined,
+                hamaliPerBag: undefined,
+            });
         } catch (error) {
             console.error(error);
             toast({ title: 'Error', description: 'Failed to add unloading record.', variant: 'destructive' });

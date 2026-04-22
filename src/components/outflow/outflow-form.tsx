@@ -254,7 +254,16 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                 await batch.commit();
 
                 if (sendSmsNotification && smsInfo?.textbeeApiKey && selectedCustomer?.phone) {
-                    const message = `Dear ${selectedCustomer.name}, your withdrawal of ${totalBags} bags has been processed on ${format(withdrawalDate, 'dd/MM/yy')}. Total Payable: ${formatCurrency(totalPayable)}. Thank you. - ${warehouseInfo?.name || 'GrainDost'}`;
+                    const defaultTemplate = `Dear {customerName}, your withdrawal of {bags} bags has been processed on {date}. Total Payable: {totalPayable}. Thank you. - {warehouseName}`;
+                    const template = warehouseInfo?.smsOutflowTemplate || defaultTemplate;
+                    
+                    const message = template
+                        .replace('{customerName}', selectedCustomer.name)
+                        .replace('{bags}', String(totalBags))
+                        .replace('{date}', format(withdrawalDate, 'dd/MM/yy'))
+                        .replace('{totalPayable}', formatCurrency(totalPayable))
+                        .replace('{warehouseName}', warehouseInfo?.name || 'GrainDost');
+
                     sendSms({
                         apiKey: smsInfo.textbeeApiKey,
                         to: selectedCustomer.phone,

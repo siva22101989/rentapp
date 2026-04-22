@@ -145,6 +145,9 @@ export type WarehouseInfo = {
   bankDetails?: string;
   capitalInvestment?: number;
   annualInterestRate?: number;
+  smsInflowTemplate?: string;
+  smsOutflowTemplate?: string;
+  smsUnloadingTemplate?: string;
 };
 
 export const unloadingStatus = ["Unloading", "Drying", "Packing", "Billed"] as const;

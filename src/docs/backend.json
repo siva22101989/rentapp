@@ -43,16 +43,33 @@
           "type": "string",
           "description": "The name of the commodity (e.g., Paddy, Maize)."
         },
+        "billingType": {
+          "type": "string",
+          "enum": ["monthly", "slab"],
+          "description": "The billing structure for the commodity."
+        },
+        "monthlyRate": {
+          "type": "number",
+          "description": "The rent rate per bag per month, if billingType is 'monthly'."
+        },
+        "minBillingMonths": {
+            "type": "number",
+            "description": "The minimum number of months to charge for if billingType is 'monthly'."
+        },
+        "insuranceRate": {
+            "type": "number",
+            "description": "The insurance rate per bag per year, if billingType is 'monthly'."
+        },
         "rate6Months": {
           "type": "number",
-          "description": "The rent rate per bag for a 6-month period."
+          "description": "The rent rate per bag for a 6-month period, if billingType is 'slab'."
         },
         "rate1Year": {
           "type": "number",
-          "description": "The rent rate per bag for a 1-year period."
+          "description": "The rent rate per bag for a 1-year period, if billingType is 'slab'."
         }
       },
-      "required": ["name", "rate6Months", "rate1Year"]
+      "required": ["name", "billingType"]
     },
     "lot": {
       "title": "Lot",
@@ -153,6 +170,10 @@
                     "amount": { "type": "number" }
                 }
             }
+        },
+        "insuranceRate": {
+            "type": "number",
+            "description": "The insurance rate per bag per year at time of inflow."
         }
       },
       "required": [
@@ -201,13 +222,17 @@
           },
           "category": {
             "type": "string",
-            "enum": ["Worker Salary", "Petrol", "Maintenance", "Utilities", "Current Bill", "Hamali", "EMI for Godown", "Loan Repayment", "Other"],
+            "enum": ["Worker Salary", "Petrol", "Maintenance", "Utilities", "Current Bill", "Hamali Paid", "EMI for Godown", "Godown Expense", "Loan Repayment", "Home Expenses", "Other"],
             "description": "The category of the expense."
           },
           "date": {
             "type": "string",
             "format": "date-time",
             "description": "The date the expense was incurred."
+          },
+          "customerId": {
+            "type": "string",
+            "description": "The ID of the customer this expense is associated with (e.g., for Hamali Paid)."
           }
         },
         "required": ["description", "amount", "category", "date"]
@@ -469,23 +494,15 @@
     },
     "smsInfo": {
       "title": "SMS Info",
-      "description": "Settings for the SMS provider (Twilio).",
+      "description": "Settings for the SMS provider (textbee.dev).",
       "type": "object",
       "properties": {
-        "twilioAccountSid": {
+        "textbeeApiKey": {
           "type": "string",
-          "description": "Twilio Account SID."
-        },
-        "twilioAuthToken": {
-          "type": "string",
-          "description": "Twilio Auth Token."
-        },
-        "twilioPhoneNumber": {
-          "type": "string",
-          "description": "The Twilio phone number to send messages from."
+          "description": "Your textbee.dev API key."
         }
       },
-      "required": ["twilioAccountSid", "twilioAuthToken", "twilioPhoneNumber"]
+      "required": ["textbeeApiKey"]
     },
     "appUser": {
       "title": "App User",

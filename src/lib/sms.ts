@@ -9,6 +9,7 @@ const SendSmsSchema = z.object({
   to: z.string().min(10, { message: 'A valid 10-digit phone number is required.'}),
   message: z.string().min(1, { message: 'Message cannot be empty.'}),
   deviceId: z.string().optional(),
+  senderId: z.string().optional(),
 });
 
 export async function sendSms(formData: { apiKey: string; to: string; message: string; senderId?: string; deviceId?: string }): Promise<{ success: boolean; message: string }> {
@@ -21,7 +22,7 @@ export async function sendSms(formData: { apiKey: string; to: string; message: s
     return { success: false, message: `Validation failed: ${firstError}` };
   }
 
-  const { apiKey, to, message, deviceId } = validatedFields.data;
+  const { apiKey, to, message, deviceId, senderId } = validatedFields.data;
   const cleanedPhoneNumber = to.replace(/\D/g, '');
   
   if (cleanedPhoneNumber.length < 10) {
@@ -35,21 +36,24 @@ export async function sendSms(formData: { apiKey: string; to: string; message: s
     let path: string;
     let postData: string;
     
+    // Logic based on user's new snippet and modern API design
     if (deviceId) {
-      path = '/api/send-sms-otp-device';
+      path = `/api/v1/gateway/devices/${deviceId}/send-sms`;
       postData = JSON.stringify({
-        api_key: apiKey,
-        deviceId: deviceId,
-        number: tenDigitPhoneNumber,
-        message,
+        recipients: [`+91${tenDigitPhoneNumber}`],
+        message: message
       });
     } else {
-      path = '/api/send';
+      // This is an educated guess for their bulk API based on the v1 structure
+      path = '/api/v1/bulksms/send';
       postData = JSON.stringify({
-        api_key: apiKey,
-        sender: formData.senderId || 'TXTBEE',
-        to: `+91${tenDigitPhoneNumber}`,
-        message,
+        messages: [
+            {
+                message: message,
+                recipients: [`+91${tenDigitPhoneNumber}`]
+            }
+        ],
+        sender: senderId || 'TXTBEE',
       });
     }
     
@@ -60,6 +64,7 @@ export async function sendSms(formData: { apiKey: string; to: string; message: s
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'x-api-key': apiKey,
         'Content-Length': Buffer.byteLength(postData),
       },
     };
@@ -73,12 +78,18 @@ export async function sendSms(formData: { apiKey: string; to: string; message: s
       res.on('end', () => {
         try {
           const responseData = JSON.parse(responseBody);
-          if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300 && responseData.status === 'success') {
-            console.log('SMS sent successfully:', responseData);
-            resolve({ success: true, message: responseData.message || "SMS sent successfully!" });
+          if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+            if (responseData.status === 'SUCCESS' || responseData.status === 'success' || !responseData.error) {
+                console.log('SMS sent successfully:', responseData);
+                resolve({ success: true, message: responseData.message || "SMS sent successfully!" });
+            } else {
+                 const apiMessage = responseData.error || responseData.message || `Unknown API error`;
+                 console.error('Failed to send SMS (API Error):', responseData);
+                 resolve({ success: false, message: `Failed to send SMS: ${apiMessage}` });
+            }
           } else {
-            const apiMessage = responseData.message || `Unknown API error (Status: ${res.statusCode})`;
-            console.error('Failed to send SMS (API Error):', responseData);
+            const apiMessage = responseData.error || responseData.message || `Unknown API error (Status: ${res.statusCode})`;
+            console.error('Failed to send SMS (HTTP Error):', responseData);
             resolve({ success: false, message: `Failed to send SMS: ${apiMessage}` });
           }
         } catch (e) {

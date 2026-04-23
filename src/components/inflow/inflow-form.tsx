@@ -197,7 +197,7 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                 await setDoc(docRef, cleanForFirestore(rawRecord));
 
                 if (sendSmsNotification && smsInfo?.textbeeApiKey && selectedCustomer?.phone) {
-                    const defaultTemplate = `Dear {customerName}, your inflow of {bags} bags of {commodity} has been recorded on {date}. Bill No: {billNo}. Thank you. - {warehouseName}`;
+                    const defaultTemplate = `Dear {customerName}, your inflow of {bags} bags of {commodity} has been recorded on {date}. Bill No: {billNo}. Hamali: {hamaliAmount}. Thank you. - {warehouseName}`;
                     const template = smsInfo?.smsInflowTemplate || defaultTemplate;
 
                     const message = template
@@ -206,6 +206,7 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                         .replace('{commodity}', selectedCommodity)
                         .replace('{billNo}', nextId)
                         .replace('{date}', format(new Date(storageStartDate), 'dd/MM/yy'))
+                        .replace('{hamaliAmount}', formatCurrency(hamaliPayable))
                         .replace('{warehouseName}', warehouseInfo?.name || 'GrainDost');
 
                     sendSms({

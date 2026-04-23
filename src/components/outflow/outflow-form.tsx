@@ -254,13 +254,15 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                 await batch.commit();
 
                 if (sendSmsNotification && smsInfo?.textbeeApiKey && selectedCustomer?.phone) {
-                    const defaultTemplate = `Dear {customerName}, your withdrawal of {bags} bags has been processed on {date}. Total Payable: {totalPayable}. Thank you. - {warehouseName}`;
+                    const defaultTemplate = `Dear {customerName}, your withdrawal of {bags} bags has been processed on {date}. Rent: {rentDue}, Hamali: {hamaliPending}, Total: {totalPayable}. Thank you. - {warehouseName}`;
                     const template = smsInfo?.smsOutflowTemplate || defaultTemplate;
                     
                     const message = template
                         .replace('{customerName}', selectedCustomer.name)
                         .replace('{bags}', String(totalBags))
                         .replace('{date}', format(withdrawalDate, 'dd/MM/yy'))
+                        .replace('{rentDue}', formatCurrency(totalRent))
+                        .replace('{hamaliPending}', formatCurrency(totalPendingHamali))
                         .replace('{totalPayable}', formatCurrency(totalPayable))
                         .replace('{warehouseName}', warehouseInfo?.name || 'GrainDost');
 

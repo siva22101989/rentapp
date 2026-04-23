@@ -112,11 +112,13 @@ export function SendReminderSmsDialog({ customers, storageRecords, unloadingReco
     }
 
     startTransition(async () => {
-        const defaultTemplate = 'Dear {customerName}, this is a reminder that you have a total outstanding balance of {totalDue}. Please make a payment at your earliest convenience. Thank you. - {warehouseName}';
+        const defaultTemplate = 'Dear {customerName}, this is a reminder that you have an outstanding balance. Rent Due: {rentDue}, Hamali Due: {hamaliDue}, Total Due: {totalDue}. Please pay at your earliest convenience. Thank you. - {warehouseName}';
         const template = smsInfo?.smsPendingDuesTemplate || defaultTemplate;
         
         const message = template
             .replace('{customerName}', selectedCustomer.name)
+            .replace('{rentDue}', formatCurrency(totalRentDue))
+            .replace('{hamaliDue}', formatCurrency(totalHamaliDue))
             .replace('{totalDue}', formatCurrency(totalDue))
             .replace('{warehouseName}', warehouseInfo?.name || 'GrainDost');
 

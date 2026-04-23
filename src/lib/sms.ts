@@ -1,4 +1,3 @@
-
 'use server';
 
 import { z } from 'zod';
@@ -32,11 +31,11 @@ export async function sendSms(formData: { apiKey: string; to: string; message: s
   const tenDigitPhoneNumber = cleanedPhoneNumber.slice(-10);
 
   return new Promise((resolve) => {
-    let path: string;
+    let url: string;
     let postData: string;
 
     if (deviceId) {
-      path = '/api/send-sms-otp-device';
+      url = 'https://api.textbee.dev/api/send-sms-otp-device';
       postData = JSON.stringify({
         api_key: apiKey,
         deviceId: deviceId,
@@ -44,7 +43,7 @@ export async function sendSms(formData: { apiKey: string; to: string; message: s
         message,
       });
     } else {
-      path = '/api/send';
+      url = 'https://api.textbee.dev/api/send';
       postData = JSON.stringify({
         api_key: apiKey,
         sender: formData.senderId || 'TXTBEE',
@@ -54,8 +53,6 @@ export async function sendSms(formData: { apiKey: string; to: string; message: s
     }
 
     const options = {
-      hostname: 'api.textbee.dev',
-      path: path,
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -63,7 +60,7 @@ export async function sendSms(formData: { apiKey: string; to: string; message: s
       },
     };
 
-    const req = https.request(options, (res) => {
+    const req = https.request(url, options, (res) => {
       let responseBody = '';
       res.setEncoding('utf8');
       res.on('data', (chunk) => {

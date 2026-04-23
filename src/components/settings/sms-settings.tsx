@@ -109,7 +109,7 @@ export function SmsSettings() {
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>textbee.dev API Key</FormLabel>
-                                <FormControl><Input type="password" placeholder="Enter your API key" {...field} /></FormControl>
+                                <FormControl><Input type="text" placeholder="Enter your API key" {...field} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}

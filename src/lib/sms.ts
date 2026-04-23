@@ -53,9 +53,9 @@ export async function sendSms(formData: { apiKey: string; to: string; message: s
       });
     }
 
-    const fullUrl = `https://api.textbee.dev${path}`;
-
     const options = {
+      hostname: 'api.textbee.dev',
+      path: path,
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -63,7 +63,7 @@ export async function sendSms(formData: { apiKey: string; to: string; message: s
       },
     };
 
-    const req = https.request(fullUrl, options, (res) => {
+    const req = https.request(options, (res) => {
       let responseBody = '';
       res.setEncoding('utf8');
       res.on('data', (chunk) => {

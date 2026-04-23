@@ -34,6 +34,13 @@ const SmsInfoSchema = z.object({
 
 type SmsInfoFormData = z.infer<typeof SmsInfoSchema>;
 
+const defaultTemplates = {
+    inflow: 'Dear {customerName}, your inflow of {bags} bags of {commodity} has been recorded on {date}. Bill No: {billNo}. Thank you. - {warehouseName}',
+    outflow: 'Dear {customerName}, your withdrawal of {bags} bags has been processed on {date}. Total Payable: {totalPayable}. Thank you. - {warehouseName}',
+    unloading: 'Dear {customerName}, we have received your delivery of {bags} bags of {commodity} for unloading on {date}. Bill No: {billNo}. Thank you. - {warehouseName}',
+    payment: 'Dear {customerName}, thank you for your payment of {paymentAmount} on {date}. Your account has been updated. - {warehouseName}',
+};
+
 export function SmsSettings() {
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
@@ -182,7 +189,7 @@ export function SmsSettings() {
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Inflow SMS Template</FormLabel>
-                                <FormControl><Textarea placeholder="Default template will be used if empty." {...field} /></FormControl>
+                                <FormControl><Textarea placeholder={defaultTemplates.inflow} {...field} /></FormControl>
                                 <FormDescription>Placeholders: {`{customerName}, {bags}, {commodity}, {billNo}, {date}, {warehouseName}`}</FormDescription>
                                 <FormMessage />
                             </FormItem>
@@ -194,7 +201,7 @@ export function SmsSettings() {
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Outflow SMS Template</FormLabel>
-                                <FormControl><Textarea placeholder="Default template will be used if empty." {...field} /></FormControl>
+                                <FormControl><Textarea placeholder={defaultTemplates.outflow} {...field} /></FormControl>
                                 <FormDescription>Placeholders: {`{customerName}, {bags}, {date}, {totalPayable}, {warehouseName}`}</FormDescription>
                                 <FormMessage />
                             </FormItem>
@@ -206,7 +213,7 @@ export function SmsSettings() {
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Unloading SMS Template</FormLabel>
-                                <FormControl><Textarea placeholder="Default template will be used if empty." {...field} /></FormControl>
+                                <FormControl><Textarea placeholder={defaultTemplates.unloading} {...field} /></FormControl>
                                 <FormDescription>Placeholders: {`{customerName}, {bags}, {commodity}, {billNo}, {date}, {warehouseName}`}</FormDescription>
                                 <FormMessage />
                             </FormItem>
@@ -218,7 +225,7 @@ export function SmsSettings() {
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Bulk Payment SMS Template</FormLabel>
-                                <FormControl><Textarea placeholder="Default template will be used if empty." {...field} /></FormControl>
+                                <FormControl><Textarea placeholder={defaultTemplates.payment} {...field} /></FormControl>
                                 <FormDescription>Placeholders: {`{customerName}, {paymentAmount}, {date}, {warehouseName}`}</FormDescription>
                                 <FormMessage />
                             </FormItem>

@@ -2,7 +2,6 @@
 'use server';
 
 import { z } from 'zod';
-import axios from 'axios';
 
 const SendSmsSchema = z.object({
   apiKey: z.string().min(1, { message: 'API Key is required.'}),
@@ -33,44 +32,50 @@ export async function sendSms(formData: { apiKey: string; to: string; message: s
   const tenDigitPhoneNumber = cleanedPhoneNumber.slice(-10);
 
   try {
-    let response;
+    let url: string;
+    let body: object;
+    
     if (deviceId) {
-      response = await axios.post('https://api.textbee.dev/api/send-sms-otp-device', {
+      url = 'https://api.textbee.dev/api/send-sms-otp-device';
+      body = {
         api_key: apiKey,
         deviceId: deviceId,
         number: tenDigitPhoneNumber,
         message,
-      });
+      };
     } else {
-      const senderId = formData.senderId || 'TXTBEE';
-      response = await axios.post('https://api.textbee.dev/api/send', {
+      url = 'https://api.textbee.dev/api/send';
+      body = {
         api_key: apiKey,
-        sender: senderId,
+        sender: formData.senderId || 'TXTBEE',
         to: `+91${tenDigitPhoneNumber}`,
         message,
-      });
+      };
     }
 
-    if (response.status === 200 && response.data.status === 'success') {
-      console.log('SMS sent successfully:', response.data);
-      return { success: true, message: response.data.message || "SMS sent successfully!" };
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+    });
+
+    const responseData = await response.json();
+
+    if (response.ok && responseData.status === 'success') {
+      console.log('SMS sent successfully:', responseData);
+      return { success: true, message: responseData.message || "SMS sent successfully!" };
     } else {
-      const apiMessage = response.data.message || 'Unknown API error.';
-      console.error('Failed to send SMS (API Error):', response.data);
+      const apiMessage = responseData.message || 'Unknown API error.';
+      console.error('Failed to send SMS (API Error):', responseData);
       return { success: false, message: `Failed to send SMS: ${apiMessage}` };
     }
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-        const errorMessage = error.response?.data?.message || error.message;
-        console.error('Error sending SMS via Axios:', {
-            status: error.response?.status,
-            data: error.response?.data,
-            message: errorMessage,
-        });
-        return { success: false, message: `Network error: ${errorMessage}` };
-    } else {
-        console.error('Unknown error sending SMS:', error);
-        return { success: false, message: 'An unknown error occurred while sending the SMS.' };
+    console.error('Unknown error sending SMS:', error);
+    if (error instanceof Error) {
+        return { success: false, message: `An unknown error occurred while sending the SMS: ${error.message}` };
     }
+    return { success: false, message: 'An unknown error occurred while sending the SMS.' };
   }
 }

@@ -215,7 +215,7 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
 
         if (sendSmsNotification && smsInfo?.textbeeApiKey && selectedCustomer?.phone) {
             const defaultTemplate = `Dear {customerName}, thank you for your payment of {paymentAmount} on {date}. Your account has been updated. - {warehouseName}`;
-            const template = warehouseInfo?.smsPaymentTemplate || defaultTemplate;
+            const template = smsInfo?.smsPaymentTemplate || defaultTemplate;
             
             const message = template
                 .replace('{customerName}', selectedCustomer.name)

@@ -120,7 +120,7 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
 
                 if (sendSmsNotification && smsInfo?.textbeeApiKey && selectedCustomer?.phone) {
                     const defaultTemplate = `Dear {customerName}, we have received your delivery of {bags} bags of {commodity} for unloading on {date}. Bill No: {billNo}. Thank you. - {warehouseName}`;
-                    const template = warehouseInfo?.smsUnloadingTemplate || defaultTemplate;
+                    const template = smsInfo?.smsUnloadingTemplate || defaultTemplate;
                     
                     const message = template
                         .replace('{customerName}', selectedCustomer.name)

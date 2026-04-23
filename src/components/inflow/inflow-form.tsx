@@ -198,7 +198,7 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
 
                 if (sendSmsNotification && smsInfo?.textbeeApiKey && selectedCustomer?.phone) {
                     const defaultTemplate = `Dear {customerName}, your inflow of {bags} bags of {commodity} has been recorded on {date}. Bill No: {billNo}. Thank you. - {warehouseName}`;
-                    const template = warehouseInfo?.smsInflowTemplate || defaultTemplate;
+                    const template = smsInfo?.smsInflowTemplate || defaultTemplate;
 
                     const message = template
                         .replace('{customerName}', selectedCustomer.name)

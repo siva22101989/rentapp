@@ -255,7 +255,7 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
 
                 if (sendSmsNotification && smsInfo?.textbeeApiKey && selectedCustomer?.phone) {
                     const defaultTemplate = `Dear {customerName}, your withdrawal of {bags} bags has been processed on {date}. Total Payable: {totalPayable}. Thank you. - {warehouseName}`;
-                    const template = warehouseInfo?.smsOutflowTemplate || defaultTemplate;
+                    const template = smsInfo?.smsOutflowTemplate || defaultTemplate;
                     
                     const message = template
                         .replace('{customerName}', selectedCustomer.name)

@@ -29,10 +29,6 @@ const WarehouseInfoSchema = z.object({
   addressLine2: z.string().optional(),
   ownerName: z.string().optional(),
   bankDetails: z.string().optional(),
-  smsInflowTemplate: z.string().optional(),
-  smsOutflowTemplate: z.string().optional(),
-  smsUnloadingTemplate: z.string().optional(),
-  smsPaymentTemplate: z.string().optional(),
 });
 
 type WarehouseInfoFormData = z.infer<typeof WarehouseInfoSchema>;
@@ -59,10 +55,6 @@ export function WarehouseInfoForm() {
             addressLine2: '',
             ownerName: '',
             bankDetails: '',
-            smsInflowTemplate: '',
-            smsOutflowTemplate: '',
-            smsUnloadingTemplate: '',
-            smsPaymentTemplate: '',
         }
     });
 
@@ -76,10 +68,6 @@ export function WarehouseInfoForm() {
                 addressLine2: warehouseInfo.addressLine2 || '',
                 ownerName: warehouseInfo.ownerName || '',
                 bankDetails: warehouseInfo.bankDetails || '',
-                smsInflowTemplate: warehouseInfo.smsInflowTemplate || '',
-                smsOutflowTemplate: warehouseInfo.smsOutflowTemplate || '',
-                smsUnloadingTemplate: warehouseInfo.smsUnloadingTemplate || '',
-                smsPaymentTemplate: warehouseInfo.smsPaymentTemplate || '',
             });
         }
     }, [warehouseInfo, form]);
@@ -195,57 +183,6 @@ export function WarehouseInfoForm() {
                         <FormLabel>Bank Details</FormLabel>
                         <FormControl><Textarea placeholder="Bank Name, Account Number, IFSC Code" {...field} /></FormControl>
                         <FormDescription>This will be displayed on customer statements for payment.</FormDescription>
-                        <FormMessage />
-                    </FormItem>
-                )}
-            />
-
-            <Separator />
-            <h3 className="text-md font-semibold pt-2">SMS Templates</h3>
-            <FormField
-                control={form.control}
-                name="smsInflowTemplate"
-                render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Inflow SMS Template</FormLabel>
-                        <FormControl><Textarea placeholder="Default template will be used if empty." {...field} /></FormControl>
-                        <FormDescription>Placeholders: {`{customerName}, {bags}, {commodity}, {billNo}, {date}, {warehouseName}`}</FormDescription>
-                        <FormMessage />
-                    </FormItem>
-                )}
-            />
-             <FormField
-                control={form.control}
-                name="smsOutflowTemplate"
-                render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Outflow SMS Template</FormLabel>
-                        <FormControl><Textarea placeholder="Default template will be used if empty." {...field} /></FormControl>
-                        <FormDescription>Placeholders: {`{customerName}, {bags}, {date}, {totalPayable}, {warehouseName}`}</FormDescription>
-                        <FormMessage />
-                    </FormItem>
-                )}
-            />
-             <FormField
-                control={form.control}
-                name="smsUnloadingTemplate"
-                render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Unloading SMS Template</FormLabel>
-                        <FormControl><Textarea placeholder="Default template will be used if empty." {...field} /></FormControl>
-                        <FormDescription>Placeholders: {`{customerName}, {bags}, {commodity}, {billNo}, {date}, {warehouseName}`}</FormDescription>
-                        <FormMessage />
-                    </FormItem>
-                )}
-            />
-             <FormField
-                control={form.control}
-                name="smsPaymentTemplate"
-                render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Bulk Payment SMS Template</FormLabel>
-                        <FormControl><Textarea placeholder="Default template will be used if empty." {...field} /></FormControl>
-                        <FormDescription>Placeholders: {`{customerName}, {paymentAmount}, {date}, {warehouseName}`}</FormDescription>
                         <FormMessage />
                     </FormItem>
                 )}

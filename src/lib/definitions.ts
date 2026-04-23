@@ -145,10 +145,6 @@ export type WarehouseInfo = {
   bankDetails?: string;
   capitalInvestment?: number;
   annualInterestRate?: number;
-  smsInflowTemplate?: string;
-  smsOutflowTemplate?: string;
-  smsUnloadingTemplate?: string;
-  smsPaymentTemplate?: string;
 };
 
 export const unloadingStatus = ["Unloading", "Drying", "Packing", "Billed"] as const;
@@ -202,6 +198,10 @@ export type SmsInfo = {
   id: string;
   textbeeApiKey: string;
   textbeeDeviceId?: string;
+  smsInflowTemplate?: string;
+  smsOutflowTemplate?: string;
+  smsUnloadingTemplate?: string;
+  smsPaymentTemplate?: string;
 };
 
 export const userRoles = ["super-admin", "owner", "supervisor", "biller"] as const;

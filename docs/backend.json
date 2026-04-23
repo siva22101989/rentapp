@@ -504,6 +504,22 @@
         "textbeeDeviceId": {
           "type": "string",
           "description": "Your textbee.dev Device ID (optional, for device gateway)."
+        },
+        "smsInflowTemplate": {
+          "type": "string",
+          "description": "Template for SMS sent on new inflow."
+        },
+        "smsOutflowTemplate": {
+          "type": "string",
+          "description": "Template for SMS sent on outflow."
+        },
+        "smsUnloadingTemplate": {
+          "type": "string",
+          "description": "Template for SMS sent on unloading."
+        },
+        "smsPaymentTemplate": {
+          "type": "string",
+          "description": "Template for SMS sent on bulk payment."
         }
       },
       "required": ["textbeeApiKey"]

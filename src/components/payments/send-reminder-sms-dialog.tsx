@@ -29,6 +29,7 @@ import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 import { useAppUser } from '@/firebase/auth/use-user';
 import { doc } from 'firebase/firestore';
 import { sendSms } from '@/lib/sms';
+import { Checkbox } from '../ui/checkbox';
 
 const ReminderSmsSchema = z.object({
   customerId: z.string().min(1, 'Please select a customer.'),
@@ -48,14 +49,13 @@ export function SendReminderSmsDialog({ customers, storageRecords, unloadingReco
   const [isPending, startTransition] = useTransition();
   const firestore = useFirestore();
   const appUser = useAppUser();
+  const [showAllCustomers, setShowAllCustomers] = useState(false);
 
   const smsInfoRef = useMemoFirebase(() => (firestore && appUser ? doc(firestore, 'settings', 'sms') : null), [firestore, appUser]);
   const { data: smsInfo } = useDoc<SmsInfo>(smsInfoRef);
 
   const warehouseInfoRef = useMemoFirebase(() => (firestore && appUser ? doc(firestore, 'settings', 'main') : null), [firestore, appUser]);
   const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
-
-  const customerOptions = customers.map(c => ({ value: c.id, label: c.name }));
 
   const form = useForm<ReminderSmsFormData>({
     resolver: zodResolver(ReminderSmsSchema),
@@ -64,6 +64,44 @@ export function SendReminderSmsDialog({ customers, storageRecords, unloadingReco
   
   const selectedCustomerId = form.watch('customerId');
   const selectedCustomer = useMemo(() => customers.find(c => c.id === selectedCustomerId), [customers, selectedCustomerId]);
+
+  const customersWithDues = useMemo(() => {
+    const customerDues: { [id: string]: number } = {};
+
+    storageRecords.forEach(rec => {
+        if (!customerDues[rec.customerId]) customerDues[rec.customerId] = 0;
+        const hamaliPayable = rec.hamaliPayable || 0;
+        const totalRentBilled = rec.totalRentBilled || 0;
+        const hamaliPaid = (rec.payments || []).filter(p => p.type === 'hamali').reduce((acc, p) => acc + p.amount, 0);
+        const rentPaid = (rec.payments || []).filter(p => p.type === 'rent').reduce((acc, p) => acc + p.amount, 0);
+        const otherPaid = (rec.payments || []).filter(p => p.type === 'other' || !p.type || p.type === 'discount').reduce((acc, p) => acc + p.amount, 0);
+        
+        const balance = (hamaliPayable + totalRentBilled) - (hamaliPaid + rentPaid + otherPaid);
+        customerDues[rec.customerId] += balance;
+    });
+
+    unloadingRecords.forEach(rec => {
+        if (!customerDues[rec.customerId]) customerDues[rec.customerId] = 0;
+        const totalHamali = rec.totalHamali || 0;
+        const totalPaid = (rec.payments || []).reduce((acc, p) => acc + p.amount, 0);
+        const balance = totalHamali - totalPaid;
+        customerDues[rec.customerId] += balance;
+    });
+
+    return customers.filter(c => customerDues[c.id] > 0.5);
+  }, [customers, storageRecords, unloadingRecords]);
+
+  const customerOptions = useMemo(() => {
+    const list = showAllCustomers ? customers : customersWithDues;
+    return list.map(c => ({ value: c.id, label: c.name }));
+  }, [showAllCustomers, customers, customersWithDues]);
+
+  const handleShowAllToggle = (checked: boolean) => {
+    setShowAllCustomers(checked);
+    if (!checked && selectedCustomer && !customersWithDues.some(c => c.id === selectedCustomer.id)) {
+        form.setValue('customerId', '');
+    }
+  };
 
   const { totalDue, totalHamaliDue, totalRentDue } = useMemo(() => {
     if (!selectedCustomerId) {
@@ -176,6 +214,21 @@ export function SendReminderSmsDialog({ customers, storageRecords, unloadingReco
                         </FormItem>
                     )}
                 />
+
+                <div className="flex items-center space-x-2">
+                    <Checkbox
+                        id="showAllCustomers"
+                        checked={showAllCustomers}
+                        onCheckedChange={(checked) => handleShowAllToggle(Boolean(checked))}
+                    />
+                    <label
+                        htmlFor="showAllCustomers"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                        Show all customers
+                    </label>
+                </div>
+
 
                 {selectedCustomerId && (
                 <>

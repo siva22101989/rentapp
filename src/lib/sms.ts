@@ -1,3 +1,4 @@
+
 'use server';
 
 import { z } from 'zod';
@@ -31,11 +32,11 @@ export async function sendSms(formData: { apiKey: string; to: string; message: s
   const tenDigitPhoneNumber = cleanedPhoneNumber.slice(-10);
 
   return new Promise((resolve) => {
-    let url: string;
+    let urlString: string;
     let postData: string;
 
     if (deviceId) {
-      url = 'https://api.textbee.dev/api/send-sms-otp-device';
+      urlString = 'https://api.textbee.dev/api/send-sms-otp-device';
       postData = JSON.stringify({
         api_key: apiKey,
         deviceId: deviceId,
@@ -43,7 +44,7 @@ export async function sendSms(formData: { apiKey: string; to: string; message: s
         message,
       });
     } else {
-      url = 'https://api.textbee.dev/api/send';
+      urlString = 'https://api.textbee.dev/api/send';
       postData = JSON.stringify({
         api_key: apiKey,
         sender: formData.senderId || 'TXTBEE',
@@ -51,6 +52,8 @@ export async function sendSms(formData: { apiKey: string; to: string; message: s
         message,
       });
     }
+
+    const requestUrl = new URL(urlString);
 
     const options = {
       method: 'POST',
@@ -60,7 +63,7 @@ export async function sendSms(formData: { apiKey: string; to: string; message: s
       },
     };
 
-    const req = https.request(url, options, (res) => {
+    const req = https.request(requestUrl, options, (res) => {
       let responseBody = '';
       res.setEncoding('utf8');
       res.on('data', (chunk) => {
@@ -73,12 +76,12 @@ export async function sendSms(formData: { apiKey: string; to: string; message: s
             console.log('SMS sent successfully:', responseData);
             resolve({ success: true, message: responseData.message || "SMS sent successfully!" });
           } else {
-            const apiMessage = responseData.message || 'Unknown API error.';
+            const apiMessage = responseData.message || `Unknown API error (Status: ${res.statusCode})`;
             console.error('Failed to send SMS (API Error):', responseData);
             resolve({ success: false, message: `Failed to send SMS: ${apiMessage}` });
           }
         } catch (e) {
-          console.error('Error parsing textbee.dev response:', e);
+          console.error('Error parsing textbee.dev response:', e, 'Body:', responseBody);
           resolve({ success: false, message: 'Failed to parse response from SMS service.' });
         }
       });

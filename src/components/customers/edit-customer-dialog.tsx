@@ -28,23 +28,33 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer,
   const firestore = useFirestore();
   const appUser = useAppUser();
 
-  // State for each input field
-  const [name, setName] = useState(customer.name || '');
-  const [fatherName, setFatherName] = useState(customer.fatherName || '');
-  const [village, setVillage] = useState(customer.village || '');
-  const [phone, setPhone] = useState(customer.phone || '');
-  const [email, setEmail] = useState(customer.email || '');
+  const [formData, setFormData] = useState({
+    name: '',
+    fatherName: '',
+    village: '',
+    phone: '',
+    email: '',
+  });
 
-  // Reset state when dialog opens with new customer data
   useEffect(() => {
-    if (isOpen) {
-      setName(customer.name || '');
-      setFatherName(customer.fatherName || '');
-      setVillage(customer.village || '');
-      setPhone(customer.phone || '');
-      setEmail(customer.email || '');
+    if (customer) {
+      setFormData({
+        name: customer.name || '',
+        fatherName: customer.fatherName || '',
+        village: customer.village || '',
+        phone: customer.phone || '',
+        email: customer.email || '',
+      });
     }
-  }, [isOpen, customer]);
+  }, [customer, isOpen]);
+  
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -53,26 +63,18 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer,
       return;
     }
     
-    // Basic validation
-    if (name.length < 3) {
+    if (formData.name.length < 3) {
       toast({ title: 'Validation Error', description: 'Name must be at least 3 characters.', variant: 'destructive' });
       return;
     }
-    if (phone.length < 10) {
+    if (formData.phone.length < 10) {
       toast({ title: 'Validation Error', description: 'Phone number must be at least 10 digits.', variant: 'destructive' });
       return;
     }
 
     startTransition(async () => {
       try {
-        const updatedData: Partial<Customer> = {
-          name,
-          fatherName,
-          village,
-          phone,
-          email,
-        };
-        await updateCustomer(firestore, customer.id, updatedData);
+        await updateCustomer(firestore, customer.id, formData);
         toast({ title: 'Success', description: 'Customer updated successfully.' });
         setIsOpen(false);
       } catch (error) {
@@ -96,23 +98,23 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer,
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
                 <Label htmlFor="name">Name</Label>
-                <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Customer's full name" />
+                <Input id="name" name="name" value={formData.name} onChange={handleChange} placeholder="Customer's full name" />
             </div>
             <div className="space-y-2">
                 <Label htmlFor="fatherName">Father's Name</Label>
-                <Input id="fatherName" value={fatherName} onChange={(e) => setFatherName(e.target.value)} placeholder="Father's name (optional)" />
+                <Input id="fatherName" name="fatherName" value={formData.fatherName} onChange={handleChange} placeholder="Father's name (optional)" />
             </div>
             <div className="space-y-2">
                 <Label htmlFor="village">Village</Label>
-                <Input id="village" value={village} onChange={(e) => setVillage(e.target.value)} placeholder="Village (optional)" />
+                <Input id="village" name="village" value={formData.village} onChange={handleChange} placeholder="Village (optional)" />
             </div>
             <div className="space-y-2">
                 <Label htmlFor="phone">Phone</Label>
-                <Input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="10-digit phone number" />
+                <Input id="phone" name="phone" value={formData.phone} onChange={handleChange} placeholder="10-digit phone number" />
             </div>
             <div className="space-y-2">
                 <Label htmlFor="email">Email (Optional)</Label>
-                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="example@email.com" />
+                <Input id="email" name="email" type="email" value={formData.email} onChange={handleChange} placeholder="example@email.com" />
             </div>
           </div>
           <DialogFooter>

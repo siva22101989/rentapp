@@ -50,7 +50,7 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
     const [isPending, startTransition] = useTransition();
     const firestore = useFirestore();
     const appUser = useAppUser();
-    const [sendSmsNotification, setSendSmsNotification] = useState(true);
+    const [sendSmsNotification, setSendSmsNotification] = useState(false);
 
     const smsInfoRef = useMemoFirebase(() => (firestore && appUser ? doc(firestore, 'settings', 'sms') : null), [firestore, appUser]);
     const { data: smsInfo } = useDoc<SmsInfo>(smsInfoRef);
@@ -315,3 +315,5 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
     </Card>
   );
 }
+
+    

@@ -13,6 +13,7 @@ import { useAppUser } from "@/firebase/auth/use-user";
 import { RecordHamaliPaymentDialog } from "@/components/hamali/record-payment-dialog";
 import { Button } from "@/components/ui/button";
 import { Hammer } from "lucide-react";
+import { SendReminderSmsDialog } from "@/components/payments/send-reminder-sms-dialog";
 
 export default function PendingPaymentsPage() {
     const firestore = useFirestore();
@@ -50,6 +51,11 @@ export default function PendingPaymentsPage() {
                 title="Pending Payments"
                 description="View all records with an outstanding balance."
             >
+                <SendReminderSmsDialog 
+                    customers={allCustomers || []}
+                    storageRecords={allRecords || []}
+                    unloadingRecords={allUnloadingRecords || []}
+                />
                 <CustomerBulkPaymentDialog
                     customers={allCustomers || []}
                     storageRecords={allRecords || []}

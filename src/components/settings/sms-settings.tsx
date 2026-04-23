@@ -30,6 +30,7 @@ const SmsInfoSchema = z.object({
   smsOutflowTemplate: z.string().optional(),
   smsUnloadingTemplate: z.string().optional(),
   smsPaymentTemplate: z.string().optional(),
+  smsPendingDuesTemplate: z.string().optional(),
 });
 
 type SmsInfoFormData = z.infer<typeof SmsInfoSchema>;
@@ -39,6 +40,7 @@ const defaultTemplates = {
     outflow: 'Dear {customerName}, your withdrawal of {bags} bags has been processed on {date}. Total Payable: {totalPayable}. Thank you. - {warehouseName}',
     unloading: 'Dear {customerName}, we have received your delivery of {bags} bags of {commodity} for unloading on {date}. Bill No: {billNo}. Thank you. - {warehouseName}',
     payment: 'Dear {customerName}, thank you for your payment of {paymentAmount} on {date}. Your account has been updated. - {warehouseName}',
+    pendingDues: 'Dear {customerName}, this is a reminder that you have a total outstanding balance of {totalDue}. Please make a payment at your earliest convenience. Thank you. - {warehouseName}',
 };
 
 export function SmsSettings() {
@@ -65,6 +67,7 @@ export function SmsSettings() {
             smsOutflowTemplate: '',
             smsUnloadingTemplate: '',
             smsPaymentTemplate: '',
+            smsPendingDuesTemplate: '',
         }
     });
 
@@ -77,6 +80,7 @@ export function SmsSettings() {
                 smsOutflowTemplate: smsInfo.smsOutflowTemplate || '',
                 smsUnloadingTemplate: smsInfo.smsUnloadingTemplate || '',
                 smsPaymentTemplate: smsInfo.smsPaymentTemplate || '',
+                smsPendingDuesTemplate: smsInfo.smsPendingDuesTemplate || '',
             });
         }
     }, [smsInfo, form]);
@@ -227,6 +231,18 @@ export function SmsSettings() {
                                 <FormLabel>Bulk Payment SMS Template</FormLabel>
                                 <FormControl><Textarea placeholder={defaultTemplates.payment} {...field} /></FormControl>
                                 <FormDescription>Placeholders: {`{customerName}, {paymentAmount}, {date}, {warehouseName}`}</FormDescription>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                     <FormField
+                        control={form.control}
+                        name="smsPendingDuesTemplate"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Pending Dues Reminder SMS Template</FormLabel>
+                                <FormControl><Textarea placeholder={defaultTemplates.pendingDues} {...field} /></FormControl>
+                                <FormDescription>Placeholders: {`{customerName}, {totalDue}, {warehouseName}`}</FormDescription>
                                 <FormMessage />
                             </FormItem>
                         )}

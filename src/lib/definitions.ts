@@ -202,6 +202,7 @@ export type SmsInfo = {
   smsOutflowTemplate?: string;
   smsUnloadingTemplate?: string;
   smsPaymentTemplate?: string;
+  smsPendingDuesTemplate?: string;
 };
 
 export const userRoles = ["super-admin", "owner", "supervisor", "biller"] as const;

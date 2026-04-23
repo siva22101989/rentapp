@@ -520,6 +520,10 @@
         "smsPaymentTemplate": {
           "type": "string",
           "description": "Template for SMS sent on bulk payment."
+        },
+        "smsPendingDuesTemplate": {
+            "type": "string",
+            "description": "Template for SMS sent for pending dues reminder."
         }
       },
       "required": ["textbeeApiKey"]

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useTransition, useState, useEffect, useMemo } from 'react';
@@ -12,13 +13,17 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase/provider';
-import type { Customer, UnloadingRecord, Lot, StorageRecord, HamaliChargeItem, Commodity } from '@/lib/definitions';
+import type { Customer, UnloadingRecord, Lot, StorageRecord, HamaliChargeItem, Commodity, WarehouseInfo, SmsInfo } from '@/lib/definitions';
 import { doc, writeBatch, increment, collection } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { formatCurrency, cleanForFirestore, toDate } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 import { Combobox } from '../ui/combobox';
 import { differenceInDays, format } from 'date-fns';
+import { useDoc } from '@/firebase/firestore/use-doc';
+import { useMemoFirebase } from '@/hooks/use-memo-firebase';
+import { useAppUser } from '@/firebase/auth/use-user';
+import { sendSms } from '@/lib/sms';
 
 const InitiateDryingSchema = z.object({
   unloadingRecordId: z.string().min(1, 'An unloading bill is required.'),
@@ -55,6 +60,15 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
     const firestore = useFirestore();
+    const appUser = useAppUser();
+    const [sendSmsNotification, setSendSmsNotification] = useState(true);
+
+    const smsInfoRef = useMemoFirebase(() => (firestore && appUser ? doc(firestore, 'settings', 'sms') : null), [firestore, appUser]);
+    const { data: smsInfo } = useDoc<SmsInfo>(smsInfoRef);
+
+    const warehouseInfoRef = useMemoFirebase(() => (firestore && appUser ? doc(firestore, 'settings', 'main') : null), [firestore, appUser]);
+    const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
+
 
     const form = useForm<DryingFormData>({
         resolver: zodResolver(InitiateDryingSchema),
@@ -350,6 +364,31 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                 });
                 
                 await batch.commit();
+                
+                if (sendSmsNotification && smsInfo?.textbeeApiKey && selectedCustomer?.phone) {
+                    const defaultTemplate = 'Dear {customerName}, from your unloading of {unloadingBags} bags (Bill #{unloadingBillNo}), {bagsForDrying} bags were plotted for drying and {bagsPacked} bags of {commodity} have been recorded as inflow on {date}.\nBill No: {newBillNo}.\nHamali: {hamaliAmount}. Location: {location}. Thank you. - {warehouseName},Owk';
+                    const template = smsInfo?.smsInflowTemplate || defaultTemplate;
+
+                    const message = template
+                        .replace('{customerName}', selectedCustomer.name)
+                        .replace('{unloadingBags}', String(selectedRecordOnSubmit.bagsUnloaded))
+                        .replace('{unloadingBillNo}', selectedRecordOnSubmit.billNo || 'N/A')
+                        .replace('{bagsForDrying}', String(data.bagsForDrying))
+                        .replace('{bagsPacked}', String(data.bagsPacked))
+                        .replace('{commodity}', selectedRecordOnSubmit.commodityDescription)
+                        .replace('{date}', format(finalStorageDate, 'dd MMM yyyy'))
+                        .replace('{newBillNo}', nextId)
+                        .replace('{hamaliAmount}', formatCurrency(totalHamali))
+                        .replace('{location}', data.lotNo)
+                        .replace('{warehouseName}', warehouseInfo?.name || 'GrainDost');
+
+                    sendSms({
+                        apiKey: smsInfo.textbeeApiKey,
+                        deviceId: smsInfo.textbeeDeviceId,
+                        to: selectedCustomer.phone,
+                        message: message,
+                    }).catch(console.error);
+                }
                 
                 toast({ title: 'Success', description: `Storage record created from plot.` });
 

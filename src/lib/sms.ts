@@ -1,3 +1,4 @@
+
 'use server';
 
 import { z } from 'zod';
@@ -52,10 +53,9 @@ export async function sendSms(formData: { apiKey: string; to: string; message: s
       });
     }
 
+    const fullUrl = `https://api.textbee.dev${path}`;
+
     const options = {
-      hostname: 'api.textbee.dev',
-      port: 443,
-      path: path,
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -63,7 +63,7 @@ export async function sendSms(formData: { apiKey: string; to: string; message: s
       },
     };
 
-    const req = https.request(options, (res) => {
+    const req = https.request(fullUrl, options, (res) => {
       let responseBody = '';
       res.setEncoding('utf8');
       res.on('data', (chunk) => {

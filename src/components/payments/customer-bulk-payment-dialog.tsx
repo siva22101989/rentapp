@@ -214,7 +214,15 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
         if (partiallyPaidRecordIds.size > 0) { description += ` Partially paid: ${Array.from(partiallyPaidRecordIds).join(', ')}.`; }
 
         if (sendSmsNotification && smsInfo?.textbeeApiKey && selectedCustomer?.phone) {
-            const message = `Dear ${selectedCustomer.name}, thank you for your payment of ${formatCurrency(data.paymentAmount)}. Your account has been updated. - ${warehouseInfo?.name || 'GrainDost'}`;
+            const defaultTemplate = `Dear {customerName}, thank you for your payment of {paymentAmount} on {date}. Your account has been updated. - {warehouseName}`;
+            const template = warehouseInfo?.smsPaymentTemplate || defaultTemplate;
+            
+            const message = template
+                .replace('{customerName}', selectedCustomer.name)
+                .replace('{paymentAmount}', formatCurrency(data.paymentAmount))
+                .replace('{date}', format(paymentDate, 'dd/MM/yy'))
+                .replace('{warehouseName}', warehouseInfo?.name || 'GrainDost');
+
             sendSms({
                 apiKey: smsInfo.textbeeApiKey,
                 to: selectedCustomer.phone,

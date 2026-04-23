@@ -32,6 +32,7 @@ const WarehouseInfoSchema = z.object({
   smsInflowTemplate: z.string().optional(),
   smsOutflowTemplate: z.string().optional(),
   smsUnloadingTemplate: z.string().optional(),
+  smsPaymentTemplate: z.string().optional(),
 });
 
 type WarehouseInfoFormData = z.infer<typeof WarehouseInfoSchema>;
@@ -61,6 +62,7 @@ export function WarehouseInfoForm() {
             smsInflowTemplate: '',
             smsOutflowTemplate: '',
             smsUnloadingTemplate: '',
+            smsPaymentTemplate: '',
         }
     });
 
@@ -77,6 +79,7 @@ export function WarehouseInfoForm() {
                 smsInflowTemplate: warehouseInfo.smsInflowTemplate || '',
                 smsOutflowTemplate: warehouseInfo.smsOutflowTemplate || '',
                 smsUnloadingTemplate: warehouseInfo.smsUnloadingTemplate || '',
+                smsPaymentTemplate: warehouseInfo.smsPaymentTemplate || '',
             });
         }
     }, [warehouseInfo, form]);
@@ -231,6 +234,18 @@ export function WarehouseInfoForm() {
                         <FormLabel>Unloading SMS Template</FormLabel>
                         <FormControl><Textarea placeholder="Default template will be used if empty." {...field} /></FormControl>
                         <FormDescription>Placeholders: {`{customerName}, {bags}, {commodity}, {billNo}, {date}, {warehouseName}`}</FormDescription>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
+             <FormField
+                control={form.control}
+                name="smsPaymentTemplate"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Bulk Payment SMS Template</FormLabel>
+                        <FormControl><Textarea placeholder="Default template will be used if empty." {...field} /></FormControl>
+                        <FormDescription>Placeholders: {`{customerName}, {paymentAmount}, {date}, {warehouseName}`}</FormDescription>
                         <FormMessage />
                     </FormItem>
                 )}

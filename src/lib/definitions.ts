@@ -148,6 +148,7 @@ export type WarehouseInfo = {
   smsInflowTemplate?: string;
   smsOutflowTemplate?: string;
   smsUnloadingTemplate?: string;
+  smsPaymentTemplate?: string;
 };
 
 export const unloadingStatus = ["Unloading", "Drying", "Packing", "Billed"] as const;

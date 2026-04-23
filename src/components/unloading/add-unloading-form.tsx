@@ -118,9 +118,18 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
                 const docRef = doc(firestore, 'unloadingRecords', data.billNo);
                 await setDoc(docRef, cleanForFirestore(rawRecord));
 
-<<<<<<< HEAD
                 if (sendSmsNotification && smsInfo?.textbeeApiKey && selectedCustomer?.phone) {
-                    const message = `Dear ${selectedCustomer.name}, we have received your delivery of ${data.bagsUnloaded} bags of ${data.commodityDescription} for unloading on ${format(unloadingDate, 'dd/MM/yy')}. Bill No: ${data.billNo}. Thank you. - ${warehouseInfo?.name || 'GrainDost'}`;
+                    const defaultTemplate = `Dear {customerName}, we have received your delivery of {bags} bags of {commodity} for unloading on {date}. Bill No: {billNo}. Thank you. - {warehouseName}`;
+                    const template = warehouseInfo?.smsUnloadingTemplate || defaultTemplate;
+                    
+                    const message = template
+                        .replace('{customerName}', selectedCustomer.name)
+                        .replace('{bags}', String(data.bagsUnloaded))
+                        .replace('{commodity}', data.commodityDescription)
+                        .replace('{billNo}', data.billNo)
+                        .replace('{date}', format(unloadingDate, 'dd/MM/yy'))
+                        .replace('{warehouseName}', warehouseInfo?.name || 'GrainDost');
+
                     sendSms({
                         apiKey: smsInfo.textbeeApiKey,
                         to: selectedCustomer.phone,
@@ -145,45 +154,6 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
                 if (receiptWindow) receiptWindow.close();
             }
         });
-=======
-            if (sendSmsNotification && smsInfo?.textbeeApiKey && selectedCustomer?.phone) {
-                const defaultTemplate = `Dear {customerName}, we have received your delivery of {bags} bags of {commodity} for unloading on {date}. Bill No: {billNo}. Thank you. - {warehouseName}`;
-                const template = warehouseInfo?.smsUnloadingTemplate || defaultTemplate;
-                
-                const message = template
-                    .replace('{customerName}', selectedCustomer.name)
-                    .replace('{bags}', String(data.bagsUnloaded))
-                    .replace('{commodity}', data.commodityDescription)
-                    .replace('{billNo}', data.billNo)
-                    .replace('{date}', format(unloadingDate, 'dd/MM/yy'))
-                    .replace('{warehouseName}', warehouseInfo?.name || 'GrainDost');
-
-                sendSms({
-                    apiKey: smsInfo.textbeeApiKey,
-                    to: selectedCustomer.phone,
-                    message,
-                }).catch(console.error);
-            }
-            
-            toast({ title: 'Success', description: 'Unloading record added.' });
-            
-            form.reset({
-                ...form.getValues(),
-                customerId: '',
-                commodityDescription: '',
-                lorryTractorNo: '',
-                unloadingDate: getLocalDateTimeForInput(),
-                bagsUnloaded: undefined,
-                hamaliPerBag: undefined,
-            });
-        } catch (error) {
-            console.error(error);
-            toast({ title: 'Error', description: 'Failed to add unloading record.', variant: 'destructive' });
-            if (receiptWindow) receiptWindow.close();
-        } finally {
-            setIsPending(false);
-        }
->>>>>>> 191124fb2272b3f3209aa4942410bc209c743e47
     };
 
   return (

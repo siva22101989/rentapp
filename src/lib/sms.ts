@@ -2,6 +2,7 @@
 'use server';
 
 import { z } from 'zod';
+import axios from 'axios';
 
 const SendSmsSchema = z.object({
   apiKey: z.string().min(1, { message: 'API Key is required.'}),
@@ -32,30 +33,27 @@ export async function sendSms(formData: { apiKey: string; to: string; message: s
   const tenDigitPhoneNumber = cleanedPhoneNumber.slice(-10);
 
   try {
-    const response = await fetch('https://api.textbee.dev/api/send', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        api_key: apiKey,
-        sender: senderId,
-        to: `+91${tenDigitPhoneNumber}`, // Use the cleaned 10-digit number
-        message,
-      }),
+    const response = await axios.post('https://api.textbee.dev/api/send', {
+      api_key: apiKey,
+      sender: senderId,
+      to: `+91${tenDigitPhoneNumber}`, // Use the cleaned 10-digit number
+      message,
     });
 
-    if (!response.ok) {
-        const errorResult = await response.json();
-        console.error('Failed to send SMS:', { status: response.status, error: errorResult });
-        return;
-    }
-
-    const result = await response.json();
-    if (result.status === 'success') {
-      console.log('SMS sent successfully:', result);
+    if (response.status === 200 && response.data.status === 'success') {
+      console.log('SMS sent successfully:', response.data);
     } else {
-      console.error('Failed to send SMS (API Error):', result);
+      console.error('Failed to send SMS (API Error):', response.data);
     }
   } catch (error) {
-    console.error('Error sending SMS:', error);
+    if (axios.isAxiosError(error)) {
+        console.error('Error sending SMS via Axios:', {
+            status: error.response?.status,
+            data: error.response?.data,
+            message: error.message,
+        });
+    } else {
+        console.error('Unknown error sending SMS:', error);
+    }
   }
 }

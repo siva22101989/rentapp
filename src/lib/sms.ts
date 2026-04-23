@@ -32,11 +32,11 @@ export async function sendSms(formData: { apiKey: string; to: string; message: s
   const tenDigitPhoneNumber = cleanedPhoneNumber.slice(-10);
 
   return new Promise((resolve) => {
-    let urlString: string;
+    let path: string;
     let postData: string;
-
+    
     if (deviceId) {
-      urlString = 'https://api.textbee.dev/api/send-sms-otp-device';
+      path = '/api/send-sms-otp-device';
       postData = JSON.stringify({
         api_key: apiKey,
         deviceId: deviceId,
@@ -44,7 +44,7 @@ export async function sendSms(formData: { apiKey: string; to: string; message: s
         message,
       });
     } else {
-      urlString = 'https://api.textbee.dev/api/send';
+      path = '/api/send';
       postData = JSON.stringify({
         api_key: apiKey,
         sender: formData.senderId || 'TXTBEE',
@@ -52,10 +52,11 @@ export async function sendSms(formData: { apiKey: string; to: string; message: s
         message,
       });
     }
-
-    const requestUrl = new URL(urlString);
-
+    
     const options = {
+      hostname: 'api.textbee.dev',
+      port: 443,
+      path: path,
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -63,7 +64,7 @@ export async function sendSms(formData: { apiKey: string; to: string; message: s
       },
     };
 
-    const req = https.request(requestUrl, options, (res) => {
+    const req = https.request(options, (res) => {
       let responseBody = '';
       res.setEncoding('utf8');
       res.on('data', (chunk) => {
@@ -92,7 +93,6 @@ export async function sendSms(formData: { apiKey: string; to: string; message: s
       resolve({ success: false, message: `Network error: ${e.message}` });
     });
 
-    // Write data to request body
     req.write(postData);
     req.end();
   });

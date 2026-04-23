@@ -14,26 +14,12 @@ import {
   DialogClose,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import type { Customer } from '@/lib/definitions';
 import { useFirestore } from '@/firebase/provider';
 import { updateCustomer } from '@/lib/data';
-import { z } from 'zod';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { useAppUser } from '@/firebase/auth/use-user';
-
-const CustomerSchema = z.object({
-  name: z.string().min(3, 'Name must be at least 3 characters.'),
-  phone: z.string().min(10, 'Phone number must be at least 10 digits.'),
-  email: z.string().email('Invalid email address.').optional().or(z.literal('')),
-  fatherName: z.string().optional(),
-  village: z.string().optional(),
-});
-
-type CustomerFormData = z.infer<typeof CustomerSchema>;
-
 
 export function EditCustomerDialog({ customer, children }: { customer: Customer, children: React.ReactNode }) {
   const { toast } = useToast();
@@ -42,38 +28,51 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer,
   const firestore = useFirestore();
   const appUser = useAppUser();
 
-  const form = useForm<CustomerFormData>({
-    resolver: zodResolver(CustomerSchema),
-    defaultValues: {
-      name: customer.name || '',
-      phone: customer.phone || '',
-      email: customer.email || '',
-      fatherName: customer.fatherName || '',
-      village: customer.village || '',
-    },
-  });
+  // State for each input field
+  const [name, setName] = useState(customer.name || '');
+  const [fatherName, setFatherName] = useState(customer.fatherName || '');
+  const [village, setVillage] = useState(customer.village || '');
+  const [phone, setPhone] = useState(customer.phone || '');
+  const [email, setEmail] = useState(customer.email || '');
 
+  // Reset state when dialog opens with new customer data
   useEffect(() => {
     if (isOpen) {
-      form.reset({
-        name: customer.name || '',
-        phone: customer.phone || '',
-        email: customer.email || '',
-        fatherName: customer.fatherName || '',
-        village: customer.village || '',
-      });
+      setName(customer.name || '');
+      setFatherName(customer.fatherName || '');
+      setVillage(customer.village || '');
+      setPhone(customer.phone || '');
+      setEmail(customer.email || '');
     }
-  }, [isOpen, customer, form]);
+  }, [isOpen, customer]);
 
-  const onSubmit = (data: CustomerFormData) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     if (!firestore || !appUser) {
       toast({ title: 'Error', description: 'Firestore not available or user not logged in.', variant: 'destructive' });
+      return;
+    }
+    
+    // Basic validation
+    if (name.length < 3) {
+      toast({ title: 'Validation Error', description: 'Name must be at least 3 characters.', variant: 'destructive' });
+      return;
+    }
+    if (phone.length < 10) {
+      toast({ title: 'Validation Error', description: 'Phone number must be at least 10 digits.', variant: 'destructive' });
       return;
     }
 
     startTransition(async () => {
       try {
-        await updateCustomer(firestore, customer.id, data);
+        const updatedData: Partial<Customer> = {
+          name,
+          fatherName,
+          village,
+          phone,
+          email,
+        };
+        await updateCustomer(firestore, customer.id, updatedData);
         toast({ title: 'Success', description: 'Customer updated successfully.' });
         setIsOpen(false);
       } catch (error) {
@@ -87,89 +86,42 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer,
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
-        <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)}>
-            <DialogHeader>
-                <DialogTitle>Edit Customer</DialogTitle>
-                <DialogDescription>
-                Update the details for {customer.name}.
-                </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-                <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Name</FormLabel>
-                        <FormControl>
-                        <Input placeholder="Customer's full name" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                 <FormField
-                    control={form.control}
-                    name="fatherName"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Father's Name</FormLabel>
-                        <FormControl>
-                        <Input placeholder="Father's name (optional)" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="village"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Village</FormLabel>
-                        <FormControl>
-                        <Input placeholder="Village (optional)" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="phone"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Phone</FormLabel>
-                        <FormControl>
-                        <Input placeholder="10-digit phone number" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                 <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Email (Optional)</FormLabel>
-                        <FormControl>
-                        <Input type="email" placeholder="example@email.com" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
+        <form onSubmit={handleSubmit}>
+          <DialogHeader>
+            <DialogTitle>Edit Customer</DialogTitle>
+            <DialogDescription>
+              Update the details for {customer.name}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+                <Label htmlFor="name">Name</Label>
+                <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Customer's full name" />
             </div>
-            <DialogFooter>
-                <DialogClose asChild><Button variant="outline" type="button">Cancel</Button></DialogClose>
-                <Button type="submit" disabled={isPending}>
-                {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : 'Save Changes'}
-                </Button>
-            </DialogFooter>
-            </form>
-        </Form>
+            <div className="space-y-2">
+                <Label htmlFor="fatherName">Father's Name</Label>
+                <Input id="fatherName" value={fatherName} onChange={(e) => setFatherName(e.target.value)} placeholder="Father's name (optional)" />
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="village">Village</Label>
+                <Input id="village" value={village} onChange={(e) => setVillage(e.target.value)} placeholder="Village (optional)" />
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="phone">Phone</Label>
+                <Input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="10-digit phone number" />
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="email">Email (Optional)</Label>
+                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="example@email.com" />
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild><Button variant="outline" type="button">Cancel</Button></DialogClose>
+            <Button type="submit" disabled={isPending}>
+              {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : 'Save Changes'}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

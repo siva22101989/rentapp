@@ -225,6 +225,7 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
 
             sendSms({
                 apiKey: smsInfo.textbeeApiKey,
+                deviceId: smsInfo.textbeeDeviceId,
                 to: selectedCustomer.phone,
                 message,
             }).catch(console.error);

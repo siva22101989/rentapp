@@ -132,6 +132,7 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
 
                     sendSms({
                         apiKey: smsInfo.textbeeApiKey,
+                        deviceId: smsInfo.textbeeDeviceId,
                         to: selectedCustomer.phone,
                         message,
                     }).catch(console.error);

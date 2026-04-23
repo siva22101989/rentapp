@@ -22,6 +22,7 @@ import { useAppUser } from '@/firebase/auth/use-user';
 
 const SmsInfoSchema = z.object({
   textbeeApiKey: z.string().min(1, 'textbee.dev API Key is required.'),
+  textbeeDeviceId: z.string().optional(),
 });
 
 type SmsInfoFormData = z.infer<typeof SmsInfoSchema>;
@@ -42,6 +43,7 @@ export function SmsSettings() {
         resolver: zodResolver(SmsInfoSchema),
         defaultValues: {
             textbeeApiKey: '',
+            textbeeDeviceId: '',
         }
     });
 
@@ -49,6 +51,7 @@ export function SmsSettings() {
         if (smsInfo) {
             form.reset({
                 textbeeApiKey: smsInfo.textbeeApiKey || '',
+                textbeeDeviceId: smsInfo.textbeeDeviceId || '',
             });
         }
     }, [smsInfo, form]);
@@ -80,6 +83,7 @@ export function SmsSettings() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
                     <div className="flex justify-end">
                         <Skeleton className="h-10 w-32" />
                     </div>
@@ -106,6 +110,20 @@ export function SmsSettings() {
                             <FormItem>
                                 <FormLabel>textbee.dev API Key</FormLabel>
                                 <FormControl><Input type="password" placeholder="Enter your API key" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="textbeeDeviceId"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Device ID (Optional)</FormLabel>
+                                <FormControl><Input placeholder="Enter your Device ID if using the device gateway" {...field} value={field.value ?? ''} /></FormControl>
+                                <p className="text-xs text-muted-foreground">
+                                    Only required if you are using your phone to send messages via textbee.dev.
+                                </p>
                                 <FormMessage />
                             </FormItem>
                         )}

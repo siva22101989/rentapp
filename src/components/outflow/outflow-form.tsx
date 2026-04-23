@@ -266,6 +266,7 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
 
                     sendSms({
                         apiKey: smsInfo.textbeeApiKey,
+                        deviceId: smsInfo.textbeeDeviceId,
                         to: selectedCustomer.phone,
                         message,
                     }).catch(console.error);

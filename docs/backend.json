@@ -500,6 +500,10 @@
         "textbeeApiKey": {
           "type": "string",
           "description": "Your textbee.dev API key."
+        },
+        "textbeeDeviceId": {
+          "type": "string",
+          "description": "Your textbee.dev Device ID (optional, for device gateway)."
         }
       },
       "required": ["textbeeApiKey"]

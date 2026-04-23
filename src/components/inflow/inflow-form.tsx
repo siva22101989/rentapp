@@ -210,6 +210,7 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
 
                     sendSms({
                         apiKey: smsInfo.textbeeApiKey,
+                        deviceId: smsInfo.textbeeDeviceId,
                         to: selectedCustomer.phone,
                         message: message,
                     }).catch(console.error);

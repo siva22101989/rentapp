@@ -8,9 +8,10 @@ const SendSmsSchema = z.object({
   apiKey: z.string().min(1, { message: 'API Key is required.'}),
   to: z.string().min(10, { message: 'A valid 10-digit phone number is required.'}),
   message: z.string().min(1, { message: 'Message cannot be empty.'}),
+  deviceId: z.string().optional(),
 });
 
-export async function sendSms(formData: { apiKey: string; to: string; message: string; senderId?: string }) {
+export async function sendSms(formData: { apiKey: string; to: string; message: string; senderId?: string; deviceId?: string }) {
   const validatedFields = SendSmsSchema.safeParse(formData);
 
   if (!validatedFields.success) {
@@ -19,8 +20,7 @@ export async function sendSms(formData: { apiKey: string; to: string; message: s
     return;
   }
 
-  const { apiKey, to, message } = validatedFields.data;
-  const senderId = formData.senderId || 'TXTBEE'; // Use the default TXTBEE sender ID for better reliability
+  const { apiKey, to, message, deviceId } = validatedFields.data;
 
   // Clean the phone number to ensure it's just digits
   const cleanedPhoneNumber = to.replace(/\D/g, '');
@@ -33,12 +33,25 @@ export async function sendSms(formData: { apiKey: string; to: string; message: s
   const tenDigitPhoneNumber = cleanedPhoneNumber.slice(-10);
 
   try {
-    const response = await axios.post('https://api.textbee.dev/api/send', {
-      api_key: apiKey,
-      sender: senderId,
-      to: `+91${tenDigitPhoneNumber}`, // Use the cleaned 10-digit number
-      message,
-    });
+    let response;
+    if (deviceId) {
+      // Use device-based gateway
+      response = await axios.post('https://api.textbee.dev/api/send-sms-otp-device', {
+        api_key: apiKey,
+        deviceId: deviceId,
+        number: tenDigitPhoneNumber,
+        message,
+      });
+    } else {
+      // Use standard bulk SMS gateway
+      const senderId = formData.senderId || 'TXTBEE';
+      response = await axios.post('https://api.textbee.dev/api/send', {
+        api_key: apiKey,
+        sender: senderId,
+        to: `+91${tenDigitPhoneNumber}`,
+        message,
+      });
+    }
 
     if (response.status === 200 && response.data.status === 'success') {
       console.log('SMS sent successfully:', response.data);

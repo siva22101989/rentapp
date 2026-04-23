@@ -201,6 +201,7 @@ export type DryingRecord = {
 export type SmsInfo = {
   id: string;
   textbeeApiKey: string;
+  textbeeDeviceId?: string;
 };
 
 export const userRoles = ["super-admin", "owner", "supervisor", "biller"] as const;

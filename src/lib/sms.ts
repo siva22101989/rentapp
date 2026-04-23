@@ -11,31 +11,30 @@ const SendSmsSchema = z.object({
   deviceId: z.string().optional(),
 });
 
-export async function sendSms(formData: { apiKey: string; to: string; message: string; senderId?: string; deviceId?: string }) {
+export async function sendSms(formData: { apiKey: string; to: string; message: string; senderId?: string; deviceId?: string }): Promise<{ success: boolean; message: string }> {
   const validatedFields = SendSmsSchema.safeParse(formData);
 
   if (!validatedFields.success) {
-    console.error('SMS validation failed:', validatedFields.error.flatten().fieldErrors);
-    // Don't return an error to the user, just log it. SMS is non-critical.
-    return;
+    const errorMessages = validatedFields.error.flatten().fieldErrors;
+    const firstError = Object.values(errorMessages)[0]?.[0] || 'Invalid input.';
+    console.error('SMS validation failed:', errorMessages);
+    return { success: false, message: `Validation failed: ${firstError}` };
   }
 
   const { apiKey, to, message, deviceId } = validatedFields.data;
 
-  // Clean the phone number to ensure it's just digits
   const cleanedPhoneNumber = to.replace(/\D/g, '');
   
   if (cleanedPhoneNumber.length < 10) {
-      console.error(`SMS validation failed: Phone number "${to}" is too short after cleaning.`);
-      return;
+      const errorMsg = `SMS validation failed: Phone number "${to}" is too short.`;
+      console.error(errorMsg);
+      return { success: false, message: errorMsg };
   }
-  // Take the last 10 digits to be safe, which is standard for Indian mobile numbers
   const tenDigitPhoneNumber = cleanedPhoneNumber.slice(-10);
 
   try {
     let response;
     if (deviceId) {
-      // Use device-based gateway
       response = await axios.post('https://api.textbee.dev/api/send-sms-otp-device', {
         api_key: apiKey,
         deviceId: deviceId,
@@ -43,7 +42,6 @@ export async function sendSms(formData: { apiKey: string; to: string; message: s
         message,
       });
     } else {
-      // Use standard bulk SMS gateway
       const senderId = formData.senderId || 'TXTBEE';
       response = await axios.post('https://api.textbee.dev/api/send', {
         api_key: apiKey,
@@ -55,18 +53,24 @@ export async function sendSms(formData: { apiKey: string; to: string; message: s
 
     if (response.status === 200 && response.data.status === 'success') {
       console.log('SMS sent successfully:', response.data);
+      return { success: true, message: response.data.message || "SMS sent successfully!" };
     } else {
+      const apiMessage = response.data.message || 'Unknown API error.';
       console.error('Failed to send SMS (API Error):', response.data);
+      return { success: false, message: `Failed to send SMS: ${apiMessage}` };
     }
   } catch (error) {
     if (axios.isAxiosError(error)) {
+        const errorMessage = error.response?.data?.message || error.message;
         console.error('Error sending SMS via Axios:', {
             status: error.response?.status,
             data: error.response?.data,
-            message: error.message,
+            message: errorMessage,
         });
+        return { success: false, message: `Network error: ${errorMessage}` };
     } else {
         console.error('Unknown error sending SMS:', error);
+        return { success: false, message: 'An unknown error occurred while sending the SMS.' };
     }
   }
 }

@@ -1,11 +1,11 @@
 
 'use client';
 
-import { useTransition, useEffect } from 'react';
+import { useTransition, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Loader2, MessageSquare } from 'lucide-react';
+import { Loader2, MessageSquare, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -19,6 +19,8 @@ import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 import { cleanForFirestore } from '@/lib/utils';
 import { Skeleton } from '../ui/skeleton';
 import { useAppUser } from '@/firebase/auth/use-user';
+import { Separator } from '../ui/separator';
+import { sendSms } from '@/lib/sms';
 
 const SmsInfoSchema = z.object({
   textbeeApiKey: z.string().min(1, 'textbee.dev API Key is required.'),
@@ -32,6 +34,9 @@ export function SmsSettings() {
     const [isPending, startTransition] = useTransition();
     const firestore = useFirestore();
     const appUser = useAppUser();
+
+    const [testNumber, setTestNumber] = useState('');
+    const [isTesting, startTestTransition] = useTransition();
 
     const smsInfoRef = useMemoFirebase(
         () => (firestore && appUser ? doc(firestore, 'settings', 'sms') : null),
@@ -73,6 +78,33 @@ export function SmsSettings() {
             }
         });
     };
+
+    const handleTestSms = () => {
+        if (!testNumber) {
+            toast({ title: 'Phone Number Required', description: 'Please enter a phone number to send a test SMS to.', variant: 'destructive' });
+            return;
+        }
+        const currentSettings = form.getValues();
+        if (!currentSettings.textbeeApiKey) {
+            toast({ title: 'API Key Required', description: 'Please save your textbee.dev API key before testing.', variant: 'destructive' });
+            return;
+        }
+
+        startTestTransition(async () => {
+            const result = await sendSms({
+                apiKey: currentSettings.textbeeApiKey,
+                deviceId: currentSettings.textbeeDeviceId,
+                to: testNumber,
+                message: 'This is a test message from your GrainDost application setup.'
+            });
+
+            if (result.success) {
+                toast({ title: 'Test SMS Sent!', description: result.message });
+            } else {
+                toast({ title: 'Test SMS Failed', description: result.message, variant: 'destructive', duration: 10000 });
+            }
+        });
+    }
 
     if (loadingInfo) {
         return (
@@ -120,7 +152,7 @@ export function SmsSettings() {
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Device ID (Optional)</FormLabel>
-                                <FormControl><Input placeholder="Enter your Device ID if using the device gateway" {...field} value={field.value ?? ''} /></FormControl>
+                                <FormControl><Input type="text" placeholder="Enter your Device ID if using the device gateway" {...field} value={field.value ?? ''} /></FormControl>
                                 <p className="text-xs text-muted-foreground">
                                     Only required if you are using your phone to send messages via textbee.dev.
                                 </p>
@@ -139,6 +171,25 @@ export function SmsSettings() {
                     </div>
                 </form>
             </Form>
+            
+            <Separator className="my-6" />
+
+            <div>
+                <h3 className="text-md font-medium">Test SMS Settings</h3>
+                <p className="text-sm text-muted-foreground mb-4">Send a test message to a phone number to verify your saved settings.</p>
+                <div className="flex flex-col sm:flex-row gap-2">
+                    <Input 
+                        placeholder="Enter 10-digit phone number" 
+                        value={testNumber} 
+                        onChange={(e) => setTestNumber(e.target.value)}
+                        className="sm:flex-1"
+                    />
+                    <Button onClick={handleTestSms} disabled={isTesting} className="w-full sm:w-auto">
+                        {isTesting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                        Send Test
+                    </Button>
+                </div>
+            </div>
         </CardContent>
     </Card>
   );

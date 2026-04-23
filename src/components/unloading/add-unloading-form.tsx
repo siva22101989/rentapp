@@ -119,7 +119,7 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
                 await setDoc(docRef, cleanForFirestore(rawRecord));
 
                 if (sendSmsNotification && smsInfo?.textbeeApiKey && selectedCustomer?.phone) {
-                    const defaultTemplate = `Dear {customerName}, we have received your delivery of {bags} bags of {commodity} on {date}. Bill No: {billNo}. Hamali: {hamaliAmount}. Thank you. - {warehouseName}`;
+                    const defaultTemplate = `Dear {customerName}, your plot bags are unloading outside of warehouse no of bags : {bags} , commodity :{commodity} on {date}. Bill No: {billNo}. Hamali: {hamaliAmount}. Thank you. - {warehouseName}`;
                     const template = smsInfo?.smsUnloadingTemplate || defaultTemplate;
                     
                     const message = template

@@ -59,6 +59,7 @@ interface InitiateDryingFormProps {
 export function InitiateDryingForm({ customers, unloadingRecords, lots, storageRecords, commodities }: InitiateDryingFormProps) {
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
+    const [isPartialSaving, setIsPartialSaving] = useState(false);
     const firestore = useFirestore();
     const appUser = useAppUser();
     const [sendSmsNotification, setSendSmsNotification] = useState(true);
@@ -226,6 +227,73 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
         }, 0);
         return (maxId + 1).toString();
     }, [storageRecords]);
+
+    const handlePartialSave = async () => {
+        if (!firestore) {
+            toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
+            return;
+        }
+
+        const data = form.getValues();
+        const validationResult = await form.trigger(["unloadingRecordId", "dryingStartDate", "bagsForDrying", "customerHamaliPerBag"]);
+        if (!validationResult) {
+            toast({ title: "Missing Information", description: "Please select an unloading bill, a start date, and specify bags for drying.", variant: "destructive" });
+            return;
+        }
+
+        const selectedRecordOnSubmit = unloadingRecords.find(ur => ur.id === data.unloadingRecordId);
+        if (!selectedRecordOnSubmit) {
+            toast({ title: 'Error', description: 'Selected unloading record not found.', variant: 'destructive' });
+            return;
+        }
+
+        const bagsStillAvailable = selectedRecordOnSubmit.bagsUnloaded - (selectedRecordOnSubmit.bagsSentToDrying || 0);
+        if (data.bagsForDrying > bagsStillAvailable) {
+            form.setError('bagsForDrying', { message: `Cannot exceed available bags (${bagsStillAvailable}).` });
+            return;
+        }
+
+        setIsPartialSaving(true);
+        try {
+            const totalDryingHamali = data.bagsForDrying * data.customerHamaliPerBag;
+            
+            const newDryingRecordData = {
+                unloadingRecordId: data.unloadingRecordId,
+                customerId: selectedRecordOnSubmit.customerId,
+                commodityDescription: selectedRecordOnSubmit.commodityDescription,
+                bagsForDrying: data.bagsForDrying,
+                status: 'Drying' as const,
+                dryingStartDate: new Date(data.dryingStartDate),
+                hamaliPerBag: data.customerHamaliPerBag,
+                totalDryingHamali: totalDryingHamali,
+                totalDryingWorkerHamali: totalDryingHamali, // Assuming worker and customer hamali are same for this stage
+            };
+
+            const batch = writeBatch(firestore);
+            const newDryingRecordRef = doc(collection(firestore, 'dryingRecords'));
+            batch.set(newDryingRecordRef, cleanForFirestore(newDryingRecordData));
+            
+            const unloadingRecordRef = doc(firestore, 'unloadingRecords', data.unloadingRecordId);
+            batch.update(unloadingRecordRef, {
+                bagsSentToDrying: increment(data.bagsForDrying)
+            });
+            
+            await batch.commit();
+
+            toast({
+                title: "Partial Save Successful",
+                description: `${data.bagsForDrying} bags have been moved to the drying plot. You can manage this process from the history table.`
+            });
+
+            form.reset();
+
+        } catch (error) {
+            console.error(error);
+            toast({ title: 'Error', description: 'Failed to perform partial save.', variant: 'destructive' });
+        } finally {
+            setIsPartialSaving(false);
+        }
+    };
 
 
     const onSubmit = (data: DryingFormData) => {
@@ -639,8 +707,21 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                         </div>
                     </div>
                 </CardContent>
-                <CardFooter>
-                    <Button type="submit" disabled={isPending || !selectedUnloadingRecord} className="w-full">
+                <CardFooter className="flex flex-col sm:flex-row gap-2">
+                     <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={handlePartialSave}
+                        disabled={isPending || isPartialSaving || !selectedUnloadingRecord}
+                        className="w-full"
+                    >
+                        {isPartialSaving ? (
+                            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
+                        ) : (
+                            'Partial Save (Start Drying)'
+                        )}
+                    </Button>
+                    <Button type="submit" disabled={isPending || isPartialSaving || !selectedUnloadingRecord} className="w-full">
                         {isPending ? (
                             <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating Record...</>
                         ) : (

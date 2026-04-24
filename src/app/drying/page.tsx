@@ -6,12 +6,13 @@ import { useCollection } from "@/firebase/firestore/use-collection";
 import { collection } from "firebase/firestore";
 import { useFirestore } from "@/firebase/provider";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
-import type { Customer, UnloadingRecord, Lot, StorageRecord, Commodity } from "@/lib/definitions";
+import type { Customer, UnloadingRecord, Lot, StorageRecord, Commodity, DryingRecord } from "@/lib/definitions";
 import { AddCustomerDialog } from "@/components/customers/add-customer-dialog";
 import { InitiateDryingForm } from "@/components/drying/initiate-drying-form";
 import { useMemo } from "react";
 import { toDate } from "@/lib/utils";
 import { useAppUser } from "@/firebase/auth/use-user";
+import { DryingHistoryTable } from "@/components/drying/drying-history-table";
 
 export default function DryingPage() {
   const firestore = useFirestore();
@@ -47,6 +48,13 @@ export default function DryingPage() {
   );
   const { data: commodities, loading: loadingCommodities } = useCollection<Commodity>(commoditiesQuery);
 
+  const dryingRecordsQuery = useMemoFirebase(
+    () => (firestore && appUser ? collection(firestore, 'dryingRecords') : null),
+    [firestore, appUser]
+  );
+  const { data: dryingRecords, loading: loadingDryingRecords } = useCollection<DryingRecord>(dryingRecordsQuery);
+
+
   const availableForDryingRecords = useMemo(() => {
     if (!unloadingRecords) return [];
     const filtered = unloadingRecords.filter(r => r.bagsUnloaded > (r.bagsSentToDrying || 0));
@@ -54,7 +62,7 @@ export default function DryingPage() {
   }, [unloadingRecords]);
 
 
-  if (loadingCustomers || loadingUnloadingRecords || loadingLots || loadingStorageRecords || loadingCommodities) {
+  if (loadingCustomers || loadingUnloadingRecords || loadingLots || loadingStorageRecords || loadingCommodities || loadingDryingRecords) {
     return <AppLayout><div>Loading...</div></AppLayout>;
   }
 
@@ -66,13 +74,22 @@ export default function DryingPage() {
       >
         <AddCustomerDialog />
       </PageHeader>
-      <InitiateDryingForm 
-          customers={customers || []} 
-          unloadingRecords={availableForDryingRecords || []}
+      <div className="space-y-8">
+        <InitiateDryingForm 
+            customers={customers || []} 
+            unloadingRecords={availableForDryingRecords || []}
+            lots={lots || []}
+            storageRecords={storageRecords || []}
+            commodities={commodities || []}
+        />
+        <DryingHistoryTable
+          dryingRecords={dryingRecords || []}
+          customers={customers || []}
+          unloadingRecords={unloadingRecords || []}
           lots={lots || []}
           storageRecords={storageRecords || []}
-          commodities={commodities || []}
-      />
+        />
+      </div>
     </AppLayout>
   );
 }

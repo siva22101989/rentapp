@@ -440,13 +440,26 @@
           "format": "date-time",
           "description": "The date the process was billed. Null if not yet billed."
         },
-        "hamaliPerBag": {
-          "type": "number",
-          "description": "The hamali charge per bag for the drying process."
-        },
         "totalDryingHamali": {
           "type": "number",
           "description": "The total hamali charge for this drying process."
+        },
+        "hamaliDetails": {
+            "type": "array",
+            "description": "A detailed breakdown of hamali charges for the drying process.",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "description": { "type": "string" },
+                    "bags": { "type": "number" },
+                    "rate": { "type": "number" },
+                    "amount": { "type": "number" }
+                }
+            }
+        },
+        "workerHamaliPayable": {
+            "type": "number",
+            "description": "The total hamali amount payable to workers for this drying process."
         }
       },
       "required": [
@@ -456,7 +469,6 @@
         "bagsForDrying",
         "status",
         "dryingStartDate",
-        "hamaliPerBag",
         "totalDryingHamali"
       ]
     },
@@ -500,30 +512,6 @@
         "textbeeApiKey": {
           "type": "string",
           "description": "Your textbee.dev API key."
-        },
-        "textbeeDeviceId": {
-          "type": "string",
-          "description": "Your textbee.dev Device ID (optional, for device gateway)."
-        },
-        "smsInflowTemplate": {
-          "type": "string",
-          "description": "Template for SMS sent on new inflow."
-        },
-        "smsOutflowTemplate": {
-          "type": "string",
-          "description": "Template for SMS sent on outflow."
-        },
-        "smsUnloadingTemplate": {
-          "type": "string",
-          "description": "Template for SMS sent on unloading."
-        },
-        "smsPaymentTemplate": {
-          "type": "string",
-          "description": "Template for SMS sent on bulk payment."
-        },
-        "smsPendingDuesTemplate": {
-            "type": "string",
-            "description": "Template for SMS sent for pending dues reminder."
         }
       },
       "required": ["textbeeApiKey"]

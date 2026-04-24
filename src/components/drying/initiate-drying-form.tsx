@@ -132,56 +132,64 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
 
     const bagsRemainingOnRecord = selectedUnloadingRecord ? selectedUnloadingRecord.bagsUnloaded - (selectedUnloadingRecord.bagsSentToDrying || 0) : 0;
     
-    const bagsForDrying = form.watch('bagsForDrying');
-    const customerDay1HamaliRate = form.watch('customerHamaliPerBag');
+    const formValues = form.watch();
 
-    const pavHamaliPerBag = form.watch('pavHamaliPerBag') || 0;
-    const cuppaHamaliPerBag = form.watch('cuppaHamaliPerBag') || 0;
-    
-    const startDate = form.watch('dryingStartDate');
-    const endDate = form.watch('dryingEndDate');
-    
-    const dryingDays = useMemo(() => {
+    const {
+        proportionalUnloadingHamali,
+        day1DryingHamali,
+        pavHamali,
+        cuppaHamali,
+        totalCustomerCharge,
+        workerHamaliDay1,
+        totalWorkerPayable,
+        extraDryingDays,
+    } = useMemo(() => {
+        const { bagsForDrying, customerHamaliPerBag, pavHamaliPerBag, cuppaHamaliPerBag, workerHamaliPerBag, dryingStartDate, dryingEndDate } = formValues;
+
+        const pUnloadingHamali = selectedUnloadingRecord ? ((selectedUnloadingRecord.hamaliPerBag || 0) * (Number(bagsForDrying) || 0)) : 0;
+        const d1DryingHamali = (Number(bagsForDrying) || 0) * (Number(customerHamaliPerBag) || 0);
+
+        let extraDays = 0;
         try {
-            const start = new Date(startDate);
-            const end = new Date(endDate);
+            const start = new Date(dryingStartDate);
+            const end = new Date(dryingEndDate);
             if (!isNaN(start.getTime()) && !isNaN(end.getTime()) && end >= start) {
-                const days = differenceInDays(end, start) + 1;
-                return days > 0 ? days : 1;
+                const days = differenceInDays(end, start);
+                extraDays = days > 0 ? days : 0;
             }
-        } catch (e) { /* ignore parse errors */ }
-        return 1;
-    }, [startDate, endDate]);
+        } catch (e) { /* ignore */ }
 
-    const extraDryingDays = useMemo(() => {
-        return dryingDays > 1 ? dryingDays - 1 : 0;
-    }, [dryingDays]);
+        const pavH = (Number(bagsForDrying) || 0) * (Number(pavHamaliPerBag) || 0) * extraDays;
+        const cuppaH = (Number(bagsForDrying) || 0) * (Number(cuppaHamaliPerBag) || 0) * extraDays;
+        
+        const totalCustCharge = pUnloadingHamali + d1DryingHamali + pavH + cuppaH;
 
-    const pavHamali = (Number(bagsForDrying) || 0) * (Number(pavHamaliPerBag) || 0) * extraDryingDays;
-    const cuppaHamali = (Number(bagsForDrying) || 0) * (Number(cuppaHamaliPerBag) || 0) * extraDryingDays;
-    
-    const day1DryingHamali = (Number(bagsForDrying) || 0) * (Number(customerDay1HamaliRate) || 0);
-
-    const proportionalUnloadingHamali = selectedUnloadingRecord 
-        ? ((selectedUnloadingRecord.hamaliPerBag || 0) * (Number(bagsForDrying) || 0))
-        : 0;
-
-    const totalCustomerCharge = proportionalUnloadingHamali + day1DryingHamali + pavHamali + cuppaHamali;
-    
-    const workerHamaliDay1 = (Number(bagsForDrying) || 0) * (Number(form.watch('workerHamaliPerBag')) || 0);
-    const totalWorkerPayable = proportionalUnloadingHamali + workerHamaliDay1 + pavHamali + cuppaHamali;
+        const wHamaliDay1 = (Number(bagsForDrying) || 0) * (Number(workerHamaliPerBag) || 0);
+        const totalWorkerPay = pUnloadingHamali + wHamaliDay1 + pavH + cuppaH;
+        
+        return {
+            proportionalUnloadingHamali: pUnloadingHamali,
+            day1DryingHamali: d1DryingHamali,
+            pavHamali: pavH,
+            cuppaHamali: cuppaH,
+            totalCustomerCharge: totalCustCharge,
+            workerHamaliDay1: wHamaliDay1,
+            totalWorkerPayable: totalWorkerPay,
+            extraDryingDays: extraDays
+        };
+    }, [formValues, selectedUnloadingRecord]);
     
     const daysUntilDrying = useMemo(() => {
-        if (!selectedUnloadingRecord || !startDate) return null;
+        if (!selectedUnloadingRecord || !formValues.dryingStartDate) return null;
         try {
             const unloadDate = toDate(selectedUnloadingRecord.unloadingDate);
-            const dryStartDate = new Date(startDate);
+            const dryStartDate = new Date(formValues.dryingStartDate);
              if (!isNaN(unloadDate.getTime()) && !isNaN(dryStartDate.getTime()) && dryStartDate >= unloadDate) {
                 return differenceInDays(dryStartDate, unloadDate);
             }
         } catch(e) {/* ignore */}
         return null;
-    }, [selectedUnloadingRecord, startDate]);
+    }, [selectedUnloadingRecord, formValues.dryingStartDate]);
 
 
     useEffect(() => {
@@ -235,9 +243,9 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
         }
 
         const data = form.getValues();
-        const validationResult = await form.trigger(["unloadingRecordId", "dryingStartDate", "bagsForDrying", "customerHamaliPerBag"]);
+        const validationResult = await form.trigger(["unloadingRecordId", "dryingStartDate", "bagsForDrying"]);
         if (!validationResult) {
-            toast({ title: "Missing Information", description: "Please select an unloading bill, a start date, and specify bags for drying.", variant: "destructive" });
+            toast({ title: "Missing Information", description: "Please select an unloading bill and specify bags for drying.", variant: "destructive" });
             return;
         }
 
@@ -255,18 +263,56 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
 
         setIsPartialSaving(true);
         try {
-            const totalDryingHamali = data.bagsForDrying * data.customerHamaliPerBag;
+            const { bagsForDrying, customerHamaliPerBag, workerHamaliPerBag, pavHamaliPerBag, cuppaHamaliPerBag, dryingStartDate, dryingEndDate } = data;
             
+            const hamaliDetails: HamaliChargeItem[] = [];
+
+            const currentProportionalUnloadingHamali = (selectedRecordOnSubmit.hamaliPerBag || 0) * bagsForDrying;
+            if (currentProportionalUnloadingHamali > 0) {
+                hamaliDetails.push({ description: 'Unloading Hamali', bags: bagsForDrying, rate: selectedRecordOnSubmit.hamaliPerBag || 0, amount: currentProportionalUnloadingHamali });
+            }
+            
+            const day1DryingCustomerHamali = bagsForDrying * (customerHamaliPerBag || 0);
+            if (day1DryingCustomerHamali > 0) {
+                hamaliDetails.push({ description: 'Customer Hamali', bags: bagsForDrying, rate: customerHamaliPerBag || 0, amount: day1DryingCustomerHamali });
+            }
+            
+            let extraDaysForSave = 0;
+            try {
+                const start = new Date(dryingStartDate);
+                const end = new Date(dryingEndDate);
+                if (!isNaN(start.getTime()) && !isNaN(end.getTime()) && end >= start) {
+                    const days = differenceInDays(end, start);
+                    extraDaysForSave = days > 0 ? days : 0;
+                }
+            } catch (e) {/* ignore */}
+
+            const pavHamaliAmount = bagsForDrying * (pavHamaliPerBag || 0) * extraDaysForSave;
+            if (pavHamaliAmount > 0) {
+                 hamaliDetails.push({ description: `Pav Hamali (${extraDaysForSave} extra day${extraDaysForSave !== 1 ? 's' : ''})`, bags: bagsForDrying, rate: pavHamaliPerBag || 0, amount: pavHamaliAmount });
+            }
+            const cuppaHamaliAmount = bagsForDrying * (cuppaHamaliPerBag || 0) * extraDaysForSave;
+            if (cuppaHamaliAmount > 0) {
+                hamaliDetails.push({ description: `Cuppa Hamali (${extraDaysForSave} extra day${extraDaysForSave !== 1 ? 's' : ''})`, bags: bagsForDrying, rate: cuppaHamaliPerBag || 0, amount: cuppaHamaliAmount });
+            }
+
+            const totalCustomerChargeForSave = hamaliDetails.reduce((sum, item) => sum + item.amount, 0);
+
+            const day1DryingWorkerHamali = bagsForDrying * (workerHamaliPerBag || 0);
+            const totalWorkerPayableForSave = currentProportionalUnloadingHamali + day1DryingWorkerHamali + pavHamaliAmount + cuppaHamaliAmount;
+
             const newDryingRecordData = {
                 unloadingRecordId: data.unloadingRecordId,
                 customerId: selectedRecordOnSubmit.customerId,
                 commodityDescription: selectedRecordOnSubmit.commodityDescription,
                 bagsForDrying: data.bagsForDrying,
+                bagsPacked: data.bagsPacked,
                 status: 'Drying' as const,
                 dryingStartDate: new Date(data.dryingStartDate),
-                hamaliPerBag: data.customerHamaliPerBag,
-                totalDryingHamali: totalDryingHamali,
-                totalDryingWorkerHamali: totalDryingHamali, // Assuming worker and customer hamali are same for this stage
+                packingDate: data.dryingEndDate ? new Date(data.dryingEndDate) : null,
+                hamaliDetails,
+                totalDryingHamali: totalCustomerChargeForSave,
+                workerHamaliPayable: totalWorkerPayableForSave,
             };
 
             const batch = writeBatch(firestore);
@@ -334,61 +380,23 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                     return;
                 }
                 
-                // Prepare new storage record
                 const finalStorageDate = new Date(data.dryingEndDate);
                 const bagsStored = data.bagsPacked;
 
-                // --- Hamali Calculations and Details ---
                 const hamaliDetails: HamaliChargeItem[] = [];
 
-                const currentProportionalUnloadingHamali = (selectedRecordOnSubmit.hamaliPerBag || 0) * data.bagsForDrying;
-                if (currentProportionalUnloadingHamali > 0) {
-                    hamaliDetails.push({
-                        description: 'Unloading Hamali',
-                        bags: data.bagsForDrying,
-                        rate: selectedRecordOnSubmit.hamaliPerBag || 0,
-                        amount: currentProportionalUnloadingHamali
-                    });
+                if (proportionalUnloadingHamali > 0) {
+                    hamaliDetails.push({ description: 'Unloading Hamali', bags: data.bagsForDrying, rate: selectedRecordOnSubmit.hamaliPerBag || 0, amount: proportionalUnloadingHamali });
                 }
-                
-                const dryingDay1CustomerHamali = data.bagsForDrying * data.customerHamaliPerBag;
-                if (dryingDay1CustomerHamali > 0) {
-                    hamaliDetails.push({
-                        description: 'Customer Hamali',
-                        bags: data.bagsForDrying,
-                        rate: data.customerHamaliPerBag,
-                        amount: dryingDay1CustomerHamali
-                    });
+                if (day1DryingHamali > 0) {
+                    hamaliDetails.push({ description: 'Customer Hamali', bags: data.bagsForDrying, rate: data.customerHamaliPerBag, amount: day1DryingHamali });
                 }
-
-                const totalDryingDays = differenceInDays(new Date(data.dryingEndDate), new Date(data.dryingStartDate)) + 1;
-                const extraDaysForSubmission = totalDryingDays > 1 ? totalDryingDays - 1 : 0;
-
-                const pavHamaliAmount = data.bagsForDrying * (data.pavHamaliPerBag || 0) * extraDaysForSubmission;
-                if (pavHamaliAmount > 0) {
-                     hamaliDetails.push({
-                        description: `Pav Hamali (${extraDaysForSubmission} extra day${extraDaysForSubmission !== 1 ? 's' : ''})`,
-                        bags: data.bagsForDrying,
-                        rate: data.pavHamaliPerBag || 0,
-                        amount: pavHamaliAmount
-                    });
+                if (pavHamali > 0) {
+                     hamaliDetails.push({ description: `Pav Hamali (${extraDryingDays} extra day${extraDryingDays !== 1 ? 's' : ''})`, bags: data.bagsForDrying, rate: data.pavHamaliPerBag || 0, amount: pavHamali });
                 }
-
-                const cuppaHamaliAmount = data.bagsForDrying * (data.cuppaHamaliPerBag || 0) * extraDaysForSubmission;
-                if (cuppaHamaliAmount > 0) {
-                    hamaliDetails.push({
-                        description: `Cuppa Hamali (${extraDaysForSubmission} extra day${extraDaysForSubmission !== 1 ? 's' : ''})`,
-                        bags: data.bagsForDrying,
-                        rate: data.cuppaHamaliPerBag || 0,
-                        amount: cuppaHamaliAmount
-                    });
+                if (cuppaHamali > 0) {
+                    hamaliDetails.push({ description: `Cuppa Hamali (${extraDryingDays} extra day${extraDryingDays !== 1 ? 's' : ''})`, bags: data.bagsForDrying, rate: data.cuppaHamaliPerBag || 0, amount: cuppaHamali });
                 }
-
-                const totalHamali = hamaliDetails.reduce((sum, item) => sum + item.amount, 0);
-
-                // Worker Hamali Calculation
-                const dryingDay1WorkerHamali = data.bagsForDrying * data.workerHamaliPerBag;
-                const totalWorkerHamali = currentProportionalUnloadingHamali + dryingDay1WorkerHamali + pavHamaliAmount + cuppaHamaliAmount;
                 
                 const batch = writeBatch(firestore);
 
@@ -404,8 +412,8 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                     storageEndDate: null,
                     billingCycle: '6-Month Initial' as const,
                     payments: [],
-                    hamaliPayable: totalHamali,
-                    workerHamaliPayable: totalWorkerHamali,
+                    hamaliPayable: totalCustomerCharge,
+                    workerHamaliPayable: totalWorkerPayable,
                     totalRentBilled: 0,
                     lorryTractorNo: selectedRecordOnSubmit?.lorryTractorNo || '',
                     weight: 0,
@@ -446,7 +454,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                         .replace('{commodity}', selectedRecordOnSubmit.commodityDescription)
                         .replace('{date}', format(finalStorageDate, 'dd MMM yyyy'))
                         .replace('{newBillNo}', nextId)
-                        .replace('{hamaliAmount}', formatCurrency(totalHamali))
+                        .replace('{hamaliAmount}', formatCurrency(totalCustomerCharge))
                         .replace('{location}', data.lotNo)
                         .replace('{warehouseName}', warehouseInfo?.name || 'GrainDost');
 
@@ -559,14 +567,14 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                             )}
                         />
                     </div>
-                     {(dryingDays !== null || daysUntilDrying !== null) && (
+                     {(daysUntilDrying !== null || formValues.dryingEndDate) && (
                         <div className="text-sm text-center text-muted-foreground p-2 bg-secondary rounded-md grid grid-cols-2 divide-x divide-border">
                            <div className="flex flex-col items-center">
                                 <span className="font-bold text-foreground">{daysUntilDrying ?? '-'} days</span>
                                 <span className="text-xs">Wait before drying</span>
                            </div>
                            <div className="flex flex-col items-center">
-                               <span className="font-bold text-foreground">{dryingDays ?? '-'}</span>
+                               <span className="font-bold text-foreground">{differenceInDays(new Date(formValues.dryingEndDate), new Date(formValues.dryingStartDate)) + 1 || '-'}</span>
                                <span className="text-xs">Total drying days</span>
                            </div>
                         </div>

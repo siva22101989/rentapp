@@ -4,15 +4,55 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
+    // --- Helper Functions ---
+    
+    // Helper function to get the data from the current user's profile.
+    function getUserData() {
+      // The `request.auth.uid` is the unique ID of the signed-in user.
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
     function isSignedIn() {
       return request.auth != null;
     }
+    
+    // --- Rules for Specific Collections ---
 
-    // Allow reads and writes for all authenticated users.
-    // This is a temporary, permissive rule to get the app working again.
-    // We can tighten security later if needed.
-    match /{document=**} {
-      allow read, write: if isSignedIn();
+    // This rule is for the 'users' collection itself. It's evaluated before the general rule below.
+    match /users/{userId} {
+      // A user can read their own profile. This is crucial for other rules to work.
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      
+      // A user can update their own data, but CANNOT change their role or warehouseId.
+      // This prevents a user from giving themselves higher permissions or switching tenants.
+      allow update: if isSignedIn() && request.auth.uid == userId
+                    && request.resource.data.role == resource.data.role
+                    && request.resource.data.warehouseId == resource.data.warehouseId;
+    }
+    
+    // --- Generic Rule for All Tenant Data ---
+    // This single rule covers all other collections (e.g., inventory, tasks, customers, storageRecords).
+    match /{collection}/{docId} {
+
+      // READ access (get, list):
+      // Allow if the user is signed in AND the 'warehouseId' on the document they are trying to read
+      // matches the 'warehouseId' from their user profile. This is the core of the multi-tenancy security.
+      // For 'list' operations (queries), this rule is applied to EVERY document the query tries to return.
+      allow read: if isSignedIn() && getUserData().warehouseId == resource.data.warehouseId;
+
+      // CREATE access:
+      // Allow a user to create a new document only if they are tagging it with their own warehouseId.
+      allow create: if isSignedIn() && request.resource.data.warehouseId == getUserData().warehouseId;
+
+      // UPDATE access:
+      // Allow updates only if the document already belongs to the user's warehouse
+      // AND they are not trying to change the warehouseId to something else.
+      allow update: if isSignedIn() && resource.data.warehouseId == getUserData().warehouseId
+                    && request.resource.data.warehouseId == resource.data.warehouseId;
+      
+      // DELETE access:
+      // Allow a user to delete a document only if it belongs to their warehouse.
+      allow delete: if isSignedIn() && resource.data.warehouseId == getUserData().warehouseId;
     }
   }
 }

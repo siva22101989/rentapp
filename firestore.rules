@@ -6,7 +6,6 @@ service cloud.firestore {
     
     // --- Helper Functions ---
     
-    // Helper function to get the data from the current user's profile.
     function getUserData() {
       // The `request.auth.uid` is the unique ID of the signed-in user.
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
@@ -15,10 +14,13 @@ service cloud.firestore {
     function isSignedIn() {
       return request.auth != null;
     }
+
+    function isSuperAdmin() {
+      return isSignedIn() && getUserData().role == 'super-admin';
+    }
     
     // --- Rules for Specific Collections ---
 
-    // This rule is for the 'users' collection itself. It's evaluated before the general rule below.
     match /users/{userId} {
       // A user can read their own profile. This is crucial for other rules to work.
       allow read: if isSignedIn() && request.auth.uid == userId;
@@ -29,9 +31,21 @@ service cloud.firestore {
                     && request.resource.data.role == resource.data.role
                     && request.resource.data.warehouseId == resource.data.warehouseId;
     }
+
+    // Rule for warehouse-specific settings
+    match /warehouses/{warehouseId} {
+        // A user can read and update the settings for their own warehouse.
+        allow read, update: if isSignedIn() && getUserData().warehouseId == warehouseId;
+    }
+
+    // Rule for super-admin managed warehouses
+    match /managedWarehouses/{warehouseId} {
+        // Only super-admins can manage the warehouse subscriptions.
+        allow read, write: if isSuperAdmin();
+    }
     
-    // --- Generic Rule for All Tenant Data ---
-    // This single rule covers all other collections (e.g., inventory, tasks, customers, storageRecords).
+    // --- Generic Rule for All Other Tenant Data ---
+    // This single rule covers all other collections (e.g., customers, storageRecords, lots).
     match /{collection}/{docId} {
 
       // READ access (get, list):

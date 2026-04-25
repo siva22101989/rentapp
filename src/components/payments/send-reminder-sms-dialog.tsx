@@ -15,7 +15,7 @@ import {
   DialogClose,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import type { StorageRecord, Customer, UnloadingRecord, WarehouseInfo, SmsInfo } from '@/lib/definitions';
+import type { StorageRecord, Customer, UnloadingRecord, WarehouseInfo } from '@/lib/definitions';
 import { formatCurrency, toDate } from '@/lib/utils';
 import { useFirestore } from '@/firebase/provider';
 import { useForm } from 'react-hook-form';
@@ -51,10 +51,10 @@ export function SendReminderSmsDialog({ customers, storageRecords, unloadingReco
   const appUser = useAppUser();
   const [showAllCustomers, setShowAllCustomers] = useState(false);
 
-  const smsInfoRef = useMemoFirebase(() => (firestore && appUser ? doc(firestore, 'settings', 'sms') : null), [firestore, appUser]);
-  const { data: smsInfo } = useDoc<SmsInfo>(smsInfoRef);
-
-  const warehouseInfoRef = useMemoFirebase(() => (firestore && appUser ? doc(firestore, 'settings', 'main') : null), [firestore, appUser]);
+  const warehouseInfoRef = useMemoFirebase(
+    () => (firestore && appUser?.warehouseId ? doc(firestore, 'warehouses', appUser.warehouseId) : null),
+    [firestore, appUser]
+  );
   const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
   const form = useForm<ReminderSmsFormData>({
@@ -140,7 +140,7 @@ export function SendReminderSmsDialog({ customers, storageRecords, unloadingReco
   }, [selectedCustomerId, storageRecords, unloadingRecords]);
 
   const onSubmit = (data: ReminderSmsFormData) => {
-    if (!firestore || !smsInfo?.textbeeApiKey || !selectedCustomer?.phone) {
+    if (!firestore || !warehouseInfo?.textbeeApiKey || !selectedCustomer?.phone) {
       toast({ title: 'Error', description: 'SMS settings or customer phone number are missing.', variant: 'destructive' });
       return;
     }
@@ -151,7 +151,7 @@ export function SendReminderSmsDialog({ customers, storageRecords, unloadingReco
 
     startTransition(async () => {
         const defaultTemplate = 'Dear {customerName}, this is a reminder that you have an outstanding balance. Rent Due: {rentDue}, Hamali Due: {hamaliDue}, Total Due: {totalDue}. Please pay at your earliest convenience. Thank you. - {warehouseName}';
-        const template = smsInfo?.smsPendingDuesTemplate || defaultTemplate;
+        const template = warehouseInfo?.smsPendingDuesTemplate || defaultTemplate;
         
         const message = template
             .replace('{customerName}', selectedCustomer.name)
@@ -161,8 +161,8 @@ export function SendReminderSmsDialog({ customers, storageRecords, unloadingReco
             .replace('{warehouseName}', warehouseInfo?.name || 'GrainDost');
 
         const result = await sendSms({
-            apiKey: smsInfo.textbeeApiKey,
-            deviceId: smsInfo.textbeeDeviceId,
+            apiKey: warehouseInfo.textbeeApiKey,
+            deviceId: warehouseInfo.textbeeDeviceId,
             to: selectedCustomer.phone,
             message,
         });

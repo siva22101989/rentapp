@@ -133,7 +133,6 @@ export type OtherIncome = {
     warehouseId?: string;
 }
 
-<<<<<<< HEAD
 export type WarehouseInfo = {
   id: string;
   name: string;
@@ -154,8 +153,6 @@ export type WarehouseInfo = {
   smsPendingDuesTemplate?: string;
 };
 
-=======
->>>>>>> 8ef1d24e227bdaa781b462ccb9047ef2de0d545c
 export const unloadingStatus = ["Unloading", "Drying", "Packing", "Billed"] as const;
 export type UnloadingStatus = typeof unloadingStatus[number];
 

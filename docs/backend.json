@@ -488,21 +488,6 @@
       },
       "required": ["name"]
     },
-<<<<<<< HEAD
-=======
-    "smsInfo": {
-      "title": "SMS Info",
-      "description": "Settings for the SMS provider (textbee.dev).",
-      "type": "object",
-      "properties": {
-        "textbeeApiKey": {
-          "type": "string",
-          "description": "Your textbee.dev API key."
-        }
-      },
-      "required": ["textbeeApiKey"]
-    },
->>>>>>> 8ef1d24e227bdaa781b462ccb9047ef2de0d545c
     "appUser": {
       "title": "App User",
       "description": "Defines an application user and their role.",

@@ -2,7 +2,7 @@
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { CustomReportGenerator } from "@/components/reports/custom-report-generator";
-import type { Customer, StorageRecord, UnloadingRecord, Expense, WarehouseInfo, Borrowing, Lending, OtherIncome, Commodity } from "@/lib/definitions";
+import type { Customer, StorageRecord, UnloadingRecord, Expense, WarehouseInfo, Borrowing, Lending, OtherIncome, Commodity, Lot, DryingRecord } from "@/lib/definitions";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { collection, doc, query, where } from "firebase/firestore";
 import { useFirestore } from "@/firebase/provider";
@@ -46,8 +46,14 @@ export default function ReportsPage() {
     const commoditiesQuery = useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'commodities'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]);
     const { data: allCommodities, loading: loadingCommodities } = useCollection<Commodity>(commoditiesQuery);
 
+    const lotsQuery = useMemoFirebase(() => (firestore && appUser ? collection(firestore, 'lots') : null), [firestore, appUser]);
+    const { data: lots, loading: loadingLots } = useCollection<Lot>(lotsQuery);
 
-    if (loadingRecords || loadingCustomers || loadingUnloadingRecords || loadingExpenses || loadingWarehouseInfo || loadingBorrowings || loadingLendings || loadingOtherIncomes || loadingCommodities) {
+    const dryingRecordsQuery = useMemoFirebase(() => (firestore && appUser ? collection(firestore, 'dryingRecords') : null), [firestore, appUser]);
+    const { data: dryingRecords, loading: loadingDryingRecords } = useCollection<DryingRecord>(dryingRecordsQuery);
+
+
+    if (loadingRecords || loadingCustomers || loadingUnloadingRecords || loadingExpenses || loadingWarehouseInfo || loadingBorrowings || loadingLendings || loadingOtherIncomes || loadingCommodities || loadingLots || loadingDryingRecords) {
         return <AppLayout><div>Loading...</div></AppLayout>;
     }
     
@@ -65,6 +71,8 @@ export default function ReportsPage() {
         commodities={allCommodities || []}
         initialReport={initialReport}
         initialCustomerId={initialCustomerId}
+        dryingRecords={dryingRecords || []}
+        lots={lots || []}
       />
     </AppLayout>
   );

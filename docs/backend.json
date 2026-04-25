@@ -435,13 +435,26 @@
           "format": "date-time",
           "description": "The date the process was billed. Null if not yet billed."
         },
-        "hamaliPerBag": {
-          "type": "number",
-          "description": "The hamali charge per bag for the drying process."
-        },
         "totalDryingHamali": {
           "type": "number",
           "description": "The total hamali charge for this drying process."
+        },
+        "hamaliDetails": {
+            "type": "array",
+            "description": "A detailed breakdown of hamali charges for the drying process.",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "description": { "type": "string" },
+                    "bags": { "type": "number" },
+                    "rate": { "type": "number" },
+                    "amount": { "type": "number" }
+                }
+            }
+        },
+        "workerHamaliPayable": {
+            "type": "number",
+            "description": "The total hamali amount payable to workers for this drying process."
         }
       },
       "required": [
@@ -451,7 +464,6 @@
         "bagsForDrying",
         "status",
         "dryingStartDate",
-        "hamaliPerBag",
         "totalDryingHamali"
       ]
     },
@@ -476,6 +488,21 @@
       },
       "required": ["name"]
     },
+<<<<<<< HEAD
+=======
+    "smsInfo": {
+      "title": "SMS Info",
+      "description": "Settings for the SMS provider (textbee.dev).",
+      "type": "object",
+      "properties": {
+        "textbeeApiKey": {
+          "type": "string",
+          "description": "Your textbee.dev API key."
+        }
+      },
+      "required": ["textbeeApiKey"]
+    },
+>>>>>>> 8ef1d24e227bdaa781b462ccb9047ef2de0d545c
     "appUser": {
       "title": "App User",
       "description": "Defines an application user and their role.",

@@ -66,13 +66,15 @@ export default function DryingPage() {
       >
         <AddCustomerDialog />
       </PageHeader>
-      <InitiateDryingForm 
-          customers={customers || []} 
-          unloadingRecords={availableForDryingRecords || []}
-          lots={lots || []}
-          storageRecords={storageRecords || []}
-          commodities={commodities || []}
-      />
+      <div className="space-y-8">
+        <InitiateDryingForm 
+            customers={customers || []} 
+            unloadingRecords={availableForDryingRecords || []}
+            lots={lots || []}
+            storageRecords={storageRecords || []}
+            commodities={commodities || []}
+        />
+      </div>
     </AppLayout>
   );
 }

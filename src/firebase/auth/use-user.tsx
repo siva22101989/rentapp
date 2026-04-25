@@ -53,8 +53,20 @@ export function UserProvider({ children }: { children: ReactNode }) {
           const userEmail = existingAppUser.email || fbUser.email?.toLowerCase();
           if (userEmail) {
             const warehousesCol = collection(firestore, 'managedWarehouses');
-            const q = query(warehousesCol, where('ownerEmail', '==', userEmail));
+            const q = query(warehousesCol, 
+                where('ownerEmail', '==', userEmail),
+                where('subscriptionStatus', 'in', ['active', 'trial'])
+            );
             const warehouseSnap = await getDocs(q);
+
+            if (warehouseSnap.size > 1) {
+                console.error(`Self-heal failed: Multiple active warehouses found for owner email ${userEmail}.`);
+                setProvisioningError('Your account is linked to multiple warehouses. Please contact support. (Code: WID_HEAL_MULTI)');
+                setUser(fbUser);
+                setAppUser(null);
+                setLoading(false);
+                return;
+            }
 
             if (!warehouseSnap.empty) {
               const warehouseId = warehouseSnap.docs[0].id;
@@ -112,8 +124,21 @@ export function UserProvider({ children }: { children: ReactNode }) {
       // Attempt to provision as Warehouse Owner
       if (userEmail && !userEmail.startsWith('+')) {
         const warehousesCol = collection(firestore, 'managedWarehouses');
-        const q = query(warehousesCol, where('ownerEmail', '==', userEmail));
+        const q = query(
+          warehousesCol, 
+          where('ownerEmail', '==', userEmail), 
+          where('subscriptionStatus', 'in', ['active', 'trial'])
+        );
         const warehouseSnap = await getDocs(q);
+
+        if (warehouseSnap.size > 1) {
+            console.error(`FATAL: Multiple active warehouses found for owner email ${userEmail}. Cannot determine which warehouse to assign.`);
+            setProvisioningError('Your account is linked to multiple active warehouses. Please contact support to resolve this ambiguity.');
+            setUser(fbUser);
+            setAppUser(null);
+            setLoading(false);
+            return;
+        }
 
         if (!warehouseSnap.empty) {
           const warehouseDoc = warehouseSnap.docs[0];

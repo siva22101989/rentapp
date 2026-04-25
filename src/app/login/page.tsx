@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -39,7 +40,7 @@ export default function LoginPage() {
 
     signInWithEmailAndPassword(auth, shadowEmail, password)
         .then(() => {
-            router.push('/');
+            // The onAuthStateChanged listener in use-user.tsx will handle redirection.
         })
         .catch((signInError: any) => {
             // This error code can mean "user-not-found" or "wrong-password".
@@ -50,7 +51,7 @@ export default function LoginPage() {
                     .then(() => {
                         // The useUser hook will now verify if this new user is authorized.
                         // If not, it will sign them out automatically.
-                        router.push('/');
+                        // Redirection is handled by the use-user hook and AppLayout.
                     })
                     .catch(createError => {
                         if (createError.code === 'auth/email-already-in-use') {

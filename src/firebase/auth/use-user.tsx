@@ -46,6 +46,17 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
       if (userDocSnap.exists()) {
         const existingAppUser = { id: userDocSnap.id, ...userDocSnap.data() } as AppUser;
+        
+        // Defensive check for existing users
+        if (existingAppUser.role && existingAppUser.role !== 'super-admin' && !existingAppUser.warehouseId) {
+          console.error(`FATAL: User ${fbUser.uid} has role '${existingAppUser.role}' but no warehouseId.`);
+          setProvisioningError('Your user account is misconfigured. Please contact support. (Code: WID_MISSING_EXISTING)');
+          setUser(fbUser);
+          setAppUser(null);
+          setLoading(false);
+          return;
+        }
+
         if (existingAppUser.role) {
           // User document is valid.
           setAppUser(existingAppUser);
@@ -83,11 +94,22 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
         if (!warehouseSnap.empty) {
           const warehouseDoc = warehouseSnap.docs[0];
+          const warehouseId = warehouseDoc.id;
+
+          if (!warehouseId) {
+            console.error("FATAL: managedWarehouse document has no ID. This should be impossible.", warehouseDoc.data());
+            setProvisioningError("Critical account setup failed (Code: WID_NULL). Contact support.");
+            setAppUser(null);
+            setUser(fbUser);
+            setLoading(false);
+            return;
+          }
+
           const newAppUserData: Omit<AppUser, 'id'> = {
               email: userEmail,
               role: 'owner',
               phone: fbUser.phoneNumber || '',
-              warehouseId: warehouseDoc.id,
+              warehouseId: warehouseId,
           };
           await setDoc(userDocRef, newAppUserData);
           
@@ -116,6 +138,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
         if (!staffSnap.empty) {
           const staffDocToDelete = staffSnap.docs[0];
           const newAppUserData = staffDocToDelete.data() as Omit<AppUser, 'id'>;
+
+          if (newAppUserData.role !== 'super-admin' && !newAppUserData.warehouseId) {
+             console.error(`FATAL: Staff user ${phone} is being provisioned without a warehouseId.`);
+             setProvisioningError('Your staff account is misconfigured. Please contact your manager. (Code: WID_MISSING_STAFF)');
+             setUser(fbUser);
+             setAppUser(null);
+             setLoading(false);
+             return;
+          }
           
           const batch = writeBatch(firestore);
           // Create new user doc with UID

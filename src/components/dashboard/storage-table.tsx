@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import type { Customer, StorageRecord } from "@/lib/definitions";
 import { useCollection } from "@/firebase/firestore/use-collection";
-import { collection } from "firebase/firestore";
+import { collection, query, where } from "firebase/firestore";
 import { useFirestore } from "@/firebase/provider";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 import { useMemo } from "react";
@@ -21,16 +21,16 @@ import { useAppUser } from "@/firebase/auth/use-user";
 export function StorageTable() {
   const firestore = useFirestore();
   const router = useRouter();
-  const appUser = useAppUser();
+  const { appUser } = useAppUser();
 
   const allRecordsQuery = useMemoFirebase(
-    () => (firestore && appUser ? collection(firestore, 'storageRecords') : null),
+    () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'storageRecords'), where('warehouseId', '==', appUser.warehouseId)) : null),
     [firestore, appUser]
   );
   const { data: allRecords, loading: loadingRecords } = useCollection<StorageRecord>(allRecordsQuery);
 
   const customersQuery = useMemoFirebase(
-    () => (firestore && appUser ? collection(firestore, 'customers') : null),
+    () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'customers'), where('warehouseId', '==', appUser.warehouseId)) : null),
     [firestore, appUser]
   );
   const { data: allCustomers, loading: loadingCustomers } = useCollection<Customer>(customersQuery);

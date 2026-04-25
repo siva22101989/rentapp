@@ -12,22 +12,22 @@ import { useAppUser } from "@/firebase/auth/use-user";
 
 export default function OutflowPage() {
   const firestore = useFirestore();
-  const appUser = useAppUser();
+  const { appUser } = useAppUser();
 
   const customersQuery = useMemoFirebase(
-    () => (firestore && appUser ? collection(firestore, 'customers') : null),
+    () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'customers'), where('warehouseId', '==', appUser.warehouseId)) : null),
     [firestore, appUser]
   );
   const { data: customers, loading: loadingCustomers } = useCollection<Customer>(customersQuery);
 
   const activeRecordsQuery = useMemoFirebase(
-    () => (firestore && appUser ? query(collection(firestore, 'storageRecords'), where('storageEndDate', '==', null)) : null),
+    () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'storageRecords'), where('warehouseId', '==', appUser.warehouseId), where('storageEndDate', '==', null)) : null),
     [firestore, appUser]
   );
   const { data: activeRecords, loading: loadingRecords } = useCollection<StorageRecord>(activeRecordsQuery);
 
   const commoditiesQuery = useMemoFirebase(
-    () => (firestore && appUser ? collection(firestore, 'commodities') : null),
+    () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'commodities'), where('warehouseId', '==', appUser.warehouseId)) : null),
     [firestore, appUser]
   );
   const { data: commodities, loading: loadingCommodities } = useCollection<Commodity>(commoditiesQuery);

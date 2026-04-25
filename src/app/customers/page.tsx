@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { AddCustomerDialog } from "@/components/customers/add-customer-dialog";
 import type { Customer } from "@/lib/definitions";
 import { useCollection } from "@/firebase/firestore/use-collection";
-import { collection } from "firebase/firestore";
+import { collection, query, where } from "firebase/firestore";
 import { useFirestore } from "@/firebase/provider";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 import { CustomersTable } from "@/components/customers/customers-table";
@@ -13,10 +13,10 @@ import { useAppUser } from "@/firebase/auth/use-user";
 
 export default function CustomersPage() {
   const firestore = useFirestore();
-  const appUser = useAppUser();
+  const { appUser } = useAppUser();
   
   const customersQuery = useMemoFirebase(
-    () => (firestore && appUser ? collection(firestore, 'customers') : null),
+    () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'customers'), where('warehouseId', '==', appUser.warehouseId)) : null),
     [firestore, appUser]
   );
   const { data: customers, loading: loadingCustomers } = useCollection<Customer>(customersQuery);

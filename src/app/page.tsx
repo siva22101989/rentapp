@@ -1,4 +1,3 @@
-
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,7 +36,7 @@ import { Badge } from "@/components/ui/badge";
 import { useDoc } from "@/firebase/firestore/use-doc";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import { BillingSettings } from "@/components/settings/billing-settings";
+import { SuperAdminDashboard } from "@/components/super-admin/super-admin-dashboard";
 
 type NavItem = {
   href: string;
@@ -205,7 +204,7 @@ export default function DashboardPage() {
     if (appUser?.role === 'super-admin') {
         return (
             <AppLayout>
-                <BillingSettings />
+                <SuperAdminDashboard />
             </AppLayout>
         );
     }

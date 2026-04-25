@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -16,14 +17,11 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase/provider';
 import { z } from 'zod';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { Input } from '../ui/input';
 import { addDoc, collection } from 'firebase/firestore';
 import { cleanForFirestore } from '@/lib/utils';
-import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { useAppUser } from '@/firebase/auth/use-user';
+import { Label } from '../ui/label';
 
 const LendingSchema = z.object({
   borrowerName: z.string().min(2, 'Borrower name is required.'),
@@ -32,7 +30,6 @@ const LendingSchema = z.object({
   dateGiven: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date" }),
 });
 
-type LendingFormData = z.infer<typeof LendingSchema>;
 
 export function AddLendingDialog() {
   const { toast } = useToast();
@@ -41,34 +38,54 @@ export function AddLendingDialog() {
   const firestore = useFirestore();
   const appUser = useAppUser();
 
-  const form = useForm<LendingFormData>({
-    resolver: zodResolver(LendingSchema),
-    defaultValues: {
-      borrowerName: '',
-      principal: undefined,
-      interestRate: undefined,
-      dateGiven: new Date().toISOString().split('T')[0],
-    },
-  });
+  const [borrowerName, setBorrowerName] = useState('');
+  const [principal, setPrincipal] = useState<number | ''>('');
+  const [interestRate, setInterestRate] = useState<number | ''>('');
+  const [dateGiven, setDateGiven] = useState(new Date().toISOString().split('T')[0]);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const onSubmit = (data: LendingFormData) => {
+  const resetForm = () => {
+    setBorrowerName('');
+    setPrincipal('');
+    setInterestRate('');
+    setDateGiven(new Date().toISOString().split('T')[0]);
+    setErrors({});
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrors({});
     if (!firestore || !appUser?.warehouseId) {
       toast({ title: 'Error', description: 'Could not add record: user or warehouse context is missing.', variant: 'destructive' });
       return;
+    }
+    
+    const data = { borrowerName, principal, interestRate, dateGiven };
+
+    const validationResult = LendingSchema.safeParse(data);
+    if(!validationResult.success) {
+        const fieldErrors = validationResult.error.flatten().fieldErrors;
+        const newErrors: Record<string, string> = {};
+        Object.keys(fieldErrors).forEach(key => {
+            if (fieldErrors[key as keyof typeof fieldErrors]) newErrors[key] = fieldErrors[key as keyof typeof fieldErrors]![0];
+        });
+        setErrors(newErrors);
+        toast({ title: "Validation Error", description: "Please check your input.", variant: "destructive"});
+        return;
     }
 
     startTransition(async () => {
       try {
         const newLending = {
-          ...data,
-          dateGiven: new Date(data.dateGiven),
+          ...validationResult.data,
+          dateGiven: new Date(validationResult.data.dateGiven),
           status: 'Active' as const,
           warehouseId: appUser.warehouseId,
         };
         await addDoc(collection(firestore, 'lendings'), cleanForFirestore(newLending));
         toast({ title: 'Success', description: 'Lending record added successfully.' });
         setIsOpen(false);
-        form.reset();
+        resetForm();
       } catch (error) {
         console.error(error);
         toast({ title: 'Error', description: 'Failed to add lending record.', variant: 'destructive' });
@@ -77,7 +94,7 @@ export function AddLendingDialog() {
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={(open) => { setIsOpen(open); if(!open) resetForm(); }}>
       <DialogTrigger asChild>
         <Button variant="default">
           <HandCoins className="mr-2" />
@@ -85,8 +102,7 @@ export function AddLendingDialog() {
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
+          <form onSubmit={handleSubmit}>
             <DialogHeader>
               <DialogTitle>Add New Lending</DialogTitle>
               <DialogDescription>
@@ -94,50 +110,26 @@ export function AddLendingDialog() {
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-              <FormField
-                control={form.control}
-                name="borrowerName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Borrower's Name</FormLabel>
-                    <FormControl><Input placeholder="e.g., Jane Smith" {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-               <FormField
-                control={form.control}
-                name="dateGiven"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Date Given</FormLabel>
-                    <FormControl><Input type="date" {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="principal"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Principal Amount</FormLabel>
-                    <FormControl><Input type="number" placeholder="0.00" {...field} value={field.value ?? ''} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                  control={form.control}
-                  name="interestRate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Monthly Interest Rate (%)</FormLabel>
-                      <FormControl><Input type="number" step="0.01" placeholder="e.g. 2" {...field} value={field.value ?? ''} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              <div className="space-y-2">
+                <Label htmlFor="borrowerName">Borrower's Name</Label>
+                <Input id="borrowerName" placeholder="e.g., Jane Smith" value={borrowerName} onChange={e => setBorrowerName(e.target.value)} />
+                {errors.borrowerName && <p className="text-sm font-medium text-destructive">{errors.borrowerName}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="dateGiven">Date Given</Label>
+                <Input id="dateGiven" type="date" value={dateGiven} onChange={e => setDateGiven(e.target.value)} />
+                {errors.dateGiven && <p className="text-sm font-medium text-destructive">{errors.dateGiven}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="principal">Principal Amount</Label>
+                <Input id="principal" type="number" placeholder="0.00" value={principal} onChange={e => setPrincipal(e.target.value === '' ? '' : Number(e.target.value))} />
+                {errors.principal && <p className="text-sm font-medium text-destructive">{errors.principal}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="interestRate">Monthly Interest Rate (%)</Label>
+                <Input id="interestRate" type="number" step="0.01" placeholder="e.g. 2" value={interestRate} onChange={e => setInterestRate(e.target.value === '' ? '' : Number(e.target.value))} />
+                {errors.interestRate && <p className="text-sm font-medium text-destructive">{errors.interestRate}</p>}
+              </div>
             </div>
             <DialogFooter>
               <DialogClose asChild><Button variant="outline" type="button">Cancel</Button></DialogClose>
@@ -146,7 +138,6 @@ export function AddLendingDialog() {
               </Button>
             </DialogFooter>
           </form>
-        </Form>
       </DialogContent>
     </Dialog>
   );

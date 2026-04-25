@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -28,6 +28,26 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer;
   const firestore = useFirestore();
   const appUser = useAppUser();
 
+  // State for each input field
+  const [name, setName] = useState('');
+  const [fatherName, setFatherName] = useState('');
+  const [village, setVillage] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [address, setAddress] = useState('');
+
+  // Effect to populate form when dialog opens or customer data changes
+  useEffect(() => {
+    if (customer && isOpen) {
+      setName(customer.name || '');
+      setFatherName(customer.fatherName || '');
+      setVillage(customer.village || '');
+      setPhone(customer.phone || '');
+      setEmail(customer.email || '');
+      setAddress(customer.address || '');
+    }
+  }, [customer, isOpen]);
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!firestore || !appUser) {
@@ -39,14 +59,13 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer;
       return;
     }
 
-    const formData = new FormData(e.currentTarget);
     const updatedData = {
-      name: formData.get('name') as string,
-      fatherName: formData.get('fatherName') as string,
-      village: formData.get('village') as string,
-      phone: formData.get('phone') as string,
-      email: formData.get('email') as string,
-      address: formData.get('address') as string,
+      name,
+      fatherName,
+      village,
+      phone,
+      email,
+      address,
     };
 
     startTransition(async () => {
@@ -61,14 +80,12 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer;
   };
 
   if (!customer) {
-    return null; 
+    return null;
   }
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        {children}
-      </DialogTrigger>
+      <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
@@ -80,27 +97,27 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer;
           <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-4">
             <div className="space-y-2">
               <Label htmlFor="name">Name *</Label>
-              <Input id="name" name="name" defaultValue={customer.name} required />
+              <Input id="name" name="name" value={name || ''} onChange={(e) => setName(e.target.value)} required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="fatherName">Father's Name</Label>
-              <Input id="fatherName" name="fatherName" defaultValue={customer.fatherName || ''} />
+              <Input id="fatherName" name="fatherName" value={fatherName || ''} onChange={(e) => setFatherName(e.target.value)} />
             </div>
-             <div className="space-y-2">
-                <Label htmlFor="village">Village</Label>
-                <Input id="village" name="village" defaultValue={customer.village || ''} />
+            <div className="space-y-2">
+              <Label htmlFor="village">Village</Label>
+              <Input id="village" name="village" value={village || ''} onChange={(e) => setVillage(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="phone">Phone *</Label>
-              <Input id="phone" name="phone" type="tel" defaultValue={customer.phone || ''} required />
+              <Input id="phone" name="phone" type="tel" value={phone || ''} onChange={(e) => setPhone(e.target.value)} required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" name="email" type="email" defaultValue={customer.email || ''} />
+              <Input id="email" name="email" type="email" value={email || ''} onChange={(e) => setEmail(e.target.value)} />
             </div>
             <div className="space-y-2">
-                <Label htmlFor="address">Address</Label>
-                <Input id="address" name="address" defaultValue={customer.address || ''} />
+              <Label htmlFor="address">Address</Label>
+              <Input id="address" name="address" value={address || ''} onChange={(e) => setAddress(e.target.value)} />
             </div>
           </div>
           <DialogFooter>

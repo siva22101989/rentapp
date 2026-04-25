@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useTransition, useMemo } from 'react';
@@ -25,8 +26,9 @@ import { useFirestore } from '@/firebase/provider';
 import { updateStorageRecord } from '@/lib/data';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
-import { collection } from 'firebase/firestore';
+import { collection, query, where } from 'firebase/firestore';
 import { Separator } from '../ui/separator';
+import { useAppUser } from '@/firebase/auth/use-user';
 
 
 const EditStorageRecordSchema = z.object({
@@ -71,6 +73,7 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const firestore = useFirestore();
+  const appUser = useAppUser();
   
   // State for form fields
   const [customerId, setCustomerId] = useState('');
@@ -90,14 +93,14 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
   const [cuppaHamaliPerBag, setCuppaHamaliPerBag] = useState<number | ''>('');
 
   const commoditiesQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'commodities') : null),
-    [firestore]
+    () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'commodities'), where('warehouseId', '==', appUser.warehouseId)) : null),
+    [firestore, appUser]
   );
   const { data: commodities, loading: loadingCommodities } = useCollection<Commodity>(commoditiesQuery);
 
   const lotsQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'lots') : null),
-    [firestore]
+    () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'lots'), where('warehouseId', '==', appUser.warehouseId)) : null),
+    [firestore, appUser]
   );
   const { data: lots, loading: loadingLots } = useCollection<Lot>(lotsQuery);
 

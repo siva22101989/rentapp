@@ -46,10 +46,10 @@ export default function ReportsPage() {
     const commoditiesQuery = useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'commodities'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]);
     const { data: allCommodities, loading: loadingCommodities } = useCollection<Commodity>(commoditiesQuery);
 
-    const lotsQuery = useMemoFirebase(() => (firestore && appUser ? collection(firestore, 'lots') : null), [firestore, appUser]);
+    const lotsQuery = useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'lots'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]);
     const { data: lots, loading: loadingLots } = useCollection<Lot>(lotsQuery);
 
-    const dryingRecordsQuery = useMemoFirebase(() => (firestore && appUser ? collection(firestore, 'dryingRecords') : null), [firestore, appUser]);
+    const dryingRecordsQuery = useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'dryingRecords'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]);
     const { data: dryingRecords, loading: loadingDryingRecords } = useCollection<DryingRecord>(dryingRecordsQuery);
 
 

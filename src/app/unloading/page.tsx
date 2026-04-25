@@ -16,7 +16,7 @@ import { useAppUser } from "@/firebase/auth/use-user";
 export default function UnloadingPage() {
   const firestore = useFirestore();
   const appUser = useAppUser();
-  const canAdd = appUser?.role === 'owner' || appUser?.role === 'biller' || appUser?.role === 'super-admin';
+  const canAdd = appUser?.role === 'owner' || appUser?.role === 'biller' || appUser?.role === 'supervisor';
 
   const customersQuery = useMemoFirebase(
     () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'customers'), where('warehouseId', '==', appUser.warehouseId)) : null),

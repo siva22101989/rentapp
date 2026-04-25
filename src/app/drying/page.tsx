@@ -12,10 +12,12 @@ import { InitiateDryingForm } from "@/components/drying/initiate-drying-form";
 import { useMemo } from "react";
 import { toDate } from "@/lib/utils";
 import { useAppUser } from "@/firebase/auth/use-user";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function DryingPage() {
   const firestore = useFirestore();
   const appUser = useAppUser();
+  const canAdd = appUser?.role !== 'super-admin';
 
   const customersQuery = useMemoFirebase(
     () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'customers'), where('warehouseId', '==', appUser.warehouseId)) : null),
@@ -64,16 +66,20 @@ export default function DryingPage() {
         title="Drying Process"
         description="Manage items in the drying plot and finalize them into storage."
       >
-        <AddCustomerDialog />
+        {canAdd && <AddCustomerDialog />}
       </PageHeader>
       <div className="space-y-8">
-        <InitiateDryingForm 
-            customers={customers || []} 
-            unloadingRecords={availableForDryingRecords || []}
-            lots={lots || []}
-            storageRecords={storageRecords || []}
-            commodities={commodities || []}
-        />
+        {canAdd ? (
+          <InitiateDryingForm 
+              customers={customers || []} 
+              unloadingRecords={availableForDryingRecords || []}
+              lots={lots || []}
+              storageRecords={storageRecords || []}
+              commodities={commodities || []}
+          />
+        ) : (
+          <Card><CardContent className="p-8 text-center text-muted-foreground">This function is not available for super-admins.</CardContent></Card>
+        )}
       </div>
     </AppLayout>
   );

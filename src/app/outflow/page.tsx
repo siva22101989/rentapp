@@ -9,10 +9,12 @@ import { collection, query, where } from "firebase/firestore";
 import { useFirestore } from "@/firebase/provider";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 import { useAppUser } from "@/firebase/auth/use-user";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function OutflowPage() {
   const firestore = useFirestore();
   const appUser = useAppUser();
+  const canAdd = appUser?.role !== 'super-admin';
 
   const customersQuery = useMemoFirebase(
     () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'customers'), where('warehouseId', '==', appUser.warehouseId)) : null),
@@ -42,7 +44,11 @@ export default function OutflowPage() {
         title="Process Outflow"
         description="Select one or more records to process for full withdrawal."
       />
-      <OutflowForm records={activeRecords || []} customers={customers || []} commodities={commodities || []} />
+      {canAdd ? (
+        <OutflowForm records={activeRecords || []} customers={customers || []} commodities={commodities || []} />
+      ) : (
+        <Card><CardContent className="p-8 text-center text-muted-foreground">This function is not available for super-admins.</CardContent></Card>
+      )}
     </AppLayout>
   );
 }

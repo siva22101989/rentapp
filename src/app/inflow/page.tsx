@@ -11,10 +11,12 @@ import { collection, query, where } from "firebase/firestore";
 import { useFirestore } from "@/firebase/provider";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 import { useAppUser } from "@/firebase/auth/use-user";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function InflowPage() {
   const firestore = useFirestore();
   const appUser = useAppUser();
+  const canAdd = appUser?.role !== 'super-admin';
 
   const customersQuery = useMemoFirebase(
     () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'customers'), where('warehouseId', '==', appUser.warehouseId)) : null),
@@ -60,15 +62,19 @@ export default function InflowPage() {
         title="Add Inflow"
         description="Create a new storage record for a customer."
       >
-        <AddCustomerDialog />
+        {canAdd && <AddCustomerDialog />}
       </PageHeader>
-      <InflowForm 
-        customers={customers || []} 
-        commodities={commodities || []}
-        lots={lots || []}
-        records={records || []}
-        nextId={nextId}
-      />
+      {canAdd ? (
+        <InflowForm 
+          customers={customers || []} 
+          commodities={commodities || []}
+          lots={lots || []}
+          records={records || []}
+          nextId={nextId}
+        />
+      ) : (
+        <Card><CardContent className="p-8 text-center text-muted-foreground">This function is not available for super-admins.</CardContent></Card>
+      )}
     </AppLayout>
   );
 }

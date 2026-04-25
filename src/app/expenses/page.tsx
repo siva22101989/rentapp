@@ -61,7 +61,7 @@ function IncomesTable({ incomes }: { incomes: OtherIncome[] }) {
 }
 function ExpensesTable({ expenses }: { expenses: Expense[] }) {
   const appUser = useAppUser();
-  const canEdit = appUser?.role === 'owner' || appUser?.role === 'super-admin';
+  const canEdit = appUser?.role === 'owner';
 
   if (expenses.length === 0) {
     return (
@@ -115,7 +115,7 @@ function ExpensesTable({ expenses }: { expenses: Expense[] }) {
 
 function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
   const appUser = useAppUser();
-  const canEdit = appUser?.role === 'owner' || appUser?.role === 'super-admin';
+  const canEdit = appUser?.role === 'owner';
   const activeBorrowings = useMemo(() => (borrowings || []).filter(b => b.status !== 'Paid Off'), [borrowings]);
 
   if (activeBorrowings.length === 0) {
@@ -202,7 +202,7 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
 
 function LendingsTable({ lendings }: { lendings: Lending[] }) {
   const appUser = useAppUser();
-  const canEdit = appUser?.role === 'owner' || appUser?.role === 'super-admin';
+  const canEdit = appUser?.role === 'owner';
   const activeLendings = useMemo(() => (lendings || []).filter(l => l.status !== 'Paid Off'), [lendings]);
   
   if (activeLendings.length === 0) {
@@ -293,7 +293,7 @@ export default function ExpensesPage() {
   const firestore = useFirestore();
   const appUser = useAppUser();
   const { dateRange, financialYear } = useDateFilter();
-  const canEdit = appUser?.role === 'owner' || appUser?.role === 'super-admin';
+  const canEdit = appUser?.role === 'owner';
   
   const warehouseInfoRef = useMemoFirebase(
     () => (firestore && appUser?.warehouseId ? doc(firestore, 'warehouses', appUser.warehouseId) : null),

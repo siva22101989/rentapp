@@ -1,3 +1,4 @@
+
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
@@ -15,6 +16,7 @@ import { Hammer } from "lucide-react";
 export default function HamaliPage() {
     const firestore = useFirestore();
     const appUser = useAppUser();
+    const canAdd = appUser?.role !== 'super-admin';
 
     const recordsQuery = useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'storageRecords'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]);
     const { data: allRecords, loading: loadingRecords } = useCollection<StorageRecord>(recordsQuery);
@@ -39,8 +41,7 @@ export default function HamaliPage() {
             title="Hamali Management"
             description="Track hamali payable to workers and record payments made."
         >
-            <RecordHamaliPaymentDialog 
-            />
+            {canAdd && <RecordHamaliPaymentDialog />}
         </PageHeader>
         <HamaliReport 
             records={allRecords || []} 

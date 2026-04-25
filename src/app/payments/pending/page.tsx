@@ -1,3 +1,4 @@
+
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
@@ -17,6 +18,7 @@ import { SendReminderSmsDialog } from "@/components/payments/send-reminder-sms-d
 export default function PendingPaymentsPage() {
     const firestore = useFirestore();
     const appUser = useAppUser();
+    const canInteract = appUser?.role !== 'super-admin';
 
     const recordsQuery = useMemoFirebase(
       () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'storageRecords'), where('warehouseId', '==', appUser.warehouseId)) : null),
@@ -50,22 +52,26 @@ export default function PendingPaymentsPage() {
                 title="Pending Payments"
                 description="View all records with an outstanding balance."
             >
-                <SendReminderSmsDialog 
-                    customers={allCustomers || []}
-                    storageRecords={allRecords || []}
-                    unloadingRecords={allUnloadingRecords || []}
-                />
-                <CustomerBulkPaymentDialog
-                    customers={allCustomers || []}
-                    storageRecords={allRecords || []}
-                    unloadingRecords={allUnloadingRecords || []}
-                />
-                 <RecordHamaliPaymentDialog>
-                    <Button variant="outline">
-                        <Hammer className="mr-2" />
-                        Record Hamali Payment
-                    </Button>
-                </RecordHamaliPaymentDialog>
+              {canInteract && (
+                <>
+                  <SendReminderSmsDialog 
+                      customers={allCustomers || []}
+                      storageRecords={allRecords || []}
+                      unloadingRecords={allUnloadingRecords || []}
+                  />
+                  <CustomerBulkPaymentDialog
+                      customers={allCustomers || []}
+                      storageRecords={allRecords || []}
+                      unloadingRecords={allUnloadingRecords || []}
+                  />
+                  <RecordHamaliPaymentDialog>
+                      <Button variant="outline">
+                          <Hammer className="mr-2" />
+                          Record Hamali Payment
+                      </Button>
+                  </RecordHamaliPaymentDialog>
+                </>
+              )}
             </PageHeader>
             <PendingPaymentsTable 
                 records={allRecords || []} 

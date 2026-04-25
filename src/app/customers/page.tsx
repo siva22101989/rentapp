@@ -14,6 +14,7 @@ import { useAppUser } from "@/firebase/auth/use-user";
 export default function CustomersPage() {
   const firestore = useFirestore();
   const appUser = useAppUser();
+  const canAdd = appUser?.role !== 'super-admin';
   
   const customersQuery = useMemoFirebase(
     () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'customers'), where('warehouseId', '==', appUser.warehouseId)) : null),
@@ -31,7 +32,7 @@ export default function CustomersPage() {
         title="Customers"
         description="Manage your customers."
       >
-        <AddCustomerDialog />
+        {canAdd && <AddCustomerDialog />}
       </PageHeader>
       <CustomersTable customers={customers || []} />
     </AppLayout>

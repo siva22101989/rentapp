@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -24,6 +23,7 @@ import { Input } from '../ui/input';
 import { addDoc, collection } from 'firebase/firestore';
 import { cleanForFirestore } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
+import { useAppUser } from '@/firebase/auth/use-user';
 
 const LendingSchema = z.object({
   borrowerName: z.string().min(2, 'Borrower name is required.'),
@@ -39,6 +39,7 @@ export function AddLendingDialog() {
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const firestore = useFirestore();
+  const appUser = useAppUser();
 
   const form = useForm<LendingFormData>({
     resolver: zodResolver(LendingSchema),
@@ -51,8 +52,8 @@ export function AddLendingDialog() {
   });
 
   const onSubmit = (data: LendingFormData) => {
-    if (!firestore) {
-      toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
+    if (!firestore || !appUser?.warehouseId) {
+      toast({ title: 'Error', description: 'Could not add record: user or warehouse context is missing.', variant: 'destructive' });
       return;
     }
 
@@ -62,6 +63,7 @@ export function AddLendingDialog() {
           ...data,
           dateGiven: new Date(data.dateGiven),
           status: 'Active' as const,
+          warehouseId: appUser.warehouseId,
         };
         await addDoc(collection(firestore, 'lendings'), cleanForFirestore(newLending));
         toast({ title: 'Success', description: 'Lending record added successfully.' });

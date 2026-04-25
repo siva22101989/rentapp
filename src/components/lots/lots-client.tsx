@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useTransition, useState, useMemo } from 'react';
@@ -6,7 +5,7 @@ import { useFirestore } from '@/firebase/provider';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 import { useToast } from '@/hooks/use-toast';
-import { collection, addDoc, writeBatch, doc } from 'firebase/firestore';
+import { collection, addDoc, writeBatch, doc, query, where } from 'firebase/firestore';
 import type { Lot } from '@/lib/definitions';
 import { deleteLot } from '@/lib/data';
 import { Button } from '@/components/ui/button';
@@ -86,7 +85,7 @@ export function LotsClient() {
 
 
   const lotsQuery = useMemoFirebase(
-    () => (firestore && appUser ? collection(firestore, 'lots') : null),
+    () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'lots'), where('warehouseId', '==', appUser.warehouseId)) : null),
     [firestore, appUser]
   );
   const { data: lots, loading: loadingLots } = useCollection<Lot>(lotsQuery);
@@ -95,7 +94,10 @@ export function LotsClient() {
 
   const onAddSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firestore || !appUser) return;
+    if (!firestore || !appUser?.warehouseId) {
+      toast({ title: 'Error', description: 'User or warehouse context is missing.', variant: 'destructive' });
+      return;
+    }
     const trimmedName = lotName.trim();
 
     if (!trimmedName) {
@@ -110,7 +112,7 @@ export function LotsClient() {
     startAddingTransition(async () => {
       try {
         const collectionRef = collection(firestore, 'lots');
-        await addDoc(collectionRef, cleanForFirestore({ name: trimmedName, capacity: Number(lotCapacity) || null }));
+        await addDoc(collectionRef, cleanForFirestore({ name: trimmedName, capacity: Number(lotCapacity) || null, warehouseId: appUser.warehouseId }));
         toast({ title: 'Success', description: `Lot "${trimmedName}" added.` });
         setLotName('');
         setLotCapacity('');
@@ -122,7 +124,10 @@ export function LotsClient() {
 
   const onRangeAddSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firestore || !appUser) return;
+    if (!firestore || !appUser?.warehouseId) {
+      toast({ title: 'Error', description: 'User or warehouse context is missing.', variant: 'destructive' });
+      return;
+    }
     const startNum = Number(rangeStart);
     const endNum = Number(rangeEnd);
 
@@ -159,7 +164,7 @@ export function LotsClient() {
         const collectionRef = collection(firestore, 'lots');
         lotsToAdd.forEach(lot => {
             const docRef = doc(collectionRef);
-            batch.set(docRef, cleanForFirestore(lot));
+            batch.set(docRef, cleanForFirestore({ ...lot, warehouseId: appUser.warehouseId }));
         });
 
         try {

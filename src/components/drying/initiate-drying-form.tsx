@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useTransition, useState, useEffect, useMemo } from 'react';
@@ -64,10 +63,10 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
     const appUser = useAppUser();
     const [sendSmsNotification, setSendSmsNotification] = useState(true);
 
-    const smsInfoRef = useMemoFirebase(() => (firestore && appUser ? doc(firestore, 'settings', 'sms') : null), [firestore, appUser]);
-    const { data: smsInfo } = useDoc<SmsInfo>(smsInfoRef);
-
-    const warehouseInfoRef = useMemoFirebase(() => (firestore && appUser ? doc(firestore, 'settings', 'main') : null), [firestore, appUser]);
+    const warehouseInfoRef = useMemoFirebase(
+      () => (firestore && appUser?.warehouseId ? doc(firestore, 'warehouses', appUser.warehouseId) : null),
+      [firestore, appUser]
+    );
     const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
 
@@ -237,8 +236,8 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
     }, [storageRecords]);
 
     const handlePartialSave = async () => {
-        if (!firestore) {
-            toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
+        if (!firestore || !appUser?.warehouseId) {
+            toast({ title: 'Error', description: 'Could not save: user or warehouse context is missing.', variant: 'destructive' });
             return;
         }
 
@@ -302,6 +301,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
             const totalWorkerPayableForSave = currentProportionalUnloadingHamali + day1DryingWorkerHamali + pavHamaliAmount + cuppaHamaliAmount;
 
             const newDryingRecordData = {
+                warehouseId: appUser.warehouseId,
                 unloadingRecordId: data.unloadingRecordId,
                 customerId: selectedRecordOnSubmit.customerId,
                 commodityDescription: selectedRecordOnSubmit.commodityDescription,
@@ -343,8 +343,8 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
 
 
     const onSubmit = (data: DryingFormData) => {
-        if (!firestore) {
-            toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
+        if (!firestore || !appUser?.warehouseId) {
+            toast({ title: 'Error', description: 'Could not create record: user or warehouse context is missing.', variant: 'destructive' });
             return;
         }
 
@@ -401,6 +401,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                 const batch = writeBatch(firestore);
 
                 const newStorageRecord: Omit<StorageRecord, 'id'> = {
+                    warehouseId: appUser.warehouseId,
                     customerId: selectedRecordOnSubmit.customerId,
                     commodityDescription: selectedRecordOnSubmit.commodityDescription,
                     location: data.lotNo,
@@ -441,9 +442,9 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                 
                 await batch.commit();
                 
-                if (sendSmsNotification && smsInfo?.textbeeApiKey && selectedCustomer?.phone) {
+                if (sendSmsNotification && warehouseInfo?.textbeeApiKey && selectedCustomer?.phone) {
                     const defaultTemplate = 'Dear {customerName}, from your unloading of {unloadingBags} bags (Bill #{unloadingBillNo}), {bagsForDrying} bags were plotted for drying and {bagsPacked} bags of {commodity} have been recorded as inflow on {date}.\nBill No: {newBillNo}.\nHamali: {hamaliAmount}. Location: {location}. Thank you. - {warehouseName},Owk';
-                    const template = smsInfo?.smsInflowTemplate || defaultTemplate;
+                    const template = warehouseInfo?.smsInflowTemplate || defaultTemplate;
 
                     const message = template
                         .replace('{customerName}', selectedCustomer.name)
@@ -459,8 +460,8 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                         .replace('{warehouseName}', warehouseInfo?.name || 'GrainDost');
 
                     sendSms({
-                        apiKey: smsInfo.textbeeApiKey,
-                        deviceId: smsInfo.textbeeDeviceId,
+                        apiKey: warehouseInfo.textbeeApiKey,
+                        deviceId: warehouseInfo.textbeeDeviceId,
                         to: selectedCustomer.phone,
                         message: message,
                     }).catch(console.error);

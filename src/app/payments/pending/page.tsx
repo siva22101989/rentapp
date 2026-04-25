@@ -1,10 +1,9 @@
-
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
 import type { Customer, StorageRecord, UnloadingRecord, Expense } from "@/lib/definitions";
 import { useCollection } from "@/firebase/firestore/use-collection";
-import { collection } from "firebase/firestore";
+import { collection, query, where } from "firebase/firestore";
 import { useFirestore } from "@/firebase/provider";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 import { PendingPaymentsTable } from "@/components/payments/pending-payments-table";
@@ -20,24 +19,24 @@ export default function PendingPaymentsPage() {
     const appUser = useAppUser();
 
     const recordsQuery = useMemoFirebase(
-      () => (firestore && appUser ? collection(firestore, 'storageRecords') : null),
+      () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'storageRecords'), where('warehouseId', '==', appUser.warehouseId)) : null),
       [firestore, appUser]
     );
     const { data: allRecords, loading: loadingRecords } = useCollection<StorageRecord>(recordsQuery);
 
     const customersQuery = useMemoFirebase(
-        () => (firestore && appUser ? collection(firestore, 'customers') : null),
+        () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'customers'), where('warehouseId', '==', appUser.warehouseId)) : null),
         [firestore, appUser]
     );
     const { data: allCustomers, loading: loadingCustomers } = useCollection<Customer>(customersQuery);
     
     const unloadingRecordsQuery = useMemoFirebase(
-        () => (firestore && appUser ? collection(firestore, 'unloadingRecords') : null),
+        () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'unloadingRecords'), where('warehouseId', '==', appUser.warehouseId)) : null),
         [firestore, appUser]
     );
     const { data: allUnloadingRecords, loading: loadingUnloadingRecords } = useCollection<UnloadingRecord>(unloadingRecordsQuery);
     
-    const expensesQuery = useMemoFirebase(() => (firestore && appUser ? collection(firestore, 'expenses') : null), [firestore, appUser]);
+    const expensesQuery = useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'expenses'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]);
     const { data: allExpenses, loading: loadingExpenses } = useCollection<Expense>(expensesQuery);
 
 
@@ -61,12 +60,7 @@ export default function PendingPaymentsPage() {
                     storageRecords={allRecords || []}
                     unloadingRecords={allUnloadingRecords || []}
                 />
-                 <RecordHamaliPaymentDialog 
-                    customers={allCustomers || []}
-                    storageRecords={allRecords || []}
-                    unloadingRecords={allUnloadingRecords || []}
-                    expenses={allExpenses || []}
-                >
+                 <RecordHamaliPaymentDialog>
                     <Button variant="outline">
                         <Hammer className="mr-2" />
                         Record Hamali Payment

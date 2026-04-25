@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -26,6 +25,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { doc, writeBatch, arrayUnion, collection } from 'firebase/firestore';
 import { cleanForFirestore, formatCurrency } from '@/lib/utils';
+import { useAppUser } from '@/firebase/auth/use-user';
 
 const ExpenseSchema = z.object({
   description: z.string().min(2, 'Description is required.'),
@@ -51,6 +51,7 @@ export function AddExpenseDialog({ borrowings }: { borrowings: Borrowing[] }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const firestore = useFirestore();
+  const appUser = useAppUser();
 
   const form = useForm<ExpenseFormData>({
     resolver: zodResolver(ExpenseSchema),
@@ -67,8 +68,8 @@ export function AddExpenseDialog({ borrowings }: { borrowings: Borrowing[] }) {
   const isLoanPayment = selectedCategory === 'Loan Repayment';
 
   const onSubmit = (data: ExpenseFormData) => {
-    if (!firestore) {
-      toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
+    if (!firestore || !appUser?.warehouseId) {
+      toast({ title: 'Error', description: 'Could not add expense: user or warehouse context is missing.', variant: 'destructive' });
       return;
     }
 
@@ -89,6 +90,7 @@ export function AddExpenseDialog({ borrowings }: { borrowings: Borrowing[] }) {
           amount: data.amount,
           date: new Date(data.date),
           category: data.category,
+          warehouseId: appUser.warehouseId,
         };
         const expenseRef = doc(collection(firestore, 'expenses'));
         batch.set(expenseRef, cleanForFirestore(newExpense));

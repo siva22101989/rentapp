@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -26,6 +25,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { doc, writeBatch, arrayUnion, collection } from 'firebase/firestore';
 import { cleanForFirestore, formatCurrency } from '@/lib/utils';
+import { useAppUser } from '@/firebase/auth/use-user';
 
 const IncomeSchema = z.object({
   description: z.string().min(2, 'Description is required.'),
@@ -51,6 +51,7 @@ export function AddIncomeDialog({ lendings }: { lendings: Lending[] }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const firestore = useFirestore();
+  const appUser = useAppUser();
 
   const form = useForm<IncomeFormData>({
     resolver: zodResolver(IncomeSchema),
@@ -67,8 +68,8 @@ export function AddIncomeDialog({ lendings }: { lendings: Lending[] }) {
   const isLoanPayment = selectedCategory === 'Loan Payment Received';
 
   const onSubmit = (data: IncomeFormData) => {
-    if (!firestore) {
-      toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
+    if (!firestore || !appUser?.warehouseId) {
+      toast({ title: 'Error', description: 'Could not add income: user or warehouse context is missing.', variant: 'destructive' });
       return;
     }
 
@@ -89,6 +90,7 @@ export function AddIncomeDialog({ lendings }: { lendings: Lending[] }) {
           amount: data.amount,
           date: new Date(data.date),
           category: data.category,
+          warehouseId: appUser.warehouseId,
         };
         const incomeRef = doc(collection(firestore, 'otherIncomes'));
         batch.set(incomeRef, cleanForFirestore(newIncome));
@@ -240,9 +242,7 @@ export function AddIncomeDialog({ lendings }: { lendings: Lending[] }) {
               />
             </div>
             <DialogFooter>
-              <DialogClose asChild>
-                <Button variant="outline" type="button">Cancel</Button>
-              </DialogClose>
+              <DialogClose asChild><Button variant="outline" type="button">Cancel</Button></DialogClose>
               <Button type="submit" disabled={isPending}>
                 {isPending ? (
                   <>

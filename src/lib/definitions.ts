@@ -144,6 +144,13 @@ export type WarehouseInfo = {
   bankDetails?: string;
   capitalInvestment?: number;
   annualInterestRate?: number;
+  textbeeApiKey?: string;
+  textbeeDeviceId?: string;
+  smsInflowTemplate?: string;
+  smsOutflowTemplate?: string;
+  smsUnloadingTemplate?: string;
+  smsPaymentTemplate?: string;
+  smsPendingDuesTemplate?: string;
 };
 
 export const unloadingStatus = ["Unloading", "Drying", "Packing", "Billed"] as const;
@@ -191,17 +198,6 @@ export type DryingRecord = {
   hamaliCharges?: HamaliCharge[];
   totalDryingWorkerHamali?: number;
   warehouseId?: string;
-};
-
-export type SmsInfo = {
-  id: string;
-  textbeeApiKey: string;
-  textbeeDeviceId?: string;
-  smsInflowTemplate?: string;
-  smsOutflowTemplate?: string;
-  smsUnloadingTemplate?: string;
-  smsPaymentTemplate?: string;
-  smsPendingDuesTemplate?: string;
 };
 
 export const userRoles = ["super-admin", "owner", "supervisor", "biller"] as const;

@@ -24,6 +24,7 @@ import { Input } from '../ui/input';
 import { doc, setDoc } from 'firebase/firestore';
 import { cleanForFirestore } from '@/lib/utils';
 import type { WarehouseInfo } from '@/lib/definitions';
+import { useAppUser } from '@/firebase/auth/use-user';
 
 const InvestmentSchema = z.object({
   capitalInvestment: z.coerce.number().nonnegative('Investment must be a non-negative number.'),
@@ -37,6 +38,7 @@ export function ManageInvestmentDialog({ initialData }: { initialData?: Warehous
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const firestore = useFirestore();
+  const appUser = useAppUser();
 
   const form = useForm<InvestmentFormData>({
     resolver: zodResolver(InvestmentSchema),
@@ -56,14 +58,14 @@ export function ManageInvestmentDialog({ initialData }: { initialData?: Warehous
   }, [initialData, form]);
 
   const onSubmit = (data: InvestmentFormData) => {
-    if (!firestore) {
-      toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
+    if (!firestore || !appUser?.warehouseId) {
+      toast({ title: 'Error', description: 'User or warehouse context is missing.', variant: 'destructive' });
       return;
     }
 
     startTransition(async () => {
       try {
-        const docRef = doc(firestore, 'settings', 'main');
+        const docRef = doc(firestore, 'warehouses', appUser.warehouseId);
         await setDoc(docRef, cleanForFirestore(data), { merge: true });
         toast({ title: 'Success', description: 'Investment details saved.' });
         setIsOpen(false);

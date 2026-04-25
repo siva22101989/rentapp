@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase/provider';
-import type { SmsInfo } from '@/lib/definitions';
+import type { WarehouseInfo } from '@/lib/definitions';
 import { doc, setDoc } from 'firebase/firestore';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
@@ -45,28 +45,28 @@ export function SmsSettings() {
     const [smsPaymentTemplate, setSmsPaymentTemplate] = useState('');
     const [smsPendingDuesTemplate, setSmsPendingDuesTemplate] = useState('');
 
-    const smsInfoRef = useMemoFirebase(
-        () => (firestore && appUser ? doc(firestore, 'settings', 'sms') : null),
+    const warehouseInfoRef = useMemoFirebase(
+        () => (firestore && appUser?.warehouseId ? doc(firestore, 'warehouses', appUser.warehouseId) : null),
         [firestore, appUser]
     );
-    const { data: smsInfo, loading: loadingInfo } = useDoc<SmsInfo>(smsInfoRef);
+    const { data: warehouseInfo, loading: loadingInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
     useEffect(() => {
-        if (smsInfo) {
-            setTextbeeApiKey(smsInfo.textbeeApiKey || '');
-            setTextbeeDeviceId(smsInfo.textbeeDeviceId || '');
-            setSmsInflowTemplate(smsInfo.smsInflowTemplate || '');
-            setSmsOutflowTemplate(smsInfo.smsOutflowTemplate || '');
-            setSmsUnloadingTemplate(smsInfo.smsUnloadingTemplate || '');
-            setSmsPaymentTemplate(smsInfo.smsPaymentTemplate || '');
-            setSmsPendingDuesTemplate(smsInfo.smsPendingDuesTemplate || '');
+        if (warehouseInfo) {
+            setTextbeeApiKey(warehouseInfo.textbeeApiKey || '');
+            setTextbeeDeviceId(warehouseInfo.textbeeDeviceId || '');
+            setSmsInflowTemplate(warehouseInfo.smsInflowTemplate || '');
+            setSmsOutflowTemplate(warehouseInfo.smsOutflowTemplate || '');
+            setSmsUnloadingTemplate(warehouseInfo.smsUnloadingTemplate || '');
+            setSmsPaymentTemplate(warehouseInfo.smsPaymentTemplate || '');
+            setSmsPendingDuesTemplate(warehouseInfo.smsPendingDuesTemplate || '');
         }
-    }, [smsInfo]);
+    }, [warehouseInfo]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!firestore) {
-            toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
+        if (!firestore || !appUser?.warehouseId) {
+            toast({ title: 'Error', description: 'Firestore or user context not available.', variant: 'destructive' });
             return;
         }
         if (!textbeeApiKey) {
@@ -85,7 +85,7 @@ export function SmsSettings() {
                     smsPaymentTemplate,
                     smsPendingDuesTemplate,
                 };
-                const docRef = doc(firestore, 'settings', 'sms');
+                const docRef = doc(firestore, 'warehouses', appUser.warehouseId);
                 await setDoc(docRef, cleanForFirestore(data), { merge: true });
                 toast({ title: 'Success', description: 'SMS settings saved.' });
             } catch (error) {

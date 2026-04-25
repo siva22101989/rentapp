@@ -1,9 +1,10 @@
+
 'use client';
 
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { type User } from 'firebase/auth';
 import { useAuth, useFirestore } from '@/firebase/provider';
-import type { AppUser } from '@/lib/definitions';
+import type { AppUser, ManagedWarehouse } from '@/lib/definitions';
 import { collection, query, where, getDocs, doc, getDoc, writeBatch, setDoc, deleteDoc } from 'firebase/firestore';
 
 interface UserContextType {
@@ -89,6 +90,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
               warehouseId: warehouseDoc.id,
           };
           await setDoc(userDocRef, newAppUserData);
+          
+          // Create the separate settings document for this warehouse
+          const warehouseSettingsRef = doc(firestore, 'warehouses', warehouseDoc.id);
+          const managedWarehouseData = warehouseDoc.data() as ManagedWarehouse;
+          await setDoc(warehouseSettingsRef, {
+              name: managedWarehouseData.name,
+              ownerName: managedWarehouseData.ownerName,
+          }, { merge: true });
+
           setAppUser({ id: fbUser.uid, ...newAppUserData } as AppUser);
           setUser(fbUser);
           setLoading(false);

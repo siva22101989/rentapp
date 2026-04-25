@@ -12,7 +12,7 @@ import { format, differenceInCalendarMonths, differenceInCalendarYears } from "d
 import { ExpenseActionsMenu } from "@/components/expenses/expense-actions-menu";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { useFirestore, useDateFilter } from "@/firebase/provider";
-import { collection, doc } from "firebase/firestore";
+import { collection, doc, query, where } from "firebase/firestore";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 import { useDoc } from "@/firebase/firestore/use-doc";
 import { ManageInvestmentDialog } from "@/components/expenses/manage-investment-dialog";
@@ -60,7 +60,7 @@ function IncomesTable({ incomes }: { incomes: OtherIncome[] }) {
     );
 }
 function ExpensesTable({ expenses }: { expenses: Expense[] }) {
-  const appUser = useAppUser();
+  const { appUser } = useAppUser();
   const canEdit = appUser?.role === 'owner' || appUser?.role === 'super-admin';
 
   if (expenses.length === 0) {
@@ -114,7 +114,7 @@ function ExpensesTable({ expenses }: { expenses: Expense[] }) {
 }
 
 function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
-  const appUser = useAppUser();
+  const { appUser } = useAppUser();
   const canEdit = appUser?.role === 'owner' || appUser?.role === 'super-admin';
   const activeBorrowings = useMemo(() => (borrowings || []).filter(b => b.status !== 'Paid Off'), [borrowings]);
 
@@ -201,7 +201,7 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
 }
 
 function LendingsTable({ lendings }: { lendings: Lending[] }) {
-  const appUser = useAppUser();
+  const { appUser } = useAppUser();
   const canEdit = appUser?.role === 'owner' || appUser?.role === 'super-admin';
   const activeLendings = useMemo(() => (lendings || []).filter(l => l.status !== 'Paid Off'), [lendings]);
   
@@ -291,35 +291,35 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
 
 export default function ExpensesPage() {
   const firestore = useFirestore();
-  const appUser = useAppUser();
+  const { appUser } = useAppUser();
   const { dateRange, financialYear } = useDateFilter();
   const canEdit = appUser?.role === 'owner' || appUser?.role === 'super-admin';
   
   const warehouseInfoRef = useMemoFirebase(
-    () => (firestore && appUser ? doc(firestore, 'settings', 'main') : null),
+    () => (firestore && appUser?.warehouseId ? doc(firestore, 'warehouses', appUser.warehouseId) : null),
     [firestore, appUser]
   );
   const { data: warehouseInfo, loading: loadingWarehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
-  const recordsQuery = useMemoFirebase(() => (firestore && appUser ? collection(firestore, 'storageRecords') : null), [firestore, appUser]);
+  const recordsQuery = useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'storageRecords'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]);
   const { data: allRecords, loading: loadingRecords } = useCollection<StorageRecord>(recordsQuery);
 
-  const commoditiesQuery = useMemoFirebase(() => (firestore && appUser ? collection(firestore, 'commodities') : null), [firestore, appUser]);
+  const commoditiesQuery = useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'commodities'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]);
   const { data: allCommodities, loading: loadingCommodities } = useCollection<Commodity>(commoditiesQuery);
 
-  const expensesQuery = useMemoFirebase(() => (firestore && appUser ? collection(firestore, 'expenses') : null), [firestore, appUser]);
+  const expensesQuery = useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'expenses'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]);
   const { data: allExpenses, loading: loadingExpenses } = useCollection<Expense>(expensesQuery);
   
-  const unloadingRecordsQuery = useMemoFirebase(() => (firestore && appUser ? collection(firestore, 'unloadingRecords') : null), [firestore, appUser]);
+  const unloadingRecordsQuery = useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'unloadingRecords'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]);
   const { data: allUnloadingRecords, loading: loadingUnloading } = useCollection<UnloadingRecord>(unloadingRecordsQuery);
 
-  const borrowingsQuery = useMemoFirebase(() => (firestore && appUser ? collection(firestore, 'borrowings') : null), [firestore, appUser]);
+  const borrowingsQuery = useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'borrowings'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]);
   const { data: borrowings, loading: loadingBorrowings } = useCollection<Borrowing>(borrowingsQuery);
   
-  const lendingsQuery = useMemoFirebase(() => (firestore && appUser ? collection(firestore, 'lendings') : null), [firestore, appUser]);
+  const lendingsQuery = useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'lendings'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]);
   const { data: lendings, loading: loadingLendings } = useCollection<Lending>(lendingsQuery);
   
-  const otherIncomesQuery = useMemoFirebase(() => (firestore && appUser ? collection(firestore, 'otherIncomes') : null), [firestore, appUser]);
+  const otherIncomesQuery = useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'otherIncomes'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]);
   const { data: otherIncomes, loading: loadingOtherIncomes } = useCollection<OtherIncome>(otherIncomesQuery);
 
 

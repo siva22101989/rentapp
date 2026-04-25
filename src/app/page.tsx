@@ -1,3 +1,4 @@
+
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,7 +25,7 @@ import {
 } from 'lucide-react';
 import { StorageTable } from "@/components/dashboard/storage-table";
 import { useCollection } from "@/firebase/firestore/use-collection";
-import { doc, collection } from "firebase/firestore";
+import { doc, collection, query, where } from "firebase/firestore";
 import { useFirestore } from "@/firebase/provider";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 import { useMemo, useState, useEffect } from "react";
@@ -156,7 +157,7 @@ function DashboardHeaderSkeleton() {
 }
 
 export default function DashboardPage() {
-    const appUser = useAppUser();
+    const { appUser } = useAppUser();
     const firestore = useFirestore();
     const router = useRouter();
 
@@ -168,19 +169,19 @@ export default function DashboardPage() {
     });
 
     const recordsQuery = useMemoFirebase(
-      () => (firestore && appUser ? collection(firestore, 'storageRecords') : null),
+      () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'storageRecords'), where('warehouseId', '==', appUser.warehouseId)) : null),
       [firestore, appUser]
     );
     const { data: allRecords, loading: loadingRecords } = useCollection<StorageRecord>(recordsQuery);
   
     const lotsQuery = useMemoFirebase(
-      () => (firestore && appUser ? collection(firestore, 'lots') : null),
+      () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'lots'), where('warehouseId', '==', appUser.warehouseId)) : null),
       [firestore, appUser]
     );
     const { data: allLots, loading: loadingLots } = useCollection<Lot>(lotsQuery);
 
     const warehouseInfoRef = useMemoFirebase(
-        () => (firestore && appUser ? doc(firestore, 'settings', 'main') : null),
+        () => (firestore && appUser?.warehouseId ? doc(firestore, 'warehouses', appUser.warehouseId) : null),
         [firestore, appUser]
     );
     const { data: warehouseInfo, loading: loadingWarehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);

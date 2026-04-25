@@ -19,7 +19,7 @@ export default function OutflowReceiptPage() {
   const searchParams = useSearchParams();
   const recordId = params.recordId as string;
   const firestore = useFirestore();
-  const appUser = useAppUser();
+  const { appUser } = useAppUser();
 
   const [record, setRecord] = useState<StorageRecord | null>(null);
   const [loadingRecord, setLoadingRecord] = useState(true);
@@ -33,7 +33,7 @@ export default function OutflowReceiptPage() {
   const discount = Number(searchParams.get('discount')) || 0;
 
   useEffect(() => {
-    if (!firestore || !recordId || !appUser) {
+    if (!firestore || !recordId || !appUser?.warehouseId) {
       setLoadingRecord(false);
       return;
     }
@@ -46,7 +46,7 @@ export default function OutflowReceiptPage() {
       attempts++;
       try {
         const docSnap = await getDoc(recordRef);
-        if (docSnap.exists()) {
+        if (docSnap.exists() && docSnap.data().warehouseId === appUser.warehouseId) {
           setRecord({ id: docSnap.id, ...docSnap.data() } as StorageRecord);
           setLoadingRecord(false);
         } else if (attempts < maxAttempts) {
@@ -67,7 +67,7 @@ export default function OutflowReceiptPage() {
 
   useEffect(() => {
     async function fetchCustomer() {
-        if (!firestore || !record?.customerId || !appUser) {
+        if (!firestore || !record?.customerId || !appUser?.warehouseId) {
             setLoadingCustomer(false);
             return;
         }
@@ -75,7 +75,7 @@ export default function OutflowReceiptPage() {
         try {
             const customerRef = doc(firestore, 'customers', record.customerId);
             const customerSnap = await getDoc(customerRef);
-            if (customerSnap.exists()) {
+            if (customerSnap.exists() && customerSnap.data().warehouseId === appUser.warehouseId) {
                 setCustomer({ id: customerSnap.id, ...customerSnap.data() } as Customer);
             }
         } catch (e) {
@@ -89,7 +89,7 @@ export default function OutflowReceiptPage() {
 
 
   const warehouseInfoRef = useMemoFirebase(
-    () => (firestore && appUser ? doc(firestore, 'settings', 'main') : null),
+    () => (firestore && appUser?.warehouseId ? doc(firestore, 'warehouses', appUser.warehouseId) : null),
     [firestore, appUser]
   );
   const { data: warehouseInfo, loading: loadingWarehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);

@@ -36,7 +36,7 @@ export function WarehouseInfoForm() {
     const appUser = useAppUser();
 
     const warehouseInfoRef = useMemoFirebase(
-        () => (firestore && appUser ? doc(firestore, 'settings', 'main') : null),
+        () => (firestore && appUser?.warehouseId ? doc(firestore, 'warehouses', appUser.warehouseId) : null),
         [firestore, appUser]
     );
     const { data: warehouseInfo, loading: loadingInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
@@ -64,8 +64,8 @@ export function WarehouseInfoForm() {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!firestore) {
-            toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
+        if (!firestore || !appUser?.warehouseId) {
+            toast({ title: 'Error', description: 'Firestore or User context not available.', variant: 'destructive' });
             return;
         }
 
@@ -84,7 +84,7 @@ export function WarehouseInfoForm() {
 
         startTransition(async () => {
             try {
-                const docRef = doc(firestore, 'settings', 'main');
+                const docRef = doc(firestore, 'warehouses', appUser.warehouseId);
                 await setDoc(docRef, cleanForFirestore(result.data), { merge: true });
                 toast({ title: 'Success', description: 'Warehouse information updated.' });
             } catch (error) {

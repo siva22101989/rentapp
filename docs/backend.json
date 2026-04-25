@@ -457,71 +457,24 @@
     },
     "warehouseInfo": {
       "title": "Warehouse Info",
-      "description": "General information about the warehouse.",
+      "description": "General information and settings for a warehouse.",
       "type": "object",
       "properties": {
-        "name": {
-          "type": "string",
-          "description": "The name of the warehouse."
-        },
-        "phone": {
-          "type": "string",
-          "description": "Primary contact phone number."
-        },
-        "addressLine1": {
-          "type": "string",
-          "description": "Address Line 1."
-        },
-        "addressLine2": {
-          "type": "string",
-          "description": "Address Line 2 (e.g., City, State, ZIP)."
-        },
-        "capitalInvestment": {
-          "type": "number",
-          "description": "The total capital invested in the business."
-        },
-        "annualInterestRate": {
-          "type": "number",
-          "description": "The annual interest rate used to calculate cost of capital."
-        }
+        "name": { "type": "string", "description": "The name of the warehouse." },
+        "phone": { "type": "string", "description": "Primary contact phone number." },
+        "addressLine1": { "type": "string", "description": "Address Line 1." },
+        "addressLine2": { "type": "string", "description": "Address Line 2 (e.g., City, State, ZIP)." },
+        "capitalInvestment": { "type": "number", "description": "The total capital invested in the business." },
+        "annualInterestRate": { "type": "number", "description": "The annual interest rate used to calculate cost of capital." },
+        "textbeeApiKey": { "type": "string", "description": "Your textbee.dev API key." },
+        "textbeeDeviceId": { "type": "string", "description": "Your textbee.dev Device ID (optional, for device gateway)." },
+        "smsInflowTemplate": { "type": "string", "description": "Template for SMS sent on new inflow." },
+        "smsOutflowTemplate": { "type": "string", "description": "Template for SMS sent on outflow." },
+        "smsUnloadingTemplate": { "type": "string", "description": "Template for SMS sent on unloading." },
+        "smsPaymentTemplate": { "type": "string", "description": "Template for SMS sent on bulk payment." },
+        "smsPendingDuesTemplate": { "type": "string", "description": "Template for SMS sent for pending dues reminder." }
       },
       "required": ["name"]
-    },
-    "smsInfo": {
-      "title": "SMS Info",
-      "description": "Settings for the SMS provider (textbee.dev).",
-      "type": "object",
-      "properties": {
-        "textbeeApiKey": {
-          "type": "string",
-          "description": "Your textbee.dev API key."
-        },
-        "textbeeDeviceId": {
-          "type": "string",
-          "description": "Your textbee.dev Device ID (optional, for device gateway)."
-        },
-        "smsInflowTemplate": {
-          "type": "string",
-          "description": "Template for SMS sent on new inflow."
-        },
-        "smsOutflowTemplate": {
-          "type": "string",
-          "description": "Template for SMS sent on outflow."
-        },
-        "smsUnloadingTemplate": {
-          "type": "string",
-          "description": "Template for SMS sent on unloading."
-        },
-        "smsPaymentTemplate": {
-          "type": "string",
-          "description": "Template for SMS sent on bulk payment."
-        },
-        "smsPendingDuesTemplate": {
-            "type": "string",
-            "description": "Template for SMS sent for pending dues reminder."
-        }
-      },
-      "required": ["textbeeApiKey"]
     },
     "appUser": {
       "title": "App User",
@@ -575,55 +528,51 @@
     },
     "/customers/{customerId}": {
       "schema": "customer",
-      "description": "Stores individual customer documents."
+      "description": "Stores individual customer documents, scoped by warehouseId."
     },
     "/commodities/{commodityId}": {
       "schema": "commodity",
-      "description": "Stores commodity types."
+      "description": "Stores commodity types, scoped by warehouseId."
     },
     "/lots/{lotId}": {
       "schema": "lot",
-      "description": "Stores lot information."
+      "description": "Stores lot information, scoped by warehouseId."
     },
     "/storageRecords/{recordId}": {
       "schema": "storageRecord",
-      "description": "Stores individual storage records."
+      "description": "Stores individual storage records, scoped by warehouseId."
     },
     "/expenses/{expenseId}": {
       "schema": "expense",
-      "description": "Stores individual expense documents."
+      "description": "Stores individual expense documents, scoped by warehouseId."
     },
     "/borrowings/{borrowingId}": {
       "schema": "borrowing",
-      "description": "Stores individual borrowing/loan records."
+      "description": "Stores individual borrowing/loan records, scoped by warehouseId."
     },
     "/lendings/{lendingId}": {
       "schema": "lending",
-      "description": "Stores individual lending/loan records."
+      "description": "Stores individual lending/loan records, scoped by warehouseId."
     },
     "/otherIncomes/{incomeId}": {
       "schema": "otherIncome",
-      "description": "Stores individual miscellaneous income records."
+      "description": "Stores individual miscellaneous income records, scoped by warehouseId."
     },
     "/unloadingRecords/{unloadingId}": {
       "schema": "unloadingRecord",
-      "description": "Stores records of the unloading process."
+      "description": "Stores records of the unloading process, scoped by warehouseId."
     },
     "/dryingRecords/{dryingId}": {
       "schema": "dryingRecord",
-      "description": "Stores records of the drying process."
+      "description": "Stores records of the drying process, scoped by warehouseId."
     },
-    "/settings/main": {
+    "/warehouses/{warehouseId}": {
         "schema": "warehouseInfo",
-        "description": "Stores application settings, like warehouse details."
-    },
-    "/settings/sms": {
-      "schema": "smsInfo",
-      "description": "Stores SMS provider configuration."
+        "description": "Stores warehouse-specific settings and information."
     },
     "/managedWarehouses/{warehouseId}": {
       "schema": "managedWarehouse",
-      "description": "Stores warehouse subscription details."
+      "description": "Stores warehouse subscription details managed by the super-admin."
     }
   }
 }

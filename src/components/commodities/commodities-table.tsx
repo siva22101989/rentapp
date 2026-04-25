@@ -21,7 +21,7 @@ import { useAppUser } from "@/firebase/auth/use-user";
 
 export function CommoditiesTable() {
   const firestore = useFirestore();
-  const { appUser } = useAppUser();
+  const appUser = useAppUser();
 
   const commoditiesQuery = useMemoFirebase(
     () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'commodities'), where('warehouseId', '==', appUser.warehouseId)) : null),

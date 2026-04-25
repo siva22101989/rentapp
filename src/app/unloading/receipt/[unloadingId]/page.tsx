@@ -18,7 +18,7 @@ export default function UnloadingReceiptPage() {
   const params = useParams();
   const unloadingId = params.unloadingId as string;
   const firestore = useFirestore();
-  const { appUser } = useAppUser();
+  const appUser = useAppUser();
 
   const [record, setRecord] = useState<UnloadingRecord | null>(null);
   const [loadingRecord, setLoadingRecord] = useState(true);

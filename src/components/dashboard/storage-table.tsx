@@ -21,7 +21,7 @@ import { useAppUser } from "@/firebase/auth/use-user";
 export function StorageTable() {
   const firestore = useFirestore();
   const router = useRouter();
-  const { appUser } = useAppUser();
+  const appUser = useAppUser();
 
   const allRecordsQuery = useMemoFirebase(
     () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'storageRecords'), where('warehouseId', '==', appUser.warehouseId)) : null),

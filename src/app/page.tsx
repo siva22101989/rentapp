@@ -157,7 +157,7 @@ function DashboardHeaderSkeleton() {
 }
 
 export default function DashboardPage() {
-    const { appUser } = useAppUser();
+    const appUser = useAppUser();
     const firestore = useFirestore();
     const router = useRouter();
 

@@ -15,7 +15,7 @@ import { useAppUser } from "@/firebase/auth/use-user";
 
 export default function UnloadingPage() {
   const firestore = useFirestore();
-  const { appUser } = useAppUser();
+  const appUser = useAppUser();
   const canAdd = appUser?.role === 'owner' || appUser?.role === 'biller' || appUser?.role === 'super-admin';
 
   const customersQuery = useMemoFirebase(

@@ -18,7 +18,7 @@ export default function InflowReceiptPage() {
   const params = useParams();
   const recordId = params.recordId as string;
   const firestore = useFirestore();
-  const { appUser } = useAppUser();
+  const appUser = useAppUser();
 
   const [record, setRecord] = useState<StorageRecord | null>(null);
   const [loadingRecord, setLoadingRecord] = useState(true);

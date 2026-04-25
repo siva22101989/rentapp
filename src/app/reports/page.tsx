@@ -14,7 +14,7 @@ import { useAppUser } from "@/firebase/auth/use-user";
 export default function ReportsPage() {
     const firestore = useFirestore();
     const searchParams = useSearchParams();
-    const { appUser } = useAppUser();
+    const appUser = useAppUser();
 
     const initialReport = searchParams.get('report') || undefined;
     const initialCustomerId = searchParams.get('customerId') || undefined;

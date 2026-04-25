@@ -15,7 +15,7 @@ import { useAppUser } from "@/firebase/auth/use-user";
 
 export default function DryingPage() {
   const firestore = useFirestore();
-  const { appUser } = useAppUser();
+  const appUser = useAppUser();
 
   const customersQuery = useMemoFirebase(
     () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'customers'), where('warehouseId', '==', appUser.warehouseId)) : null),

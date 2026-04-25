@@ -19,7 +19,7 @@ export default function OutflowReceiptPage() {
   const searchParams = useSearchParams();
   const recordId = params.recordId as string;
   const firestore = useFirestore();
-  const { appUser } = useAppUser();
+  const appUser = useAppUser();
 
   const [record, setRecord] = useState<StorageRecord | null>(null);
   const [loadingRecord, setLoadingRecord] = useState(true);

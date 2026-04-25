@@ -18,7 +18,7 @@ import { useAppUser } from "@/firebase/auth/use-user";
 
 export default function StoragePage() {
   const firestore = useFirestore();
-  const { appUser } = useAppUser();
+  const appUser = useAppUser();
 
   const recordsQuery = useMemoFirebase(
     () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'storageRecords'), where('warehouseId', '==', appUser.warehouseId)) : null),

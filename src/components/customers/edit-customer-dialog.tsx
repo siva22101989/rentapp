@@ -33,7 +33,6 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer;
   const [fatherName, setFatherName] = useState('');
   const [village, setVillage] = useState('');
   const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
 
   // Effect to populate form when dialog opens or customer data changes
@@ -43,7 +42,6 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer;
       setFatherName(customer.fatherName || '');
       setVillage(customer.village || '');
       setPhone(customer.phone || '');
-      setEmail(customer.email || '');
       setAddress(customer.address || '');
     }
   }, [customer, isOpen]);
@@ -64,7 +62,6 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer;
       fatherName,
       village,
       phone,
-      email,
       address,
     };
 
@@ -110,10 +107,6 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer;
             <div className="space-y-2">
               <Label htmlFor="phone">Phone *</Label>
               <Input id="phone" name="phone" type="tel" value={phone || ''} onChange={(e) => setPhone(e.target.value)} required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" name="email" type="email" value={email || ''} onChange={(e) => setEmail(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="address">Address</Label>

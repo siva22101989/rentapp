@@ -29,14 +29,12 @@ export function AddCustomerDialog() {
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
   const [fatherName, setFatherName] = useState('');
   const [village, setVillage] = useState('');
 
   const resetForm = () => {
     setName('');
     setPhone('');
-    setEmail('');
     setFatherName('');
     setVillage('');
   };
@@ -61,7 +59,7 @@ export function AddCustomerDialog() {
 
     startTransition(async () => {
       try {
-        await saveCustomer(firestore, { name, phone, email, fatherName, village });
+        await saveCustomer(firestore, { name, phone, fatherName, village });
         toast({ title: 'Success', description: 'Customer added successfully.' });
         setIsOpen(false);
         resetForm();
@@ -104,10 +102,6 @@ export function AddCustomerDialog() {
             <div className="space-y-2">
               <Label htmlFor="phone">Phone</Label>
               <Input id="phone" type="tel" value={phone || ''} onChange={(e) => setPhone(e.target.value)} required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email (Optional)</Label>
-              <Input id="email" type="email" value={email || ''} onChange={(e) => setEmail(e.target.value)} />
             </div>
           </div>
           <DialogFooter>

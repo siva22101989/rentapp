@@ -28,14 +28,12 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer;
   const firestore = useFirestore();
   const appUser = useAppUser();
 
-  // State for each input field
   const [name, setName] = useState('');
   const [fatherName, setFatherName] = useState('');
   const [village, setVillage] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
 
-  // Effect to populate form when dialog opens or customer data changes
   useEffect(() => {
     if (customer && isOpen) {
       setName(customer.name || '');
@@ -54,6 +52,14 @@ export function EditCustomerDialog({ customer, children }: { customer: Customer;
     }
     if (!customer?.id) {
       toast({ title: 'Error', description: 'Customer ID missing.', variant: 'destructive' });
+      return;
+    }
+     if (name.length < 3) {
+      toast({ title: 'Validation Error', description: 'Name must be at least 3 characters.', variant: 'destructive' });
+      return;
+    }
+    if (phone.length < 10) {
+      toast({ title: 'Validation Error', description: 'Phone number must be at least 10 digits.', variant: 'destructive' });
       return;
     }
 

@@ -10,11 +10,6 @@
           "type": "string",
           "description": "The full name of the customer."
         },
-        "email": {
-          "type": "string",
-          "format": "email",
-          "description": "The email address of the customer."
-        },
         "phone": {
           "type": "string",
           "description": "The phone number of the customer."
@@ -500,6 +495,30 @@
         "textbeeApiKey": {
           "type": "string",
           "description": "Your textbee.dev API key."
+        },
+        "textbeeDeviceId": {
+          "type": "string",
+          "description": "Your textbee.dev Device ID (optional, for device gateway)."
+        },
+        "smsInflowTemplate": {
+          "type": "string",
+          "description": "Template for SMS sent on new inflow."
+        },
+        "smsOutflowTemplate": {
+          "type": "string",
+          "description": "Template for SMS sent on outflow."
+        },
+        "smsUnloadingTemplate": {
+          "type": "string",
+          "description": "Template for SMS sent on unloading."
+        },
+        "smsPaymentTemplate": {
+          "type": "string",
+          "description": "Template for SMS sent on bulk payment."
+        },
+        "smsPendingDuesTemplate": {
+            "type": "string",
+            "description": "Template for SMS sent for pending dues reminder."
         }
       },
       "required": ["textbeeApiKey"]

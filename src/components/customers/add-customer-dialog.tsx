@@ -31,12 +31,14 @@ export function AddCustomerDialog() {
   const [phone, setPhone] = useState('');
   const [fatherName, setFatherName] = useState('');
   const [village, setVillage] = useState('');
+  const [address, setAddress] = useState('');
 
   const resetForm = () => {
     setName('');
     setPhone('');
     setFatherName('');
     setVillage('');
+    setAddress('');
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -59,7 +61,7 @@ export function AddCustomerDialog() {
 
     startTransition(async () => {
       try {
-        await saveCustomer(firestore, { name, phone, fatherName, village });
+        await saveCustomer(firestore, { name, phone, fatherName, village, address });
         toast({ title: 'Success', description: 'Customer added successfully.' });
         setIsOpen(false);
         resetForm();
@@ -102,6 +104,10 @@ export function AddCustomerDialog() {
             <div className="space-y-2">
               <Label htmlFor="phone">Phone</Label>
               <Input id="phone" type="tel" value={phone || ''} onChange={(e) => setPhone(e.target.value)} required />
+            </div>
+             <div className="space-y-2">
+              <Label htmlFor="address">Address</Label>
+              <Input id="address" value={address || ''} onChange={(e) => setAddress(e.target.value)} />
             </div>
           </div>
           <DialogFooter>

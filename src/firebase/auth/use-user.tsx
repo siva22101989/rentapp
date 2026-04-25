@@ -49,7 +49,30 @@ export function UserProvider({ children }: { children: ReactNode }) {
         
         // Defensive check for existing users
         if (existingAppUser.role && existingAppUser.role !== 'super-admin' && !existingAppUser.warehouseId) {
-          console.error(`FATAL: User ${fbUser.uid} has role '${existingAppUser.role}' but no warehouseId.`);
+          // Attempt to self-heal the user document
+          const userEmail = existingAppUser.email || fbUser.email?.toLowerCase();
+          if (userEmail) {
+            const warehousesCol = collection(firestore, 'managedWarehouses');
+            const q = query(warehousesCol, where('ownerEmail', '==', userEmail));
+            const warehouseSnap = await getDocs(q);
+
+            if (!warehouseSnap.empty) {
+              const warehouseId = warehouseSnap.docs[0].id;
+              console.log(`Attempting to repair user ${fbUser.uid} with warehouseId ${warehouseId}`);
+              
+              const updatedAppUser = { ...existingAppUser, warehouseId };
+              await setDoc(userDocRef, updatedAppUser, { merge: true });
+
+              // Successfully repaired, now proceed with the corrected user data.
+              setAppUser(updatedAppUser);
+              setUser(fbUser);
+              setLoading(false);
+              return; // End of flow for repaired user
+            }
+          }
+          
+          // If self-healing fails, show the error.
+          console.error(`FATAL: User ${fbUser.uid} has role '${existingAppUser.role}' but no warehouseId. Self-healing failed.`);
           setProvisioningError('Your user account is misconfigured. Please contact support. (Code: WID_MISSING_EXISTING)');
           setUser(fbUser);
           setAppUser(null);

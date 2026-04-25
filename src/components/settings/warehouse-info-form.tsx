@@ -1,14 +1,11 @@
 
 'use client';
 
-import { useTransition, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import { useTransition, useEffect, useState } from 'react';
 import { Loader2, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase/provider';
 import type { WarehouseInfo } from '@/lib/definitions';
@@ -19,7 +16,7 @@ import { cleanForFirestore } from '@/lib/utils';
 import { Skeleton } from '../ui/skeleton';
 import { Textarea } from '../ui/textarea';
 import { useAppUser } from '@/firebase/auth/use-user';
-import { Separator } from '../ui/separator';
+import { z } from 'zod';
 
 const WarehouseInfoSchema = z.object({
   name: z.string().min(3, 'Warehouse name is required.'),
@@ -31,7 +28,6 @@ const WarehouseInfoSchema = z.object({
   bankDetails: z.string().optional(),
 });
 
-type WarehouseInfoFormData = z.infer<typeof WarehouseInfoSchema>;
 
 export function WarehouseInfoForm() {
     const { toast } = useToast();
@@ -45,43 +41,51 @@ export function WarehouseInfoForm() {
     );
     const { data: warehouseInfo, loading: loadingInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
-    const form = useForm<WarehouseInfoFormData>({
-        resolver: zodResolver(WarehouseInfoSchema),
-        defaultValues: {
-            name: '',
-            phone: '',
-            email: '',
-            addressLine1: '',
-            addressLine2: '',
-            ownerName: '',
-            bankDetails: '',
-        }
-    });
+    const [name, setName] = useState('');
+    const [ownerName, setOwnerName] = useState('');
+    const [phone, setPhone] = useState('');
+    const [email, setEmail] = useState('');
+    const [addressLine1, setAddressLine1] = useState('');
+    const [addressLine2, setAddressLine2] = useState('');
+    const [bankDetails, setBankDetails] = useState('');
+
 
     useEffect(() => {
         if (warehouseInfo) {
-            form.reset({
-                name: warehouseInfo.name || '',
-                phone: warehouseInfo.phone || '',
-                email: warehouseInfo.email || '',
-                addressLine1: warehouseInfo.addressLine1 || '',
-                addressLine2: warehouseInfo.addressLine2 || '',
-                ownerName: warehouseInfo.ownerName || '',
-                bankDetails: warehouseInfo.bankDetails || '',
-            });
+            setName(warehouseInfo.name || '');
+            setOwnerName(warehouseInfo.ownerName || '');
+            setPhone(warehouseInfo.phone || '');
+            setEmail(warehouseInfo.email || '');
+            setAddressLine1(warehouseInfo.addressLine1 || '');
+            setAddressLine2(warehouseInfo.addressLine2 || '');
+            setBankDetails(warehouseInfo.bankDetails || '');
         }
-    }, [warehouseInfo, form]);
+    }, [warehouseInfo]);
 
-    const onSubmit = (data: WarehouseInfoFormData) => {
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
         if (!firestore) {
             toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
+            return;
+        }
+
+        const dataToValidate = { name, ownerName, phone, email, addressLine1, addressLine2, bankDetails };
+        const result = WarehouseInfoSchema.safeParse(dataToValidate);
+
+        if (!result.success) {
+            const firstError = Object.values(result.error.flatten().fieldErrors)[0]?.[0];
+            toast({
+                title: "Validation Error",
+                description: firstError || "Please check your input.",
+                variant: "destructive",
+            });
             return;
         }
 
         startTransition(async () => {
             try {
                 const docRef = doc(firestore, 'settings', 'main');
-                await setDoc(docRef, cleanForFirestore(data), { merge: true });
+                await setDoc(docRef, cleanForFirestore(result.data), { merge: true });
                 toast({ title: 'Success', description: 'Warehouse information updated.' });
             } catch (error) {
                 console.error(error);
@@ -107,86 +111,36 @@ export function WarehouseInfoForm() {
     }
 
   return (
-    <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Warehouse Name</FormLabel>
-                        <FormControl><Input placeholder="e.g., Sri Lakshmi Warehouse" {...field} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )}
-            />
-             <FormField
-                control={form.control}
-                name="ownerName"
-                render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Owner Name (Proprietor)</FormLabel>
-                        <FormControl><Input placeholder="e.g., John Doe" {...field} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )}
-            />
-            <FormField
-                control={form.control}
-                name="phone"
-                render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Phone Number</FormLabel>
-                        <FormControl><Input placeholder="e.g., 9160606633" {...field} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )}
-            />
-             <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Email Address</FormLabel>
-                        <FormControl><Input type="email" placeholder="e.g., contact@warehouse.com" {...field} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )}
-            />
-            <FormField
-                control={form.control}
-                name="addressLine1"
-                render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Address Line 1</FormLabel>
-                        <FormControl><Input placeholder="e.g., Survey No. 165,237/2" {...field} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )}
-            />
-            <FormField
-                control={form.control}
-                name="addressLine2"
-                render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Address Line 2</FormLabel>
-                        <FormControl><Input placeholder="e.g., Owk (M), Kurnool (Dt.), A.P." {...field} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )}
-            />
-            <FormField
-                control={form.control}
-                name="bankDetails"
-                render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Bank Details</FormLabel>
-                        <FormControl><Textarea placeholder="Bank Name, Account Number, IFSC Code" {...field} /></FormControl>
-                        <FormDescription>This will be displayed on customer statements for payment.</FormDescription>
-                        <FormMessage />
-                    </FormItem>
-                )}
-            />
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+                <Label htmlFor="name">Warehouse Name</Label>
+                <Input id="name" placeholder="e.g., Sri Lakshmi Warehouse" value={name} onChange={e => setName(e.target.value)} />
+            </div>
+             <div className="space-y-2">
+                <Label htmlFor="ownerName">Owner Name (Proprietor)</Label>
+                <Input id="ownerName" placeholder="e.g., John Doe" value={ownerName} onChange={e => setOwnerName(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input id="phone" placeholder="e.g., 9160606633" value={phone} onChange={e => setPhone(e.target.value)} />
+            </div>
+             <div className="space-y-2">
+                <Label htmlFor="email">Email Address</Label>
+                <Input id="email" type="email" placeholder="e.g., contact@warehouse.com" value={email} onChange={e => setEmail(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="addressLine1">Address Line 1</Label>
+                <Input id="addressLine1" placeholder="e.g., Survey No. 165,237/2" value={addressLine1} onChange={e => setAddressLine1(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="addressLine2">Address Line 2</Label>
+                <Input id="addressLine2" placeholder="e.g., Owk (M), Kurnool (Dt.), A.P." value={addressLine2} onChange={e => setAddressLine2(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="bankDetails">Bank Details</Label>
+                <Textarea id="bankDetails" placeholder="Bank Name, Account Number, IFSC Code" value={bankDetails} onChange={e => setBankDetails(e.target.value)} />
+                 <p className="text-xs text-muted-foreground">This will be displayed on customer statements for payment.</p>
+            </div>
 
              <div className="flex justify-end">
                 <Button type="submit" disabled={isPending}>
@@ -198,6 +152,5 @@ export function WarehouseInfoForm() {
                 </Button>
             </div>
         </form>
-    </Form>
   );
 }

@@ -2,13 +2,9 @@
 'use client';
 
 import { useTransition, useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { Loader2, MessageSquare, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
@@ -22,18 +18,7 @@ import { Skeleton } from '../ui/skeleton';
 import { useAppUser } from '@/firebase/auth/use-user';
 import { Separator } from '../ui/separator';
 import { sendSms } from '@/lib/sms';
-
-const SmsInfoSchema = z.object({
-  textbeeApiKey: z.string().min(1, 'textbee.dev API Key is required.'),
-  textbeeDeviceId: z.string().optional(),
-  smsInflowTemplate: z.string().optional(),
-  smsOutflowTemplate: z.string().optional(),
-  smsUnloadingTemplate: z.string().optional(),
-  smsPaymentTemplate: z.string().optional(),
-  smsPendingDuesTemplate: z.string().optional(),
-});
-
-type SmsInfoFormData = z.infer<typeof SmsInfoSchema>;
+import { Label } from '../ui/label';
 
 const defaultTemplates = {
     inflow: 'Dear {customerName}, your inflow of {bags} bags of {commodity} has been recorded on {date}. Bill No: {billNo}. Hamali: {hamaliAmount}. Thank you. - {warehouseName}',
@@ -52,47 +37,54 @@ export function SmsSettings() {
     const [testNumber, setTestNumber] = useState('');
     const [isTesting, startTestTransition] = useTransition();
 
+    const [textbeeApiKey, setTextbeeApiKey] = useState('');
+    const [textbeeDeviceId, setTextbeeDeviceId] = useState('');
+    const [smsInflowTemplate, setSmsInflowTemplate] = useState('');
+    const [smsOutflowTemplate, setSmsOutflowTemplate] = useState('');
+    const [smsUnloadingTemplate, setSmsUnloadingTemplate] = useState('');
+    const [smsPaymentTemplate, setSmsPaymentTemplate] = useState('');
+    const [smsPendingDuesTemplate, setSmsPendingDuesTemplate] = useState('');
+
     const smsInfoRef = useMemoFirebase(
         () => (firestore && appUser ? doc(firestore, 'settings', 'sms') : null),
         [firestore, appUser]
     );
     const { data: smsInfo, loading: loadingInfo } = useDoc<SmsInfo>(smsInfoRef);
 
-    const form = useForm<SmsInfoFormData>({
-        resolver: zodResolver(SmsInfoSchema),
-        defaultValues: {
-            textbeeApiKey: '',
-            textbeeDeviceId: '',
-            smsInflowTemplate: '',
-            smsOutflowTemplate: '',
-            smsUnloadingTemplate: '',
-            smsPaymentTemplate: '',
-            smsPendingDuesTemplate: '',
-        }
-    });
-
     useEffect(() => {
         if (smsInfo) {
-            form.reset({
-                textbeeApiKey: smsInfo.textbeeApiKey || '',
-                textbeeDeviceId: smsInfo.textbeeDeviceId || '',
-                smsInflowTemplate: smsInfo.smsInflowTemplate || '',
-                smsOutflowTemplate: smsInfo.smsOutflowTemplate || '',
-                smsUnloadingTemplate: smsInfo.smsUnloadingTemplate || '',
-                smsPaymentTemplate: smsInfo.smsPaymentTemplate || '',
-                smsPendingDuesTemplate: smsInfo.smsPendingDuesTemplate || '',
-            });
+            setTextbeeApiKey(smsInfo.textbeeApiKey || '');
+            setTextbeeDeviceId(smsInfo.textbeeDeviceId || '');
+            setSmsInflowTemplate(smsInfo.smsInflowTemplate || '');
+            setSmsOutflowTemplate(smsInfo.smsOutflowTemplate || '');
+            setSmsUnloadingTemplate(smsInfo.smsUnloadingTemplate || '');
+            setSmsPaymentTemplate(smsInfo.smsPaymentTemplate || '');
+            setSmsPendingDuesTemplate(smsInfo.smsPendingDuesTemplate || '');
         }
-    }, [smsInfo, form]);
+    }, [smsInfo]);
 
-    const onSubmit = (data: SmsInfoFormData) => {
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
         if (!firestore) {
             toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
+            return;
+        }
+        if (!textbeeApiKey) {
+            toast({ title: 'Validation Error', description: 'textbee.dev API Key is required.', variant: 'destructive' });
             return;
         }
 
         startTransition(async () => {
             try {
+                const data = {
+                    textbeeApiKey,
+                    textbeeDeviceId,
+                    smsInflowTemplate,
+                    smsOutflowTemplate,
+                    smsUnloadingTemplate,
+                    smsPaymentTemplate,
+                    smsPendingDuesTemplate,
+                };
                 const docRef = doc(firestore, 'settings', 'sms');
                 await setDoc(docRef, cleanForFirestore(data), { merge: true });
                 toast({ title: 'Success', description: 'SMS settings saved.' });
@@ -108,16 +100,15 @@ export function SmsSettings() {
             toast({ title: 'Phone Number Required', description: 'Please enter a phone number to send a test SMS to.', variant: 'destructive' });
             return;
         }
-        const currentSettings = form.getValues();
-        if (!currentSettings.textbeeApiKey) {
+        if (!textbeeApiKey) {
             toast({ title: 'API Key Required', description: 'Please save your textbee.dev API key before testing.', variant: 'destructive' });
             return;
         }
 
         startTestTransition(async () => {
             const result = await sendSms({
-                apiKey: currentSettings.textbeeApiKey,
-                deviceId: currentSettings.textbeeDeviceId,
+                apiKey: textbeeApiKey,
+                deviceId: textbeeDeviceId,
                 to: testNumber,
                 message: 'This is a test message from your GrainDost application setup.'
             });
@@ -150,137 +141,90 @@ export function SmsSettings() {
 
   return (
     <Card className="mt-6">
-        <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)}>
-                <CardHeader>
-                    <CardTitle>SMS Configuration</CardTitle>
-                    <CardDescription>
-                        Configure your textbee.dev account to enable sending SMS notifications to customers.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <FormField
-                        control={form.control}
-                        name="textbeeApiKey"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>textbee.dev API Key</FormLabel>
-                                <FormControl><Input type="text" placeholder="Enter your API key" {...field} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="textbeeDeviceId"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Device ID (Optional)</FormLabel>
-                                <FormControl><Input type="text" placeholder="Enter your Device ID if using the device gateway" {...field} value={field.value ?? ''} /></FormControl>
-                                <p className="text-xs text-muted-foreground">
-                                    Only required if you are using your phone to send messages via textbee.dev.
-                                </p>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    
-                    <Separator />
-                    <h3 className="text-md font-semibold pt-2">SMS Templates</h3>
-                    <FormField
-                        control={form.control}
-                        name="smsInflowTemplate"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Inflow SMS Template</FormLabel>
-                                <FormControl><Textarea placeholder={defaultTemplates.inflow} {...field} /></FormControl>
-                                <FormDescription>Placeholders: {`{customerName}, {bags}, {commodity}, {billNo}, {date}, {hamaliAmount}, {warehouseName}`}</FormDescription>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="smsOutflowTemplate"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Outflow SMS Template</FormLabel>
-                                <FormControl><Textarea placeholder={defaultTemplates.outflow} {...field} /></FormControl>
-                                <FormDescription>Placeholders: {`{customerName}, {bags}, {date}, {rentDue}, {hamaliPending}, {totalPayable}, {warehouseName}`}</FormDescription>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="smsUnloadingTemplate"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Unloading SMS Template</FormLabel>
-                                <FormControl><Textarea placeholder={defaultTemplates.unloading} {...field} /></FormControl>
-                                <FormDescription>Placeholders: {`{customerName}, {bags}, {commodity}, {billNo}, {date}, {hamaliAmount}, {warehouseName}`}</FormDescription>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="smsPaymentTemplate"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Bulk Payment SMS Template</FormLabel>
-                                <FormControl><Textarea placeholder={defaultTemplates.payment} {...field} /></FormControl>
-                                <FormDescription>Placeholders: {`{customerName}, {paymentAmount}, {date}, {warehouseName}`}</FormDescription>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                     <FormField
-                        control={form.control}
-                        name="smsPendingDuesTemplate"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Pending Dues Reminder SMS Template</FormLabel>
-                                <FormControl><Textarea placeholder={defaultTemplates.pendingDues} {...field} /></FormControl>
-                                <FormDescription>Placeholders: {`{customerName}, {rentDue}, {hamaliDue}, {totalDue}, {warehouseName}`}</FormDescription>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
+        <form onSubmit={handleSubmit}>
+            <CardHeader>
+                <CardTitle>SMS Configuration</CardTitle>
+                <CardDescription>
+                    Configure your textbee.dev account to enable sending SMS notifications to customers.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div className="space-y-2">
+                    <Label htmlFor="textbeeApiKey">textbee.dev API Key</Label>
+                    <Input id="textbeeApiKey" type="text" placeholder="Enter your API key" value={textbeeApiKey} onChange={e => setTextbeeApiKey(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="textbeeDeviceId">Device ID (Optional)</Label>
+                    <Input id="textbeeDeviceId" type="text" placeholder="Enter your Device ID if using the device gateway" value={textbeeDeviceId} onChange={e => setTextbeeDeviceId(e.target.value)} />
+                    <p className="text-xs text-muted-foreground">
+                        Only required if you are using your phone to send messages via textbee.dev.
+                    </p>
+                </div>
+                
+                <Separator />
+                <h3 className="text-md font-semibold pt-2">SMS Templates</h3>
 
-                </CardContent>
-                <CardFooter className="flex-col items-stretch gap-6">
-                    <div className="flex justify-end">
-                        <Button type="submit" disabled={isPending}>
-                            {isPending ? (
-                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
-                            ) : (
-                                <><MessageSquare className="mr-2 h-4 w-4" /> Save SMS Settings</>
-                            )}
+                <div className="space-y-2">
+                    <Label htmlFor="smsInflowTemplate">Inflow SMS Template</Label>
+                    <Textarea id="smsInflowTemplate" placeholder={defaultTemplates.inflow} value={smsInflowTemplate} onChange={e => setSmsInflowTemplate(e.target.value)} />
+                    <p className="text-xs text-muted-foreground">Placeholders: {`{customerName}, {bags}, {commodity}, {billNo}, {date}, {hamaliAmount}, {warehouseName}`}</p>
+                </div>
+
+                <div className="space-y-2">
+                    <Label htmlFor="smsOutflowTemplate">Outflow SMS Template</Label>
+                    <Textarea id="smsOutflowTemplate" placeholder={defaultTemplates.outflow} value={smsOutflowTemplate} onChange={e => setSmsOutflowTemplate(e.target.value)} />
+                    <p className="text-xs text-muted-foreground">Placeholders: {`{customerName}, {bags}, {date}, {rentDue}, {hamaliPending}, {totalPayable}, {warehouseName}`}</p>
+                </div>
+
+                <div className="space-y-2">
+                    <Label htmlFor="smsUnloadingTemplate">Unloading SMS Template</Label>
+                    <Textarea id="smsUnloadingTemplate" placeholder={defaultTemplates.unloading} value={smsUnloadingTemplate} onChange={e => setSmsUnloadingTemplate(e.target.value)} />
+                    <p className="text-xs text-muted-foreground">Placeholders: {`{customerName}, {bags}, {commodity}, {billNo}, {date}, {hamaliAmount}, {warehouseName}`}</p>
+                </div>
+
+                <div className="space-y-2">
+                    <Label htmlFor="smsPaymentTemplate">Bulk Payment SMS Template</Label>
+                    <Textarea id="smsPaymentTemplate" placeholder={defaultTemplates.payment} value={smsPaymentTemplate} onChange={e => setSmsPaymentTemplate(e.target.value)} />
+                    <p className="text-xs text-muted-foreground">Placeholders: {`{customerName}, {paymentAmount}, {date}, {warehouseName}`}</p>
+                </div>
+
+                <div className="space-y-2">
+                    <Label htmlFor="smsPendingDuesTemplate">Pending Dues Reminder SMS Template</Label>
+                    <Textarea id="smsPendingDuesTemplate" placeholder={defaultTemplates.pendingDues} value={smsPendingDuesTemplate} onChange={e => setSmsPendingDuesTemplate(e.target.value)} />
+                    <p className="text-xs text-muted-foreground">Placeholders: {`{customerName}, {rentDue}, {hamaliDue}, {totalDue}, {warehouseName}`}</p>
+                </div>
+            </CardContent>
+            <CardFooter className="flex-col items-stretch gap-6">
+                <div className="flex justify-end">
+                    <Button type="submit" disabled={isPending}>
+                        {isPending ? (
+                            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
+                        ) : (
+                            <><MessageSquare className="mr-2 h-4 w-4" /> Save SMS Settings</>
+                        )}
+                    </Button>
+                </div>
+                
+                <Separator />
+
+                <div>
+                    <h3 className="text-md font-medium">Test SMS Settings</h3>
+                    <p className="text-sm text-muted-foreground mb-4">Send a test message to a phone number to verify your saved settings.</p>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                        <Input 
+                            placeholder="Enter 10-digit phone number" 
+                            value={testNumber} 
+                            onChange={(e) => setTestNumber(e.target.value)}
+                            className="sm:flex-1"
+                        />
+                        <Button onClick={handleTestSms} disabled={isTesting} className="w-full sm:w-auto" type="button">
+                            {isTesting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                            Send Test
                         </Button>
                     </div>
-                    
-                    <Separator />
-
-                    <div>
-                        <h3 className="text-md font-medium">Test SMS Settings</h3>
-                        <p className="text-sm text-muted-foreground mb-4">Send a test message to a phone number to verify your saved settings.</p>
-                        <div className="flex flex-col sm:flex-row gap-2">
-                            <Input 
-                                placeholder="Enter 10-digit phone number" 
-                                value={testNumber} 
-                                onChange={(e) => setTestNumber(e.target.value)}
-                                className="sm:flex-1"
-                            />
-                            <Button onClick={handleTestSms} disabled={isTesting} className="w-full sm:w-auto" type="button">
-                                {isTesting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-                                Send Test
-                            </Button>
-                        </div>
-                    </div>
-                </CardFooter>
-            </form>
-        </Form>
+                </div>
+            </CardFooter>
+        </form>
     </Card>
   );
 }

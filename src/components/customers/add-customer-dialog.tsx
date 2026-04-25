@@ -43,8 +43,8 @@ export function AddCustomerDialog() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firestore || !appUser) {
-      toast({ title: 'Error', description: 'Firestore not available or user not logged in.', variant: 'destructive' });
+    if (!firestore || !appUser?.warehouseId) {
+      toast({ title: 'Error', description: 'Could not add customer: user or warehouse context is missing.', variant: 'destructive' });
       return;
     }
     
@@ -61,7 +61,7 @@ export function AddCustomerDialog() {
 
     startTransition(async () => {
       try {
-        await saveCustomer(firestore, { name, phone, fatherName, village, address });
+        await saveCustomer(firestore, { name, phone, fatherName, village, address }, appUser.warehouseId);
         toast({ title: 'Success', description: 'Customer added successfully.' });
         setIsOpen(false);
         resetForm();

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
@@ -82,10 +81,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
         const warehouseSnap = await getDocs(q);
 
         if (!warehouseSnap.empty) {
+          const warehouseDoc = warehouseSnap.docs[0];
           const newAppUserData: Omit<AppUser, 'id'> = {
               email: userEmail,
               role: 'owner',
-              phone: fbUser.phoneNumber || ''
+              phone: fbUser.phoneNumber || '',
+              warehouseId: warehouseDoc.id,
           };
           await setDoc(userDocRef, newAppUserData);
           setAppUser({ id: fbUser.uid, ...newAppUserData } as AppUser);

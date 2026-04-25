@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,12 +17,10 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase/provider';
 import { updateCommodity } from '@/lib/data';
 import { z } from 'zod';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { Input } from '../ui/input';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import type { Commodity } from '@/lib/definitions';
+import { Label } from '../ui/label';
 
 const CommoditySchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
@@ -61,39 +58,65 @@ const CommoditySchema = z.object({
 });
 
 
-type CommodityFormData = z.infer<typeof CommoditySchema>;
-
 export function EditCommodityDialog({ commodity, children }: { commodity: Commodity, children: React.ReactNode }) {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const firestore = useFirestore();
 
-  const form = useForm<CommodityFormData>({
-    resolver: zodResolver(CommoditySchema),
-    defaultValues: {
-      name: commodity.name,
-      billingType: commodity.billingType || 'slab',
-      monthlyRate: commodity.monthlyRate,
-      minBillingMonths: commodity.minBillingMonths,
-      insuranceRate: commodity.insuranceRate,
-      rate6Months: commodity.rate6Months,
-      rate1Year: commodity.rate1Year,
-    },
-  });
+  const [name, setName] = useState('');
+  const [billingType, setBillingType] = useState<'monthly' | 'slab'>('slab');
+  const [monthlyRate, setMonthlyRate] = useState<number | ''>('');
+  const [minBillingMonths, setMinBillingMonths] = useState<number | ''>('');
+  const [insuranceRate, setInsuranceRate] = useState<number | ''>('');
+  const [rate6Months, setRate6Months] = useState<number | ''>('');
+  const [rate1Year, setRate1Year] = useState<number | ''>('');
 
-  const billingType = form.watch('billingType');
+  useEffect(() => {
+      if (isOpen) {
+          setName(commodity.name);
+          setBillingType(commodity.billingType || 'slab');
+          setMonthlyRate(commodity.monthlyRate ?? '');
+          setMinBillingMonths(commodity.minBillingMonths ?? '');
+          setInsuranceRate(commodity.insuranceRate ?? '');
+          setRate6Months(commodity.rate6Months ?? '');
+          setRate1Year(commodity.rate1Year ?? '');
+      }
+  }, [isOpen, commodity]);
 
-  const onSubmit = (data: CommodityFormData) => {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
     if (!firestore) {
       toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
       return;
     }
 
+    const dataToValidate = {
+        name,
+        billingType,
+        monthlyRate: monthlyRate === '' ? undefined : Number(monthlyRate),
+        minBillingMonths: minBillingMonths === '' ? undefined : Number(minBillingMonths),
+        insuranceRate: insuranceRate === '' ? undefined : Number(insuranceRate),
+        rate6Months: rate6Months === '' ? undefined : Number(rate6Months),
+        rate1Year: rate1Year === '' ? undefined : Number(rate1Year),
+    };
+
+    const result = CommoditySchema.safeParse(dataToValidate);
+
+    if (!result.success) {
+      const firstError = Object.values(result.error.flatten().fieldErrors)[0]?.[0];
+      toast({
+        title: "Validation Error",
+        description: firstError || "Please check your input.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     startTransition(async () => {
       try {
-        const updateData: Partial<Commodity> = { ...data };
-        if (data.billingType === 'monthly') {
+        const updateData: Partial<Commodity> = { ...result.data };
+        if (result.data.billingType === 'monthly') {
             updateData.rate6Months = undefined;
             updateData.rate1Year = undefined;
         } else {
@@ -116,8 +139,7 @@ export function EditCommodityDialog({ commodity, children }: { commodity: Commod
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
+        <form onSubmit={handleSubmit}>
             <DialogHeader>
               <DialogTitle>Edit Commodity</DialogTitle>
               <DialogDescription>
@@ -125,123 +147,56 @@ export function EditCommodityDialog({ commodity, children }: { commodity: Commod
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Commodity Name</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="space-y-2">
+                  <Label htmlFor="edit-name">Commodity Name</Label>
+                  <Input id="edit-name" value={name} onChange={(e) => setName(e.target.value)} required />
+              </div>
 
-              <FormField
-                control={form.control}
-                name="billingType"
-                render={({ field }) => (
-                  <FormItem className="space-y-3">
-                    <FormLabel>Billing Structure</FormLabel>
-                    <FormControl>
-                      <RadioGroup
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        className="flex space-x-4"
-                      >
-                        <FormItem className="flex items-center space-x-2 space-y-0">
-                          <FormControl>
-                            <RadioGroupItem value="slab" />
-                          </FormControl>
-                          <FormLabel className="font-normal">Slab Rate</FormLabel>
-                        </FormItem>
-                        <FormItem className="flex items-center space-x-2 space-y-0">
-                          <FormControl>
-                            <RadioGroupItem value="monthly" />
-                          </FormControl>
-                          <FormLabel className="font-normal">Monthly Rate</FormLabel>
-                        </FormItem>
-                      </RadioGroup>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="space-y-3">
+                  <Label>Billing Structure</Label>
+                  <RadioGroup
+                      value={billingType}
+                      onValueChange={(value: 'monthly' | 'slab') => setBillingType(value)}
+                      className="flex space-x-4"
+                  >
+                      <div className="flex items-center space-x-2 space-y-0">
+                          <RadioGroupItem value="slab" id="edit-slab" />
+                          <Label htmlFor="edit-slab" className="font-normal">Slab Rate</Label>
+                      </div>
+                      <div className="flex items-center space-x-2 space-y-0">
+                          <RadioGroupItem value="monthly" id="edit-monthly" />
+                          <Label htmlFor="edit-monthly" className="font-normal">Monthly Rate</Label>
+                      </div>
+                  </RadioGroup>
+              </div>
 
               {billingType === 'monthly' && (
                 <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                    control={form.control}
-                    name="monthlyRate"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Monthly Rate</FormLabel>
-                        <FormControl>
-                            <Input type="number" step="0.01" {...field} value={field.value ?? ''} />
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                    <FormField
-                    control={form.control}
-                    name="minBillingMonths"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Min. Months</FormLabel>
-                        <FormControl>
-                            <Input type="number" placeholder="e.g. 3" {...field} value={field.value ?? ''} />
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                    <FormField
-                    control={form.control}
-                    name="insuranceRate"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Yearly Insurance Rate</FormLabel>
-                        <FormControl>
-                            <Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} />
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
+                    <div className="space-y-2">
+                        <Label htmlFor="edit-monthlyRate">Monthly Rate</Label>
+                        <Input id="edit-monthlyRate" type="number" step="0.01" value={monthlyRate} onChange={(e) => setMonthlyRate(e.target.value === '' ? '' : Number(e.target.value))} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="edit-minBillingMonths">Min. Months</Label>
+                        <Input id="edit-minBillingMonths" type="number" placeholder="e.g. 3" value={minBillingMonths} onChange={(e) => setMinBillingMonths(e.target.value === '' ? '' : Number(e.target.value))} />
+                    </div>
+                    <div className="space-y-2 col-span-2">
+                        <Label htmlFor="edit-insuranceRate">Yearly Insurance Rate</Label>
+                        <Input id="edit-insuranceRate" type="number" step="0.01" placeholder="0.00" value={insuranceRate} onChange={(e) => setInsuranceRate(e.target.value === '' ? '' : Number(e.target.value))} />
+                    </div>
                 </div>
               )}
 
               {billingType === 'slab' && (
                 <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="rate6Months"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>6-Month Rate</FormLabel>
-                        <FormControl>
-                          <Input type="number" step="0.01" {...field} value={field.value ?? ''} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="rate1Year"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>1-Year Rate</FormLabel>
-                        <FormControl>
-                          <Input type="number" step="0.01" {...field} value={field.value ?? ''} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-rate6Months">6-Month Rate</Label>
+                    <Input id="edit-rate6Months" type="number" step="0.01" value={rate6Months} onChange={(e) => setRate6Months(e.target.value === '' ? '' : Number(e.target.value))} />
+                  </div>
+                   <div className="space-y-2">
+                    <Label htmlFor="edit-rate1Year">1-Year Rate</Label>
+                    <Input id="edit-rate1Year" type="number" step="0.01" value={rate1Year} onChange={(e) => setRate1Year(e.target.value === '' ? '' : Number(e.target.value))} />
+                  </div>
                 </div>
               )}
             </div>
@@ -261,7 +216,6 @@ export function EditCommodityDialog({ commodity, children }: { commodity: Commod
               </Button>
             </DialogFooter>
           </form>
-        </Form>
       </DialogContent>
     </Dialog>
   );

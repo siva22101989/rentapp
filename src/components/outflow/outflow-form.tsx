@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useTransition, useMemo } from 'react';
@@ -254,23 +253,37 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                 await batch.commit();
 
                 if (sendSmsNotification && warehouseInfo?.textbeeApiKey && selectedCustomer?.phone) {
-                    const defaultTemplate = `Dear {customerName}, your withdrawal of {bags} bags has been processed on {date}. Rent: {rentDue}, Hamali: {hamaliPending}, Total: {totalPayable}. Thank you. - {warehouseName}`;
+                    const defaultTemplate = `Dear {customerName}, withdrawal of {bags} bags of {commodity} recorded. Invoice: {billNo},\nRent: {rent},\nTotal: {total}.\nThank you. - {warehouseName}.`;
                     const template = warehouseInfo?.smsOutflowTemplate || defaultTemplate;
+
+                    let commodity = 'various items';
+                    let billNo = 'Multiple';
+
+                    if (withdrawalEntries.length === 1) {
+                        const recordId = withdrawalEntries[0][0];
+                        const record = records.find(r => r.id === recordId);
+                        if (record) {
+                            commodity = record.commodityDescription;
+                        }
+                        billNo = recordId;
+                    } else {
+                        billNo = withdrawalEntries.map(([id]) => id).join(', ');
+                    }
                     
                     const message = template
                         .replace('{customerName}', selectedCustomer.name)
                         .replace('{bags}', String(totalBags))
-                        .replace('{date}', format(withdrawalDate, 'dd/MM/yy'))
-                        .replace('{rentDue}', formatCurrency(totalRent))
-                        .replace('{hamaliPending}', formatCurrency(totalPendingHamali))
-                        .replace('{totalPayable}', formatCurrency(totalPayable))
+                        .replace('{commodity}', commodity)
+                        .replace('{billNo}', billNo)
+                        .replace('{rent}', formatCurrency(totalRent))
+                        .replace('{total}', formatCurrency(totalPayable))
                         .replace('{warehouseName}', warehouseInfo?.name || 'GrainDost');
 
                     sendSms({
                         apiKey: warehouseInfo.textbeeApiKey,
                         deviceId: warehouseInfo.textbeeDeviceId,
                         to: selectedCustomer.phone,
-                        message,
+                        message: message,
                     }).catch(console.error);
                 }
 

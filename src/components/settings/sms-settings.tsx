@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useTransition, useEffect, useState } from 'react';
@@ -22,7 +21,7 @@ import { Label } from '../ui/label';
 
 const defaultTemplates = {
     inflow: 'Dear {customerName}, your inflow of {bags} bags of {commodity} has been recorded on {date}. Bill No: {billNo}. Hamali: {hamaliAmount}. Thank you. - {warehouseName}',
-    outflow: 'Dear {customerName}, your withdrawal of {bags} bags has been processed on {date}. Rent: {rentDue}, Hamali: {hamaliPending}, Total: {totalPayable}. Thank you. - {warehouseName}',
+    outflow: 'Dear {customerName}, withdrawal of {bags} bags of {commodity} recorded. Invoice: {billNo},\nRent: {rent},\nTotal: {total}.\nThank you. - {warehouseName}.',
     unloading: 'Dear {customerName}, we have received your delivery of {bags} bags of {commodity} on {date}. Bill No: {billNo}. Hamali: {hamaliAmount}. Thank you. - {warehouseName}',
     payment: 'Dear {customerName}, thank you for your payment of {paymentAmount} on {date}. Your account has been updated. - {warehouseName}',
     pendingDues: 'Dear {customerName}, this is a reminder that you have an outstanding balance. Rent Due: {rentDue}, Hamali Due: {hamaliDue}, Total Due: {totalDue}. Please pay at your earliest convenience. Thank you. - {warehouseName}',
@@ -173,7 +172,7 @@ export function SmsSettings() {
                 <div className="space-y-2">
                     <Label htmlFor="smsOutflowTemplate">Outflow SMS Template</Label>
                     <Textarea id="smsOutflowTemplate" placeholder={defaultTemplates.outflow} value={smsOutflowTemplate} onChange={e => setSmsOutflowTemplate(e.target.value)} />
-                    <p className="text-xs text-muted-foreground">Placeholders: {`{customerName}, {bags}, {date}, {rentDue}, {hamaliPending}, {totalPayable}, {warehouseName}`}</p>
+                    <p className="text-xs text-muted-foreground">Placeholders: {`{customerName}, {bags}, {commodity}, {billNo}, {rent}, {total}, {warehouseName}`}</p>
                 </div>
 
                 <div className="space-y-2">

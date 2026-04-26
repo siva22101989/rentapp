@@ -36,13 +36,13 @@ export type WorkerHamaliEvent = {
 }
 
 export function HamaliReport({ records, customers, unloadingRecords, expenses }: { records: StorageRecord[], customers: Customer[], unloadingRecords: UnloadingRecord[], expenses: Expense[] }) {
-    const [reportView, setReportView] = useState<'customer' | 'worker'>('customer');
+    const [reportView, setReportView] = useState<'customer' | 'worker' | 'difference'>('customer');
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>('all');
     
     const { dateRange, financialYear } = useDateFilter();
 
     useEffect(() => {
-        if (reportView === 'worker') {
+        if (reportView === 'worker' || reportView === 'difference') {
             setSelectedCustomerId('all');
         }
     }, [reportView]);
@@ -213,7 +213,21 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
 
 
     const customer = customers.find(c => c.id === selectedCustomerId);
-    const title = `Hamali ${reportView === 'customer' ? 'Customer' : 'Worker'} Ledger ${customer ? `for ${customer.name}` : ''}`;
+    const title = useMemo(() => {
+        let viewTitle = '';
+        switch(reportView) {
+            case 'customer':
+                viewTitle = 'Customer Ledger';
+                break;
+            case 'worker':
+                viewTitle = 'Worker Ledger';
+                break;
+            case 'difference':
+                viewTitle = 'Difference Ledger';
+                break;
+        }
+        return `Hamali ${viewTitle} ${customer && reportView === 'customer' ? `for ${customer.name}` : ''}`;
+    }, [reportView, customer]);
 
     return (
         <Card>
@@ -223,16 +237,17 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
                     <CardDescription>View ledgers for customer charges or worker payments.</CardDescription>
                 </div>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto flex-wrap">
-                    <Select onValueChange={(v) => setReportView(v as 'customer' | 'worker')} value={reportView}>
+                    <Select onValueChange={(v) => setReportView(v as 'customer' | 'worker' | 'difference')} value={reportView}>
                         <SelectTrigger className='w-full sm:w-auto'>
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="customer">Customer Ledger</SelectItem>
                             <SelectItem value="worker">Worker Ledger</SelectItem>
+                            <SelectItem value="difference">Difference Ledger</SelectItem>
                         </SelectContent>
                     </Select>
-                    <Select onValueChange={setSelectedCustomerId} value={selectedCustomerId} disabled={reportView === 'worker'}>
+                    <Select onValueChange={setSelectedCustomerId} value={selectedCustomerId} disabled={reportView === 'worker' || reportView === 'difference'}>
                         <SelectTrigger className="w-full sm:w-auto">
                             <SelectValue placeholder="All Customers" />
                         </SelectTrigger>
@@ -260,6 +275,7 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
                             events={workerHamaliEvents}
                             customers={customers}
                             title={title}
+                            view={reportView}
                         />
                     )}
                 </div>

@@ -557,7 +557,7 @@ export function DataSettings() {
                 </CardContent>
             </Card>
 
-             <Card className="w-full border-green-500/50">
+            <Card className="w-full border-green-500/50">
                 <CardHeader>
                     <CardTitle className="text-green-600">Manual Data Fix</CardTitle>
                     <CardDescription>

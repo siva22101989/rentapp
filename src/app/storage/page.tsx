@@ -8,12 +8,12 @@ import { ArrowDown, ArrowUp, Warehouse, IndianRupee } from "lucide-react";
 import { calculateFinalRent } from "@/lib/billing";
 import { formatCurrency } from "@/lib/utils";
 import { useMemo } from "react";
-import type { StorageRecord, Commodity } from "@/lib/definitions";
+import type { StorageRecord, Commodity, Customer } from "@/lib/definitions";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { useFirestore } from "@/firebase/provider";
 import { collection, query, where } from "firebase/firestore";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
-import { StorageTable } from "@/components/dashboard/storage-table";
+import { AllRecordsTable } from "@/components/reports/all-records-table";
 import { useAppUser } from "@/firebase/auth/use-user";
 
 export default function StoragePage() {
@@ -31,6 +31,12 @@ export default function StoragePage() {
     [firestore, appUser]
   );
   const { data: allCommodities, loading: loadingCommodities } = useCollection<Commodity>(commoditiesQuery);
+
+  const customersQuery = useMemoFirebase(
+    () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'customers'), where('warehouseId', '==', appUser.warehouseId)) : null),
+    [firestore, appUser]
+  );
+  const { data: allCustomers, loading: loadingCustomers } = useCollection<Customer>(customersQuery);
 
   const stats = useMemo(() => {
     if (!allRecords || !allCommodities) return { totalInflow: 0, totalOutflow: 0, balanceStock: 0, estimatedRent: 0 };
@@ -67,14 +73,14 @@ export default function StoragePage() {
 
   }, [allRecords, allCommodities]);
   
-  const loading = loadingRecords || loadingCommodities;
+  const loading = loadingRecords || loadingCommodities || loadingCustomers;
 
   if (loading) {
     return (
       <AppLayout>
         <PageHeader
-          title="Storage Overview"
-          description="A high-level summary of your warehouse inventory."
+          title="Storage Records"
+          description="View and manage all storage records."
         />
         <div>Loading...</div>
       </AppLayout>
@@ -84,8 +90,8 @@ export default function StoragePage() {
   return (
     <AppLayout>
       <PageHeader
-        title="Storage Overview"
-        description="A high-level summary of your warehouse inventory."
+        title="Storage Records"
+        description="View and manage all storage records."
       />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
@@ -132,10 +138,10 @@ export default function StoragePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Customer Storage Summary</CardTitle>
+          <CardTitle>All Storage Records</CardTitle>
         </CardHeader>
         <CardContent>
-          <StorageTable />
+          <AllRecordsTable allRecords={allRecords || []} allCustomers={allCustomers || []} />
         </CardContent>
       </Card>
     </AppLayout>

@@ -23,6 +23,7 @@ export type CustomerHamaliEvent = {
     amount: number;
     type: 'charge' | 'payment';
     bags?: number;
+    difference?: number;
 }
 export type WorkerHamaliEvent = {
     date: Date;
@@ -60,6 +61,7 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
                     amount: sr.hamaliPayable,
                     type: 'charge',
                     bags: sr.bagsIn,
+                    difference: sr.hamaliPayable - (sr.workerHamaliPayable ?? sr.hamaliPayable),
                 });
             }
         });
@@ -69,6 +71,10 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
             if (bagsRemaining > 0) {
                 const remainingHamali = bagsRemaining * ur.hamaliPerBag;
                  if (remainingHamali > 0) {
+                    const workerPayableForRemaining = (ur.workerHamaliPayable && ur.bagsUnloaded > 0) 
+                        ? (ur.workerHamaliPayable / ur.bagsUnloaded) * bagsRemaining 
+                        : remainingHamali;
+                    
                     events.push({
                         date: toDate(ur.unloadingDate),
                         customerId: ur.customerId,
@@ -76,7 +82,8 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
                         recordId: ur.billNo || ur.id.substring(0, 5),
                         amount: remainingHamali,
                         type: 'charge',
-                        bags: bagsRemaining
+                        bags: bagsRemaining,
+                        difference: remainingHamali - workerPayableForRemaining,
                     });
                 }
             }

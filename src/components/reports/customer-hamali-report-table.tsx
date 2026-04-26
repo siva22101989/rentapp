@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -22,11 +23,12 @@ export function CustomerHamaliReportTable({ events, customers, title }: ReportTa
 
     const totalCharges = events.filter(e => e.type === 'charge').reduce((acc, event) => acc + event.amount, 0);
     const totalPayments = events.filter(e => e.type === 'payment').reduce((acc, event) => acc + event.amount, 0);
+    const totalDifference = events.filter(e => e.type === 'charge').reduce((acc, event) => acc + (event.difference || 0), 0);
 
     return (
         <div className="bg-white p-4 rounded-lg">
              <div className="mb-4">
-                <h2 className="text-xl font-bold">Srilakshmi Warehouse</h2>
+                <h2 className="text-xl font-bold">GrainDost</h2>
                 <p className="text-muted-foreground">{title}</p>
                 <p className="text-xs text-muted-foreground">Generated on: {generatedDate}</p>
             </div>
@@ -40,6 +42,7 @@ export function CustomerHamaliReportTable({ events, customers, title }: ReportTa
                         <TableHead className="text-center">Bags</TableHead>
                         <TableHead className="text-right">Charge</TableHead>
                         <TableHead className="text-right">Payment</TableHead>
+                        <TableHead className="text-right">Difference</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -56,11 +59,14 @@ export function CustomerHamaliReportTable({ events, customers, title }: ReportTa
                             <TableCell className="text-right font-mono text-green-600">
                                 {event.type === 'payment' ? formatCurrency(event.amount) : ''}
                             </TableCell>
+                            <TableCell className="text-right font-mono font-bold">
+                                {event.type === 'charge' && event.difference !== undefined ? formatCurrency(event.difference) : ''}
+                            </TableCell>
                         </TableRow>
                     ))}
                     {events.length === 0 && (
                         <TableRow>
-                            <TableCell colSpan={7} className="text-center text-muted-foreground">
+                            <TableCell colSpan={8} className="text-center text-muted-foreground">
                                 No hamali transactions found for the selected criteria.
                             </TableCell>
                         </TableRow>
@@ -71,9 +77,10 @@ export function CustomerHamaliReportTable({ events, customers, title }: ReportTa
                         <TableCell colSpan={5} className="text-right font-bold">Totals</TableCell>
                         <TableCell className="text-right font-mono font-bold">{formatCurrency(totalCharges)}</TableCell>
                         <TableCell className="text-right font-mono font-bold text-green-600">{formatCurrency(totalPayments)}</TableCell>
+                        <TableCell className="text-right font-mono font-bold">{formatCurrency(totalDifference)}</TableCell>
                     </TableRow>
                      <TableRow>
-                        <TableCell colSpan={6} className="text-right font-bold">Pending Hamali</TableCell>
+                        <TableCell colSpan={7} className="text-right font-bold">Pending Hamali</TableCell>
                         <TableCell className="text-right font-mono font-bold text-destructive">{formatCurrency(totalCharges - totalPayments)}</TableCell>
                     </TableRow>
                 </TableFooter>

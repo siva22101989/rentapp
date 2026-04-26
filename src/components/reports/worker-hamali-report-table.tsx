@@ -24,6 +24,8 @@ export function WorkerHamaliReportTable({ events, customers, title }: ReportTabl
 
     const totalPayable = events.reduce((acc, event) => acc + event.payable, 0);
     const totalPaid = events.reduce((acc, event) => acc + event.paid, 0);
+    const totalCharge = events.reduce((acc, event) => acc + (event.charge || 0), 0);
+    const totalDifference = totalCharge - totalPayable;
     const balance = totalPayable - totalPaid;
 
     return (
@@ -39,9 +41,11 @@ export function WorkerHamaliReportTable({ events, customers, title }: ReportTabl
                         <TableHead>Date</TableHead>
                         <TableHead>Customer</TableHead>
                         <TableHead>Description</TableHead>
-                        <TableHead>Reference ID</TableHead>
+                        <TableHead>Ref ID</TableHead>
                         <TableHead className="text-center">Bags</TableHead>
-                        <TableHead className="text-right">Payable</TableHead>
+                        <TableHead className="text-right">Cust. Charge</TableHead>
+                        <TableHead className="text-right">Worker Payable</TableHead>
+                        <TableHead className="text-right">Difference</TableHead>
                         <TableHead className="text-right">Paid</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -54,7 +58,13 @@ export function WorkerHamaliReportTable({ events, customers, title }: ReportTabl
                             <TableCell>{event.recordId}</TableCell>
                             <TableCell className="text-center font-mono">{event.bags || ''}</TableCell>
                             <TableCell className="text-right font-mono">
+                                {event.charge ? formatCurrency(event.charge) : ''}
+                            </TableCell>
+                            <TableCell className="text-right font-mono">
                                 {event.payable > 0 ? formatCurrency(event.payable) : ''}
+                            </TableCell>
+                            <TableCell className="text-right font-mono font-bold">
+                                {event.charge && event.payable ? formatCurrency(event.charge - event.payable) : ''}
                             </TableCell>
                             <TableCell className="text-right font-mono text-green-600">
                                  {event.paid > 0 ? formatCurrency(event.paid) : ''}
@@ -63,7 +73,7 @@ export function WorkerHamaliReportTable({ events, customers, title }: ReportTabl
                     ))}
                     {events.length === 0 && (
                         <TableRow>
-                            <TableCell colSpan={7} className="text-center text-muted-foreground">
+                            <TableCell colSpan={9} className="text-center text-muted-foreground">
                                 No worker hamali transactions found for the selected criteria.
                             </TableCell>
                         </TableRow>
@@ -72,11 +82,13 @@ export function WorkerHamaliReportTable({ events, customers, title }: ReportTabl
                 <TableFooter>
                     <TableRow>
                         <TableCell colSpan={5} className="text-right font-bold">Totals</TableCell>
+                        <TableCell className="text-right font-mono font-bold">{formatCurrency(totalCharge)}</TableCell>
                         <TableCell className="text-right font-mono font-bold">{formatCurrency(totalPayable)}</TableCell>
+                        <TableCell className="text-right font-mono font-bold">{formatCurrency(totalDifference)}</TableCell>
                         <TableCell className="text-right font-mono font-bold text-green-600">{formatCurrency(totalPaid)}</TableCell>
                     </TableRow>
                      <TableRow>
-                        <TableCell colSpan={6} className="text-right font-bold">Pending Balance</TableCell>
+                        <TableCell colSpan={8} className="text-right font-bold">Pending Balance to Worker</TableCell>
                         <TableCell className="text-right font-mono font-bold text-destructive">{formatCurrency(balance)}</TableCell>
                     </TableRow>
                 </TableFooter>

@@ -30,6 +30,7 @@ export type WorkerHamaliEvent = {
     recordId: string;
     customerId?: string;
     payable: number;
+    charge?: number;
     paid: number;
     bags?: number;
 }
@@ -145,6 +146,7 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
                     recordId: sr.id,
                     customerId: sr.customerId,
                     payable: sr.workerHamaliPayable,
+                    charge: sr.hamaliPayable,
                     paid: 0,
                     bags: sr.bagsIn,
                 });
@@ -155,14 +157,15 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
             const bagsRemaining = ur.bagsUnloaded - (ur.bagsSentToDrying || 0);
             if (bagsRemaining > 0 && ur.workerHamaliPayable) {
                 const hamaliPerBag = ur.hamaliPerBag || 0; 
-                const remainingPayable = bagsRemaining * hamaliPerBag;
-                if (remainingPayable > 0) {
+                const remainingAmount = bagsRemaining * hamaliPerBag;
+                if (remainingAmount > 0) {
                     events.push({
                         date: toDate(ur.unloadingDate),
                         description: 'Unloading Hamali (Pending Finalize)',
                         recordId: ur.billNo || ur.id.substring(0, 5),
                         customerId: ur.customerId,
-                        payable: remainingPayable,
+                        payable: remainingAmount,
+                        charge: remainingAmount,
                         paid: 0,
                         bags: bagsRemaining,
                     });

@@ -11,6 +11,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import type { Customer } from "@/lib/definitions";
 import { CustomerActionsMenu } from "@/components/customers/customer-actions-menu";
 import { useAppUser } from "@/firebase/auth/use-user";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { Eye } from "lucide-react";
 
 export function CustomersTable({ customers }: { customers: Customer[] }) {
   const appUser = useAppUser();
@@ -34,7 +37,7 @@ export function CustomersTable({ customers }: { customers: Customer[] }) {
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Phone</TableHead>
-              {canEdit && <TableHead className="w-[50px]"></TableHead>}
+              <TableHead className="w-[100px] text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -43,9 +46,15 @@ export function CustomersTable({ customers }: { customers: Customer[] }) {
                 <TableCell className="font-medium">{customer.name}</TableCell>
                 <TableCell>{customer.phone}</TableCell>
                 <TableCell>
-                  {canEdit && <CustomerActionsMenu 
-                    customer={customer} 
-                  />}
+                  <div className="flex items-center justify-end gap-2">
+                     <Button asChild variant="outline" size="icon" className="h-8 w-8">
+                        <Link href={`/reports?report=inflow-register&customerId=${customer.id}`} title="View Records">
+                            <Eye className="h-4 w-4" />
+                            <span className="sr-only">View Records</span>
+                        </Link>
+                     </Button>
+                    {canEdit && <CustomerActionsMenu customer={customer} />}
+                  </div>
                 </TableCell>
               </TableRow>
             ))}

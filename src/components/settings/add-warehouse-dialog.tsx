@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useTransition } from 'react';
 import { Loader2, PlusCircle } from 'lucide-react';
@@ -16,11 +15,9 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase/provider';
 import { z } from 'zod';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { Input } from '../ui/input';
-import { collection, writeBatch, doc, query, where, getDocs, addDoc } from 'firebase/firestore';
+import { Label } from '../ui/label';
+import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
 import { cleanForFirestore } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
@@ -41,23 +38,65 @@ export function AddWarehouseDialog() {
   const [isPending, startTransition] = useTransition();
   const firestore = useFirestore();
 
-  const form = useForm<WarehouseFormData>({
-    resolver: zodResolver(WarehouseSchema),
-    defaultValues: {
-      name: '',
-      ownerName: '',
-      ownerEmail: '',
-      yearlyAmount: undefined,
-      subscriptionStatus: 'trial',
-      trialMonths: 1,
-    },
-  });
+  const initialFormState = {
+    name: '',
+    ownerName: '',
+    ownerEmail: '',
+    yearlyAmount: undefined,
+    subscriptionStatus: 'trial' as const,
+    trialMonths: 1,
+  };
 
-  const onSubmit = (data: WarehouseFormData) => {
+  const [formData, setFormData] = useState<Partial<WarehouseFormData>>(initialFormState);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open);
+    if (!open) {
+      setFormData(initialFormState);
+      setErrors({});
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'number' && value !== '' ? Number(value) : value,
+    }));
+  };
+
+  const handleSelectChange = (name: keyof WarehouseFormData) => (value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setErrors({});
+
+    const validatedFields = WarehouseSchema.safeParse(formData);
+
+    if (!validatedFields.success) {
+      const fieldErrors: Record<string, string> = {};
+      for (const issue of validatedFields.error.issues) {
+        const path = issue.path[0];
+        if (typeof path === 'string') {
+          fieldErrors[path] = issue.message;
+        }
+      }
+      setErrors(fieldErrors);
+      return;
+    }
+
     if (!firestore) {
       toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
       return;
     }
+
+    const data = validatedFields.data;
 
     startTransition(async () => {
       try {
@@ -66,32 +105,33 @@ export function AddWarehouseDialog() {
         const existingOwnerSnap = await getDocs(q);
 
         if (!existingOwnerSnap.empty) {
-            toast({
-                title: 'Owner Exists',
-                description: 'This email is already assigned as an owner to another warehouse.',
-                variant: 'destructive',
-            });
-            return;
+          toast({
+            title: 'Owner Exists',
+            description: 'This email is already assigned as an owner to another warehouse.',
+            variant: 'destructive',
+          });
+          return;
         }
 
         await addDoc(collection(firestore, 'managedWarehouses'), cleanForFirestore({
-            ...data,
-            ownerEmail: data.ownerEmail.toLowerCase(),
-            createdAt: new Date(),
+          ...data,
+          ownerEmail: data.ownerEmail.toLowerCase(),
+          createdAt: new Date(),
         }));
 
         toast({ title: 'Success', description: 'New warehouse subscription created. The owner can now sign in.' });
-        setIsOpen(false);
-        form.reset();
+        handleOpenChange(false);
       } catch (error) {
         console.error(error);
         toast({ title: 'Error', description: 'Failed to add warehouse.', variant: 'destructive' });
       }
     });
   };
+  
+  const renderError = (field: string) => errors[field] && <p className="text-sm font-medium text-destructive mt-1">{errors[field]}</p>;
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button>
           <PlusCircle className="mr-2" />
@@ -99,100 +139,62 @@ export function AddWarehouseDialog() {
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
-            <DialogHeader>
-              <DialogTitle>Onboard New Warehouse</DialogTitle>
-              <DialogDescription>
-                Create a new warehouse subscription record. The owner will be able to log in with the specified email.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Warehouse Name</FormLabel>
-                    <FormControl><Input placeholder="e.g., National Cold Storage" {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-               <FormField
-                control={form.control}
-                name="ownerName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Owner's Full Name</FormLabel>
-                    <FormControl><Input placeholder="e.g., Jane Doe" {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="ownerEmail"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Owner's Email (for login)</FormLabel>
-                    <FormControl><Input type="email" placeholder="owner@example.com" {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                    control={form.control}
-                    name="yearlyAmount"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Yearly Amount</FormLabel>
-                        <FormControl><Input type="number" placeholder="0.00" {...field} value={field.value ?? ''} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                 <FormField
-                    control={form.control}
-                    name="subscriptionStatus"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Status</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl>
-                            <SelectContent>
-                            <SelectItem value="trial">Trial</SelectItem>
-                            <SelectItem value="active">Active</SelectItem>
-                            <SelectItem value="expired">Expired</SelectItem>
-                            <SelectItem value="suspended">Suspended</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-              </div>
-               <FormField
-                  control={form.control}
-                  name="trialMonths"
-                  render={({ field }) => (
-                  <FormItem>
-                      <FormLabel>Trial Duration (Months)</FormLabel>
-                      <FormControl><Input type="number" placeholder="e.g. 1" {...field} value={field.value ?? ''} /></FormControl>
-                      <FormMessage />
-                  </FormItem>
-                  )}
-              />
+        <form onSubmit={handleSubmit}>
+          <DialogHeader>
+            <DialogTitle>Onboard New Warehouse</DialogTitle>
+            <DialogDescription>
+              Create a new warehouse subscription record. The owner will be able to log in with the specified email.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-4">
+            <div className="space-y-1">
+              <Label htmlFor="name">Warehouse Name</Label>
+              <Input id="name" name="name" value={formData.name || ''} onChange={handleChange} placeholder="e.g., National Cold Storage" />
+              {renderError('name')}
             </div>
-            <DialogFooter className="pt-4">
-              <DialogClose asChild><Button variant="outline" type="button">Cancel</Button></DialogClose>
-              <Button type="submit" disabled={isPending}>
-                {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : 'Add Subscription'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+            <div className="space-y-1">
+              <Label htmlFor="ownerName">Owner's Full Name</Label>
+              <Input id="ownerName" name="ownerName" value={formData.ownerName || ''} onChange={handleChange} placeholder="e.g., Jane Doe" />
+              {renderError('ownerName')}
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="ownerEmail">Owner's Email (for login)</Label>
+              <Input id="ownerEmail" name="ownerEmail" type="email" value={formData.ownerEmail || ''} onChange={handleChange} placeholder="owner@example.com" />
+              {renderError('ownerEmail')}
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <Label htmlFor="yearlyAmount">Yearly Amount</Label>
+                <Input id="yearlyAmount" name="yearlyAmount" type="number" value={formData.yearlyAmount || ''} onChange={handleChange} placeholder="0.00" />
+                {renderError('yearlyAmount')}
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="subscriptionStatus">Status</Label>
+                <Select name="subscriptionStatus" onValueChange={handleSelectChange('subscriptionStatus')} value={formData.subscriptionStatus}>
+                    <SelectTrigger><SelectValue/></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="trial">Trial</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="expired">Expired</SelectItem>
+                      <SelectItem value="suspended">Suspended</SelectItem>
+                    </SelectContent>
+                </Select>
+                {renderError('subscriptionStatus')}
+              </div>
+            </div>
+            <div className="space-y-1">
+                <Label htmlFor="trialMonths">Trial Duration (Months)</Label>
+                <Input id="trialMonths" name="trialMonths" type="number" value={formData.trialMonths || ''} onChange={handleChange} placeholder="e.g. 1" />
+                {renderError('trialMonths')}
+            </div>
+          </div>
+          <DialogFooter className="pt-4">
+            <DialogClose asChild><Button variant="outline" type="button">Cancel</Button></DialogClose>
+            <Button type="submit" disabled={isPending}>
+              {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : 'Add Subscription'}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

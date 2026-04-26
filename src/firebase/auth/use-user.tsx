@@ -112,7 +112,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       const userEmail = fbUser.email?.toLowerCase();
 
       // Attempt to provision as Super-Admin
-      if (userEmail === 'admin@gmail.com') {
+      if (userEmail === 'admin@gmail.com' || userEmail === 'sivasandeepreddy01@gmail.com') {
         const newAppUserData: Omit<AppUser, 'id'> = { role: 'super-admin', email: userEmail, phone: '' };
         await setDoc(userDocRef, newAppUserData);
         setAppUser({ id: fbUser.uid, ...newAppUserData } as AppUser);

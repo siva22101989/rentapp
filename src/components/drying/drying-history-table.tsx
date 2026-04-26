@@ -15,6 +15,7 @@ import { formatCurrency, toDate } from "@/lib/utils";
 import type { Customer, DryingRecord, UnloadingRecord, DryingStatus, Lot, StorageRecord } from "@/lib/definitions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { DryingActionsMenu } from "@/components/drying/drying-actions-menu";
+import { useMemo } from "react";
 
 const getStatusBadgeVariant = (status: DryingStatus) => {
     switch (status) {
@@ -47,6 +48,20 @@ export function DryingHistoryTable({ dryingRecords, customers, unloadingRecords,
       return unloadingRecords.find(ur => ur.id === unloadingRecordId)?.billNo ?? 'N/A';
     }
 
+    const validDryingRecords = useMemo(() => {
+        const customerIdSet = new Set(customers.map(c => c.id));
+        const unloadingRecordIdSet = new Set(unloadingRecords.map(ur => ur.id));
+
+        return dryingRecords
+            .filter(record => 
+                record.customerId && 
+                customerIdSet.has(record.customerId) &&
+                record.unloadingRecordId &&
+                unloadingRecordIdSet.has(record.unloadingRecordId)
+            )
+            .sort((a,b) => toDate(b.dryingStartDate).getTime() - toDate(a.dryingStartDate).getTime());
+    }, [dryingRecords, customers, unloadingRecords]);
+
     return (
       <Card>
         <CardHeader>
@@ -68,8 +83,7 @@ export function DryingHistoryTable({ dryingRecords, customers, unloadingRecords,
                 </TableRow>
             </TableHeader>
             <TableBody>
-                {dryingRecords
-                    .sort((a,b) => toDate(b.dryingStartDate).getTime() - toDate(a.dryingStartDate).getTime())
+                {validDryingRecords
                     .map((record) => {
                     const dryingStartDate = toDate(record.dryingStartDate);
                     return (
@@ -91,7 +105,7 @@ export function DryingHistoryTable({ dryingRecords, customers, unloadingRecords,
                     </TableRow>
                     )
                 })}
-                 {dryingRecords.length === 0 && (
+                 {validDryingRecords.length === 0 && (
                     <TableRow>
                         <TableCell colSpan={8} className="text-center text-muted-foreground">
                             No active drying processes found.
@@ -104,5 +118,3 @@ export function DryingHistoryTable({ dryingRecords, customers, unloadingRecords,
       </Card>
     );
 }
-
-    

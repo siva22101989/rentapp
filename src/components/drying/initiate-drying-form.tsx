@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase/provider';
-import type { Customer, UnloadingRecord, Lot, StorageRecord, HamaliChargeItem, Commodity, WarehouseInfo, SmsInfo } from '@/lib/definitions';
+import type { Customer, UnloadingRecord, Lot, StorageRecord, HamaliChargeItem, Commodity, WarehouseInfo } from '@/lib/definitions';
 import { doc, writeBatch, increment, collection } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { formatCurrency, cleanForFirestore, toDate } from '@/lib/utils';
@@ -44,8 +44,6 @@ const InitiateDryingSchema = z.object({
     path: ["bagsPacked"],
 });
 
-type DryingFormData = z.infer<typeof InitiateDryingSchema>;
-
 interface InitiateDryingFormProps {
     customers: Customer[];
     unloadingRecords: UnloadingRecord[];
@@ -57,6 +55,7 @@ interface InitiateDryingFormProps {
 export function InitiateDryingForm({ customers, unloadingRecords, lots, storageRecords, commodities }: InitiateDryingFormProps) {
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
+    const [isPartialSaving, setIsPartialSaving] = useState(false);
     const firestore = useFirestore();
     const appUser = useAppUser();
     const [sendSmsNotification, setSendSmsNotification] = useState(true);
@@ -74,12 +73,12 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
       lotNo: '',
     };
     const [formData, setFormData] = useState<any>(initialFormData);
-    const [errors, setErrors] = useState<Record<string, string>>({});
+    const [errors, setErrors] = useState<Record<string, string | undefined>>({});
 
-    const smsInfoRef = useMemoFirebase(() => (firestore && appUser ? doc(firestore, 'settings', 'sms') : null), [firestore, appUser]);
-    const { data: smsInfo } = useDoc<SmsInfo>(smsInfoRef);
-
-    const warehouseInfoRef = useMemoFirebase(() => (firestore && appUser ? doc(firestore, 'settings', 'main') : null), [firestore, appUser]);
+    const warehouseInfoRef = useMemoFirebase(
+      () => (firestore && appUser?.warehouseId ? doc(firestore, 'warehouses', appUser.warehouseId) : null),
+      [firestore, appUser]
+    );
     const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
     const lotOccupancy = useMemo(() => {
@@ -116,7 +115,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
             }));
     }, [unloadingRecords, customers]);
 
-    const { unloadingRecordId: selectedUnloadingRecordId, bagsForDrying, customerHamaliPerBag: customerDay1HamaliRate, pavHamaliPerBag, cuppaHamaliPerBag, dryingStartDate: startDate, dryingEndDate: endDate, workerHamaliPerBag } = formData;
+    const { unloadingRecordId: selectedUnloadingRecordId, bagsForDrying, customerHamaliPerBag: customerDay1HamaliRate, pavHamaliPerBag, cuppaHamaliPerBag, dryingStartDate, dryingEndDate, workerHamaliPerBag } = formData;
     
     const selectedUnloadingRecord = useMemo(() => 
         unloadingRecords.find(ur => ur.id === selectedUnloadingRecordId)
@@ -128,55 +127,62 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
 
     const bagsRemainingOnRecord = selectedUnloadingRecord ? selectedUnloadingRecord.bagsUnloaded - (selectedUnloadingRecord.bagsSentToDrying || 0) : 0;
     
-    const dryingDays = useMemo(() => {
+    const { totalCustomerCharge, totalWorkerPayable, extraDryingDays, proportionalUnloadingHamali, day1DryingHamali, pavHamali, cuppaHamali, workerHamaliDay1 } = useMemo(() => {
+        let extraDays = 0;
         try {
-            const start = new Date(startDate);
-            const end = new Date(endDate);
+            const start = new Date(dryingStartDate);
+            const end = new Date(dryingEndDate);
             if (!isNaN(start.getTime()) && !isNaN(end.getTime()) && end >= start) {
-                const days = differenceInDays(end, start) + 1;
-                return days > 0 ? days : 1;
+                const days = differenceInDays(end, start);
+                extraDays = days > 0 ? days : 0;
             }
-        } catch (e) { /* ignore parse errors */ }
-        return 1;
-    }, [startDate, endDate]);
+        } catch (e) { /* ignore */ }
 
-    const extraDryingDays = useMemo(() => {
-        return dryingDays > 1 ? dryingDays - 1 : 0;
-    }, [dryingDays]);
+        const pavH = (Number(bagsForDrying) || 0) * (Number(pavHamaliPerBag) || 0) * extraDays;
+        const cuppaH = (Number(bagsForDrying) || 0) * (Number(cuppaHamaliPerBag) || 0) * extraDays;
+        const d1DryingHamali = (Number(bagsForDrying) || 0) * (Number(customerDay1HamaliRate) || 0);
 
-    const pavHamali = (Number(bagsForDrying) || 0) * (Number(pavHamaliPerBag) || 0) * extraDryingDays;
-    const cuppaHamali = (Number(bagsForDrying) || 0) * (Number(cuppaHamaliPerBag) || 0) * extraDryingDays;
-    const day1DryingHamali = (Number(bagsForDrying) || 0) * (Number(customerDay1HamaliRate) || 0);
+        const pUnloadingHamali = selectedUnloadingRecord 
+            ? ((selectedUnloadingRecord.hamaliPerBag || 0) * (Number(bagsForDrying) || 0))
+            : 0;
 
-    const proportionalUnloadingHamali = selectedUnloadingRecord 
-        ? ((selectedUnloadingRecord.hamaliPerBag || 0) * (Number(bagsForDrying) || 0))
-        : 0;
-
-    const totalCustomerCharge = proportionalUnloadingHamali + day1DryingHamali + pavHamali + cuppaHamali;
-    const workerHamaliDay1 = (Number(bagsForDrying) || 0) * (Number(workerHamaliPerBag) || 0);
-    const totalWorkerPayable = proportionalUnloadingHamali + workerHamaliDay1 + pavHamali + cuppaHamali;
+        const totalCustCharge = pUnloadingHamali + d1DryingHamali + pavH + cuppaH;
+        const wHamaliDay1 = (Number(bagsForDrying) || 0) * (Number(workerHamaliPerBag) || 0);
+        const totalWorkerPay = pUnloadingHamali + wHamaliDay1 + pavH + cuppaH;
+        
+        return {
+            totalCustomerCharge: totalCustCharge,
+            totalWorkerPayable: totalWorkerPay,
+            extraDryingDays: extraDays,
+            proportionalUnloadingHamali: pUnloadingHamali,
+            day1DryingHamali: d1DryingHamali,
+            pavHamali: pavH,
+            cuppaHamali: cuppaH,
+            workerHamaliDay1: wHamaliDay1,
+        }
+    }, [formData, selectedUnloadingRecord]);
     
     const daysUntilDrying = useMemo(() => {
-        if (!selectedUnloadingRecord || !startDate) return null;
+        if (!selectedUnloadingRecord || !dryingStartDate) return null;
         try {
             const unloadDate = toDate(selectedUnloadingRecord.unloadingDate);
-            const dryStartDate = new Date(startDate);
+            const dryStartDate = new Date(dryingStartDate);
              if (!isNaN(unloadDate.getTime()) && !isNaN(dryStartDate.getTime()) && dryStartDate >= unloadDate) {
                 return differenceInDays(dryStartDate, unloadDate);
             }
         } catch(e) {/* ignore */}
         return null;
-    }, [selectedUnloadingRecord, startDate]);
+    }, [selectedUnloadingRecord, dryingStartDate]);
 
     useEffect(() => {
         if (selectedUnloadingRecord) {
-            setFormData(prev => ({
+            setFormData((prev: any) => ({
                 ...prev,
                 bagsForDrying: bagsRemainingOnRecord,
                 bagsPacked: bagsRemainingOnRecord, 
             }));
         } else {
-            setFormData(prev => ({
+            setFormData((prev: any) => ({
                 ...prev,
                 bagsForDrying: 0,
                 bagsPacked: 0,
@@ -192,7 +198,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
             toast({ title: "Record List Updated", description: "The selected unloading record was modified. Please select another." });
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [unloadingRecords, selectedUnloadingRecordId, toast]);
+    }, [unloadingRecords]);
 
     const nextId = useMemo(() => {
         if (!storageRecords) return '1';
@@ -214,6 +220,113 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
         if (errors[name]) setErrors(prev => ({ ...prev, [name]: undefined }));
     };
 
+    const handlePartialSave = async () => {
+        if (!firestore || !appUser?.warehouseId) {
+            toast({ title: 'Error', description: 'Could not save: user or warehouse context is missing.', variant: 'destructive' });
+            return;
+        }
+
+        const data = formData;
+        const validationResult = InitiateDryingSchema.partial().safeParse(data);
+        if (!validationResult.success || !data.unloadingRecordId || !data.dryingStartDate || !data.bagsForDrying) {
+            toast({ title: "Missing Information", description: "Please select an unloading bill and specify bags for drying.", variant: "destructive" });
+            return;
+        }
+
+        const selectedRecordOnSubmit = unloadingRecords.find(ur => ur.id === data.unloadingRecordId);
+        if (!selectedRecordOnSubmit) {
+            toast({ title: 'Error', description: 'Selected unloading record not found.', variant: 'destructive' });
+            return;
+        }
+
+        const bagsStillAvailable = selectedRecordOnSubmit.bagsUnloaded - (selectedRecordOnSubmit.bagsSentToDrying || 0);
+        if (data.bagsForDrying > bagsStillAvailable) {
+            setErrors(prev => ({...prev, bagsForDrying: `Cannot exceed available bags (${bagsStillAvailable}).`}))
+            return;
+        }
+
+        setIsPartialSaving(true);
+        try {
+            const { bagsForDrying, customerHamaliPerBag, workerHamaliPerBag, pavHamaliPerBag, cuppaHamaliPerBag, dryingStartDate, dryingEndDate } = data;
+            
+            const hamaliDetails: HamaliChargeItem[] = [];
+
+            const currentProportionalUnloadingHamali = (selectedRecordOnSubmit.hamaliPerBag || 0) * bagsForDrying;
+            if (currentProportionalUnloadingHamali > 0) {
+                hamaliDetails.push({ description: 'Unloading Hamali', bags: bagsForDrying, rate: selectedRecordOnSubmit.hamaliPerBag || 0, amount: currentProportionalUnloadingHamali });
+            }
+            
+            const day1DryingCustomerHamali = bagsForDrying * (customerHamaliPerBag || 0);
+            if (day1DryingCustomerHamali > 0) {
+                hamaliDetails.push({ description: 'Customer Hamali', bags: bagsForDrying, rate: customerHamaliPerBag || 0, amount: day1DryingCustomerHamali });
+            }
+            
+            let extraDaysForSave = 0;
+            try {
+                const start = new Date(dryingStartDate);
+                const end = new Date(dryingEndDate);
+                if (!isNaN(start.getTime()) && !isNaN(end.getTime()) && end >= start) {
+                    const days = differenceInDays(end, start);
+                    extraDaysForSave = days > 0 ? days : 0;
+                }
+            } catch (e) {/* ignore */}
+
+            const pavHamaliAmount = bagsForDrying * (pavHamaliPerBag || 0) * extraDaysForSave;
+            if (pavHamaliAmount > 0) {
+                 hamaliDetails.push({ description: `Pav Hamali (${extraDaysForSave} extra day${extraDaysForSave !== 1 ? 's' : ''})`, bags: bagsForDrying, rate: pavHamaliPerBag || 0, amount: pavHamaliAmount });
+            }
+            const cuppaHamaliAmount = bagsForDrying * (cuppaHamaliPerBag || 0) * extraDaysForSave;
+            if (cuppaHamaliAmount > 0) {
+                hamaliDetails.push({ description: `Cuppa Hamali (${extraDaysForSave} extra day${extraDaysForSave !== 1 ? 's' : ''})`, bags: bagsForDrying, rate: cuppaHamaliPerBag || 0, amount: cuppaHamaliAmount });
+            }
+
+            const totalCustomerChargeForSave = hamaliDetails.reduce((sum, item) => sum + item.amount, 0);
+
+            const day1DryingWorkerHamali = bagsForDrying * (workerHamaliPerBag || 0);
+            const totalWorkerPayableForSave = currentProportionalUnloadingHamali + day1DryingWorkerHamali + pavHamaliAmount + cuppaHamaliAmount;
+
+            const newDryingRecordData = {
+                warehouseId: appUser.warehouseId,
+                unloadingRecordId: data.unloadingRecordId,
+                customerId: selectedRecordOnSubmit.customerId,
+                commodityDescription: selectedRecordOnSubmit.commodityDescription,
+                bagsForDrying: data.bagsForDrying,
+                bagsPacked: data.bagsPacked,
+                status: 'Drying' as const,
+                dryingStartDate: new Date(data.dryingStartDate),
+                packingDate: data.dryingEndDate ? new Date(data.dryingEndDate) : null,
+                hamaliDetails,
+                totalDryingHamali: totalCustomerChargeForSave,
+                workerHamaliPayable: totalWorkerPayableForSave,
+            };
+
+            const batch = writeBatch(firestore);
+            const newDryingRecordRef = doc(collection(firestore, 'dryingRecords'));
+            batch.set(newDryingRecordRef, cleanForFirestore(newDryingRecordData));
+            
+            const unloadingRecordRef = doc(firestore, 'unloadingRecords', data.unloadingRecordId);
+            batch.update(unloadingRecordRef, {
+                bagsSentToDrying: increment(data.bagsForDrying)
+            });
+            
+            await batch.commit();
+
+            toast({
+                title: "Partial Save Successful",
+                description: `${data.bagsForDrying} bags have been moved to the drying plot. You can manage this process from the history table.`
+            });
+
+            setFormData(initialFormData);
+
+        } catch (error) {
+            console.error(error);
+            toast({ title: 'Error', description: 'Failed to perform partial save.', variant: 'destructive' });
+        } finally {
+            setIsPartialSaving(false);
+        }
+    };
+
+
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setErrors({});
@@ -223,7 +336,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
         if (!validationResult.success) {
           const newErrors: Record<string, string> = {};
           validationResult.error.issues.forEach(issue => {
-              newErrors[issue.path[0]] = issue.message;
+              newErrors[issue.path[0].toString()] = issue.message;
           });
           setErrors(newErrors);
           toast({ title: 'Validation Error', description: 'Please fix the errors in the form.', variant: 'destructive' });
@@ -232,8 +345,8 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
 
         const data = validationResult.data;
 
-        if (!firestore) {
-            toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
+        if (!firestore || !appUser?.warehouseId) {
+            toast({ title: 'Error', description: 'Could not create record: user or warehouse context is missing.', variant: 'destructive' });
             return;
         }
 
@@ -284,13 +397,14 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                 const cuppaHamaliAmount = data.bagsForDrying * (data.cuppaHamaliPerBag || 0) * extraDaysForSubmission;
                 if (cuppaHamaliAmount > 0) hamaliDetails.push({ description: `Cuppa Hamali (${extraDaysForSubmission} extra day${extraDaysForSubmission !== 1 ? 's' : ''})`, bags: data.bagsForDrying, rate: data.cuppaHamaliPerBag || 0, amount: cuppaHamaliAmount });
                 
-                const totalHamali = hamaliDetails.reduce((sum, item) => sum + item.amount, 0);
+                const totalHamaliForCustomer = hamaliDetails.reduce((sum, item) => sum + item.amount, 0);
                 const dryingDay1WorkerHamali = data.bagsForDrying * data.workerHamaliPerBag;
-                const totalWorkerHamali = currentProportionalUnloadingHamali + dryingDay1WorkerHamali + pavHamaliAmount + cuppaHamaliAmount;
+                const totalHamaliForWorker = currentProportionalUnloadingHamali + dryingDay1WorkerHamali + pavHamaliAmount + cuppaHamaliAmount;
                 
                 const batch = writeBatch(firestore);
 
                 const newStorageRecord: Omit<StorageRecord, 'id'> = {
+                    warehouseId: appUser.warehouseId,
                     customerId: selectedRecordOnSubmit.customerId,
                     commodityDescription: selectedRecordOnSubmit.commodityDescription,
                     location: data.lotNo,
@@ -302,8 +416,8 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                     storageEndDate: null,
                     billingCycle: '6-Month Initial' as const,
                     payments: [],
-                    hamaliPayable: totalHamali,
-                    workerHamaliPayable: totalWorkerHamali,
+                    hamaliPayable: totalHamaliForCustomer,
+                    workerHamaliPayable: totalHamaliForWorker,
                     totalRentBilled: 0,
                     lorryTractorNo: selectedRecordOnSubmit?.lorryTractorNo || '',
                     weight: 0,
@@ -327,9 +441,10 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                 batch.update(unloadingRecordRef, { bagsSentToDrying: increment(data.bagsForDrying) });
                 await batch.commit();
                 
-                if (sendSmsNotification && smsInfo?.textbeeApiKey && selectedCustomer?.phone) {
+                if (sendSmsNotification && warehouseInfo?.textbeeApiKey && selectedCustomer?.phone) {
                     const defaultTemplate = 'Dear {customerName}, from your unloading of {unloadingBags} bags (Bill #{unloadingBillNo}), {bagsForDrying} bags were plotted for drying and {bagsPacked} bags of {commodity} have been recorded as inflow on {date}.\nBill No: {newBillNo}.\nHamali: {hamaliAmount}. Location: {location}. Thank you. - {warehouseName},Owk';
-                    const template = smsInfo?.smsInflowTemplate || defaultTemplate;
+                    const template = warehouseInfo?.smsInflowTemplate || defaultTemplate;
+
                     const message = template
                         .replace('{customerName}', selectedCustomer.name)
                         .replace('{unloadingBags}', String(selectedRecordOnSubmit.bagsUnloaded))
@@ -339,10 +454,16 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                         .replace('{commodity}', selectedRecordOnSubmit.commodityDescription)
                         .replace('{date}', format(finalStorageDate, 'dd MMM yyyy'))
                         .replace('{newBillNo}', nextId)
-                        .replace('{hamaliAmount}', formatCurrency(totalHamali))
+                        .replace('{hamaliAmount}', formatCurrency(totalHamaliForCustomer))
                         .replace('{location}', data.lotNo)
                         .replace('{warehouseName}', warehouseInfo?.name || 'GrainDost');
-                    sendSms({ apiKey: smsInfo.textbeeApiKey, deviceId: smsInfo.textbeeDeviceId, to: selectedCustomer.phone, message: message, }).catch(console.error);
+
+                    sendSms({
+                        apiKey: warehouseInfo.textbeeApiKey,
+                        deviceId: warehouseInfo.textbeeDeviceId,
+                        to: selectedCustomer.phone,
+                        message: message,
+                    }).catch(console.error);
                 }
                 
                 toast({ title: 'Success', description: `Storage record created from plot.` });
@@ -385,10 +506,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                             <p className="font-bold text-foreground">{selectedCustomer.name}</p>
                             <p>Bill #{selectedUnloadingRecord.billNo}</p>
                         </div>
-                        <p><strong>Father's Name:</strong> {selectedCustomer.fatherName || 'N/A'}</p>
-                        <p><strong>Village:</strong> {selectedCustomer.village || 'N/A'}</p>
-                        <Separator className="my-2"/>
-                        <p><strong>Commodity:</strong> {selectedUnloadingRecord.commodityDescription}</p>
+                        <p><strong>Phone:</strong> {selectedCustomer.phone}</p>
                         <p><strong>Unloaded:</strong> {format(toDate(selectedUnloadingRecord.unloadingDate), 'dd MMM yyyy, hh:mm a')}</p>
                     </div>
                 )}
@@ -428,7 +546,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                             <span className="text-xs">Wait before drying</span>
                        </div>
                        <div className="flex flex-col items-center">
-                           <span className="font-bold text-foreground">{dryingDays ?? '-'}</span>
+                           <span className="font-bold text-foreground">{extraDryingDays + 1 ?? '-'}</span>
                            <span className="text-xs">Total drying days</span>
                        </div>
                     </div>
@@ -534,8 +652,21 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                     </div>
                 </div>
             </CardContent>
-            <CardFooter>
-                <Button type="submit" disabled={isPending || !selectedUnloadingRecord} className="w-full">
+            <CardFooter className="flex flex-col sm:flex-row gap-2">
+                <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={handlePartialSave}
+                    disabled={isPending || isPartialSaving || !selectedUnloadingRecord}
+                    className="w-full"
+                >
+                    {isPartialSaving ? (
+                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
+                    ) : (
+                        'Partial Save (Start Drying)'
+                    )}
+                </Button>
+                <Button type="submit" disabled={isPending || isPartialSaving || !selectedUnloadingRecord} className="w-full">
                     {isPending ? (
                         <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating Record...</>
                     ) : (

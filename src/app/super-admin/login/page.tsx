@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -32,7 +33,7 @@ export default function SuperAdminLoginPage() {
 
     signInWithEmailAndPassword(auth, superAdminEmail, password)
       .then(() => {
-        router.push('/');
+        // The onAuthStateChanged listener in use-user.tsx will handle redirection.
       })
       .catch((signInError: any) => {
         // If sign-in fails, try to create the account. This allows for first-time setup.
@@ -40,7 +41,7 @@ export default function SuperAdminLoginPage() {
           createUserWithEmailAndPassword(auth, superAdminEmail, password)
             .then(() => {
               // The useUser hook will now verify and set the super-admin role.
-              router.push('/');
+              // Redirection is handled by the use-user hook and AppLayout.
             })
             .catch(createError => {
               if (createError.code === 'auth/email-already-in-use') {

@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -24,8 +23,9 @@ import { cleanForFirestore } from './utils';
 
 // These functions are intended for client-side use.
 
-export const saveCustomer = async (db: Firestore, customer: Omit<Customer, 'id'>): Promise<string> => {
-  const docRef = await addDoc(collection(db, 'customers'), cleanForFirestore(customer));
+export const saveCustomer = async (db: Firestore, customer: Omit<Customer, 'id'>, warehouseId: string): Promise<string> => {
+  const dataToSave = { ...customer, warehouseId };
+  const docRef = await addDoc(collection(db, 'customers'), cleanForFirestore(dataToSave));
   return docRef.id;
 };
 
@@ -74,8 +74,9 @@ export const deleteStorageRecord = async (db: Firestore, id: string): Promise<vo
     });
 };
 
-export const saveCommodity = async (db: Firestore, commodity: Omit<Commodity, 'id'>): Promise<string> => {
-  const docRef = await addDoc(collection(db, 'commodities'), cleanForFirestore(commodity));
+export const saveCommodity = async (db: Firestore, commodity: Omit<Commodity, 'id'>, warehouseId: string): Promise<string> => {
+  const dataToSave = { ...commodity, warehouseId };
+  const docRef = await addDoc(collection(db, 'commodities'), cleanForFirestore(dataToSave));
   return docRef.id;
 };
 

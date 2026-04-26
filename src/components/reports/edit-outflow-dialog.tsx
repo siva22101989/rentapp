@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,13 +15,11 @@ import {
   DialogClose,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import type { StorageRecord, Outflow } from '@/lib/definitions';
 import { useFirestore } from '@/firebase/provider';
 import { z } from 'zod';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { editOutflowEvent } from '@/lib/data';
 import { format } from 'date-fns';
 import { toDate } from '@/lib/utils';
@@ -31,33 +29,51 @@ const OutflowEditSchema = z.object({
   discount: z.coerce.number().nonnegative('Discount must be a non-negative number.').optional(),
 });
 
-type OutflowEditFormData = z.infer<typeof OutflowEditSchema>;
-
 export function EditOutflowDialog({ record, outflow, outflowIndex, children }: { record: StorageRecord, outflow: Outflow, outflowIndex: number, children: React.ReactNode }) {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const firestore = useFirestore();
 
-  const form = useForm<OutflowEditFormData>({
-    resolver: zodResolver(OutflowEditSchema),
-    defaultValues: {
-      date: format(toDate(outflow.date), 'yyyy-MM-dd'),
-      discount: outflow.discount || 0,
-    },
-  });
+  const [date, setDate] = useState('');
+  const [discount, setDiscount] = useState<number | ''>('');
 
-  const onSubmit = (data: OutflowEditFormData) => {
+  useEffect(() => {
+    if (isOpen) {
+      setDate(format(toDate(outflow.date), 'yyyy-MM-dd'));
+      setDiscount(outflow.discount || 0);
+    }
+  }, [isOpen, outflow]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
     if (!firestore) {
       toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
+      return;
+    }
+
+    const dataToValidate = {
+      date,
+      discount: Number(discount)
+    };
+
+    const result = OutflowEditSchema.safeParse(dataToValidate);
+
+    if (!result.success) {
+      const firstError = Object.values(result.error.flatten().fieldErrors)[0]?.[0];
+      toast({
+        title: "Validation Error",
+        description: firstError || "Please check your input.",
+        variant: "destructive",
+      });
       return;
     }
 
     startTransition(async () => {
       try {
         const newData = {
-          date: new Date(data.date),
-          discount: data.discount || 0,
+          date: new Date(result.data.date),
+          discount: result.data.discount || 0,
         };
         await editOutflowEvent(firestore, record.id, outflowIndex, newData);
         toast({ title: 'Success', description: 'Outflow event updated successfully.' });
@@ -73,8 +89,7 @@ export function EditOutflowDialog({ record, outflow, outflowIndex, children }: {
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
+          <form onSubmit={handleSubmit}>
             <DialogHeader>
               <DialogTitle>Edit Outflow Event</DialogTitle>
               <DialogDescription>
@@ -82,32 +97,14 @@ export function EditOutflowDialog({ record, outflow, outflowIndex, children }: {
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-              <FormField
-                control={form.control}
-                name="date"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Withdrawal Date</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="discount"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Discount Amount</FormLabel>
-                    <FormControl>
-                      <Input type="number" step="0.01" {...field} value={field.value ?? ''}/>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+               <div className="space-y-2">
+                <Label htmlFor="date">Withdrawal Date</Label>
+                <Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="discount">Discount Amount</Label>
+                <Input id="discount" type="number" step="0.01" value={discount} onChange={(e) => setDiscount(e.target.value === '' ? '' : Number(e.target.value))} />
+              </div>
             </div>
             <DialogFooter>
               <DialogClose asChild>
@@ -122,7 +119,6 @@ export function EditOutflowDialog({ record, outflow, outflowIndex, children }: {
               </Button>
             </DialogFooter>
           </form>
-        </Form>
       </DialogContent>
     </Dialog>
   );

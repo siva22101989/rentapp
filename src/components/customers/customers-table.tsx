@@ -1,4 +1,3 @@
-
 'use client';
 import {
   Table,
@@ -34,7 +33,6 @@ export function CustomersTable({ customers }: { customers: Customer[] }) {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead className="hidden sm:table-cell">Email</TableHead>
               <TableHead>Phone</TableHead>
               {canEdit && <TableHead className="w-[50px]"></TableHead>}
             </TableRow>
@@ -43,7 +41,6 @@ export function CustomersTable({ customers }: { customers: Customer[] }) {
             {customers.map((customer) => (
               <TableRow key={customer.id}>
                 <TableCell className="font-medium">{customer.name}</TableCell>
-                <TableCell className="hidden sm:table-cell">{customer.email}</TableCell>
                 <TableCell>{customer.phone}</TableCell>
                 <TableCell>
                   {canEdit && <CustomerActionsMenu 

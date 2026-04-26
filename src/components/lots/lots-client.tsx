@@ -1,21 +1,17 @@
-
 'use client';
 
 import { useTransition, useState, useMemo } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { useFirestore } from '@/firebase/provider';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 import { useToast } from '@/hooks/use-toast';
-import { collection, addDoc, writeBatch, doc } from 'firebase/firestore';
+import { collection, addDoc, writeBatch, doc, query, where } from 'firebase/firestore';
 import type { Lot } from '@/lib/definitions';
 import { deleteLot } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Loader2, Trash2 } from 'lucide-react';
 import {
@@ -31,25 +27,6 @@ import {
 } from '@/components/ui/alert-dialog';
 import { cleanForFirestore } from '@/lib/utils';
 import { useAppUser } from '@/firebase/auth/use-user';
-
-
-const AddLotSchema = z.object({
-  name: z.string().min(1, 'Lot name cannot be empty.'),
-  capacity: z.coerce.number().int().nonnegative('Capacity must be non-negative').optional(),
-});
-type AddLotFormData = z.infer<typeof AddLotSchema>;
-
-const RangeAddLotsSchema = z.object({
-    prefix: z.string().optional(),
-    start: z.coerce.number().int(),
-    end: z.coerce.number().int(),
-    suffix: z.string().optional(),
-    capacity: z.coerce.number().int().nonnegative('Capacity must be non-negative').optional(),
-}).refine(data => data.end >= data.start, {
-    message: "End number must be greater than or equal to start number.",
-    path: ["end"],
-});
-type RangeAddLotsFormData = z.infer<typeof RangeAddLotsSchema>;
 
 
 function DeleteLotDialog({ lot, onConfirm }: { lot: Lot, onConfirm: () => void }) {
@@ -94,59 +71,82 @@ export function LotsClient() {
   
   const [isAdding, startAddingTransition] = useTransition();
   const [isRangeAdding, startRangeAddingTransition] = useTransition();
+  
+  // State for single lot form
+  const [lotName, setLotName] = useState('');
+  const [lotCapacity, setLotCapacity] = useState<number | ''>('');
+
+  // State for range lot form
+  const [rangePrefix, setRangePrefix] = useState('');
+  const [rangeStart, setRangeStart] = useState<number | ''>(1);
+  const [rangeEnd, setRangeEnd] = useState<number | ''>('');
+  const [rangeSuffix, setRangeSuffix] = useState('');
+  const [rangeCapacity, setRangeCapacity] = useState<number | ''>('');
 
 
   const lotsQuery = useMemoFirebase(
-    () => (firestore && appUser ? collection(firestore, 'lots') : null),
+    () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'lots'), where('warehouseId', '==', appUser.warehouseId)) : null),
     [firestore, appUser]
   );
   const { data: lots, loading: loadingLots } = useCollection<Lot>(lotsQuery);
 
   const existingLotNames = useMemo(() => new Set(lots?.map(l => l.name.toLowerCase())), [lots]);
 
-  const addForm = useForm<AddLotFormData>({
-    resolver: zodResolver(AddLotSchema),
-    defaultValues: { name: '', capacity: '' },
-  });
+  const onAddSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!firestore || !appUser?.warehouseId) {
+      toast({ title: 'Error', description: 'User or warehouse context is missing.', variant: 'destructive' });
+      return;
+    }
+    const trimmedName = lotName.trim();
 
-  const rangeAddForm = useForm<RangeAddLotsFormData>({
-    resolver: zodResolver(RangeAddLotsSchema),
-    defaultValues: { prefix: '', start: 1, end: '', suffix: '', capacity: '' },
-  });
-
-
-  const onAddSubmit = (data: AddLotFormData) => {
-    if (!firestore || !appUser) return;
-    const trimmedName = data.name.trim();
-    if (existingLotNames.has(trimmedName.toLowerCase())) {
-        addForm.setError('name', { message: 'This lot name already exists.' });
+    if (!trimmedName) {
+        toast({ title: 'Validation Error', description: 'Lot name cannot be empty.', variant: 'destructive' });
         return;
     }
+    if (existingLotNames.has(trimmedName.toLowerCase())) {
+        toast({ title: 'Validation Error', description: 'This lot name already exists.', variant: 'destructive' });
+        return;
+    }
+    
     startAddingTransition(async () => {
       try {
         const collectionRef = collection(firestore, 'lots');
-        await addDoc(collectionRef, cleanForFirestore({ name: trimmedName, capacity: data.capacity || null }));
+        await addDoc(collectionRef, cleanForFirestore({ name: trimmedName, capacity: Number(lotCapacity) || null, warehouseId: appUser.warehouseId }));
         toast({ title: 'Success', description: `Lot "${trimmedName}" added.` });
-        addForm.reset();
+        setLotName('');
+        setLotCapacity('');
       } catch (error) {
         toast({ title: 'Error', description: 'Failed to add lot.', variant: 'destructive' });
       }
     });
   };
 
-  const onRangeAddSubmit = (data: RangeAddLotsFormData) => {
-    if (!firestore || !appUser) return;
+  const onRangeAddSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!firestore || !appUser?.warehouseId) {
+      toast({ title: 'Error', description: 'User or warehouse context is missing.', variant: 'destructive' });
+      return;
+    }
+    const startNum = Number(rangeStart);
+    const endNum = Number(rangeEnd);
+
+    if (isNaN(startNum) || isNaN(endNum) || endNum < startNum) {
+        toast({ title: 'Validation Error', description: 'End number must be greater than or equal to start number.', variant: 'destructive' });
+        return;
+    }
+    
     startRangeAddingTransition(async () => {
-        const { prefix = '', start, end, suffix = '', capacity } = data;
+        const { prefix = '', suffix = '', capacity } = { prefix: rangePrefix, suffix: rangeSuffix, capacity: rangeCapacity };
         const lotsToAdd: { name: string; capacity: number | null }[] = [];
         let skippedCount = 0;
 
-        for (let i = start; i <= end; i++) {
+        for (let i = startNum; i <= endNum; i++) {
             const name = `${prefix}${i}${suffix}`.trim();
             if (existingLotNames.has(name.toLowerCase())) {
                 skippedCount++;
             } else {
-                lotsToAdd.push({ name, capacity: capacity ?? null });
+                lotsToAdd.push({ name, capacity: Number(capacity) || null });
                 existingLotNames.add(name.toLowerCase()); 
             }
         }
@@ -164,7 +164,7 @@ export function LotsClient() {
         const collectionRef = collection(firestore, 'lots');
         lotsToAdd.forEach(lot => {
             const docRef = doc(collectionRef);
-            batch.set(docRef, cleanForFirestore(lot));
+            batch.set(docRef, cleanForFirestore({ ...lot, warehouseId: appUser.warehouseId }));
         });
 
         try {
@@ -173,7 +173,11 @@ export function LotsClient() {
                 title: 'Range Add Complete',
                 description: `${lotsToAdd.length} lots added. ${skippedCount > 0 ? `${skippedCount} skipped (duplicates).` : ''}`,
             });
-            rangeAddForm.reset();
+            setRangePrefix('');
+            setRangeStart(1);
+            setRangeEnd('');
+            setRangeSuffix('');
+            setRangeCapacity('');
         } catch (error) {
             toast({ title: 'Error', description: 'Failed to add lots from range.', variant: 'destructive' });
         }
@@ -192,66 +196,60 @@ export function LotsClient() {
     <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 items-start">
         <div className="lg:col-span-1 space-y-8">
             <Card>
-                <Form {...addForm}>
-                    <form onSubmit={addForm.handleSubmit(onAddSubmit)}>
-                        <CardHeader>
-                            <CardTitle>Add Single Lot</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                             <FormField
-                                control={addForm.control}
-                                name="name"
-                                render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Lot Name</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder="e.g. A1/Top" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
-                             <FormField
-                                control={addForm.control}
-                                name="capacity"
-                                render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Capacity (bags)</FormLabel>
-                                    <FormControl>
-                                        <Input type="number" placeholder="e.g. 1000" {...field} value={field.value ?? ''} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
-                        </CardContent>
-                        <CardFooter>
-                            <Button type="submit" disabled={isAdding}>
-                                {isAdding && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Add Lot
-                            </Button>
-                        </CardFooter>
-                    </form>
-                </Form>
+                <form onSubmit={onAddSubmit}>
+                    <CardHeader>
+                        <CardTitle>Add Single Lot</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                         <div className="space-y-2">
+                            <Label htmlFor="lot-name">Lot Name</Label>
+                            <Input id="lot-name" placeholder="e.g. A1/Top" value={lotName} onChange={(e) => setLotName(e.target.value)} />
+                        </div>
+                         <div className="space-y-2">
+                            <Label htmlFor="lot-capacity">Capacity (bags)</Label>
+                            <Input id="lot-capacity" type="number" placeholder="e.g. 1000" value={lotCapacity} onChange={(e) => setLotCapacity(e.target.value === '' ? '' : Number(e.target.value))} />
+                        </div>
+                    </CardContent>
+                    <CardFooter>
+                        <Button type="submit" disabled={isAdding}>
+                            {isAdding && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Add Lot
+                        </Button>
+                    </CardFooter>
+                </form>
             </Card>
 
             <Card>
-              <Form {...rangeAddForm}>
-                <form onSubmit={rangeAddForm.handleSubmit(onRangeAddSubmit)}>
+                <form onSubmit={onRangeAddSubmit}>
                   <CardHeader>
                     <CardTitle>Add Lots by Range</CardTitle>
                     <CardDescription>E.g., A1 to A6 becomes A1, A2, etc.</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
-                       <FormField control={rangeAddForm.control} name="prefix" render={({ field }) => (<FormItem><FormLabel>Prefix</FormLabel><FormControl><Input placeholder="e.g. A" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                       <FormField control={rangeAddForm.control} name="suffix" render={({ field }) => (<FormItem><FormLabel>Suffix</FormLabel><FormControl><Input placeholder="e.g. /Top" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <div className="space-y-2">
+                            <Label htmlFor="range-prefix">Prefix</Label>
+                            <Input id="range-prefix" placeholder="e.g. A" value={rangePrefix} onChange={(e) => setRangePrefix(e.target.value)} />
+                        </div>
+                       <div className="space-y-2">
+                            <Label htmlFor="range-suffix">Suffix</Label>
+                            <Input id="range-suffix" placeholder="e.g. /Top" value={rangeSuffix} onChange={(e) => setRangeSuffix(e.target.value)} />
+                        </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
-                        <FormField control={rangeAddForm.control} name="start" render={({ field }) => (<FormItem><FormLabel>Start No.</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={rangeAddForm.control} name="end" render={({ field }) => (<FormItem><FormLabel>End No.</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
+                        <div className="space-y-2">
+                            <Label htmlFor="range-start">Start No.</Label>
+                            <Input id="range-start" type="number" value={rangeStart} onChange={(e) => setRangeStart(e.target.value === '' ? '' : Number(e.target.value))} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="range-end">End No.</Label>
+                            <Input id="range-end" type="number" value={rangeEnd} onChange={(e) => setRangeEnd(e.target.value === '' ? '' : Number(e.target.value))} />
+                        </div>
                     </div>
-                     <FormField control={rangeAddForm.control} name="capacity" render={({ field }) => (<FormItem><FormLabel>Capacity (for all)</FormLabel><FormControl><Input type="number" placeholder="e.g. 1000" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem> )} />
+                     <div className="space-y-2">
+                        <Label htmlFor="range-capacity">Capacity (for all)</Label>
+                        <Input id="range-capacity" type="number" placeholder="e.g. 1000" value={rangeCapacity} onChange={(e) => setRangeCapacity(e.target.value === '' ? '' : Number(e.target.value))} />
+                     </div>
                   </CardContent>
                   <CardFooter>
                     <Button type="submit" disabled={isRangeAdding}>
@@ -260,7 +258,6 @@ export function LotsClient() {
                     </Button>
                   </CardFooter>
                 </form>
-              </Form>
             </Card>
         </div>
 

@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import type { Customer, StorageRecord, UnloadingRecord, Expense, WarehouseInfo, Borrowing, Lending, OtherIncome, Commodity } from "@/lib/definitions";
+import type { Customer, StorageRecord, UnloadingRecord, Expense, WarehouseInfo, Borrowing, Lending, OtherIncome, Commodity, Lot, DryingRecord } from "@/lib/definitions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CustomersTable } from '@/components/customers/customers-table';
@@ -21,12 +21,14 @@ import { Button } from '../ui/button';
 import { Printer, FileDown, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { LotOutflowReport } from './lot-outflow-report';
+import { DryingHistoryTable } from '@/components/drying/drying-history-table';
 
 const reportTypes = [
     { value: 'daily-summary', label: 'Daily Summary Report' },
     { value: 'profit-and-loss', label: 'Profit & Loss Report' },
     { value: 'customer-statement', label: 'Customer Dues Statement (Detailed)' },
     { value: 'hamali-register', label: 'Hamali Register' },
+    { value: 'drying-history', label: 'Drying History Report' },
     { value: 'inflow-register', label: 'Inflow Register (Date Range)' },
     { value: 'outflow-register', label: 'Outflow Register (Date Range)' },
     { value: 'unloading-register', label: 'Unloading Register (Date Range)' },
@@ -50,6 +52,8 @@ type ReportGeneratorProps = {
     commodities: Commodity[];
     initialReport?: string;
     initialCustomerId?: string;
+    dryingRecords: DryingRecord[];
+    lots: Lot[];
 }
 
 export function CustomReportGenerator({ 
@@ -63,7 +67,9 @@ export function CustomReportGenerator({
     otherIncomes,
     commodities,
     initialReport, 
-    initialCustomerId 
+    initialCustomerId,
+    dryingRecords,
+    lots
 }: ReportGeneratorProps) {
     const [selectedReport, setSelectedReport] = useState<string>(initialReport || 'daily-summary');
     const [isDownloading, setIsDownloading] = useState(false);
@@ -141,6 +147,14 @@ export function CustomReportGenerator({
                 return <PendingPaymentsTable records={records} customers={customers} unloadingRecords={unloadingRecords} />;
             case 'hamali-register':
                 return <HamaliReport records={records} customers={customers} unloadingRecords={unloadingRecords} expenses={expenses} />;
+            case 'drying-history':
+                return <DryingHistoryTable 
+                            dryingRecords={dryingRecords} 
+                            customers={customers} 
+                            unloadingRecords={unloadingRecords} 
+                            lots={lots} 
+                            storageRecords={records} 
+                        />;
             case 'inflow-register':
                 return <InflowReport records={records} customers={customers} />;
             case 'outflow-register':

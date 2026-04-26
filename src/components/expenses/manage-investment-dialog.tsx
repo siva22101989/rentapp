@@ -17,54 +17,65 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase/provider';
 import { z } from 'zod';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { Input } from '../ui/input';
 import { doc, setDoc } from 'firebase/firestore';
 import { cleanForFirestore } from '@/lib/utils';
 import type { WarehouseInfo } from '@/lib/definitions';
+import { useAppUser } from '@/firebase/auth/use-user';
+import { Label } from '../ui/label';
 
 const InvestmentSchema = z.object({
   capitalInvestment: z.coerce.number().nonnegative('Investment must be a non-negative number.'),
   annualInterestRate: z.coerce.number().nonnegative('Interest rate must be a non-negative number.'),
 });
 
-type InvestmentFormData = z.infer<typeof InvestmentSchema>;
-
 export function ManageInvestmentDialog({ initialData }: { initialData?: WarehouseInfo | null }) {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const firestore = useFirestore();
+  const appUser = useAppUser();
 
-  const form = useForm<InvestmentFormData>({
-    resolver: zodResolver(InvestmentSchema),
-    defaultValues: {
-      capitalInvestment: 0,
-      annualInterestRate: 0,
-    },
-  });
+  const [capitalInvestment, setCapitalInvestment] = useState<number | ''>('');
+  const [annualInterestRate, setAnnualInterestRate] = useState<number | ''>('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (initialData) {
-      form.reset({
-        capitalInvestment: initialData.capitalInvestment || 0,
-        annualInterestRate: initialData.annualInterestRate || 0,
-      });
+    if (initialData && isOpen) {
+        setCapitalInvestment(initialData.capitalInvestment || '');
+        setAnnualInterestRate(initialData.annualInterestRate || '');
     }
-  }, [initialData, form]);
+  }, [initialData, isOpen]);
 
-  const onSubmit = (data: InvestmentFormData) => {
-    if (!firestore) {
-      toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrors({});
+    if (!firestore || !appUser?.warehouseId) {
+      toast({ title: 'Error', description: 'User or warehouse context is missing.', variant: 'destructive' });
       return;
+    }
+
+    const dataToValidate = {
+        capitalInvestment: Number(capitalInvestment),
+        annualInterestRate: Number(annualInterestRate),
+    };
+
+    const result = InvestmentSchema.safeParse(dataToValidate);
+    if (!result.success) {
+        const fieldErrors = result.error.flatten().fieldErrors;
+        const newErrors: Record<string, string> = {};
+        Object.keys(fieldErrors).forEach(key => {
+            if(fieldErrors[key as keyof typeof fieldErrors]) newErrors[key] = fieldErrors[key as keyof typeof fieldErrors]![0];
+        });
+        setErrors(newErrors);
+        toast({ title: "Validation Error", description: "Please check your input.", variant: "destructive"});
+        return;
     }
 
     startTransition(async () => {
       try {
-        const docRef = doc(firestore, 'settings', 'main');
-        await setDoc(docRef, cleanForFirestore(data), { merge: true });
+        const docRef = doc(firestore, 'warehouses', appUser.warehouseId);
+        await setDoc(docRef, cleanForFirestore(result.data), { merge: true });
         toast({ title: 'Success', description: 'Investment details saved.' });
         setIsOpen(false);
       } catch (error) {
@@ -83,8 +94,7 @@ export function ManageInvestmentDialog({ initialData }: { initialData?: Warehous
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-sm">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
+          <form onSubmit={handleSubmit}>
             <DialogHeader>
               <DialogTitle>Manage Capital Investment</DialogTitle>
               <DialogDescription>
@@ -92,32 +102,16 @@ export function ManageInvestmentDialog({ initialData }: { initialData?: Warehous
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-2 py-4">
-              <FormField
-                control={form.control}
-                name="capitalInvestment"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Total Capital Investment</FormLabel>
-                    <FormControl>
-                      <Input type="number" placeholder="e.g., 10000000" {...field} value={field.value ?? ''} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="annualInterestRate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Annual Interest Rate (%)</FormLabel>
-                    <FormControl>
-                      <Input type="number" step="0.1" placeholder="e.g., 9" {...field} value={field.value ?? ''} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="space-y-2">
+                <Label htmlFor="capitalInvestment">Total Capital Investment</Label>
+                <Input id="capitalInvestment" type="number" placeholder="e.g., 10000000" value={capitalInvestment} onChange={e => setCapitalInvestment(e.target.value === '' ? '' : Number(e.target.value))} />
+                {errors.capitalInvestment && <p className="text-sm font-medium text-destructive">{errors.capitalInvestment}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="annualInterestRate">Annual Interest Rate (%)</Label>
+                <Input id="annualInterestRate" type="number" step="0.1" placeholder="e.g., 9" value={annualInterestRate} onChange={e => setAnnualInterestRate(e.target.value === '' ? '' : Number(e.target.value))} />
+                 {errors.annualInterestRate && <p className="text-sm font-medium text-destructive">{errors.annualInterestRate}</p>}
+              </div>
             </div>
             <DialogFooter>
               <DialogClose asChild>
@@ -135,7 +129,6 @@ export function ManageInvestmentDialog({ initialData }: { initialData?: Warehous
               </Button>
             </DialogFooter>
           </form>
-        </Form>
       </DialogContent>
     </Dialog>
   );

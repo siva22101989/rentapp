@@ -42,7 +42,8 @@ export default function WarehouseOwnerLoginPage() {
       signInWithPopup(auth, provider)
         .then(() => {
           // Success is handled by the global onAuthStateChanged listener in use-user.tsx
-          // which will handle provisioning and redirection.
+          // which will handle provisioning and redirection. The loading state on the button
+          // will be turned off in the `finally` block.
         })
         .catch((error: any) => {
           if (error.code === 'auth/unauthorized-domain') {
@@ -55,8 +56,10 @@ export default function WarehouseOwnerLoginPage() {
               setError('An unknown error occurred during Google sign-in.');
               console.error(error);
           }
-          setIsLoading(false);
-      });
+        })
+        .finally(() => {
+            setIsLoading(false);
+        });
     } else {
         setError('Authentication service is not ready. Please try again.');
         setIsLoading(false);

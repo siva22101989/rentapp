@@ -1,10 +1,9 @@
-
 'use client';
 import { useState, useTransition } from 'react';
 import { useFirestore } from '@/firebase/provider';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
-import { collection, addDoc, deleteDoc, doc } from 'firebase/firestore';
+import { collection, addDoc, deleteDoc, doc, query, where } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { cleanForFirestore } from '@/lib/utils';
 import type { AppUser } from '@/lib/definitions';
@@ -22,23 +21,12 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Loader2, Trash2 } from 'lucide-react';
-import { z } from 'zod';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
 const teamMemberRoles = ['owner', 'supervisor', 'biller'] as const;
-
-const AddUserSchema = z.object({
-    phone: z.string().min(10, 'Please enter a valid phone number.'),
-    role: z.enum(teamMemberRoles, { required_error: 'Please select a role.' }),
-});
-
-type AddUserFormData = z.infer<typeof AddUserSchema>;
-
 
 export function ManageTeamDialog({ children }: { children: React.ReactNode }) {
     const firestore = useFirestore();
@@ -47,32 +35,45 @@ export function ManageTeamDialog({ children }: { children: React.ReactNode }) {
     const appUser = useAppUser();
 
     const usersQuery = useMemoFirebase(
-        () => (firestore && appUser ? collection(firestore, 'users') : null),
+        () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'users'), where('warehouseId', '==', appUser.warehouseId)) : null),
         [firestore, appUser]
     );
     const { data: users, loading } = useCollection<AppUser>(usersQuery);
 
-    const form = useForm<AddUserFormData>({
-        resolver: zodResolver(AddUserSchema),
-        defaultValues: { phone: '', role: 'biller' },
-    });
+    const [phone, setPhone] = useState('');
+    const [role, setRole] = useState<'owner' | 'supervisor' | 'biller'>('biller');
+    const [error, setError] = useState('');
 
-    const onAddUser = (data: AddUserFormData) => {
-        if (!firestore || !appUser) return;
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+
+        if (phone.length < 10) {
+            setError('Please enter a valid 10-digit phone number.');
+            return;
+        }
+
+        if (!firestore || !appUser?.warehouseId) {
+            toast({ title: 'Error', description: 'Could not add user: warehouse context is missing.', variant: 'destructive' });
+            return;
+        }
         
-        if (users?.some(u => u.phone === data.phone)) {
-            form.setError('phone', { message: 'A user with this phone number already exists.' });
+        if (users?.some(u => u.phone === phone)) {
+            setError('A user with this phone number already exists.');
             return;
         }
 
         startTransition(async () => {
             try {
                 await addDoc(collection(firestore, 'users'), cleanForFirestore({
-                    phone: data.phone,
-                    role: data.role,
+                    phone: phone,
+                    role: role,
+                    warehouseId: appUser.warehouseId,
                 }));
-                toast({ title: 'Success', description: 'User added to the team. They can now sign in with their phone number and a password of their choice.' });
-                form.reset();
+                toast({ title: 'Success', description: 'User added. They can now sign in with their phone number and a password of their choice.' });
+                setPhone('');
+                setRole('biller');
+                setError('');
             } catch (error) {
                 toast({ title: 'Error', description: 'Failed to add user.', variant: 'destructive' });
             }
@@ -102,45 +103,29 @@ export function ManageTeamDialog({ children }: { children: React.ReactNode }) {
                 </DialogDescription>
             </DialogHeader>
             
-            <Form {...form}>
-                <form onSubmit={form.handleSubmit(onAddUser)} className="grid grid-cols-1 sm:grid-cols-3 items-end gap-2">
-                     <FormField
-                        control={form.control}
-                        name="phone"
-                        render={({ field }) => (
-                            <FormItem className="sm:col-span-1">
-                                <FormLabel>Phone Number</FormLabel>
-                                <FormControl><Input placeholder="e.g. 9876543210" {...field} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <div className="flex items-end gap-2 sm:col-span-2">
-                        <FormField
-                            control={form.control}
-                            name="role"
-                            render={({ field }) => (
-                                <FormItem className="flex-1">
-                                    <FormLabel>Role</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                        <FormControl>
-                                            <SelectTrigger><SelectValue /></SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            {teamMemberRoles.map(role => (
-                                                <SelectItem key={role} value={role} className="capitalize">{role}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </FormItem>
-                            )}
-                        />
-                        <Button type="submit" disabled={isPending} className="self-end h-9">
-                            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Add'}
-                        </Button>
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-3 items-start gap-2 pt-4">
+                <div className="space-y-2 sm:col-span-1">
+                    <Label htmlFor="phone">Phone Number</Label>
+                    <Input id="phone" placeholder="e.g. 9876543210" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                </div>
+                <div className="flex items-end gap-2 sm:col-span-2">
+                    <div className="flex-1 space-y-2">
+                        <Label htmlFor="role">Role</Label>
+                        <Select onValueChange={(value: 'owner' | 'supervisor' | 'biller') => setRole(value)} value={role}>
+                            <SelectTrigger id="role"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                {teamMemberRoles.map(role => (
+                                    <SelectItem key={role} value={role} className="capitalize">{role}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
-                </form>
-            </Form>
+                    <Button type="submit" disabled={isPending} className="self-end h-10">
+                        {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Add'}
+                    </Button>
+                </div>
+                {error && <p className="text-sm font-medium text-destructive col-span-3">{error}</p>}
+            </form>
 
             <div className="max-h-64 overflow-y-auto mt-4">
                 <Table>
@@ -153,12 +138,12 @@ export function ManageTeamDialog({ children }: { children: React.ReactNode }) {
                     </TableHeader>
                     <TableBody>
                         {loading && <TableRow><TableCell colSpan={3} className="text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>}
-                        {users?.map(user => (
+                        {users?.filter(user => user.role !== 'super-admin').map(user => (
                             <TableRow key={user.id}>
                                 <TableCell className="font-medium">{user.phone || user.email}</TableCell>
                                 <TableCell className="capitalize">{user.role}</TableCell>
                                 <TableCell>
-                                    <Button variant="ghost" size="icon" onClick={() => onDeleteUser(user.id)} disabled={isPending || user.role === 'owner' || user.role === 'super-admin'}>
+                                    <Button variant="ghost" size="icon" onClick={() => onDeleteUser(user.id)} disabled={isPending || user.role === 'owner'}>
                                         <Trash2 className="h-4 w-4 text-destructive" />
                                     </Button>
                                 </TableCell>

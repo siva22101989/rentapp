@@ -4,7 +4,7 @@
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { type User } from 'firebase/auth';
 import { useAuth, useFirestore } from '@/firebase/provider';
-import type { AppUser } from '@/lib/definitions';
+import type { AppUser, ManagedWarehouse } from '@/lib/definitions';
 import { collection, query, where, getDocs, doc, getDoc, writeBatch, setDoc, deleteDoc } from 'firebase/firestore';
 
 interface UserContextType {
@@ -46,6 +46,52 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
       if (userDocSnap.exists()) {
         const existingAppUser = { id: userDocSnap.id, ...userDocSnap.data() } as AppUser;
+        
+        // Defensive check for existing users
+        if (existingAppUser.role && existingAppUser.role !== 'super-admin' && !existingAppUser.warehouseId) {
+          // Attempt to self-heal the user document
+          const userEmail = existingAppUser.email || fbUser.email?.toLowerCase();
+          if (userEmail) {
+            const warehousesCol = collection(firestore, 'managedWarehouses');
+            const q = query(warehousesCol, 
+                where('ownerEmail', '==', userEmail),
+                where('subscriptionStatus', 'in', ['active', 'trial'])
+            );
+            const warehouseSnap = await getDocs(q);
+
+            if (warehouseSnap.size > 1) {
+                console.error(`Self-heal failed: Multiple active warehouses found for owner email ${userEmail}.`);
+                setProvisioningError('Your account is linked to multiple warehouses. Please contact support. (Code: WID_HEAL_MULTI)');
+                setUser(fbUser);
+                setAppUser(null);
+                setLoading(false);
+                return;
+            }
+
+            if (!warehouseSnap.empty) {
+              const warehouseId = warehouseSnap.docs[0].id;
+              console.log(`Attempting to repair user ${fbUser.uid} with warehouseId ${warehouseId}`);
+              
+              const updatedAppUser = { ...existingAppUser, warehouseId };
+              await setDoc(userDocRef, updatedAppUser, { merge: true });
+
+              // Successfully repaired, now proceed with the corrected user data.
+              setAppUser(updatedAppUser);
+              setUser(fbUser);
+              setLoading(false);
+              return; // End of flow for repaired user
+            }
+          }
+          
+          // If self-healing fails, show the error.
+          console.error(`FATAL: User ${fbUser.uid} has role '${existingAppUser.role}' but no warehouseId. Self-healing failed.`);
+          setProvisioningError('Your user account is misconfigured. Please contact support. (Code: WID_MISSING_EXISTING)');
+          setUser(fbUser);
+          setAppUser(null);
+          setLoading(false);
+          return;
+        }
+
         if (existingAppUser.role) {
           // User document is valid.
           setAppUser(existingAppUser);
@@ -78,16 +124,51 @@ export function UserProvider({ children }: { children: ReactNode }) {
       // Attempt to provision as Warehouse Owner
       if (userEmail && !userEmail.startsWith('+')) {
         const warehousesCol = collection(firestore, 'managedWarehouses');
-        const q = query(warehousesCol, where('ownerEmail', '==', userEmail));
+        const q = query(
+          warehousesCol, 
+          where('ownerEmail', '==', userEmail), 
+          where('subscriptionStatus', 'in', ['active', 'trial'])
+        );
         const warehouseSnap = await getDocs(q);
 
+        if (warehouseSnap.size > 1) {
+            console.error(`FATAL: Multiple active warehouses found for owner email ${userEmail}. Cannot determine which warehouse to assign.`);
+            setProvisioningError('Your account is linked to multiple active warehouses. Please contact support to resolve this ambiguity.');
+            setUser(fbUser);
+            setAppUser(null);
+            setLoading(false);
+            return;
+        }
+
         if (!warehouseSnap.empty) {
+          const warehouseDoc = warehouseSnap.docs[0];
+          const warehouseId = warehouseDoc.id;
+
+          if (!warehouseId) {
+            console.error("FATAL: managedWarehouse document has no ID. This should be impossible.", warehouseDoc.data());
+            setProvisioningError("Critical account setup failed (Code: WID_NULL). Contact support.");
+            setAppUser(null);
+            setUser(fbUser);
+            setLoading(false);
+            return;
+          }
+
           const newAppUserData: Omit<AppUser, 'id'> = {
               email: userEmail,
               role: 'owner',
-              phone: fbUser.phoneNumber || ''
+              phone: fbUser.phoneNumber || '',
+              warehouseId: warehouseId,
           };
           await setDoc(userDocRef, newAppUserData);
+          
+          // Create the separate settings document for this warehouse
+          const warehouseSettingsRef = doc(firestore, 'warehouses', warehouseDoc.id);
+          const managedWarehouseData = warehouseDoc.data() as ManagedWarehouse;
+          await setDoc(warehouseSettingsRef, {
+              name: managedWarehouseData.name,
+              ownerName: managedWarehouseData.ownerName,
+          }, { merge: true });
+
           setAppUser({ id: fbUser.uid, ...newAppUserData } as AppUser);
           setUser(fbUser);
           setLoading(false);
@@ -105,6 +186,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
         if (!staffSnap.empty) {
           const staffDocToDelete = staffSnap.docs[0];
           const newAppUserData = staffDocToDelete.data() as Omit<AppUser, 'id'>;
+
+          if (newAppUserData.role !== 'super-admin' && !newAppUserData.warehouseId) {
+             console.error(`FATAL: Staff user ${phone} is being provisioned without a warehouseId.`);
+             setProvisioningError('Your staff account is misconfigured. Please contact your manager. (Code: WID_MISSING_STAFF)');
+             setUser(fbUser);
+             setAppUser(null);
+             setLoading(false);
+             return;
+          }
           
           const batch = writeBatch(firestore);
           // Create new user doc with UID

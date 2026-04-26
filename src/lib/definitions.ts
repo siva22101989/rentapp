@@ -4,7 +4,6 @@ import type { Timestamp } from 'firebase/firestore';
 export type Customer = {
   id: string;
   name: string;
-  email?: string;
   phone: string;
   address?: string;
   fatherName?: string;
@@ -53,6 +52,7 @@ export type HamaliChargeItem = {
 
 export type StorageRecord = {
   id: string;
+  warehouseId?: string;
   customerId: string;
   commodityDescription: string;
   location?: string;
@@ -83,7 +83,6 @@ export type StorageRecord = {
   insuranceRate?: number;
   rate6Months?: number;
   rate1Year?: number;
-  warehouseId?: string;
 };
 
 export const expenseCategories = ["Worker Salary", "Petrol", "Maintenance", "Utilities", "Current Bill", "Hamali Paid", "EMI for Godown", "Godown Expense", "Loan Repayment", "Home Expenses", "Other"] as const;
@@ -92,34 +91,34 @@ export type ExpenseCategory = typeof expenseCategories[number];
 
 export type Expense = {
   id: string;
+  warehouseId?: string;
   description: string;
   amount: number;
   category: ExpenseCategory;
   date: Date | Timestamp;
-  warehouseId?: string;
   customerId?: string;
 };
 
 export type Borrowing = {
   id: string;
+  warehouseId?: string;
   lenderName: string;
   principal: number;
   interestRate: number;
   dateTaken: Date | Timestamp;
   payments?: Payment[];
   status?: 'Active' | 'Paid Off';
-  warehouseId?: string;
 };
 
 export type Lending = {
   id: string;
+  warehouseId?: string;
   borrowerName: string;
   principal: number;
   interestRate: number;
   dateGiven: Date | Timestamp;
   payments?: Payment[];
   status?: 'Active' | 'Paid Off';
-  warehouseId?: string;
 };
 
 export const incomeCategories = ["Loan Payment Received", "Other"] as const;
@@ -127,11 +126,11 @@ export type IncomeCategory = typeof incomeCategories[number];
 
 export type OtherIncome = {
     id: string;
+    warehouseId?: string;
     description: string;
     amount: number;
     category: IncomeCategory;
     date: Date | Timestamp;
-    warehouseId?: string;
 }
 
 export type WarehouseInfo = {
@@ -145,6 +144,13 @@ export type WarehouseInfo = {
   bankDetails?: string;
   capitalInvestment?: number;
   annualInterestRate?: number;
+  textbeeApiKey?: string;
+  textbeeDeviceId?: string;
+  smsInflowTemplate?: string;
+  smsOutflowTemplate?: string;
+  smsUnloadingTemplate?: string;
+  smsPaymentTemplate?: string;
+  smsPendingDuesTemplate?: string;
 };
 
 export const unloadingStatus = ["Unloading", "Drying", "Packing", "Billed"] as const;
@@ -152,6 +158,7 @@ export type UnloadingStatus = typeof unloadingStatus[number];
 
 export type UnloadingRecord = {
   id: string;
+  warehouseId?: string;
   customerId: string;
   commodityDescription: string;
   lorryTractorNo?: string;
@@ -164,20 +171,14 @@ export type UnloadingRecord = {
   workerHamaliPayable?: number;
   billNo?: string;
   payments?: Payment[];
-  warehouseId?: string;
 };
 
 export const dryingStatus = ["Drying", "Packing", "Billed"] as const;
 export type DryingStatus = typeof dryingStatus[number];
 
-export type HamaliCharge = {
-  description: string;
-  amount: number;
-  date: Date | Timestamp;
-};
-
 export type DryingRecord = {
   id: string;
+  warehouseId?: string;
   unloadingRecordId: string;
   customerId: string;
   commodityDescription: string;
@@ -187,22 +188,9 @@ export type DryingRecord = {
   dryingStartDate: Date | Timestamp;
   packingDate?: Date | Timestamp | null;
   billingDate?: Date | Timestamp | null;
-  hamaliPerBag: number;
   totalDryingHamali: number;
-  hamaliCharges?: HamaliCharge[];
-  totalDryingWorkerHamali?: number;
-  warehouseId?: string;
-};
-
-export type SmsInfo = {
-  id: string;
-  textbeeApiKey: string;
-  textbeeDeviceId?: string;
-  smsInflowTemplate?: string;
-  smsOutflowTemplate?: string;
-  smsUnloadingTemplate?: string;
-  smsPaymentTemplate?: string;
-  smsPendingDuesTemplate?: string;
+  hamaliDetails?: HamaliChargeItem[];
+  workerHamaliPayable?: number;
 };
 
 export const userRoles = ["super-admin", "owner", "supervisor", "biller"] as const;

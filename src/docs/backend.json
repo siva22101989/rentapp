@@ -6,14 +6,10 @@
       "description": "Represents a customer of the warehouse.",
       "type": "object",
       "properties": {
+        "warehouseId": { "type": "string", "description": "The ID of the warehouse this customer belongs to." },
         "name": {
           "type": "string",
           "description": "The full name of the customer."
-        },
-        "email": {
-          "type": "string",
-          "format": "email",
-          "description": "The email address of the customer."
         },
         "phone": {
           "type": "string",
@@ -32,13 +28,14 @@
             "description": "The village of the customer."
         }
       },
-      "required": ["name", "phone"]
+      "required": ["name", "phone", "warehouseId"]
     },
     "commodity": {
       "title": "Commodity",
       "description": "Represents a type of commodity with specific rent rates.",
       "type": "object",
       "properties": {
+        "warehouseId": { "type": "string", "description": "The ID of the warehouse this commodity belongs to." },
         "name": {
           "type": "string",
           "description": "The name of the commodity (e.g., Paddy, Maize)."
@@ -69,13 +66,14 @@
           "description": "The rent rate per bag for a 1-year period, if billingType is 'slab'."
         }
       },
-      "required": ["name", "billingType"]
+      "required": ["name", "billingType", "warehouseId"]
     },
     "lot": {
       "title": "Lot",
       "description": "Represents a specific storage location within the warehouse.",
       "type": "object",
       "properties": {
+        "warehouseId": { "type": "string", "description": "The ID of the warehouse this lot belongs to." },
         "name": {
           "type": "string",
           "description": "The unique identifier for the lot (e.g., A1/Top)."
@@ -85,13 +83,14 @@
           "description": "The storage capacity of the lot in bags."
         }
       },
-      "required": ["name"]
+      "required": ["name", "warehouseId"]
     },
     "storageRecord": {
       "title": "Storage Record",
       "description": "Represents a record of items being stored by a customer.",
       "type": "object",
       "properties": {
+        "warehouseId": { "type": "string", "description": "The ID of the warehouse this record belongs to." },
         "customerId": {
           "type": "string",
           "description": "The ID of the customer who owns these items."
@@ -177,6 +176,7 @@
         }
       },
       "required": [
+        "warehouseId",
         "customerId",
         "commodityDescription",
         "location",
@@ -212,6 +212,7 @@
         "description": "Represents an operational expense.",
         "type": "object",
         "properties": {
+          "warehouseId": { "type": "string", "description": "The ID of the warehouse this expense belongs to." },
           "description": {
             "type": "string",
             "description": "A description of the expense."
@@ -235,13 +236,14 @@
             "description": "The ID of the customer this expense is associated with (e.g., for Hamali Paid)."
           }
         },
-        "required": ["description", "amount", "category", "date"]
+        "required": ["warehouseId", "description", "amount", "category", "date"]
     },
     "borrowing": {
       "title": "Borrowing",
       "description": "Represents a loan taken from an individual or entity.",
       "type": "object",
       "properties": {
+        "warehouseId": { "type": "string", "description": "The ID of the warehouse this borrowing belongs to." },
         "lenderName": {
           "type": "string",
           "description": "The name of the person or entity from whom the money was borrowed."
@@ -270,6 +272,7 @@
         }
       },
       "required": [
+        "warehouseId",
         "lenderName",
         "principal",
         "interestRate",
@@ -281,6 +284,7 @@
       "description": "Represents a loan given to an individual or entity.",
       "type": "object",
       "properties": {
+        "warehouseId": { "type": "string", "description": "The ID of the warehouse this lending belongs to." },
         "borrowerName": {
           "type": "string",
           "description": "The name of the person or entity to whom the money was lent."
@@ -309,6 +313,7 @@
         }
       },
       "required": [
+        "warehouseId",
         "borrowerName",
         "principal",
         "interestRate",
@@ -320,6 +325,7 @@
       "description": "Represents miscellaneous income not from storage rent or hamali.",
       "type": "object",
       "properties": {
+        "warehouseId": { "type": "string", "description": "The ID of the warehouse this income belongs to." },
         "description": {
           "type": "string",
           "description": "A description of the income source."
@@ -339,13 +345,14 @@
           "description": "The date the income was received."
         }
       },
-      "required": ["description", "amount", "category", "date"]
+      "required": ["warehouseId", "description", "amount", "category", "date"]
     },
     "unloadingRecord": {
       "title": "Unloading Record",
       "description": "Represents a record of items being unloaded from a vehicle.",
       "type": "object",
       "properties": {
+        "warehouseId": { "type": "string", "description": "The ID of the warehouse this record belongs to." },
         "customerId": {
           "type": "string",
           "description": "The ID of the customer who owns these items."
@@ -386,6 +393,7 @@
         }
       },
       "required": [
+        "warehouseId",
         "customerId",
         "commodityDescription",
         "unloadingDate",
@@ -400,6 +408,7 @@
       "description": "Represents the entire drying process for a commodity, from unloading to billing.",
       "type": "object",
       "properties": {
+        "warehouseId": { "type": "string", "description": "The ID of the warehouse this record belongs to." },
         "unloadingRecordId": {
           "type": "string",
           "description": "The ID of the source unloading record."
@@ -440,69 +449,59 @@
           "format": "date-time",
           "description": "The date the process was billed. Null if not yet billed."
         },
-        "hamaliPerBag": {
-          "type": "number",
-          "description": "The hamali charge per bag for the drying process."
-        },
         "totalDryingHamali": {
           "type": "number",
           "description": "The total hamali charge for this drying process."
+        },
+        "hamaliDetails": {
+            "type": "array",
+            "description": "A detailed breakdown of hamali charges for the drying process.",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "description": { "type": "string" },
+                    "bags": { "type": "number" },
+                    "rate": { "type": "number" },
+                    "amount": { "type": "number" }
+                }
+            }
+        },
+        "workerHamaliPayable": {
+            "type": "number",
+            "description": "The total hamali amount payable to workers for this drying process."
         }
       },
       "required": [
+        "warehouseId",
         "unloadingRecordId",
         "customerId",
         "commodityDescription",
         "bagsForDrying",
         "status",
         "dryingStartDate",
-        "hamaliPerBag",
         "totalDryingHamali"
       ]
     },
     "warehouseInfo": {
       "title": "Warehouse Info",
-      "description": "General information about the warehouse.",
+      "description": "General information and settings for a warehouse.",
       "type": "object",
       "properties": {
-        "name": {
-          "type": "string",
-          "description": "The name of the warehouse."
-        },
-        "phone": {
-          "type": "string",
-          "description": "Primary contact phone number."
-        },
-        "addressLine1": {
-          "type": "string",
-          "description": "Address Line 1."
-        },
-        "addressLine2": {
-          "type": "string",
-          "description": "Address Line 2 (e.g., City, State, ZIP)."
-        },
-        "capitalInvestment": {
-          "type": "number",
-          "description": "The total capital invested in the business."
-        },
-        "annualInterestRate": {
-          "type": "number",
-          "description": "The annual interest rate used to calculate cost of capital."
-        }
+        "name": { "type": "string", "description": "The name of the warehouse." },
+        "phone": { "type": "string", "description": "Primary contact phone number." },
+        "addressLine1": { "type": "string", "description": "Address Line 1." },
+        "addressLine2": { "type": "string", "description": "Address Line 2 (e.g., City, State, ZIP)." },
+        "capitalInvestment": { "type": "number", "description": "The total capital invested in the business." },
+        "annualInterestRate": { "type": "number", "description": "The annual interest rate used to calculate cost of capital." },
+        "textbeeApiKey": { "type": "string", "description": "Your textbee.dev API key." },
+        "textbeeDeviceId": { "type": "string", "description": "Your textbee.dev Device ID (optional, for device gateway)." },
+        "smsInflowTemplate": { "type": "string", "description": "Template for SMS sent on new inflow." },
+        "smsOutflowTemplate": { "type": "string", "description": "Template for SMS sent on outflow." },
+        "smsUnloadingTemplate": { "type": "string", "description": "Template for SMS sent on unloading." },
+        "smsPaymentTemplate": { "type": "string", "description": "Template for SMS sent on bulk payment." },
+        "smsPendingDuesTemplate": { "type": "string", "description": "Template for SMS sent for pending dues reminder." }
       },
       "required": ["name"]
-    },
-    "smsInfo": {
-      "title": "SMS Info",
-      "description": "Settings for the SMS provider (textbee.dev).",
-      "type": "object",
-      "properties": {
-        "textbeeApiKey": {
-          "type": "string",
-          "description": "Your textbee.dev API key."
-        }
-      },
-      "required": ["textbeeApiKey"]
     },
     "appUser": {
       "title": "App User",
@@ -556,55 +555,51 @@
     },
     "/customers/{customerId}": {
       "schema": "customer",
-      "description": "Stores individual customer documents."
+      "description": "Stores individual customer documents, scoped by warehouseId."
     },
     "/commodities/{commodityId}": {
       "schema": "commodity",
-      "description": "Stores commodity types."
+      "description": "Stores commodity types, scoped by warehouseId."
     },
     "/lots/{lotId}": {
       "schema": "lot",
-      "description": "Stores lot information."
+      "description": "Stores lot information, scoped by warehouseId."
     },
     "/storageRecords/{recordId}": {
       "schema": "storageRecord",
-      "description": "Stores individual storage records."
+      "description": "Stores individual storage records, scoped by warehouseId."
     },
     "/expenses/{expenseId}": {
       "schema": "expense",
-      "description": "Stores individual expense documents."
+      "description": "Stores individual expense documents, scoped by warehouseId."
     },
     "/borrowings/{borrowingId}": {
       "schema": "borrowing",
-      "description": "Stores individual borrowing/loan records."
+      "description": "Stores individual borrowing/loan records, scoped by warehouseId."
     },
     "/lendings/{lendingId}": {
       "schema": "lending",
-      "description": "Stores individual lending/loan records."
+      "description": "Stores individual lending/loan records, scoped by warehouseId."
     },
     "/otherIncomes/{incomeId}": {
       "schema": "otherIncome",
-      "description": "Stores individual miscellaneous income records."
+      "description": "Stores individual miscellaneous income records, scoped by warehouseId."
     },
     "/unloadingRecords/{unloadingId}": {
       "schema": "unloadingRecord",
-      "description": "Stores records of the unloading process."
+      "description": "Stores records of the unloading process, scoped by warehouseId."
     },
     "/dryingRecords/{dryingId}": {
       "schema": "dryingRecord",
-      "description": "Stores records of the drying process."
+      "description": "Stores records of the drying process, scoped by warehouseId."
     },
-    "/settings/main": {
+    "/warehouses/{warehouseId}": {
         "schema": "warehouseInfo",
-        "description": "Stores application settings, like warehouse details."
-    },
-    "/settings/sms": {
-      "schema": "smsInfo",
-      "description": "Stores SMS provider configuration."
+        "description": "Stores warehouse-specific settings and information."
     },
     "/managedWarehouses/{warehouseId}": {
       "schema": "managedWarehouse",
-      "description": "Stores warehouse subscription details."
+      "description": "Stores warehouse subscription details managed by the super-admin."
     }
   }
 }

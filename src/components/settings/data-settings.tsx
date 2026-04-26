@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useFirestore, useAppUser } from '@/firebase/provider';
 import { useToast } from '@/hooks/use-toast';
-import { collection, writeBatch, getDocs, doc, query, where } from 'firebase/firestore';
+import { collection, writeBatch, getDocs, doc, query, where, getDoc, updateDoc } from 'firebase/firestore';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,6 +35,7 @@ export function DataSettings() {
   const [isExporting, startExportingTransition] = useTransition();
   const [isImporting, startImportingTransition] = useTransition();
   const [isClearingUnloading, startClearingUnloadingTransition] = useTransition();
+  const [isFixing, startFixingTransition] = useTransition();
   
   const [dataToImport, setDataToImport] = useState<{ customersToCreate: Omit<Customer, 'id'>[], storageRecords: any[] } | null>(null);
   const [isImportAlertOpen, setIsImportAlertOpen] = useState(false);
@@ -336,6 +337,41 @@ export function DataSettings() {
     });
   };
 
+  const handleFixRecord1132 = () => {
+    if (!firestore) {
+        toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
+        return;
+    }
+    startFixingTransition(async () => {
+        try {
+            const recordRef = doc(firestore, 'storageRecords', '1132');
+            const recordSnap = await getDoc(recordRef);
+            if (!recordSnap.exists()) {
+                toast({ title: 'Error', description: 'Record 1132 not found.', variant: 'destructive' });
+                return;
+            }
+            const recordData = recordSnap.data();
+            const bagsOut = recordData.bagsOut || 0;
+            const newBagsIn = 1331;
+            const newBagsStored = newBagsIn - bagsOut;
+
+            if (newBagsStored < 0) {
+                toast({ title: 'Error', description: `Cannot update. The number of bags withdrawn (${bagsOut}) is greater than the new bags in count (1331).`, variant: 'destructive' });
+                return;
+            }
+
+            await updateDoc(recordRef, {
+                bagsIn: newBagsIn,
+                bagsStored: newBagsStored
+            });
+
+            toast({ title: 'Success', description: 'Record 1132 has been updated with 1331 bags.' });
+        } catch (error: any) {
+            toast({ title: 'Error', description: `Failed to update record 1132: ${error.message}`, variant: 'destructive' });
+        }
+    });
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-6">
         <Card>
@@ -518,6 +554,24 @@ export function DataSettings() {
                             </AlertDialogFooter>
                         </AlertDialogContent>
                     </AlertDialog>
+                </CardContent>
+            </Card>
+
+             <Card className="w-full border-green-500/50">
+                <CardHeader>
+                    <CardTitle className="text-green-600">Manual Data Fix</CardTitle>
+                    <CardDescription>
+                        A special button to apply a one-time fix for record #1132.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Button onClick={handleFixRecord1132} disabled={isFixing} variant="success">
+                        {isFixing ? (
+                            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Fixing...</>
+                        ) : (
+                            'Set Record #1132 bags to 1331'
+                        )}
+                    </Button>
                 </CardContent>
             </Card>
         </div>

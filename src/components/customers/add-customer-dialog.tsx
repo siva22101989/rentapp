@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import { Loader2, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,21 +18,9 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase/provider';
 import { saveCustomer } from '@/lib/data';
-import { z } from 'zod';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { useAppUser } from '@/firebase/auth/use-user';
+import type { Customer } from '@/lib/definitions';
 
-const CustomerSchema = z.object({
-  name: z.string().min(3, 'Name must be at least 3 characters.'),
-  phone: z.string().min(10, 'Phone number must be at least 10 digits.'),
-  email: z.string().email('Invalid email address.').optional().or(z.literal('')),
-  fatherName: z.string().optional(),
-  village: z.string().optional(),
-});
-
-type CustomerFormData = z.infer<typeof CustomerSchema>;
 
 export function AddCustomerDialog() {
   const { toast } = useToast();
@@ -42,29 +29,56 @@ export function AddCustomerDialog() {
   const firestore = useFirestore();
   const appUser = useAppUser();
 
-  const form = useForm<CustomerFormData>({
-    resolver: zodResolver(CustomerSchema),
-    defaultValues: {
-      name: '',
-      phone: '',
-      email: '',
-      fatherName: '',
-      village: '',
-    },
+  const [formData, setFormData] = useState({
+    name: '',
+    phone: '',
+    email: '',
+    fatherName: '',
+    village: '',
   });
 
-  const onSubmit = (data: CustomerFormData) => {
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      setFormData({
+        name: '',
+        phone: '',
+        email: '',
+        fatherName: '',
+        village: '',
+      });
+    }
+    setIsOpen(open);
+  };
+  
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     if (!firestore || !appUser) {
       toast({ title: 'Error', description: 'Firestore not available or user not logged in.', variant: 'destructive' });
       return;
     }
 
+    if (formData.name.length < 3) {
+      toast({ title: 'Validation Error', description: 'Name must be at least 3 characters.', variant: 'destructive' });
+      return;
+    }
+    if (formData.phone.length < 10) {
+      toast({ title: 'Validation Error', description: 'Phone number must be at least 10 digits.', variant: 'destructive' });
+      return;
+    }
+    if (formData.email && !/^\S+@\S+\.\S+$/.test(formData.email)) {
+        toast({ title: 'Validation Error', description: 'Please enter a valid email address.', variant: 'destructive' });
+        return;
+    }
+
     startTransition(async () => {
       try {
-        await saveCustomer(firestore, data);
+        await saveCustomer(firestore, formData as Omit<Customer, 'id'>);
         toast({ title: 'Success', description: 'Customer added successfully.' });
-        setIsOpen(false);
-        form.reset();
+        handleOpenChange(false);
       } catch (error) {
         console.error(error);
         toast({ title: 'Error', description: 'Failed to save customer.', variant: 'destructive' });
@@ -73,7 +87,7 @@ export function AddCustomerDialog() {
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button>
           <PlusCircle className="mr-2" />
@@ -81,8 +95,7 @@ export function AddCustomerDialog() {
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-sm">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
+          <form onSubmit={handleSubmit}>
             <DialogHeader>
               <DialogTitle>Add New Customer</DialogTitle>
               <DialogDescription>
@@ -90,71 +103,26 @@ export function AddCustomerDialog() {
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-2 py-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Name</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="fatherName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Father's Name</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="village"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Village</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="phone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Phone</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email (Optional)</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="space-y-1">
+                <Label htmlFor="name">Name</Label>
+                <Input id="name" name="name" value={formData.name} onChange={handleChange} required />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="fatherName">Father's Name</Label>
+                <Input id="fatherName" name="fatherName" value={formData.fatherName} onChange={handleChange} />
+              </div>
+               <div className="space-y-1">
+                <Label htmlFor="village">Village</Label>
+                <Input id="village" name="village" value={formData.village} onChange={handleChange} />
+              </div>
+               <div className="space-y-1">
+                <Label htmlFor="phone">Phone</Label>
+                <Input id="phone" name="phone" value={formData.phone} onChange={handleChange} required />
+              </div>
+               <div className="space-y-1">
+                <Label htmlFor="email">Email (Optional)</Label>
+                <Input id="email" name="email" type="email" value={formData.email} onChange={handleChange} />
+              </div>
             </div>
             <DialogFooter>
               <DialogClose asChild>
@@ -172,7 +140,6 @@ export function AddCustomerDialog() {
               </Button>
             </DialogFooter>
           </form>
-        </Form>
       </DialogContent>
     </Dialog>
   );

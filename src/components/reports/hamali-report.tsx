@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -254,7 +253,7 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
                             <SelectItem value="difference">Difference Ledger</SelectItem>
                         </SelectContent>
                     </Select>
-                    <Select onValueChange={setSelectedCustomerId} value={selectedCustomerId} disabled={reportView === 'worker' || reportView === 'difference'}>
+                    <Select onValueChange={setSelectedCustomerId} value={selectedCustomerId} disabled={reportView !== 'customer'}>
                         <SelectTrigger className="w-full sm:w-auto">
                             <SelectValue placeholder="All Customers" />
                         </SelectTrigger>

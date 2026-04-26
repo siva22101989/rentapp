@@ -122,7 +122,7 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
       setCommodityDescription(record.commodityDescription);
       setLocation(record.location || '');
       setStorageStartDate(format(toDate(record.storageStartDate), 'yyyy-MM-dd'));
-      setBagsIn(record.bagsIn ?? '');
+      setBagsIn(record.bagsIn ?? record.bagsStored ?? '');
       setWeight(record.weight ?? '');
       setLorryTractorNo(record.lorryTractorNo || '');
       setKhataAmount(record.khataAmount ?? '');

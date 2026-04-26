@@ -37,9 +37,9 @@ export default function StoragePage() {
     
     const totalInflow = allRecords.reduce((acc, record) => acc + (record.bagsIn || 0), 0);
     const totalOutflow = allRecords.reduce((acc, record) => acc + (record.bagsOut || 0), 0);
-    const balanceStock = allRecords.reduce((acc, record) => acc + record.bagsStored, 0);
+    const activeRecords = allRecords.filter(r => !r.storageEndDate && r.bagsStored > 0);
+    const balanceStock = activeRecords.reduce((acc, record) => acc + record.bagsStored, 0);
 
-    const activeRecords = allRecords.filter(r => !r.storageEndDate);
     const estimatedRent = activeRecords.reduce((total, record) => {
       let recordWithRates = { ...record };
       if (record.rate6Months === undefined || record.rate1Year === undefined) {

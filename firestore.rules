@@ -22,8 +22,8 @@ service cloud.firestore {
     // --- Rules for Specific Collections ---
 
     match /users/{userId} {
-      // A user can read their own profile. This is crucial for other rules to work.
-      allow read: if isSignedIn() && request.auth.uid == userId;
+      // A user can read or create their own profile. This is crucial for other rules to work.
+      allow read, create: if isSignedIn() && request.auth.uid == userId;
       
       // A user can update their own data, but CANNOT change their role or warehouseId.
       // This prevents a user from giving themselves higher permissions or switching tenants.

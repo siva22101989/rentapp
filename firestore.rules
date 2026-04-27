@@ -2,44 +2,8 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /users/{userId} {
-      allow get, list, create, update, delete: if request.auth != null;
-    }
-    match /customers/{customerId} {
-      allow get, list, create, update, delete: if request.auth != null;
-    }
-    match /commodities/{commodityId} {
-      allow get, list, create, update, delete: if request.auth != null;
-    }
-    match /lots/{lotId} {
-      allow get, list, create, update, delete: if request.auth != null;
-    }
-    match /storageRecords/{recordId} {
-      allow get, list, create, update, delete: if request.auth != null;
-    }
-    match /expenses/{expenseId} {
-      allow get, list, create, update, delete: if request.auth != null;
-    }
-    match /borrowings/{borrowingId} {
-      allow get, list, create, update, delete: if request.auth != null;
-    }
-    match /lendings/{lendingId} {
-      allow get, list, create, update, delete: if request.auth != null;
-    }
-    match /otherIncomes/{incomeId} {
-      allow get, list, create, update, delete: if request.auth != null;
-    }
-    match /unloadingRecords/{unloadingId} {
-      allow get, list, create, update, delete: if request.auth != null;
-    }
-    match /dryingRecords/{dryingId} {
-      allow get, list, create, update, delete: if request.auth != null;
-    }
-    match /managedWarehouses/{warehouseId} {
-      allow get, list, create, update, delete: if request.auth != null;
-    }
-    match /settings/{settingId} {
-      allow get, list, create, update, delete: if request.auth != null;
+    match /{document=**} {
+      allow read, write: if true;
     }
   }
 }

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect } from 'react';
@@ -17,37 +16,36 @@ export function FirebaseErrorListener() {
         user: user ? { uid: user.uid, email: user.email } : null,
       });
 
-      const request = {
-        auth: user ? {
-          uid: user.uid,
-          token: {
-            name: user.displayName,
-            picture: user.photoURL,
-            email: user.email,
-            email_verified: user.emailVerified,
-            phone_number: user.phoneNumber,
-            firebase: {
-              identities: user.providerData.reduce((acc, p) => ({ ...acc, [p.providerId]: [p.uid] }), {}),
-              sign_in_provider: user.providerData[0]?.providerId || 'custom'
-            }
-          }
-        } : null,
-        method: error.context.operation,
-        path: `/databases/(default)/documents${error.context.path.startsWith('/') ? '' : '/'}${error.context.path}`,
-        ...(error.context.requestResourceData && { resource: { data: error.context.requestResourceData } }),
-      };
+      // Instead of showing a raw error, show a helpful diagnostic toast.
+      // This problem is likely related to Firebase project configuration, not security rules,
+      // especially if rules have been set to `allow read, write: if true;` and still fail.
       
-      const errorMessage = `The following request was denied by Firestore Security Rules:\n${JSON.stringify(request, null, 2)}`;
+      const diagnosticDescription = (
+        <div className="text-sm">
+          <p className="mb-2">We're unable to access Firestore data. This is often caused by Firebase project configuration issues.</p>
+          <p className="font-semibold mb-1">Please check the following in your Firebase Console:</p>
+          <ul className="list-disc pl-5 space-y-1 text-xs">
+            <li>
+              <strong>API Key & Services:</strong> In the Google Cloud Console, under "APIs & Services" &gt; "Credentials", ensure your API key has no restrictions or that it explicitly allows the <strong>Cloud Firestore API</strong>.
+            </li>
+            <li>
+              <strong>Firestore Database:</strong> Ensure you have created a Firestore database in <strong>Native mode</strong> and that its location is correct.
+            </li>
+             <li>
+              <strong>Authentication Domains:</strong> In Firebase Console &gt; Authentication &gt; Settings &gt; Authorized Domains, ensure your app's domain is listed.
+            </li>
+             <li>
+              <strong>Project ID Match:</strong> Verify the `projectId` in your app's configuration (`vocal-byte-457809-n2`) matches your actual Firebase project.
+            </li>
+          </ul>
+        </div>
+      );
 
       toast({
         variant: "destructive",
-        title: "Firestore: Missing or insufficient permissions.",
-        description: (
-          <pre className="mt-2 w-full rounded-md bg-slate-950 p-4">
-            <code className="text-white">{errorMessage}</code>
-          </pre>
-        ),
-        duration: 20000, 
+        title: "Firestore: Missing or Insufficient Permissions",
+        description: diagnosticDescription,
+        duration: 30000, // Keep it on screen longer
       });
     };
 

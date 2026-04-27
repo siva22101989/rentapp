@@ -39,9 +39,26 @@ export function UserProvider({ children }: { children: ReactNode }) {
         setLoading(false);
         return;
       }
-
-      // Step 1: Check if a user document already exists.
+      
       const userDocRef = doc(firestore, 'users', fbUser.uid);
+
+      // Hardcode provisioning for the main user to bypass multi-tenancy issues.
+      if (fbUser.email === 'sivasandeepreddy01@gmail.com') {
+        const ownerAppUser: AppUser = {
+          id: fbUser.uid,
+          role: 'owner',
+          email: fbUser.email,
+          phone: fbUser.phoneNumber || '',
+        };
+        // Use setDoc with merge to create or update without overwriting other fields.
+        await setDoc(userDocRef, { role: 'owner', email: fbUser.email }, { merge: true });
+        setAppUser(ownerAppUser);
+        setUser(fbUser);
+        setLoading(false);
+        return; // End of flow for the main user
+      }
+
+      // Step 1: Check if a user document already exists for other users.
       const userDocSnap = await getDoc(userDocRef);
 
       if (userDocSnap.exists()) {

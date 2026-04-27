@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useTransition, useMemo } from 'react';
@@ -35,11 +34,12 @@ const EditStorageRecordSchema = z.object({
   customerId: z.string().min(1, 'Customer is required.'),
   commodityDescription: z.string().min(1, 'Commodity is required.'),
   location: z.string().optional(),
-  storageStartDate: z.string().refine(val => !isNaN(Date.parse(val))), // This is Drying End Date for Plot
+  storageStartDate: z.string().refine(val => !isNaN(Date.parse(val))),
   bagsIn: z.coerce.number().int().nonnegative('Must be a non-negative number.'),
   weight: z.coerce.number().nonnegative('Must be a non-negative number.').optional(),
   lorryTractorNo: z.string().optional(),
   khataAmount: z.coerce.number().nonnegative().optional(),
+  hamaliRate: z.coerce.number().nonnegative().optional(),
   // Plot specific fields
   bagsForDrying: z.coerce.number().int().nonnegative('Must be a non-negative number.').optional(),
   dryingStartDate: z.string().optional(),
@@ -84,6 +84,7 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
   const [weight, setWeight] = useState<number | ''>('');
   const [lorryTractorNo, setLorryTractorNo] = useState('');
   const [khataAmount, setKhataAmount] = useState<number | ''>('');
+  const [hamaliRate, setHamaliRate] = useState<number | ''>('');
   // Plot specific
   const [bagsForDrying, setBagsForDrying] = useState<number | ''>('');
   const [dryingStartDate, setDryingStartDate] = useState('');
@@ -126,6 +127,7 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
       setWeight(record.weight ?? '');
       setLorryTractorNo(record.lorryTractorNo || '');
       setKhataAmount(record.khataAmount ?? '');
+      setHamaliRate(record.hamaliRate ?? '');
       // Plot specific
       setBagsForDrying(record.bagsForDrying ?? '');
       setDryingStartDate(record.dryingStartDate ? format(toDate(record.dryingStartDate), 'yyyy-MM-dd') : '');
@@ -191,6 +193,7 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
       weight: Number(weight),
       lorryTractorNo,
       khataAmount: Number(khataAmount),
+      hamaliRate: Number(hamaliRate),
       bagsForDrying: Number(bagsForDrying),
       dryingStartDate,
       customerHamaliPerBag: Number(customerHamaliPerBag),
@@ -228,6 +231,14 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
             lorryTractorNo: data.lorryTractorNo,
             khataAmount: data.khataAmount,
         };
+        
+        if (record.inflowType !== 'Plot') {
+            const directHamaliRate = data.hamaliRate || 0;
+            const hamaliPayable = data.bagsIn * directHamaliRate;
+            updateData.hamaliRate = directHamaliRate;
+            updateData.hamaliPayable = hamaliPayable;
+            updateData.workerHamaliPayable = hamaliPayable;
+        }
         
         if (record.inflowType === 'Plot' && calculatedHamali) {
             updateData.bagsForDrying = data.bagsForDrying;
@@ -344,6 +355,16 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2"><Label htmlFor="edit-bags-in-direct">Bags In</Label><Input id="edit-bags-in-direct" type="number" value={bagsIn} onChange={e => setBagsIn(e.target.value === '' ? '' : Number(e.target.value))} /></div>
                         <div className="space-y-2"><Label htmlFor="edit-weight">Weight (Kgs)</Label><Input id="edit-weight" type="number" step="0.01" value={weight} onChange={e => setWeight(e.target.value === '' ? '' : Number(e.target.value))} /></div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-hamali-rate-direct">Hamali Rate/Bag</Label>
+                            <Input id="edit-hamali-rate-direct" type="number" step="0.01" value={hamaliRate} onChange={e => setHamaliRate(e.target.value === '' ? '' : Number(e.target.value))} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-khataAmount">Khata Amount</Label>
+                            <Input id="edit-khataAmount" type="number" step="0.01" placeholder="0.00" value={khataAmount} onChange={e => setKhataAmount(e.target.value === '' ? '' : Number(e.target.value))}/>
+                        </div>
                     </div>
                 </>
               )}

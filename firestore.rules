@@ -10,42 +10,21 @@ service cloud.firestore {
     }
 
     // Business data collections
-    match /customers { allow list: if request.auth != null; }
-    match /customers/{doc} { allow get, write: if request.auth != null; }
-
-    match /commodities { allow list: if request.auth != null; }
-    match /commodities/{doc} { allow get, write: if request.auth != null; }
-
-    match /lots { allow list: if request.auth != null; }
-    match /lots/{doc} { allow get, write: if request.auth != null; }
-    
-    match /storageRecords { allow list: if request.auth != null; }
-    match /storageRecords/{doc} { allow get, write: if request.auth != null; }
-
-    match /expenses { allow list: if request.auth != null; }
-    match /expenses/{doc} { allow get, write: if request.auth != null; }
-
-    match /borrowings { allow list: if request.auth != null; }
-    match /borrowings/{doc} { allow get, write: if request.auth != null; }
-
-    match /lendings { allow list: if request.auth != null; }
-    match /lendings/{doc} { allow get, write: if request.auth != null; }
-
-    match /otherIncomes { allow list: if request.auth != null; }
-    match /otherIncomes/{doc} { allow get, write: if request.auth != null; }
-
-    match /unloadingRecords { allow list: if request.auth != null; }
-    match /unloadingRecords/{doc} { allow get, write: if request.auth != null; }
-
-    match /dryingRecords { allow list: if request.auth != null; }
-    match /dryingRecords/{doc} { allow get, write: if request.auth != null; }
+    match /customers/{doc} { allow read, write: if request.auth != null; }
+    match /commodities/{doc} { allow read, write: if request.auth != null; }
+    match /lots/{doc} { allow read, write: if request.auth != null; }
+    match /storageRecords/{doc} { allow read, write: if request.auth != null; }
+    match /expenses/{doc} { allow read, write: if request.auth != null; }
+    match /borrowings/{doc} { allow read, write: if request.auth != null; }
+    match /lendings/{doc} { allow read, write: if request.auth != null; }
+    match /otherIncomes/{doc} { allow read, write: if request.auth != null; }
+    match /unloadingRecords/{doc} { allow read, write: if request.auth != null; }
+    match /dryingRecords/{doc} { allow read, write: if request.auth != null; }
     
     // Settings collections
-    match /settings { allow list: if request.auth != null; }
-    match /settings/{doc} { allow get, write: if request.auth != null; }
+    match /settings/{doc} { allow read, write: if request.auth != null; }
     
     // Super-admin only collection
-    match /managedWarehouses { allow list: if request.auth != null; }
-    match /managedWarehouses/{doc} { allow get, write: if request.auth != null; }
+    match /managedWarehouses/{doc} { allow read, write: if request.auth != null; }
   }
 }

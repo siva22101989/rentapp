@@ -16,10 +16,6 @@ export function FirebaseErrorListener() {
         user: user ? { uid: user.uid, email: user.email } : null,
       });
 
-      // Instead of showing a raw error, show a helpful diagnostic toast.
-      // This problem is likely related to Firebase project configuration, not security rules,
-      // especially if rules have been set to `allow read, write: if true;` and still fail.
-      
       const diagnosticDescription = (
         <div className="text-sm">
           <p className="mb-2">We're unable to access Firestore data. This is often caused by Firebase project configuration issues.</p>

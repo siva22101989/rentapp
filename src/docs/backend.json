@@ -103,6 +103,14 @@
           "type": "string",
           "description": "The location within the warehouse where the items are stored (Lot No.)."
         },
+        "bagsIn": {
+          "type": "number",
+          "description": "The total number of bags that were initially stored for this record."
+        },
+        "bagsOut": {
+            "type": "number",
+            "description": "The total number of bags that have been withdrawn from this record."
+        },
         "bagsStored": {
           "type": "number",
           "description": "The number of bags being stored."
@@ -180,6 +188,8 @@
         "customerId",
         "commodityDescription",
         "location",
+        "bagsIn",
+        "bagsOut",
         "bagsStored",
         "storageStartDate",
         "billingCycle"

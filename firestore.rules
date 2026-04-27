@@ -8,10 +8,43 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Allow reads and writes for all authenticated users.
-    // This is a temporary, permissive rule to get the app working again.
-    // We can tighten security later if needed.
-    match /{document=**} {
+    match /users/{userId} {
+      allow read, write: if isSignedIn();
+    }
+    match /customers/{customerId} {
+      allow read, write: if isSignedIn();
+    }
+    match /commodities/{commodityId} {
+      allow read, write: if isSignedIn();
+    }
+    match /lots/{lotId} {
+      allow read, write: if isSignedIn();
+    }
+    match /storageRecords/{recordId} {
+      allow read, write: if isSignedIn();
+    }
+    match /expenses/{expenseId} {
+      allow read, write: if isSignedIn();
+    }
+    match /borrowings/{borrowingId} {
+      allow read, write: if isSignedIn();
+    }
+    match /lendings/{lendingId} {
+      allow read, write: if isSignedIn();
+    }
+    match /otherIncomes/{incomeId} {
+      allow read, write: if isSignedIn();
+    }
+    match /unloadingRecords/{unloadingId} {
+      allow read, write: if isSignedIn();
+    }
+    match /dryingRecords/{dryingId} {
+      allow read, write: if isSignedIn();
+    }
+    match /settings/{document=**} {
+      allow read, write: if isSignedIn();
+    }
+    match /managedWarehouses/{warehouseId} {
       allow read, write: if isSignedIn();
     }
   }

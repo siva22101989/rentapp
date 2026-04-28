@@ -1,15 +1,10 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
 import type { Customer, StorageRecord, UnloadingRecord, Expense, WarehouseInfo } from "@/lib/definitions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-<<<<<<< HEAD
-import { CustomerHamaliReportTable } from './customer-hamali-report-table';
-import { WorkerHamaliReportTable } from './worker-hamali-report-table';
-import { HamaliProfitReportTable } from './hamali-profit-report-table';
-=======
->>>>>>> 891ceda461039c8e5b0e37800a830637d3182fb9
 import { toDate } from '@/lib/utils';
 import { useDateFilter } from '@/firebase/provider';
 import { HamaliLedgerTable } from './hamali-ledger-table';
@@ -30,32 +25,19 @@ export type WorkerHamaliEvent = {
     recordId: string;
     customerId?: string;
     payable: number;
-<<<<<<< HEAD
-    customerCharge?: number;
-=======
     charge?: number;
->>>>>>> 891ceda461039c8e5b0e37800a830637d3182fb9
     paid: number;
     bags?: number;
 }
 
-<<<<<<< HEAD
-export function HamaliReport({ records, customers, unloadingRecords, expenses }: { records: StorageRecord[], customers: Customer[], unloadingRecords: UnloadingRecord[], expenses: Expense[] }) {
-    const [reportView, setReportView] = useState<'customer' | 'worker' | 'profit'>('customer');
-=======
 export function HamaliReport({ records, customers, unloadingRecords, expenses, warehouseInfo }: { records: StorageRecord[], customers: Customer[], unloadingRecords: UnloadingRecord[], expenses: Expense[], warehouseInfo: WarehouseInfo | null }) {
     const [reportView, setReportView] = useState<'customer' | 'worker' | 'difference'>('customer');
->>>>>>> 891ceda461039c8e5b0e37800a830637d3182fb9
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>('all');
     
     const { dateRange, financialYear } = useDateFilter();
 
     useEffect(() => {
-<<<<<<< HEAD
-        if (reportView === 'worker' || reportView === 'profit') {
-=======
         if (reportView === 'worker' || reportView === 'difference') {
->>>>>>> 891ceda461039c8e5b0e37800a830637d3182fb9
             setSelectedCustomerId('all');
         }
     }, [reportView]);
@@ -168,30 +150,12 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses, w
                     charge: sr.hamaliPayable,
                     paid: 0,
                     bags: sr.bagsIn,
-                    customerCharge: sr.hamaliPayable,
                 });
             }
         });
 
         unloadingRecords.forEach(ur => {
             const bagsRemaining = ur.bagsUnloaded - (ur.bagsSentToDrying || 0);
-<<<<<<< HEAD
-            if (bagsRemaining > 0 && ur.totalHamali > 0) {
-                const proportion = bagsRemaining / ur.bagsUnloaded;
-                const customerCharge = ur.totalHamali * proportion;
-                const workerPayable = (ur.workerHamaliPayable ?? ur.totalHamali) * proportion;
-
-                events.push({
-                    date: toDate(ur.unloadingDate),
-                    description: 'Unloading Hamali (pending finalize)',
-                    recordId: ur.billNo || ur.id.substring(0, 5),
-                    customerId: ur.customerId,
-                    payable: workerPayable,
-                    paid: 0,
-                    bags: bagsRemaining,
-                    customerCharge: customerCharge,
-                });
-=======
             if (bagsRemaining > 0 && ur.workerHamaliPayable) {
                 const hamaliPerBag = ur.hamaliPerBag || 0; 
                 const remainingAmount = bagsRemaining * hamaliPerBag;
@@ -207,7 +171,6 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses, w
                         bags: bagsRemaining,
                     });
                 }
->>>>>>> 891ceda461039c8e5b0e37800a830637d3182fb9
             }
         });
 
@@ -218,7 +181,7 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses, w
                 recordId: exp.id,
                 payable: 0,
                 paid: exp.amount,
-                customerCharge: 0,
+                charge: 0,
             });
         });
 
@@ -252,15 +215,6 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses, w
 
 
     const customer = customers.find(c => c.id === selectedCustomerId);
-<<<<<<< HEAD
-    const title = `Hamali ${
-        reportView === 'customer' 
-        ? 'Customer' 
-        : reportView === 'worker'
-        ? 'Worker'
-        : 'Profit'
-    } Ledger ${customer ? `for ${customer.name}` : ''}`;
-=======
     const title = useMemo(() => {
         let viewTitle = '';
         switch(reportView) {
@@ -276,7 +230,6 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses, w
         }
         return `Hamali ${viewTitle} ${customer && reportView === 'customer' ? `for ${customer.name}` : ''}`;
     }, [reportView, customer]);
->>>>>>> 891ceda461039c8e5b0e37800a830637d3182fb9
 
     return (
         <Card>
@@ -286,22 +239,14 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses, w
                     <CardDescription>View ledgers for customer charges or worker payments.</CardDescription>
                 </div>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto flex-wrap">
-<<<<<<< HEAD
-                    <Select onValueChange={(v) => setReportView(v as 'customer' | 'worker' | 'profit')} value={reportView}>
-=======
                     <Select onValueChange={(v) => setReportView(v as 'customer' | 'worker' | 'difference')} value={reportView}>
->>>>>>> 891ceda461039c8e5b0e37800a830637d3182fb9
                         <SelectTrigger className='w-full sm:w-auto'>
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="customer">Customer Ledger</SelectItem>
                             <SelectItem value="worker">Worker Ledger</SelectItem>
-<<<<<<< HEAD
-                            <SelectItem value="profit">Profit Ledger</SelectItem>
-=======
                             <SelectItem value="difference">Difference Ledger</SelectItem>
->>>>>>> 891ceda461039c8e5b0e37800a830637d3182fb9
                         </SelectContent>
                     </Select>
                     <Select onValueChange={setSelectedCustomerId} value={selectedCustomerId} disabled={reportView !== 'customer'}>
@@ -321,36 +266,14 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses, w
             </CardHeader>
             <CardContent>
                 <div>
-<<<<<<< HEAD
-                    {reportView === 'customer' ? (
-                        <CustomerHamaliReportTable 
-                            events={customerHamaliEvents} 
-                            customers={customers}
-                            title={title}
-                        />
-                    ) : reportView === 'worker' ? (
-                        <WorkerHamaliReportTable 
-                            events={workerAndProfitEvents}
-                            customers={customers}
-                            title={title}
-                        />
-                    ) : (
-                         <HamaliProfitReportTable 
-                            events={workerAndProfitEvents}
-                            customers={customers}
-                            title={title}
-                        />
-                    )}
-=======
                    <HamaliLedgerTable
                         customerEvents={customerHamaliEvents}
-                        workerEvents={workerHamaliEvents}
+                        workerEvents={workerAndProfitEvents}
                         customers={customers}
                         title={title}
                         view={reportView}
                         warehouseInfo={warehouseInfo}
                     />
->>>>>>> 891ceda461039c8e5b0e37800a830637d3182fb9
                 </div>
             </CardContent>
         </Card>

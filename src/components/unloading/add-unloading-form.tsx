@@ -315,5 +315,3 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
     </Card>
   );
 }
-
-    

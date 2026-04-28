@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useTransition } from 'react';
 import { Loader2, PlusCircle } from 'lucide-react';
@@ -16,11 +15,9 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase/provider';
 import { z } from 'zod';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { Input } from '../ui/input';
-import { collection, writeBatch, doc, query, where, getDocs, addDoc } from 'firebase/firestore';
+import { Label } from '../ui/label';
+import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
 import { cleanForFirestore } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
@@ -33,56 +30,87 @@ const WarehouseSchema = z.object({
   trialMonths: z.coerce.number().int().nonnegative('Trial months must be a non-negative integer.').optional(),
 });
 
-type WarehouseFormData = z.infer<typeof WarehouseSchema>;
-
 export function AddWarehouseDialog() {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const firestore = useFirestore();
 
-  const form = useForm<WarehouseFormData>({
-    resolver: zodResolver(WarehouseSchema),
-    defaultValues: {
-      name: '',
-      ownerName: '',
-      ownerEmail: '',
-      yearlyAmount: undefined,
-      subscriptionStatus: 'trial',
-      trialMonths: 1,
-    },
-  });
+  const [name, setName] = useState('');
+  const [ownerName, setOwnerName] = useState('');
+  const [ownerEmail, setOwnerEmail] = useState('');
+  const [yearlyAmount, setYearlyAmount] = useState<number | ''>('');
+  const [subscriptionStatus, setSubscriptionStatus] = useState<'active' | 'trial' | 'expired' | 'suspended'>('trial');
+  const [trialMonths, setTrialMonths] = useState<number | ''>(1);
 
-  const onSubmit = (data: WarehouseFormData) => {
+  const resetForm = () => {
+    setName('');
+    setOwnerName('');
+    setOwnerEmail('');
+    setYearlyAmount('');
+    setSubscriptionStatus('trial');
+    setTrialMonths(1);
+  };
+
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open);
+    if (!open) {
+      resetForm();
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
     if (!firestore) {
       toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
+      return;
+    }
+
+    const data = {
+      name,
+      ownerName,
+      ownerEmail,
+      yearlyAmount: Number(yearlyAmount),
+      subscriptionStatus,
+      trialMonths: Number(trialMonths),
+    };
+
+    const validatedFields = WarehouseSchema.safeParse(data);
+    if (!validatedFields.success) {
+      const firstError = Object.values(validatedFields.error.flatten().fieldErrors)[0]?.[0];
+      toast({
+        title: "Validation Error",
+        description: firstError || "Please check your input.",
+        variant: "destructive",
+      });
       return;
     }
 
     startTransition(async () => {
       try {
         const warehousesCollection = collection(firestore, 'managedWarehouses');
-        const q = query(warehousesCollection, where('ownerEmail', '==', data.ownerEmail.toLowerCase()));
+        const q = query(warehousesCollection, where('ownerEmail', '==', validatedFields.data.ownerEmail.toLowerCase()));
         const existingOwnerSnap = await getDocs(q);
 
         if (!existingOwnerSnap.empty) {
-            toast({
-                title: 'Owner Exists',
-                description: 'This email is already assigned as an owner to another warehouse.',
-                variant: 'destructive',
-            });
-            return;
+          toast({
+            title: 'Owner Exists',
+            description: 'This email is already assigned as an owner to another warehouse.',
+            variant: 'destructive',
+          });
+          return;
         }
 
         await addDoc(collection(firestore, 'managedWarehouses'), cleanForFirestore({
-            ...data,
-            ownerEmail: data.ownerEmail.toLowerCase(),
+            ...validatedFields.data,
+            ownerEmail: validatedFields.data.ownerEmail.toLowerCase(),
             createdAt: new Date(),
         }));
 
         toast({ title: 'Success', description: 'New warehouse subscription created. The owner can now sign in.' });
         setIsOpen(false);
-        form.reset();
+        resetForm();
       } catch (error) {
         console.error(error);
         toast({ title: 'Error', description: 'Failed to add warehouse.', variant: 'destructive' });
@@ -91,7 +119,7 @@ export function AddWarehouseDialog() {
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button>
           <PlusCircle className="mr-2" />
@@ -99,8 +127,7 @@ export function AddWarehouseDialog() {
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
+        <form onSubmit={handleSubmit}>
             <DialogHeader>
               <DialogTitle>Onboard New Warehouse</DialogTitle>
               <DialogDescription>
@@ -108,82 +135,40 @@ export function AddWarehouseDialog() {
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Warehouse Name</FormLabel>
-                    <FormControl><Input placeholder="e.g., National Cold Storage" {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-               <FormField
-                control={form.control}
-                name="ownerName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Owner's Full Name</FormLabel>
-                    <FormControl><Input placeholder="e.g., Jane Doe" {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="ownerEmail"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Owner's Email (for login)</FormLabel>
-                    <FormControl><Input type="email" placeholder="owner@example.com" {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+               <div className="space-y-2">
+                <Label htmlFor="name">Warehouse Name</Label>
+                <Input id="name" placeholder="e.g., National Cold Storage" value={name || ''} onChange={(e) => setName(e.target.value)} />
+              </div>
+               <div className="space-y-2">
+                <Label htmlFor="ownerName">Owner's Full Name</Label>
+                <Input id="ownerName" placeholder="e.g., Jane Doe" value={ownerName || ''} onChange={(e) => setOwnerName(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ownerEmail">Owner's Email (for login)</Label>
+                <Input id="ownerEmail" type="email" placeholder="owner@example.com" value={ownerEmail || ''} onChange={(e) => setOwnerEmail(e.target.value)} />
+              </div>
               <div className="grid grid-cols-2 gap-4">
-                <FormField
-                    control={form.control}
-                    name="yearlyAmount"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Yearly Amount</FormLabel>
-                        <FormControl><Input type="number" placeholder="0.00" {...field} value={field.value ?? ''} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                 <FormField
-                    control={form.control}
-                    name="subscriptionStatus"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Status</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl>
-                            <SelectContent>
+                <div className="space-y-2">
+                    <Label htmlFor="yearlyAmount">Yearly Amount</Label>
+                    <Input id="yearlyAmount" type="number" placeholder="0.00" value={yearlyAmount} onChange={(e) => setYearlyAmount(e.target.value === '' ? '' : Number(e.target.value))} />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="subscriptionStatus">Status</Label>
+                    <Select onValueChange={(value: 'active' | 'trial' | 'expired' | 'suspended') => setSubscriptionStatus(value)} value={subscriptionStatus}>
+                        <SelectTrigger id="subscriptionStatus"><SelectValue/></SelectTrigger>
+                        <SelectContent>
                             <SelectItem value="trial">Trial</SelectItem>
                             <SelectItem value="active">Active</SelectItem>
                             <SelectItem value="expired">Expired</SelectItem>
                             <SelectItem value="suspended">Suspended</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
+                        </SelectContent>
+                    </Select>
+                </div>
               </div>
-               <FormField
-                  control={form.control}
-                  name="trialMonths"
-                  render={({ field }) => (
-                  <FormItem>
-                      <FormLabel>Trial Duration (Months)</FormLabel>
-                      <FormControl><Input type="number" placeholder="e.g. 1" {...field} value={field.value ?? ''} /></FormControl>
-                      <FormMessage />
-                  </FormItem>
-                  )}
-              />
+              <div className="space-y-2">
+                <Label htmlFor="trialMonths">Trial Duration (Months)</Label>
+                <Input id="trialMonths" type="number" placeholder="e.g. 1" value={trialMonths} onChange={(e) => setTrialMonths(e.target.value === '' ? '' : Number(e.target.value))} />
+              </div>
             </div>
             <DialogFooter className="pt-4">
               <DialogClose asChild><Button variant="outline" type="button">Cancel</Button></DialogClose>
@@ -192,7 +177,6 @@ export function AddWarehouseDialog() {
               </Button>
             </DialogFooter>
           </form>
-        </Form>
       </DialogContent>
     </Dialog>
   );

@@ -16,7 +16,7 @@ type ReportTableProps = {
     warehouseInfo: WarehouseInfo | null;
 }
 
-export function CustomerHamaliReportTable({ customerEvents, workerEvents, customers, title, view, warehouseInfo }: ReportTableProps) {
+export function HamaliLedgerTable({ customerEvents, workerEvents, customers, title, view, warehouseInfo }: ReportTableProps) {
     const generatedDate = useMemo(() => format(new Date(), 'dd MMM yyyy, hh:mm a'), []);
 
     const getCustomerName = (customerId?: string) => {
@@ -30,7 +30,7 @@ export function CustomerHamaliReportTable({ customerEvents, workerEvents, custom
         return (
             <div className="bg-white p-4 rounded-lg">
                  <div className="mb-4">
-                    <h2 className="text-xl font-bold">GrainDost</h2>
+                    <h2 className="text-xl font-bold">{warehouseInfo?.name || "GrainDost"}</h2>
                     <p className="text-muted-foreground">{title}</p>
                     <p className="text-xs text-muted-foreground">Generated on: {generatedDate}</p>
                 </div>
@@ -96,7 +96,7 @@ export function CustomerHamaliReportTable({ customerEvents, workerEvents, custom
     return (
         <div className="bg-white p-4 rounded-lg">
              <div className="mb-4">
-                <h2 className="text-xl font-bold">GrainDost</h2>
+                <h2 className="text-xl font-bold">{warehouseInfo?.name || "GrainDost"}</h2>
                 <p className="text-muted-foreground">{title}</p>
                 <p className="text-xs text-muted-foreground">Generated on: {generatedDate}</p>
             </div>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo, useTransition } from 'react';
@@ -52,11 +51,12 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
     const appUser = useAppUser();
     const [sendSmsNotification, setSendSmsNotification] = useState(false);
 
-    const smsInfoRef = useMemoFirebase(() => (firestore && appUser ? doc(firestore, 'settings', 'sms') : null), [firestore, appUser]);
-    const { data: smsInfo } = useDoc<SmsInfo>(smsInfoRef);
-
-    const warehouseInfoRef = useMemoFirebase(() => (firestore && appUser ? doc(firestore, 'settings', 'main') : null), [firestore, appUser]);
+    const warehouseInfoRef = useMemoFirebase(
+      () => (firestore && appUser?.warehouseId ? doc(firestore, 'warehouses', appUser.warehouseId) : null),
+      [firestore, appUser]
+    );
     const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
+
 
     const form = useForm<UnloadingFormData>({
         resolver: zodResolver(UnloadingRecordSchema),
@@ -87,8 +87,8 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
     }, [selectedCustomerId, customers]);
 
     const onSubmit = async (data: UnloadingFormData) => {
-        if (!firestore) {
-            toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
+        if (!firestore || !appUser?.warehouseId) {
+            toast({ title: 'Error', description: 'Could not add record: user or warehouse context is missing.', variant: 'destructive' });
             return;
         }
         
@@ -109,6 +109,7 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
                 const unloadingDate = new Date(data.unloadingDate);
                 const rawRecord = {
                     ...data,
+                    warehouseId: appUser.warehouseId,
                     unloadingDate,
                     status: 'Unloading' as const,
                     bagsSentToDrying: 0,
@@ -118,9 +119,9 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
                 const docRef = doc(firestore, 'unloadingRecords', data.billNo);
                 await setDoc(docRef, cleanForFirestore(rawRecord));
 
-                if (sendSmsNotification && smsInfo?.textbeeApiKey && selectedCustomer?.phone) {
+                if (sendSmsNotification && warehouseInfo?.textbeeApiKey && selectedCustomer?.phone) {
                     const defaultTemplate = `Dear {customerName}, your plot bags are unloaded outside of the warehouse,\nNo of bags : {bags} , Commodity : {commodity} on {date}.\nBill No: {billNo}.\nHamali: {hamaliAmount}.\nThank you. - {warehouseName},Owk`;
-                    const template = smsInfo?.smsUnloadingTemplate || defaultTemplate;
+                    const template = warehouseInfo?.smsUnloadingTemplate || defaultTemplate;
                     
                     const message = template
                         .replace('{customerName}', selectedCustomer.name)
@@ -132,8 +133,8 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
                         .replace('{warehouseName}', warehouseInfo?.name || 'GrainDost');
 
                     sendSms({
-                        apiKey: smsInfo.textbeeApiKey,
-                        deviceId: smsInfo.textbeeDeviceId,
+                        apiKey: warehouseInfo.textbeeApiKey,
+                        deviceId: warehouseInfo.textbeeDeviceId,
                         to: selectedCustomer.phone,
                         message,
                     }).catch(console.error);
@@ -290,7 +291,7 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
                             id="sendSmsUnloading" 
                             checked={sendSmsNotification}
                             onCheckedChange={(checked) => setSendSmsNotification(Boolean(checked))}
-                            disabled={!smsInfo?.textbeeApiKey || !selectedCustomer?.phone}
+                            disabled={!warehouseInfo?.textbeeApiKey || !selectedCustomer?.phone}
                         />
                         <label
                             htmlFor="sendSmsUnloading"

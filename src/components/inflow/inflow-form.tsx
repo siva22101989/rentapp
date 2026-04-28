@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useTransition, useState, useEffect, useMemo } from 'react';
@@ -55,11 +54,12 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
     const [lorryTractorNo, setLorryTractorNo] = useState('');
     const [storageStartDate, setStorageStartDate] = useState(new Date().toISOString().split('T')[0]);
 
-    const smsInfoRef = useMemoFirebase(() => (firestore && appUser ? doc(firestore, 'settings', 'sms') : null), [firestore, appUser]);
-    const { data: smsInfo } = useDoc<SmsInfo>(smsInfoRef);
-
-    const warehouseInfoRef = useMemoFirebase(() => (firestore && appUser ? doc(firestore, 'settings', 'main') : null), [firestore, appUser]);
+    const warehouseInfoRef = useMemoFirebase(
+      () => (firestore && appUser?.warehouseId ? doc(firestore, 'warehouses', appUser.warehouseId) : null),
+      [firestore, appUser]
+    );
     const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
+
 
     const customerOptions = customers.map(c => ({ value: c.id, label: c.name }));
     const commodityOptions = commodities.map(c => ({ value: c.name, label: c.name }));
@@ -117,8 +117,8 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
     
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        if (!firestore || !appUser) {
-            toast({ title: 'Error', description: 'Firestore not available or user not logged in.', variant: 'destructive' });
+        if (!firestore || !appUser?.warehouseId) {
+            toast({ title: 'Error', description: 'Could not create record: user or warehouse context is missing.', variant: 'destructive' });
             return;
         }
 
@@ -166,6 +166,7 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                 }
                 
                 const rawRecord: Omit<StorageRecord, 'id'> = {
+                    warehouseId: appUser.warehouseId,
                     customerId: selectedCustomerId,
                     commodityDescription: selectedCommodity,
                     location: selectedLot,
@@ -196,9 +197,9 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                 const docRef = doc(firestore, "storageRecords", nextId);
                 await setDoc(docRef, cleanForFirestore(rawRecord));
 
-                if (sendSmsNotification && smsInfo?.textbeeApiKey && selectedCustomer?.phone) {
+                if (sendSmsNotification && warehouseInfo?.textbeeApiKey && selectedCustomer?.phone) {
                     const defaultTemplate = `Dear {customerName}, your inflow of {bags} bags of {commodity} has been recorded on {date}. Bill No: {billNo}. Hamali: {hamaliAmount}. Thank you. - {warehouseName}`;
-                    const template = smsInfo?.smsInflowTemplate || defaultTemplate;
+                    const template = warehouseInfo?.smsInflowTemplate || defaultTemplate;
 
                     const message = template
                         .replace('{customerName}', selectedCustomer.name)
@@ -210,8 +211,8 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                         .replace('{warehouseName}', warehouseInfo?.name || 'GrainDost');
 
                     sendSms({
-                        apiKey: smsInfo.textbeeApiKey,
-                        deviceId: smsInfo.textbeeDeviceId,
+                        apiKey: warehouseInfo.textbeeApiKey,
+                        deviceId: warehouseInfo.textbeeDeviceId,
                         to: selectedCustomer.phone,
                         message: message,
                     }).catch(console.error);
@@ -365,7 +366,7 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                             id="sendSms" 
                             checked={sendSmsNotification}
                             onCheckedChange={(checked) => setSendSmsNotification(Boolean(checked))}
-                            disabled={!smsInfo?.textbeeApiKey || !selectedCustomer?.phone}
+                            disabled={!warehouseInfo?.textbeeApiKey || !selectedCustomer?.phone}
                         />
                         <label
                             htmlFor="sendSms"

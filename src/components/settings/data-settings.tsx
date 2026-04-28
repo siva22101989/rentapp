@@ -6,9 +6,9 @@ import { Loader2, Trash2, Download, Upload, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useFirestore } from '@/firebase/provider';
+import { useFirestore, useAppUser } from '@/firebase/provider';
 import { useToast } from '@/hooks/use-toast';
-import { collection, writeBatch, getDocs, doc } from 'firebase/firestore';
+import { collection, writeBatch, getDocs, doc, query, where, getDoc, updateDoc } from 'firebase/firestore';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,7 +27,7 @@ import type { Customer } from '@/lib/definitions';
 // Collections to clear for testing purposes (preserving setup data)
 const TRANSACTIONAL_COLLECTIONS = ['customers', 'storageRecords', 'expenses', 'unloadingRecords', 'dryingRecords', 'borrowings', 'lendings', 'otherIncomes', 'users'];
 // All collections for full backup
-const ALL_DATA_COLLECTIONS = ['customers', 'storageRecords', 'expenses', 'unloadingRecords', 'dryingRecords', 'commodities', 'lots', 'borrowings', 'lendings', 'otherIncomes', 'settings'];
+const ALL_DATA_COLLECTIONS = ['customers', 'storageRecords', 'expenses', 'unloadingRecords', 'dryingRecords', 'commodities', 'lots', 'borrowings', 'lendings', 'otherIncomes', 'warehouses'];
 
 export function DataSettings() {
   const [isClearingCache, startClearingCacheTransition] = useTransition();
@@ -35,12 +35,14 @@ export function DataSettings() {
   const [isExporting, startExportingTransition] = useTransition();
   const [isImporting, startImportingTransition] = useTransition();
   const [isClearingUnloading, startClearingUnloadingTransition] = useTransition();
+  const [isFixing, startFixingTransition] = useTransition();
   
   const [dataToImport, setDataToImport] = useState<{ customersToCreate: Omit<Customer, 'id'>[], storageRecords: any[] } | null>(null);
   const [isImportAlertOpen, setIsImportAlertOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const firestore = useFirestore();
+  const appUser = useAppUser();
   const { toast } = useToast();
 
   const handleClearCache = () => {
@@ -73,13 +75,21 @@ export function DataSettings() {
   };
 
   const clearData = async (collectionsToClear: string[]) => {
-    if (!firestore) {
-      throw new Error('Firestore is not initialized.');
+    if (!firestore || !appUser?.warehouseId) {
+      throw new Error('Firestore is not initialized or user is not in a warehouse.');
     }
     let deletedCount = 0;
     for (const collectionName of collectionsToClear) {
       const collectionRef = collection(firestore, collectionName);
-      const snapshot = await getDocs(collectionRef);
+      let q;
+      // Special case for 'users': don't delete the owner
+      if (collectionName === 'users') {
+        q = query(collectionRef, where('warehouseId', '==', appUser.warehouseId), where('role', '!=', 'owner'));
+      } else {
+        q = query(collectionRef, where('warehouseId', '==', appUser.warehouseId));
+      }
+      
+      const snapshot = await getDocs(q);
       if (snapshot.empty) continue;
       
       const batches = [];
@@ -101,10 +111,10 @@ export function DataSettings() {
   const handleClearDatabase = async () => {
     startClearingDbTransition(async () => {
         try {
-            const deletedCount = await clearData(TRANSACTIONAL_COLLECTIONS);
+            const deletedCount = await clearData(TRANSACTIONAL_COLLECTIONS.filter(c => c !== 'users'));
             toast({
                 title: 'Transactional Data Cleared',
-                description: `Successfully cleared transactional data. Commodities and lots were not affected. Total documents removed: ${deletedCount}. The page will now reload.`,
+                description: `Successfully cleared transactional data for this warehouse. Total documents removed: ${deletedCount}. The page will now reload.`,
             });
             setTimeout(() => {
                 window.location.reload();
@@ -125,7 +135,7 @@ export function DataSettings() {
             const deletedCount = await clearData(['unloadingRecords']);
             toast({
                 title: 'Unloading Records Cleared',
-                description: `Successfully cleared all unloading records. Total documents removed: ${deletedCount}. The page will now reload.`,
+                description: `Successfully cleared all unloading records for this warehouse. Total documents removed: ${deletedCount}. The page will now reload.`,
             });
             setTimeout(() => {
                 window.location.reload();
@@ -141,17 +151,27 @@ export function DataSettings() {
   };
 
   const handleExportData = async () => {
-    if (!firestore) {
-      toast({ title: 'Error', description: 'Firestore is not initialized.', variant: 'destructive' });
+    if (!firestore || !appUser?.warehouseId) {
+      toast({ title: 'Error', description: 'User or warehouse context is missing.', variant: 'destructive' });
       return;
     }
     startExportingTransition(async () => {
       try {
         const data: { [key: string]: any[] } = {};
         for (const collectionName of ALL_DATA_COLLECTIONS) {
-          const collectionRef = collection(firestore, collectionName);
-          const snapshot = await getDocs(collectionRef);
-          data[collectionName] = snapshot.docs.map(d => ({ ...d.data(), id: d.id }));
+          let snapshot;
+          if (collectionName === 'warehouses') {
+            const docRef = doc(firestore, 'warehouses', appUser.warehouseId);
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+              data[collectionName] = [{ ...docSnap.data(), id: docSnap.id }];
+            }
+          } else {
+            const collectionRef = collection(firestore, collectionName);
+            const q = query(collectionRef, where('warehouseId', '==', appUser.warehouseId));
+            snapshot = await getDocs(q);
+            data[collectionName] = snapshot.docs.map(d => ({ ...d.data(), id: d.id }));
+          }
         }
 
         const jsonString = JSON.stringify(data, (key, value) => {
@@ -263,7 +283,10 @@ export function DataSettings() {
   };
   
   const handleConfirmImport = () => {
-    if (!dataToImport || !firestore) return;
+    if (!dataToImport || !firestore || !appUser?.warehouseId) {
+        toast({ title: 'Error', description: 'Data, Firestore, or Warehouse ID not available for import.', variant: 'destructive' });
+        return;
+    }
     
     startImportingTransition(async () => {
       try {
@@ -274,7 +297,7 @@ export function DataSettings() {
 
         for (const customerData of dataToImport.customersToCreate) {
             const customerRef = doc(collection(firestore, 'customers'));
-            batch.set(customerRef, cleanForFirestore(customerData));
+            batch.set(customerRef, cleanForFirestore({ ...customerData, warehouseId: appUser.warehouseId }));
             customerNameIdMap.set(customerData.name.toLowerCase().trim(), customerRef.id);
         }
         
@@ -286,6 +309,7 @@ export function DataSettings() {
                  const finalRecord = {
                     ...rest,
                     customerId: customerId,
+                    warehouseId: appUser.warehouseId,
                     bagsOut: 0,
                     storageEndDate: null,
                     billingCycle: '6-Month Initial',
@@ -310,6 +334,41 @@ export function DataSettings() {
       } catch (error: any) {
         toast({ title: 'Import Failed', description: `An error occurred: ${error.message}`, variant: 'destructive'});
       }
+    });
+  };
+
+  const handleFixRecord1132 = () => {
+    if (!firestore) {
+        toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
+        return;
+    }
+    startFixingTransition(async () => {
+        try {
+            const recordRef = doc(firestore, 'storageRecords', '1132');
+            const recordSnap = await getDoc(recordRef);
+            if (!recordSnap.exists()) {
+                toast({ title: 'Error', description: 'Record 1132 not found.', variant: 'destructive' });
+                return;
+            }
+            const recordData = recordSnap.data();
+            const bagsOut = recordData.bagsOut || 0;
+            const newBagsIn = 1331;
+            const newBagsStored = newBagsIn - bagsOut;
+
+            if (newBagsStored < 0) {
+                toast({ title: 'Error', description: `Cannot update. The number of bags withdrawn (${bagsOut}) is greater than the new bags in count (1331).`, variant: 'destructive' });
+                return;
+            }
+
+            await updateDoc(recordRef, {
+                bagsIn: newBagsIn,
+                bagsStored: newBagsStored
+            });
+
+            toast({ title: 'Success', description: 'Record 1132 has been updated with 1331 bags.' });
+        } catch (error: any) {
+            toast({ title: 'Error', description: `Failed to update record 1132: ${error.message}`, variant: 'destructive' });
+        }
     });
   };
 
@@ -436,7 +495,7 @@ export function DataSettings() {
                             <AlertDialogHeader>
                                 <AlertDialogTitle>Are you sure you want to do this?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                    This will permanently delete all unloading records from the database. This action cannot be undone.
+                                    This will permanently delete all unloading records from the database for your warehouse. This action cannot be undone.
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -476,7 +535,7 @@ export function DataSettings() {
                             <AlertDialogHeader>
                                 <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                    This action is permanent and cannot be undone. This will delete all customers, storage records, expenses, and **all user accounts**. Your Commodities and Lots will not be affected. You will be logged out and the next person to sign in with Google will become the new Super Admin.
+                                    This action is permanent and cannot be undone. This will delete all customers, storage records, and expenses for your warehouse. Your Commodities and Lots will not be affected. Your team members will NOT be deleted.
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -495,6 +554,24 @@ export function DataSettings() {
                             </AlertDialogFooter>
                         </AlertDialogContent>
                     </AlertDialog>
+                </CardContent>
+            </Card>
+
+            <Card className="w-full border-green-500/50">
+                <CardHeader>
+                    <CardTitle className="text-green-600">Manual Data Fix</CardTitle>
+                    <CardDescription>
+                        A special button to apply a one-time fix for record #1132.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Button onClick={handleFixRecord1132} disabled={isFixing} variant="success">
+                        {isFixing ? (
+                            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Fixing...</>
+                        ) : (
+                            'Set Record #1132 bags to 1331'
+                        )}
+                    </Button>
                 </CardContent>
             </Card>
         </div>

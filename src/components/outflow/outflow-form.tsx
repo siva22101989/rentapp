@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useTransition, useMemo } from 'react';
@@ -9,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import type { Customer, StorageRecord, Payment, Outflow, WarehouseInfo, Commodity, SmsInfo } from '@/lib/definitions';
+import type { Customer, StorageRecord, Payment, Outflow, WarehouseInfo, Commodity } from '@/lib/definitions';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Separator } from '../ui/separator';
@@ -58,10 +57,10 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
     const [totalPendingHamali, setTotalPendingHamali] = useState(0);
     const [totalBags, setTotalBags] = useState(0);
 
-    const smsInfoRef = useMemoFirebase(() => (firestore && appUser ? doc(firestore, 'settings', 'sms') : null), [firestore, appUser]);
-    const { data: smsInfo } = useDoc<SmsInfo>(smsInfoRef);
-
-    const warehouseInfoRef = useMemoFirebase(() => (firestore && appUser ? doc(firestore, 'settings', 'main') : null), [firestore, appUser]);
+    const warehouseInfoRef = useMemoFirebase(
+      () => (firestore && appUser?.warehouseId ? doc(firestore, 'warehouses', appUser.warehouseId) : null),
+      [firestore, appUser]
+    );
     const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
     const customerOptions = customers.map(c => ({ value: c.id, label: c.name }));
@@ -253,24 +252,38 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                 
                 await batch.commit();
 
-                if (sendSmsNotification && smsInfo?.textbeeApiKey && selectedCustomer?.phone) {
-                    const defaultTemplate = `Dear {customerName}, your withdrawal of {bags} bags has been processed on {date}. Rent: {rentDue}, Hamali: {hamaliPending}, Total: {totalPayable}. Thank you. - {warehouseName}`;
-                    const template = smsInfo?.smsOutflowTemplate || defaultTemplate;
+                if (sendSmsNotification && warehouseInfo?.textbeeApiKey && selectedCustomer?.phone) {
+                    const defaultTemplate = `Dear {customerName}, withdrawal of {bags} bags of {commodity} recorded. Invoice: {billNo},\nRent: {rent},\nTotal: {total}.\nThank you. - {warehouseName}.`;
+                    const template = warehouseInfo?.smsOutflowTemplate || defaultTemplate;
+
+                    let commodity = 'various items';
+                    let billNo = 'Multiple';
+
+                    if (withdrawalEntries.length === 1) {
+                        const recordId = withdrawalEntries[0][0];
+                        const record = records.find(r => r.id === recordId);
+                        if (record) {
+                            commodity = record.commodityDescription;
+                        }
+                        billNo = recordId;
+                    } else {
+                        billNo = withdrawalEntries.map(([id]) => id).join(', ');
+                    }
                     
                     const message = template
                         .replace('{customerName}', selectedCustomer.name)
                         .replace('{bags}', String(totalBags))
-                        .replace('{date}', format(withdrawalDate, 'dd/MM/yy'))
-                        .replace('{rentDue}', formatCurrency(totalRent))
-                        .replace('{hamaliPending}', formatCurrency(totalPendingHamali))
-                        .replace('{totalPayable}', formatCurrency(totalPayable))
+                        .replace('{commodity}', commodity)
+                        .replace('{billNo}', billNo)
+                        .replace('{rent}', formatCurrency(totalRent))
+                        .replace('{total}', formatCurrency(totalPayable))
                         .replace('{warehouseName}', warehouseInfo?.name || 'GrainDost');
 
                     sendSms({
-                        apiKey: smsInfo.textbeeApiKey,
-                        deviceId: smsInfo.textbeeDeviceId,
+                        apiKey: warehouseInfo.textbeeApiKey,
+                        deviceId: warehouseInfo.textbeeDeviceId,
                         to: selectedCustomer.phone,
-                        message,
+                        message: message,
                     }).catch(console.error);
                 }
 
@@ -441,7 +454,7 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                                     id="sendSmsOutflow" 
                                     checked={sendSmsNotification}
                                     onCheckedChange={(checked) => setSendSmsNotification(Boolean(checked))}
-                                    disabled={!smsInfo?.textbeeApiKey || !selectedCustomer?.phone}
+                                    disabled={!warehouseInfo?.textbeeApiKey || !selectedCustomer?.phone}
                                 />
                                 <label
                                     htmlFor="sendSmsOutflow"

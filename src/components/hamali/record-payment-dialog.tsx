@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition, useMemo } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Hammer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -24,6 +24,7 @@ import { addDoc, collection } from 'firebase/firestore';
 import { cleanForFirestore } from '@/lib/utils';
 import type { Expense } from '@/lib/definitions';
 import { format } from 'date-fns';
+import { useAppUser } from '@/firebase/auth/use-user';
 
 const HamaliPaymentSchema = z.object({
   amount: z.coerce.number().positive('Amount must be a positive number.'),
@@ -35,12 +36,13 @@ type HamaliPaymentFormData = z.infer<typeof HamaliPaymentSchema>;
 export function RecordHamaliPaymentDialog({ 
     children, 
 }: { 
-    children: React.ReactNode, 
+    children?: React.ReactNode, 
 }) {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const firestore = useFirestore();
+  const appUser = useAppUser();
 
   const form = useForm<HamaliPaymentFormData>({
     resolver: zodResolver(HamaliPaymentSchema),
@@ -51,8 +53,8 @@ export function RecordHamaliPaymentDialog({
   });
 
   const onSubmit = (data: HamaliPaymentFormData) => {
-    if (!firestore) {
-      toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
+    if (!firestore || !appUser?.warehouseId) {
+      toast({ title: 'Error', description: 'Could not record payment: user or warehouse context is missing.', variant: 'destructive' });
       return;
     }
 
@@ -63,6 +65,7 @@ export function RecordHamaliPaymentDialog({
           amount: data.amount,
           date: new Date(data.date),
           category: 'Hamali Paid' as const,
+          warehouseId: appUser.warehouseId,
         };
         await addDoc(collection(firestore, 'expenses'), cleanForFirestore(newExpense));
         
@@ -79,7 +82,14 @@ export function RecordHamaliPaymentDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogTrigger asChild>
+        {children || (
+            <Button>
+                <Hammer className="mr-2" />
+                Record Hamali Payment
+            </Button>
+        )}
+      </DialogTrigger>
       <DialogContent className="sm:max-w-sm">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>

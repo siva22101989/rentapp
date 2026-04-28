@@ -22,7 +22,7 @@ export function ReportClient({ records, customers, unloadingRecords, initialCust
     const statementUnloadingRecords = unloadingRecords.filter(r => r.customerId === selectedCustomerId);
 
     const warehouseInfoRef = useMemoFirebase(
-      () => (firestore && appUser ? doc(firestore, 'settings', 'main') : null),
+      () => (firestore && appUser?.warehouseId ? doc(firestore, 'warehouses', appUser.warehouseId) : null),
       [firestore, appUser]
     );
     const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);

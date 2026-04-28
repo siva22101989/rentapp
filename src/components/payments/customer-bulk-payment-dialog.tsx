@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import type { Payment, StorageRecord, Customer, UnloadingRecord, WarehouseInfo, SmsInfo } from '@/lib/definitions';
+import type { Payment, StorageRecord, Customer, UnloadingRecord, WarehouseInfo } from '@/lib/definitions';
 import { formatCurrency, cleanForFirestore, toDate } from '@/lib/utils';
 import { useFirestore } from '@/firebase/provider';
 import { doc, writeBatch, arrayUnion } from 'firebase/firestore';
@@ -56,10 +56,10 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
   const appUser = useAppUser();
   const [sendSmsNotification, setSendSmsNotification] = useState(true);
 
-  const smsInfoRef = useMemoFirebase(() => (firestore && appUser ? doc(firestore, 'settings', 'sms') : null), [firestore, appUser]);
-  const { data: smsInfo } = useDoc<SmsInfo>(smsInfoRef);
-
-  const warehouseInfoRef = useMemoFirebase(() => (firestore && appUser ? doc(firestore, 'settings', 'main') : null), [firestore, appUser]);
+  const warehouseInfoRef = useMemoFirebase(
+    () => (firestore && appUser?.warehouseId ? doc(firestore, 'warehouses', appUser.warehouseId) : null),
+    [firestore, appUser]
+  );
   const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
 
@@ -213,9 +213,9 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
         if (settledRecordIds.length > 0) { description += ` Settled bills: ${settledRecordIds.join(', ')}.`; }
         if (partiallyPaidRecordIds.size > 0) { description += ` Partially paid: ${Array.from(partiallyPaidRecordIds).join(', ')}.`; }
 
-        if (sendSmsNotification && smsInfo?.textbeeApiKey && selectedCustomer?.phone) {
+        if (sendSmsNotification && warehouseInfo?.textbeeApiKey && selectedCustomer?.phone) {
             const defaultTemplate = `Dear {customerName}, thank you for your payment of {paymentAmount} on {date}. Your account has been updated. - {warehouseName}`;
-            const template = smsInfo?.smsPaymentTemplate || defaultTemplate;
+            const template = warehouseInfo?.smsPaymentTemplate || defaultTemplate;
             
             const message = template
                 .replace('{customerName}', selectedCustomer.name)
@@ -224,8 +224,8 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
                 .replace('{warehouseName}', warehouseInfo?.name || 'GrainDost');
 
             sendSms({
-                apiKey: smsInfo.textbeeApiKey,
-                deviceId: smsInfo.textbeeDeviceId,
+                apiKey: warehouseInfo.textbeeApiKey,
+                deviceId: warehouseInfo.textbeeDeviceId,
                 to: selectedCustomer.phone,
                 message,
             }).catch(console.error);
@@ -351,7 +351,7 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
                         id="sendSmsPayment" 
                         checked={sendSmsNotification}
                         onCheckedChange={(checked) => setSendSmsNotification(Boolean(checked))}
-                        disabled={!smsInfo?.textbeeApiKey || !selectedCustomer?.phone}
+                        disabled={!warehouseInfo?.textbeeApiKey || !selectedCustomer?.phone}
                     />
                     <label
                         htmlFor="sendSmsPayment"

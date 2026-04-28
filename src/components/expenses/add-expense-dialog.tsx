@@ -17,15 +17,14 @@ import {
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { expenseCategories, type Borrowing, type Payment } from '@/lib/definitions';
+import { expenseCategories, type Borrowing, type Payment, type ExpenseCategory } from '@/lib/definitions';
 import { Textarea } from '../ui/textarea';
 import { useFirestore } from '@/firebase/provider';
 import { z } from 'zod';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
+import { Label } from '../ui/label';
 import { doc, writeBatch, arrayUnion, collection } from 'firebase/firestore';
 import { cleanForFirestore, formatCurrency } from '@/lib/utils';
+import { useAppUser } from '@/firebase/auth/use-user';
 
 const ExpenseSchema = z.object({
   description: z.string().min(2, 'Description is required.'),
@@ -43,34 +42,63 @@ const ExpenseSchema = z.object({
     }
 });
 
-
-type ExpenseFormData = z.infer<typeof ExpenseSchema>;
-
 export function AddExpenseDialog({ borrowings }: { borrowings: Borrowing[] }) {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const firestore = useFirestore();
+  const appUser = useAppUser();
 
-  const form = useForm<ExpenseFormData>({
-    resolver: zodResolver(ExpenseSchema),
-    defaultValues: {
-      description: '',
-      amount: undefined,
-      date: new Date().toISOString().split('T')[0],
-      category: undefined,
-      borrowingId: undefined,
-    },
-  });
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [category, setCategory] = useState<ExpenseCategory | undefined>(undefined);
+  const [description, setDescription] = useState('');
+  const [amount, setAmount] = useState<number | ''>('');
+  const [borrowingId, setBorrowingId] = useState<string | undefined>(undefined);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const selectedCategory = form.watch('category');
-  const isLoanPayment = selectedCategory === 'Loan Repayment';
+  const isLoanPayment = category === 'Loan Repayment';
+  
+  const resetForm = () => {
+    setDate(new Date().toISOString().split('T')[0]);
+    setCategory(undefined);
+    setDescription('');
+    setAmount('');
+    setBorrowingId(undefined);
+    setErrors({});
+  }
 
-  const onSubmit = (data: ExpenseFormData) => {
-    if (!firestore) {
-      toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrors({});
+    if (!firestore || !appUser?.warehouseId) {
+      toast({ title: 'Error', description: 'Could not add expense: user or warehouse context is missing.', variant: 'destructive' });
       return;
     }
+
+    const dataToValidate = {
+        description,
+        amount: Number(amount),
+        date,
+        category,
+        borrowingId,
+    };
+
+    const validationResult = ExpenseSchema.safeParse(dataToValidate);
+    if (!validationResult.success) {
+        const fieldErrors = validationResult.error.flatten().fieldErrors;
+        const newErrors: Record<string, string> = {};
+        Object.keys(fieldErrors).forEach(key => {
+          const errorKey = key as keyof typeof fieldErrors;
+          if (fieldErrors[errorKey]) {
+            newErrors[key] = fieldErrors[errorKey]![0];
+          }
+        });
+        setErrors(newErrors);
+        toast({ title: "Validation Error", description: "Please check your input.", variant: "destructive"});
+        return;
+    }
+    
+    const data = validationResult.data;
 
     startTransition(async () => {
       try {
@@ -89,6 +117,7 @@ export function AddExpenseDialog({ borrowings }: { borrowings: Borrowing[] }) {
           amount: data.amount,
           date: new Date(data.date),
           category: data.category,
+          warehouseId: appUser.warehouseId,
         };
         const expenseRef = doc(collection(firestore, 'expenses'));
         batch.set(expenseRef, cleanForFirestore(newExpense));
@@ -113,13 +142,7 @@ export function AddExpenseDialog({ borrowings }: { borrowings: Borrowing[] }) {
         toast({ title: 'Success', description: successMessage });
 
         setIsOpen(false);
-        form.reset({
-          description: '',
-          amount: undefined,
-          date: new Date().toISOString().split('T')[0],
-          category: undefined,
-          borrowingId: undefined,
-        });
+        resetForm();
       } catch (error) {
         console.error(error);
         toast({ title: 'Error', description: 'Failed to add expense.', variant: 'destructive' });
@@ -128,7 +151,7 @@ export function AddExpenseDialog({ borrowings }: { borrowings: Borrowing[] }) {
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={(open) => { setIsOpen(open); if (!open) resetForm(); }}>
       <DialogTrigger asChild>
         <Button variant="default">
           <PlusCircle className="mr-2" />
@@ -136,8 +159,7 @@ export function AddExpenseDialog({ borrowings }: { borrowings: Borrowing[] }) {
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
+          <form onSubmit={handleSubmit}>
             <DialogHeader>
               <DialogTitle>Add New Expense</DialogTitle>
               <DialogDescription>
@@ -145,104 +167,58 @@ export function AddExpenseDialog({ borrowings }: { borrowings: Borrowing[] }) {
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-              <FormField
-                control={form.control}
-                name="date"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Date</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="category"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Category</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a category" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {expenseCategories.map(cat => (
-                          <SelectItem key={cat} value={cat}>
-                            {cat}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="space-y-2">
+                <Label htmlFor="date">Date</Label>
+                <Input type="date" value={date} onChange={e => setDate(e.target.value)} />
+                {errors.date && <p className="text-sm font-medium text-destructive">{errors.date}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="category">Category</Label>
+                <Select onValueChange={(value: ExpenseCategory) => setCategory(value)} value={category}>
+                  <SelectTrigger id="category"><SelectValue placeholder="Select a category" /></SelectTrigger>
+                  <SelectContent>
+                    {expenseCategories.map(cat => (
+                      <SelectItem key={cat} value={cat}>
+                        {cat}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.category && <p className="text-sm font-medium text-destructive">{errors.category}</p>}
+              </div>
 
               {isLoanPayment && (
-                <FormField
-                  control={form.control}
-                  name="borrowingId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Loan Account (Borrowing)</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select loan to pay against" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent className="w-auto min-w-[var(--radix-select-trigger-width)]">
-                          {borrowings
-                            .filter(b => b.status !== 'Paid Off')
-                            .map(b => (
-                            <SelectItem key={b.id} value={b.id}>
-                              {b.lenderName} ({formatCurrency(b.principal)})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="space-y-2">
+                  <Label htmlFor="borrowingId">Loan Account (Borrowing)</Label>
+                  <Select onValueChange={setBorrowingId} value={borrowingId}>
+                    <SelectTrigger id="borrowingId"><SelectValue placeholder="Select loan to pay against" /></SelectTrigger>
+                    <SelectContent className="w-auto min-w-[var(--radix-select-trigger-width)]">
+                      {borrowings
+                        .filter(b => b.status !== 'Paid Off')
+                        .map(b => (
+                        <SelectItem key={b.id} value={b.id}>
+                          {b.lenderName} ({formatCurrency(b.principal)})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.borrowingId && <p className="text-sm font-medium text-destructive">{errors.borrowingId}</p>}
+                </div>
               )}
 
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea placeholder="e.g., Petrol for generator" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="amount"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Amount</FormLabel>
-                    <FormControl>
-                      <Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea id="description" placeholder="e.g., Petrol for generator" value={description} onChange={e => setDescription(e.target.value)} />
+                {errors.description && <p className="text-sm font-medium text-destructive">{errors.description}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="amount">Amount</Label>
+                <Input id="amount" type="number" step="0.01" placeholder="0.00" value={amount} onChange={e => setAmount(e.target.value === '' ? '' : Number(e.target.value))} />
+                {errors.amount && <p className="text-sm font-medium text-destructive">{errors.amount}</p>}
+              </div>
             </div>
             <DialogFooter>
-              <DialogClose asChild>
-                <Button variant="outline" type="button">Cancel</Button>
-              </DialogClose>
+              <DialogClose asChild><Button variant="outline" type="button">Cancel</Button></DialogClose>
               <Button type="submit" disabled={isPending}>
                 {isPending ? (
                   <>
@@ -255,7 +231,6 @@ export function AddExpenseDialog({ borrowings }: { borrowings: Borrowing[] }) {
               </Button>
             </DialogFooter>
           </form>
-        </Form>
       </DialogContent>
     </Dialog>
   );

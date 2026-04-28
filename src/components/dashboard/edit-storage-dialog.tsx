@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useTransition, useMemo } from 'react';
@@ -15,32 +14,32 @@ import {
   DialogClose,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import type { Customer, StorageRecord, Commodity, Lot, HamaliChargeItem } from '@/lib/definitions';
 import { format, differenceInDays } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { toDate, cleanForFirestore, formatCurrency } from '@/lib/utils';
-import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { useFirestore } from '@/firebase/provider';
 import { updateStorageRecord } from '@/lib/data';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
-import { collection } from 'firebase/firestore';
+import { collection, query, where } from 'firebase/firestore';
 import { Separator } from '../ui/separator';
+import { useAppUser } from '@/firebase/auth/use-user';
 
 
 const EditStorageRecordSchema = z.object({
   customerId: z.string().min(1, 'Customer is required.'),
   commodityDescription: z.string().min(1, 'Commodity is required.'),
   location: z.string().optional(),
-  storageStartDate: z.string().refine(val => !isNaN(Date.parse(val))), // This is Drying End Date for Plot
+  storageStartDate: z.string().refine(val => !isNaN(Date.parse(val))),
   bagsIn: z.coerce.number().int().nonnegative('Must be a non-negative number.'),
   weight: z.coerce.number().nonnegative('Must be a non-negative number.').optional(),
   lorryTractorNo: z.string().optional(),
   khataAmount: z.coerce.number().nonnegative().optional(),
+  hamaliRate: z.coerce.number().nonnegative().optional(),
   // Plot specific fields
   bagsForDrying: z.coerce.number().int().nonnegative('Must be a non-negative number.').optional(),
   dryingStartDate: z.string().optional(),
@@ -74,16 +73,35 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const firestore = useFirestore();
+  const appUser = useAppUser();
+  
+  // State for form fields
+  const [customerId, setCustomerId] = useState('');
+  const [commodityDescription, setCommodityDescription] = useState('');
+  const [location, setLocation] = useState('');
+  const [storageStartDate, setStorageStartDate] = useState('');
+  const [bagsIn, setBagsIn] = useState<number | ''>('');
+  const [weight, setWeight] = useState<number | ''>('');
+  const [lorryTractorNo, setLorryTractorNo] = useState('');
+  const [khataAmount, setKhataAmount] = useState<number | ''>('');
+  const [hamaliRate, setHamaliRate] = useState<number | ''>('');
+  // Plot specific
+  const [bagsForDrying, setBagsForDrying] = useState<number | ''>('');
+  const [dryingStartDate, setDryingStartDate] = useState('');
+  const [customerHamaliPerBag, setCustomerHamaliPerBag] = useState<number | ''>('');
+  const [workerHamaliPerBag, setWorkerHamaliPerBag] = useState<number | ''>('');
+  const [pavHamaliPerBag, setPavHamaliPerBag] = useState<number | ''>('');
+  const [cuppaHamaliPerBag, setCuppaHamaliPerBag] = useState<number | ''>('');
 
   const commoditiesQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'commodities') : null),
-    [firestore]
+    () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'commodities'), where('warehouseId', '==', appUser.warehouseId)) : null),
+    [firestore, appUser]
   );
   const { data: commodities, loading: loadingCommodities } = useCollection<Commodity>(commoditiesQuery);
 
   const lotsQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'lots') : null),
-    [firestore]
+    () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'lots'), where('warehouseId', '==', appUser.warehouseId)) : null),
+    [firestore, appUser]
   );
   const { data: lots, loading: loadingLots } = useCollection<Lot>(lotsQuery);
 
@@ -97,42 +115,32 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
     return occupancy;
   }, [allRecords, record.id]);
 
-  const form = useForm<EditStorageRecordFormData>({
-    resolver: zodResolver(EditStorageRecordSchema),
-    defaultValues: {}, 
-  });
-
   const handleOpenChange = (open: boolean) => {
     if (open) {
       const getRate = (desc: string) => record.hamaliDetails?.find(d => d.description.startsWith(desc))?.rate;
 
-      form.reset({
-        customerId: record.customerId,
-        commodityDescription: record.commodityDescription,
-        location: record.location || '',
-        storageStartDate: format(toDate(record.storageStartDate), 'yyyy-MM-dd'),
-        bagsIn: record.bagsIn ?? 0,
-        weight: record.weight ?? 0,
-        lorryTractorNo: record.lorryTractorNo || '',
-        khataAmount: record.khataAmount ?? 0,
-        // Plot specific
-        bagsForDrying: record.bagsForDrying ?? 0,
-        dryingStartDate: record.dryingStartDate ? format(toDate(record.dryingStartDate), 'yyyy-MM-dd') : '',
-        customerHamaliPerBag: getRate('Customer Hamali'),
-        pavHamaliPerBag: getRate('Pav Hamali'),
-        cuppaHamaliPerBag: getRate('Cuppa Hamali'),
-        workerHamaliPerBag: undefined, // Cannot derive reliably, user must re-enter if they want to change worker payable.
-      });
+      setCustomerId(record.customerId);
+      setCommodityDescription(record.commodityDescription);
+      setLocation(record.location || '');
+      setStorageStartDate(format(toDate(record.storageStartDate), 'yyyy-MM-dd'));
+      setBagsIn(record.bagsIn ?? record.bagsStored ?? '');
+      setWeight(record.weight ?? '');
+      setLorryTractorNo(record.lorryTractorNo || '');
+      setKhataAmount(record.khataAmount ?? '');
+      setHamaliRate(record.hamaliRate ?? '');
+      // Plot specific
+      setBagsForDrying(record.bagsForDrying ?? '');
+      setDryingStartDate(record.dryingStartDate ? format(toDate(record.dryingStartDate), 'yyyy-MM-dd') : '');
+      setCustomerHamaliPerBag(getRate('Customer Hamali') ?? '');
+      setPavHamaliPerBag(getRate('Pav Hamali') ?? '');
+      setCuppaHamaliPerBag(getRate('Cuppa Hamali') ?? '');
+      setWorkerHamaliPerBag(''); // Cannot derive reliably, user must re-enter if they want to change worker payable.
     }
     setIsOpen(open);
   }
   
-  const formValues = form.watch();
-
   const calculatedHamali = useMemo(() => {
     if (record.inflowType !== 'Plot') return null;
-
-    const { dryingStartDate, storageStartDate, bagsForDrying, customerHamaliPerBag, workerHamaliPerBag, pavHamaliPerBag, cuppaHamaliPerBag } = formValues;
 
     const unloadingHamaliDetail = record.hamaliDetails?.find(d => d.description === 'Unloading Hamali');
     const proportionalUnloadingHamali = unloadingHamaliDetail?.amount || 0;
@@ -163,22 +171,52 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
         cuppaHamali,
         totalCustomerCharge,
         extraDryingDays,
-        totalWorkerPayable: workerHamaliPerBag !== undefined ? totalWorkerPayable : undefined,
+        totalWorkerPayable: workerHamaliPerBag !== '' ? totalWorkerPayable : undefined,
     }
 
-  }, [formValues, record.hamaliDetails, record.inflowType]);
+  }, [bagsForDrying, customerHamaliPerBag, dryingStartDate, storageStartDate, pavHamaliPerBag, cuppaHamaliPerBag, workerHamaliPerBag, record.inflowType, record.hamaliDetails]);
 
 
-  const onSubmit = (data: EditStorageRecordFormData) => {
+  const onSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
     if (!firestore) {
       toast({ variant: 'destructive', title: 'Error', description: 'Firestore not available' });
       return;
     }
+    
+    const dataToValidate = {
+      customerId,
+      commodityDescription,
+      location,
+      storageStartDate,
+      bagsIn: Number(bagsIn),
+      weight: Number(weight),
+      lorryTractorNo,
+      khataAmount: Number(khataAmount),
+      hamaliRate: Number(hamaliRate),
+      bagsForDrying: Number(bagsForDrying),
+      dryingStartDate,
+      customerHamaliPerBag: Number(customerHamaliPerBag),
+      workerHamaliPerBag: workerHamaliPerBag === '' ? undefined : Number(workerHamaliPerBag),
+      pavHamaliPerBag: Number(pavHamaliPerBag),
+      cuppaHamaliPerBag: Number(cuppaHamaliPerBag),
+    };
+    
+    const result = EditStorageRecordSchema.safeParse(dataToValidate);
+
+    if (!result.success) {
+      const firstError = Object.values(result.error.flatten().fieldErrors)[0]?.[0];
+      toast({ title: "Validation Error", description: firstError || "Please check your input.", variant: "destructive" });
+      return;
+    }
+    
+    const data = result.data;
+    
     startTransition(async () => {
       try {
         const bagsStored = data.bagsIn - (record.bagsOut || 0);
         if (bagsStored < 0) {
-            form.setError('bagsIn', { message: 'Bags in cannot be less than bags out.' });
+            toast({ title: "Validation Error", description: "Bags in cannot be less than bags out.", variant: "destructive" });
             return;
         }
 
@@ -193,6 +231,14 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
             lorryTractorNo: data.lorryTractorNo,
             khataAmount: data.khataAmount,
         };
+        
+        if (record.inflowType !== 'Plot') {
+            const directHamaliRate = data.hamaliRate || 0;
+            const hamaliPayable = data.bagsIn * directHamaliRate;
+            updateData.hamaliRate = directHamaliRate;
+            updateData.hamaliPayable = hamaliPayable;
+            updateData.workerHamaliPayable = hamaliPayable;
+        }
         
         if (record.inflowType === 'Plot' && calculatedHamali) {
             updateData.bagsForDrying = data.bagsForDrying;
@@ -231,8 +277,7 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-2xl">
-        <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
+        <form onSubmit={onSubmit}>
           <DialogHeader>
             <DialogTitle>Edit Storage Record</DialogTitle>
             <DialogDescription>
@@ -240,94 +285,60 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
-             <FormField
-                control={form.control}
-                name="customerId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Customer</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                            {customers.map(customer => (
-                                <SelectItem key={customer.id} value={customer.id}>
-                                    {customer.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-               <FormField
-                control={form.control}
-                name="commodityDescription"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Commodity</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                             {commodities?.map(commodity => (
-                                <SelectItem key={commodity.id} value={commodity.name}>
-                                    {commodity.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+             <div className="space-y-2">
+                <Label htmlFor="edit-customer-id">Customer</Label>
+                <Select onValueChange={setCustomerId} value={customerId}>
+                    <SelectTrigger id="edit-customer-id"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                        {customers.map(customer => (
+                            <SelectItem key={customer.id} value={customer.id}>
+                                {customer.name}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+              </div>
+               <div className="space-y-2">
+                <Label htmlFor="edit-commodity">Commodity</Label>
+                <Select onValueChange={setCommodityDescription} value={commodityDescription}>
+                    <SelectTrigger id="edit-commodity"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                         {commodities?.map(commodity => (
+                            <SelectItem key={commodity.id} value={commodity.name}>
+                                {commodity.name}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+              </div>
               {record.inflowType === 'Plot' ? (
                 <>
                     <Separator className="my-4" />
                     <h4 className="text-sm font-semibold text-muted-foreground -mb-2">Drying & Hamali Details</h4>
 
                     <div className="grid grid-cols-2 gap-4">
-                        <FormField control={form.control} name="dryingStartDate" render={({ field }) => (
-                            <FormItem><FormLabel>Drying Start Date</FormLabel><FormControl><Input type="date" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-                        )}/>
-                        <FormField control={form.control} name="storageStartDate" render={({ field }) => (
-                            <FormItem><FormLabel>Drying End Date (Storage Date)</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
-                        )}/>
+                        <div className="space-y-2"><Label htmlFor="edit-drying-start">Drying Start Date</Label><Input id="edit-drying-start" type="date" value={dryingStartDate} onChange={(e) => setDryingStartDate(e.target.value)} /></div>
+                        <div className="space-y-2"><Label htmlFor="edit-storage-start">Drying End Date (Storage Date)</Label><Input id="edit-storage-start" type="date" value={storageStartDate} onChange={(e) => setStorageStartDate(e.target.value)} /></div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                         <FormField control={form.control} name="bagsForDrying" render={({ field }) => (
-                            <FormItem><FormLabel>Bags Plotted for Drying</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-                         )}/>
-                         <FormField control={form.control} name="bagsIn" render={({ field }) => (
-                            <FormItem><FormLabel>Bags Packed (Final Stock)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-                         )}/>
+                         <div className="space-y-2"><Label htmlFor="edit-bags-drying">Bags Plotted for Drying</Label><Input id="edit-bags-drying" type="number" value={bagsForDrying} onChange={(e) => setBagsForDrying(e.target.value === '' ? '' : Number(e.target.value))} /></div>
+                         <div className="space-y-2"><Label htmlFor="edit-bags-in">Bags Packed (Final Stock)</Label><Input id="edit-bags-in" type="number" value={bagsIn} onChange={(e) => setBagsIn(e.target.value === '' ? '' : Number(e.target.value))} /></div>
                     </div>
 
                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <FormField control={form.control} name="customerHamaliPerBag" render={({ field }) => (
-                            <FormItem><FormLabel>Cust. Hamali/Bag</FormLabel><FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-                        )}/>
-                         <FormField control={form.control} name="workerHamaliPerBag" render={({ field }) => (
-                            <FormItem><FormLabel>Worker Hamali/Bag</FormLabel><FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ''} placeholder="Re-enter to update" /></FormControl><FormMessage /></FormItem>
-                        )}/>
-                         <FormField control={form.control} name="pavHamaliPerBag" render={({ field }) => (
-                            <FormItem><FormLabel>Pav Hamali/Bag/Day</FormLabel><FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-                        )}/>
-                         <FormField control={form.control} name="cuppaHamaliPerBag" render={({ field }) => (
-                            <FormItem><FormLabel>Cuppa Hamali/Bag/Day</FormLabel><FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-                        )}/>
+                        <div className="space-y-2"><Label htmlFor="edit-cust-hamali">Cust. Hamali/Bag</Label><Input id="edit-cust-hamali" type="number" step="0.01" value={customerHamaliPerBag} onChange={(e) => setCustomerHamaliPerBag(e.target.value === '' ? '' : Number(e.target.value))} /></div>
+                         <div className="space-y-2"><Label htmlFor="edit-work-hamali">Worker Hamali/Bag</Label><Input id="edit-work-hamali" type="number" step="0.01" value={workerHamaliPerBag} onChange={(e) => setWorkerHamaliPerBag(e.target.value === '' ? '' : Number(e.target.value))} placeholder="Re-enter to update" /></div>
+                         <div className="space-y-2"><Label htmlFor="edit-pav-hamali">Pav Hamali/Bag/Day</Label><Input id="edit-pav-hamali" type="number" step="0.01" value={pavHamaliPerBag} onChange={(e) => setPavHamaliPerBag(e.target.value === '' ? '' : Number(e.target.value))} /></div>
+                         <div className="space-y-2"><Label htmlFor="edit-cuppa-hamali">Cuppa Hamali/Bag/Day</Label><Input id="edit-cuppa-hamali" type="number" step="0.01" value={cuppaHamaliPerBag} onChange={(e) => setCuppaHamaliPerBag(e.target.value === '' ? '' : Number(e.target.value))} /></div>
                     </div>
                     {calculatedHamali && (
                         <div className="space-y-2 p-3 border rounded-md text-sm">
                             <h5 className="font-medium">Live Summary</h5>
                             <div className="flex justify-between"><span className="text-muted-foreground">Unloading Hamali:</span> <span className="font-mono">{formatCurrency(calculatedHamali.proportionalUnloadingHamali)}</span></div>
                             <div className="flex justify-between"><span className="text-muted-foreground">Day 1 Hamali:</span> <span className="font-mono">{formatCurrency(calculatedHamali.day1CustomerHamali)}</span></div>
-                            <div className="flex justify-between"><span className="text-muted-foreground">Pav Hamali ({calculatedHamali.extraDryingDays} extra days):</span> <span className="font-mono">{formatCurrency(calculatedHamali.pavHamali)}</span></div>
-                            <div className="flex justify-between"><span className="text-muted-foreground">Cuppa Hamali ({calculatedHamali.extraDryingDays} extra days):</span> <span className="font-mono">{formatCurrency(calculatedHamali.cuppaHamali)}</span></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">Pav Hamali ({calculatedHamali.extraDryingDays} extra day{calculatedHamali.extraDryingDays !== 1 ? 's' : ''}):</span> <span className="font-mono">{formatCurrency(calculatedHamali.pavHamali)}</span></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">Cuppa Hamali ({calculatedHamali.extraDryingDays} extra day{calculatedHamali.extraDryingDays !== 1 ? 's' : ''}):</span> <span className="font-mono">{formatCurrency(calculatedHamali.cuppaHamali)}</span></div>
                             <Separator/>
                             <div className="flex justify-between font-semibold"><span >Total Hamali for Customer:</span> <span className="font-mono">{formatCurrency(calculatedHamali.totalCustomerCharge)}</span></div>
                              {calculatedHamali.totalWorkerPayable !== undefined && <div className="flex justify-between font-semibold"><span >Total Payable to Worker:</span> <span className="font-mono">{formatCurrency(calculatedHamali.totalWorkerPayable)}</span></div>}
@@ -338,31 +349,38 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
               ) : (
                 <>
                     <div className="grid grid-cols-2 gap-4">
-                        <FormField control={form.control} name="storageStartDate" render={({ field }) => ( <FormItem><FormLabel>Start Date</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="lorryTractorNo" render={({ field }) => ( <FormItem><FormLabel>Lorry/Tractor No.</FormLabel><FormControl><Input placeholder="AP 12 3456" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem> )} />
+                        <div className="space-y-2"><Label htmlFor="edit-start-date">Start Date</Label><Input id="edit-start-date" type="date" value={storageStartDate} onChange={e => setStorageStartDate(e.target.value)} /></div>
+                        <div className="space-y-2"><Label htmlFor="edit-lorry-no">Lorry/Tractor No.</Label><Input id="edit-lorry-no" placeholder="AP 12 3456" value={lorryTractorNo} onChange={e => setLorryTractorNo(e.target.value)} /></div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
-                        <FormField control={form.control} name="bagsIn" render={({ field }) => ( <FormItem><FormLabel>Bags In</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="weight" render={({ field }) => ( <FormItem><FormLabel>Weight (Kgs)</FormLabel><FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem> )}/>
+                        <div className="space-y-2"><Label htmlFor="edit-bags-in-direct">Bags In</Label><Input id="edit-bags-in-direct" type="number" value={bagsIn} onChange={e => setBagsIn(e.target.value === '' ? '' : Number(e.target.value))} /></div>
+                        <div className="space-y-2"><Label htmlFor="edit-weight">Weight (Kgs)</Label><Input id="edit-weight" type="number" step="0.01" value={weight} onChange={e => setWeight(e.target.value === '' ? '' : Number(e.target.value))} /></div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-hamali-rate-direct">Hamali Rate/Bag</Label>
+                            <Input id="edit-hamali-rate-direct" type="number" step="0.01" value={hamaliRate} onChange={e => setHamaliRate(e.target.value === '' ? '' : Number(e.target.value))} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-khataAmount">Khata Amount</Label>
+                            <Input id="edit-khataAmount" type="number" step="0.01" placeholder="0.00" value={khataAmount} onChange={e => setKhataAmount(e.target.value === '' ? '' : Number(e.target.value))}/>
+                        </div>
                     </div>
                 </>
               )}
-               <FormField name="location" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Location</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl><SelectTrigger><SelectValue placeholder="Select a lot..."/></SelectTrigger></FormControl>
-                            <SelectContent>
-                                {lots?.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true })).map(lot => {
-                                    const occupied = lotOccupancy[lot.name] || 0;
-                                    const capacity = lot.capacity ? ` / ${lot.capacity}` : '';
-                                    return ( <SelectItem key={lot.id} value={lot.name}> {lot.name} ({occupied}{capacity} bags) </SelectItem> )
-                                })}
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                    </FormItem>
-                )}/>
+               <div className="space-y-2">
+                 <Label htmlFor="edit-location">Location</Label>
+                 <Select onValueChange={setLocation} value={location}>
+                     <SelectTrigger id="edit-location"><SelectValue placeholder="Select a lot..."/></SelectTrigger>
+                     <SelectContent>
+                         {lots?.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true })).map(lot => {
+                             const occupied = lotOccupancy[lot.name] || 0;
+                             const capacity = lot.capacity ? ` / ${lot.capacity}` : '';
+                             return ( <SelectItem key={lot.id} value={lot.name}> {lot.name} ({occupied}{capacity} bags) </SelectItem> )
+                         })}
+                     </SelectContent>
+                 </Select>
+                </div>
           </div>
           <DialogFooter>
             <DialogClose asChild>
@@ -380,7 +398,6 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
             </Button>
           </DialogFooter>
         </form>
-        </Form>
       </DialogContent>
     </Dialog>
   );

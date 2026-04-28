@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,10 +16,8 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase/provider';
 import { z } from 'zod';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { Input } from '../ui/input';
+import { Label } from '../ui/label';
 import { updateManagedWarehouse } from '@/lib/data';
 import type { ManagedWarehouse } from '@/lib/definitions';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
@@ -34,33 +31,65 @@ const WarehouseEditSchema = z.object({
   trialMonths: z.coerce.number().int().nonnegative('Trial months must be a non-negative integer.').optional(),
 });
 
-type WarehouseEditFormData = z.infer<typeof WarehouseEditSchema>;
-
 export function EditWarehouseDialog({ warehouse, children }: { warehouse: ManagedWarehouse, children: React.ReactNode }) {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const firestore = useFirestore();
 
-  const form = useForm<WarehouseEditFormData>({
-    resolver: zodResolver(WarehouseEditSchema),
-    defaultValues: {
-      ...warehouse,
-      trialMonths: warehouse.trialMonths || 0,
-    },
-  });
+  const [name, setName] = useState('');
+  const [ownerName, setOwnerName] = useState('');
+  const [ownerEmail, setOwnerEmail] = useState('');
+  const [yearlyAmount, setYearlyAmount] = useState<number | ''>('');
+  const [trialMonths, setTrialMonths] = useState<number | ''>('');
+  const [subscriptionStatus, setSubscriptionStatus] = useState<'active' | 'trial' | 'expired' | 'suspended'>('trial');
+  
+  useEffect(() => {
+    if(isOpen) {
+        setName(warehouse.name);
+        setOwnerName(warehouse.ownerName);
+        setOwnerEmail(warehouse.ownerEmail);
+        setYearlyAmount(warehouse.yearlyAmount);
+        setTrialMonths(warehouse.trialMonths || 0);
+        setSubscriptionStatus(warehouse.subscriptionStatus);
+    }
+  }, [isOpen, warehouse]);
 
-  const onSubmit = (data: WarehouseEditFormData) => {
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
     if (!firestore) {
       toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
       return;
     }
+    
+    const data = {
+        name,
+        ownerName,
+        ownerEmail,
+        yearlyAmount: Number(yearlyAmount),
+        subscriptionStatus,
+        trialMonths: Number(trialMonths),
+    };
+
+    const validatedFields = WarehouseEditSchema.safeParse(data);
+
+    if (!validatedFields.success) {
+      const firstError = Object.values(validatedFields.error.flatten().fieldErrors)[0]?.[0];
+      toast({
+        title: 'Validation Error',
+        description: firstError || 'Please check your input.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
 
     startTransition(async () => {
       try {
         const updateData = {
-          ...data,
-          ownerEmail: data.ownerEmail.toLowerCase(),
+          ...validatedFields.data,
+          ownerEmail: validatedFields.data.ownerEmail.toLowerCase(),
         };
         await updateManagedWarehouse(firestore, warehouse.id, updateData);
         toast({ title: 'Success', description: 'Warehouse subscription updated.' });
@@ -76,8 +105,7 @@ export function EditWarehouseDialog({ warehouse, children }: { warehouse: Manage
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
+          <form onSubmit={handleSubmit}>
             <DialogHeader>
               <DialogTitle>Edit Warehouse Subscription</DialogTitle>
               <DialogDescription>
@@ -85,32 +113,40 @@ export function EditWarehouseDialog({ warehouse, children }: { warehouse: Manage
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-4">
-              <FormField name="name" control={form.control} render={({ field }) => (<FormItem><FormLabel>Warehouse Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-              <FormField name="ownerName" control={form.control} render={({ field }) => (<FormItem><FormLabel>Owner Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-              <FormField name="ownerEmail" control={form.control} render={({ field }) => (<FormItem><FormLabel>Owner Email</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>)} />
-              <div className="grid grid-cols-2 gap-4">
-                <FormField name="yearlyAmount" control={form.control} render={({ field }) => (<FormItem><FormLabel>Yearly Amount</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField name="trialMonths" control={form.control} render={({ field }) => (<FormItem><FormLabel>Trial (Months)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
+              <div className="space-y-2">
+                <Label htmlFor="name">Warehouse Name</Label>
+                <Input id="name" value={name || ''} onChange={(e) => setName(e.target.value)} />
               </div>
-               <FormField
-                  control={form.control}
-                  name="subscriptionStatus"
-                  render={({ field }) => (
-                  <FormItem>
-                      <FormLabel>Subscription Status</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl>
-                          <SelectContent>
-                            <SelectItem value="trial">Trial</SelectItem>
-                            <SelectItem value="active">Active</SelectItem>
-                            <SelectItem value="suspended">Suspended</SelectItem>
-                            <SelectItem value="expired">Expired</SelectItem>
-                          </SelectContent>
-                      </Select>
-                      <FormMessage />
-                  </FormItem>
-                  )}
-              />
+              <div className="space-y-2">
+                <Label htmlFor="ownerName">Owner Name</Label>
+                <Input id="ownerName" value={ownerName || ''} onChange={(e) => setOwnerName(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ownerEmail">Owner Email</Label>
+                <Input id="ownerEmail" type="email" value={ownerEmail || ''} onChange={(e) => setOwnerEmail(e.target.value)} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <Label htmlFor="yearlyAmount">Yearly Amount</Label>
+                    <Input id="yearlyAmount" type="number" value={yearlyAmount || ''} onChange={(e) => setYearlyAmount(e.target.value === '' ? '' : Number(e.target.value))} />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="trialMonths">Trial (Months)</Label>
+                    <Input id="trialMonths" type="number" value={trialMonths || ''} onChange={(e) => setTrialMonths(e.target.value === '' ? '' : Number(e.target.value))} />
+                </div>
+              </div>
+               <div className="space-y-2">
+                  <Label htmlFor="subscriptionStatus">Subscription Status</Label>
+                  <Select onValueChange={(value: 'active' | 'trial' | 'expired' | 'suspended') => setSubscriptionStatus(value)} value={subscriptionStatus}>
+                      <SelectTrigger><SelectValue/></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="trial">Trial</SelectItem>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="suspended">Suspended</SelectItem>
+                        <SelectItem value="expired">Expired</SelectItem>
+                      </SelectContent>
+                  </Select>
+              </div>
             </div>
             <DialogFooter className="pt-4">
               <DialogClose asChild><Button variant="outline" type="button">Cancel</Button></DialogClose>
@@ -119,7 +155,6 @@ export function EditWarehouseDialog({ warehouse, children }: { warehouse: Manage
               </Button>
             </DialogFooter>
           </form>
-        </Form>
       </DialogContent>
     </Dialog>
   );

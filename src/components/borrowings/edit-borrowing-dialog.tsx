@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,11 +17,8 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase/provider';
 import { z } from 'zod';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { Input } from '../ui/input';
-import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
+import { Label } from '../ui/label';
 import type { Borrowing } from '@/lib/definitions';
 import { format } from 'date-fns';
 import { toDate } from '@/lib/utils';
@@ -36,7 +33,6 @@ const BorrowingSchema = z.object({
   status: z.enum(['Active', 'Paid Off']).optional(),
 });
 
-type BorrowingFormData = z.infer<typeof BorrowingSchema>;
 
 export function EditBorrowingDialog({ borrowing, children }: { borrowing: Borrowing; children: React.ReactNode }) {
   const { toast } = useToast();
@@ -44,28 +40,59 @@ export function EditBorrowingDialog({ borrowing, children }: { borrowing: Borrow
   const [isPending, startTransition] = useTransition();
   const firestore = useFirestore();
 
-  const form = useForm<BorrowingFormData>({
-    resolver: zodResolver(BorrowingSchema),
-    defaultValues: {
-      lenderName: borrowing.lenderName,
-      principal: borrowing.principal,
-      interestRate: borrowing.interestRate,
-      dateTaken: format(toDate(borrowing.dateTaken), 'yyyy-MM-dd'),
-      status: borrowing.status || 'Active',
-    },
-  });
+  const [lenderName, setLenderName] = useState('');
+  const [principal, setPrincipal] = useState<number|''>('');
+  const [interestRate, setInterestRate] = useState<number|''>('');
+  const [dateTaken, setDateTaken] = useState('');
+  const [status, setStatus] = useState<'Active' | 'Paid Off'>('Active');
+  const [errors, setErrors] = useState<Record<string,string>>({});
 
-  const onSubmit = (data: BorrowingFormData) => {
+
+  useEffect(() => {
+    if (isOpen) {
+      setLenderName(borrowing.lenderName);
+      setPrincipal(borrowing.principal);
+      setInterestRate(borrowing.interestRate);
+      setDateTaken(format(toDate(borrowing.dateTaken), 'yyyy-MM-dd'));
+      setStatus(borrowing.status || 'Active');
+      setErrors({});
+    }
+  }, [borrowing, isOpen]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrors({});
     if (!firestore) {
       toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
+      return;
+    }
+    
+    const validationResult = BorrowingSchema.safeParse({
+      lenderName,
+      principal: Number(principal),
+      interestRate: Number(interestRate),
+      dateTaken,
+      status,
+    });
+
+    if (!validationResult.success) {
+      const fieldErrors = validationResult.error.flatten().fieldErrors;
+      const newErrors: Record<string, string> = {};
+      Object.keys(fieldErrors).forEach(key => {
+        if (fieldErrors[key as keyof typeof fieldErrors]) {
+          newErrors[key] = fieldErrors[key as keyof typeof fieldErrors]![0];
+        }
+      });
+      setErrors(newErrors);
+      toast({ title: "Validation Error", description: "Please check your input.", variant: "destructive"});
       return;
     }
 
     startTransition(async () => {
       try {
         const updatedData = {
-          ...data,
-          dateTaken: new Date(data.dateTaken),
+          ...validationResult.data,
+          dateTaken: new Date(validationResult.data.dateTaken),
         };
         await updateBorrowing(firestore, borrowing.id, updatedData);
         toast({ title: 'Success', description: 'Borrowing record updated successfully.' });
@@ -81,85 +108,53 @@ export function EditBorrowingDialog({ borrowing, children }: { borrowing: Borrow
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
-            <DialogHeader>
-              <DialogTitle>Edit Borrowing</DialogTitle>
-              <DialogDescription>
-                Update details for the loan from {borrowing.lenderName}.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <FormField
-                control={form.control}
-                name="lenderName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Lender's Name</FormLabel>
-                    <FormControl><Input {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-               <FormField
-                control={form.control}
-                name="dateTaken"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Date Taken</FormLabel>
-                    <FormControl><Input type="date" {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="principal"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Principal Amount</FormLabel>
-                    <FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="interestRate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Monthly Interest Rate (%)</FormLabel>
-                    <FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ''} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-                <FormField
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Status</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl>
-                        <SelectContent>
-                          <SelectItem value="Active">Active</SelectItem>
-                          <SelectItem value="Paid Off">Paid Off</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+        <form onSubmit={handleSubmit}>
+          <DialogHeader>
+            <DialogTitle>Edit Borrowing</DialogTitle>
+            <DialogDescription>
+              Update details for the loan from {borrowing.lenderName}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="lenderName">Lender's Name</Label>
+              <Input id="lenderName" value={lenderName} onChange={e => setLenderName(e.target.value)} />
+              {errors.lenderName && <p className="text-sm font-medium text-destructive">{errors.lenderName}</p>}
             </div>
-            <DialogFooter>
-              <DialogClose asChild><Button variant="outline" type="button">Cancel</Button></DialogClose>
-              <Button type="submit" disabled={isPending}>
-                {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : 'Save Changes'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+            <div className="space-y-2">
+              <Label htmlFor="dateTaken">Date Taken</Label>
+              <Input id="dateTaken" type="date" value={dateTaken} onChange={e => setDateTaken(e.target.value)} />
+              {errors.dateTaken && <p className="text-sm font-medium text-destructive">{errors.dateTaken}</p>}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="principal">Principal Amount</Label>
+              <Input id="principal" type="number" value={principal} onChange={e => setPrincipal(e.target.value === '' ? '' : Number(e.target.value))} />
+              {errors.principal && <p className="text-sm font-medium text-destructive">{errors.principal}</p>}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="interestRate">Monthly Interest Rate (%)</Label>
+              <Input id="interestRate" type="number" step="0.01" value={interestRate} onChange={e => setInterestRate(e.target.value === '' ? '' : Number(e.target.value))} />
+              {errors.interestRate && <p className="text-sm font-medium text-destructive">{errors.interestRate}</p>}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="status">Status</Label>
+              <Select onValueChange={(value: 'Active' | 'Paid Off') => setStatus(value)} value={status}>
+                <SelectTrigger id="status"><SelectValue/></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Active">Active</SelectItem>
+                  <SelectItem value="Paid Off">Paid Off</SelectItem>
+                </SelectContent>
+              </Select>
+              {errors.status && <p className="text-sm font-medium text-destructive">{errors.status}</p>}
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild><Button variant="outline" type="button">Cancel</Button></DialogClose>
+            <Button type="submit" disabled={isPending}>
+              {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : 'Save Changes'}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

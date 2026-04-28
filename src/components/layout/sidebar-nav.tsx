@@ -34,16 +34,16 @@ type NavItem = {
 
 const navItems: NavItem[] = [
     { href: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['super-admin', 'owner', 'supervisor', 'biller'] },
-    { href: '/inflow', label: 'Inflow', icon: ArrowDownToDot, roles: ['super-admin', 'owner', 'supervisor', 'biller'] },
-    { href: '/unloading', label: 'Unloading Process', icon: ArrowDownFromLine, roles: ['super-admin', 'owner', 'supervisor', 'biller'] },
-    { href: '/drying', label: 'Drying Process', icon: Wind, roles: ['super-admin', 'owner', 'supervisor', 'biller'] },
-    { href: '/outflow', label: 'Outflow', icon: ArrowUpFromDot, roles: ['super-admin', 'owner', 'supervisor', 'biller'] },
-    { href: '/storage', label: 'Storage', icon: Archive, roles: ['super-admin', 'owner', 'supervisor', 'biller'] },
-    { href: '/payments/pending', label: 'Payments', icon: IndianRupee, roles: ['super-admin', 'owner', 'biller'] },
-    { href: '/customers', label: 'Customers', icon: Users, roles: ['super-admin', 'owner', 'supervisor', 'biller'] },
-    { href: '/reports', label: 'Reports', icon: FileText, roles: ['super-admin', 'owner', 'supervisor'] },
-    { href: '/expenses', label: 'Profit & Loss', icon: Scale, roles: ['super-admin', 'owner'] },
-    { href: '/hamali', label: 'Hamali Payments', icon: Hammer, roles: ['super-admin', 'owner'] },
+    { href: '/inflow', label: 'Inflow', icon: ArrowDownToDot, roles: ['owner', 'supervisor', 'biller'] },
+    { href: '/unloading', label: 'Unloading Process', icon: ArrowDownFromLine, roles: ['owner', 'supervisor', 'biller'] },
+    { href: '/drying', label: 'Drying Process', icon: Wind, roles: ['owner', 'supervisor', 'biller'] },
+    { href: '/outflow', label: 'Outflow', icon: ArrowUpFromDot, roles: ['owner', 'supervisor', 'biller'] },
+    { href: '/storage', label: 'Storage', icon: Archive, roles: ['owner', 'supervisor', 'biller'] },
+    { href: '/payments/pending', label: 'Payments', icon: IndianRupee, roles: ['owner', 'biller'] },
+    { href: '/customers', label: 'Customers', icon: Users, roles: ['owner', 'supervisor', 'biller'] },
+    { href: '/reports', label: 'Reports', icon: FileText, roles: ['owner', 'supervisor'] },
+    { href: '/expenses', label: 'Profit & Loss', icon: Scale, roles: ['owner'] },
+    { href: '/hamali', label: 'Hamali Payments', icon: Hammer, roles: ['owner'] },
 ];
 
 const settingsNav: NavItem = { href: '/settings', label: 'Settings', icon: Settings, roles: ['super-admin', 'owner', 'supervisor', 'biller'] };

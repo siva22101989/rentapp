@@ -92,6 +92,7 @@ export function BillProcessDialog({
         const bagsStored = record.bagsPacked || 0;
 
         const newStorageRecord: Omit<StorageRecord, 'id'> = {
+            warehouseId: appUser.warehouseId,
             customerId: record.customerId,
             commodityDescription: record.commodityDescription,
             location: location.trim(),

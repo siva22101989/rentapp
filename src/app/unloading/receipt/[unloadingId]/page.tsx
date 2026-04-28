@@ -27,7 +27,7 @@ export default function UnloadingReceiptPage() {
   const [error, setError] = useState<string|null>(null);
 
   useEffect(() => {
-    if (!firestore || !unloadingId || !appUser) {
+    if (!firestore || !unloadingId || !appUser?.warehouseId) {
       setLoadingRecord(false);
       return;
     }
@@ -40,7 +40,7 @@ export default function UnloadingReceiptPage() {
       attempts++;
       try {
         const docSnap = await getDoc(recordRef);
-        if (docSnap.exists()) {
+        if (docSnap.exists() && docSnap.data().warehouseId === appUser.warehouseId) {
           setRecord({ id: docSnap.id, ...docSnap.data() } as UnloadingRecord);
           setLoadingRecord(false);
         } else if (attempts < maxAttempts) {
@@ -61,7 +61,7 @@ export default function UnloadingReceiptPage() {
 
   useEffect(() => {
     async function fetchCustomer() {
-        if (!firestore || !record?.customerId || !appUser) {
+        if (!firestore || !record?.customerId || !appUser?.warehouseId) {
             setLoadingCustomer(false);
             return;
         }
@@ -69,7 +69,7 @@ export default function UnloadingReceiptPage() {
         try {
             const customerRef = doc(firestore, 'customers', record.customerId);
             const customerSnap = await getDoc(customerRef);
-            if (customerSnap.exists()) {
+            if (customerSnap.exists() && customerSnap.data().warehouseId === appUser.warehouseId) {
                 setCustomer({ id: customerSnap.id, ...customerSnap.data() } as Customer);
             }
         } catch (e) {
@@ -82,7 +82,7 @@ export default function UnloadingReceiptPage() {
   }, [firestore, record, appUser]);
 
   const warehouseInfoRef = useMemoFirebase(
-    () => (firestore && appUser ? doc(firestore, 'settings', 'main') : null),
+    () => (firestore && appUser?.warehouseId ? doc(firestore, 'warehouses', appUser.warehouseId) : null),
     [firestore, appUser]
   );
   const { data: warehouseInfo, loading: loadingWarehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);

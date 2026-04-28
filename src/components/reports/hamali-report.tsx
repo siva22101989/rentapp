@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CustomerHamaliReportTable } from './customer-hamali-report-table';
 import { WorkerHamaliReportTable } from './worker-hamali-report-table';
+import { HamaliProfitReportTable } from './hamali-profit-report-table';
 import { toDate } from '@/lib/utils';
 import { useDateFilter } from '@/firebase/provider';
 import { useAppUser } from '@/firebase/auth/use-user';
@@ -35,13 +36,13 @@ export type WorkerHamaliEvent = {
 }
 
 export function HamaliReport({ records, customers, unloadingRecords, expenses }: { records: StorageRecord[], customers: Customer[], unloadingRecords: UnloadingRecord[], expenses: Expense[] }) {
-    const [reportView, setReportView] = useState<'customer' | 'worker'>('customer');
+    const [reportView, setReportView] = useState<'customer' | 'worker' | 'profit'>('customer');
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>('all');
     
     const { dateRange, financialYear } = useDateFilter();
 
     useEffect(() => {
-        if (reportView === 'worker') {
+        if (reportView === 'worker' || reportView === 'profit') {
             setSelectedCustomerId('all');
         }
     }, [reportView]);
@@ -134,7 +135,7 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
         });
     }, [records, unloadingRecords, selectedCustomerId, dateRange, financialYear]);
 
-    const workerHamaliEvents = useMemo(() => {
+    const workerAndProfitEvents = useMemo(() => {
         const events: WorkerHamaliEvent[] = [];
 
         records.forEach(sr => {
@@ -213,7 +214,13 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
 
 
     const customer = customers.find(c => c.id === selectedCustomerId);
-    const title = `Hamali ${reportView === 'customer' ? 'Customer' : 'Worker'} Ledger ${customer ? `for ${customer.name}` : ''}`;
+    const title = `Hamali ${
+        reportView === 'customer' 
+        ? 'Customer' 
+        : reportView === 'worker'
+        ? 'Worker'
+        : 'Profit'
+    } Ledger ${customer ? `for ${customer.name}` : ''}`;
 
     return (
         <Card>
@@ -223,16 +230,17 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
                     <CardDescription>View ledgers for customer charges or worker payments.</CardDescription>
                 </div>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto flex-wrap">
-                    <Select onValueChange={(v) => setReportView(v as 'customer' | 'worker')} value={reportView}>
+                    <Select onValueChange={(v) => setReportView(v as 'customer' | 'worker' | 'profit')} value={reportView}>
                         <SelectTrigger className='w-full sm:w-auto'>
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="customer">Customer Ledger</SelectItem>
                             <SelectItem value="worker">Worker Ledger</SelectItem>
+                            <SelectItem value="profit">Profit Ledger</SelectItem>
                         </SelectContent>
                     </Select>
-                    <Select onValueChange={setSelectedCustomerId} value={selectedCustomerId} disabled={reportView === 'worker'}>
+                    <Select onValueChange={setSelectedCustomerId} value={selectedCustomerId} disabled={reportView !== 'customer'}>
                         <SelectTrigger className="w-full sm:w-auto">
                             <SelectValue placeholder="All Customers" />
                         </SelectTrigger>
@@ -255,9 +263,15 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
                             customers={customers}
                             title={title}
                         />
-                    ) : (
+                    ) : reportView === 'worker' ? (
                         <WorkerHamaliReportTable 
-                            events={workerHamaliEvents}
+                            events={workerAndProfitEvents}
+                            customers={customers}
+                            title={title}
+                        />
+                    ) : (
+                         <HamaliProfitReportTable 
+                            events={workerAndProfitEvents}
                             customers={customers}
                             title={title}
                         />

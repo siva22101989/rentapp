@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -7,7 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toDate } from '@/lib/utils';
 import { useDateFilter } from '@/firebase/provider';
-import { HamaliLedgerTable } from './hamali-ledger-table';
+import { CustomerHamaliReportTable } from './customer-hamali-report-table';
+import { WorkerHamaliReportTable } from './worker-hamali-report-table';
+import { HamaliProfitReportTable } from './hamali-profit-report-table';
 
 export type CustomerHamaliEvent = {
     date: Date;
@@ -231,6 +232,19 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses, w
         return `Hamali ${viewTitle} ${customer && reportView === 'customer' ? `for ${customer.name}` : ''}`;
     }, [reportView, customer]);
 
+    const renderReport = () => {
+        switch(reportView) {
+            case 'customer':
+                return <CustomerHamaliReportTable events={customerHamaliEvents} customers={customers} title={title} />;
+            case 'worker':
+                return <WorkerHamaliReportTable events={workerAndProfitEvents} customers={customers} title={title} />;
+            case 'difference':
+                return <HamaliProfitReportTable events={workerAndProfitEvents} customers={customers} title={title} />;
+            default:
+                return null;
+        }
+    }
+
     return (
         <Card>
             <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4 print-hide">
@@ -266,14 +280,7 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses, w
             </CardHeader>
             <CardContent>
                 <div>
-                   <HamaliLedgerTable
-                        customerEvents={customerHamaliEvents}
-                        workerEvents={workerAndProfitEvents}
-                        customers={customers}
-                        title={title}
-                        view={reportView}
-                        warehouseInfo={warehouseInfo}
-                    />
+                   {renderReport()}
                 </div>
             </CardContent>
         </Card>

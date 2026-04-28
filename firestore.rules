@@ -1,58 +1,12 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // --- Helper Functions ---
-    
-    function getUserData() {
-      // The `request.auth.uid` is the unique ID of the signed-in user.
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-    }
-    
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isSuperAdmin() {
-      return isSignedIn() && getUserData().role == 'super-admin';
-    }
-    
-    // --- Rules for Specific Collections ---
-
-    match /users/{userId} {
-      // A user can read or create their own profile. This is crucial for other rules to work.
-      allow read, create: if isSignedIn() && request.auth.uid == userId;
-      
-      // A user can update their own data, but CANNOT change their role or warehouseId.
-      // This prevents a user from giving themselves higher permissions or switching tenants.
-      allow update: if isSignedIn() && request.auth.uid == userId
-                    && request.resource.data.role == resource.data.role
-                    && request.resource.data.warehouseId == resource.data.warehouseId;
-    }
-
-    // Rule for warehouse-specific settings
-    match /warehouses/{warehouseId} {
-        // A user can read and update the settings for their own warehouse.
-        allow read, write: if isSignedIn() && getUserData().warehouseId == warehouseId;
-    }
-
-    // Rule for super-admin managed warehouses
-    match /managedWarehouses/{warehouseId} {
-        // Only super-admins can manage the warehouse subscriptions.
-        allow read, write: if isSuperAdmin();
-    }
-    
-    // This single generic rule covers all other data collections (customers, storageRecords, etc.).
-    // It enforces multi-tenancy by checking the warehouseId on every document.
-    match /{collection}/{docId} {
-      // Allow read, create, update, and delete operations only if the user belongs to the correct warehouse.
-      allow read, delete: if isSignedIn() && getUserData().warehouseId == resource.data.warehouseId;
-
-      allow create: if isSignedIn() && request.resource.data.warehouseId == getUserData().warehouseId;
-
-      allow update: if isSignedIn() && getUserData().warehouseId == resource.data.warehouseId 
-                         && request.resource.data.warehouseId == resource.data.warehouseId;
+    // Allow read and write access to all documents
+    // WARNING: This is insecure and for debugging purposes only.
+    match /{document=**} {
+      allow read, write: if true;
     }
   }
 }

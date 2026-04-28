@@ -5,9 +5,9 @@ import { z } from 'zod';
 import * as https from 'https';
 
 const SendSmsSchema = z.object({
-  apiKey: z.string().min(1, { message: 'API Key is required.'}),
-  to: z.string().min(10, { message: 'A valid 10-digit phone number is required.'}),
-  message: z.string().min(1, { message: 'Message cannot be empty.'}),
+  apiKey: z.string().min(1, { message: 'API Key is required.' }),
+  to: z.string().min(10, { message: 'A valid 10-digit phone number is required.' }),
+  message: z.string().min(1, { message: 'Message cannot be empty.' }),
   deviceId: z.string().optional(),
   senderId: z.string().optional(),
 });
@@ -36,24 +36,25 @@ export async function sendSms(formData: { apiKey: string; to: string; message: s
     let path: string;
     let postData: string;
     
-    // Logic based on user's new snippet and modern API design
+    // Logic for sending SMS via textbee.dev API
     if (deviceId) {
+      // Using a device gateway
       path = `/api/v1/gateway/devices/${deviceId}/send-sms`;
       postData = JSON.stringify({
-        recipients: [`+91${tenDigitPhoneNumber}`],
+        recipients: [`+91${tenDigitPhoneNumber}`], // Device gateway usually requires the country code
         message: message
       });
     } else {
-      // This is an educated guess for their bulk API based on the v1 structure
+      // Using bulk SMS API
       path = '/api/v1/bulksms/send';
       postData = JSON.stringify({
         messages: [
             {
                 message: message,
-                recipients: [`+91${tenDigitPhoneNumber}`]
+                recipients: [tenDigitPhoneNumber] // Bulk API might prefer numbers without country code
             }
         ],
-        sender: senderId || 'TXTBEE',
+        sender_id: senderId || 'TXTBEE', // Corrected parameter name
       });
     }
     
@@ -79,16 +80,17 @@ export async function sendSms(formData: { apiKey: string; to: string; message: s
         try {
           const responseData = JSON.parse(responseBody);
           if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
-            if (responseData.status === 'SUCCESS' || responseData.status === 'success' || !responseData.error) {
+            // Textbee API might return a 200 OK but still have an error in the body
+            if (responseData.status === 'SUCCESS' || responseData.status === 'success' || (res.statusCode === 200 && !responseData.error)) {
                 console.log('SMS sent successfully:', responseData);
                 resolve({ success: true, message: responseData.message || "SMS sent successfully!" });
             } else {
-                 const apiMessage = responseData.error || responseData.message || `Unknown API error`;
+                 const apiMessage = responseData.error?.message || responseData.error || responseData.message || `Unknown API error`;
                  console.error('Failed to send SMS (API Error):', responseData);
                  resolve({ success: false, message: `Failed to send SMS: ${apiMessage}` });
             }
           } else {
-            const apiMessage = responseData.error || responseData.message || `Unknown API error (Status: ${res.statusCode})`;
+            const apiMessage = responseData.error?.message || responseData.error || responseData.message || `Unknown API error (Status: ${res.statusCode})`;
             console.error('Failed to send SMS (HTTP Error):', responseData);
             resolve({ success: false, message: `Failed to send SMS: ${apiMessage}` });
           }

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -30,6 +29,7 @@ export type WorkerHamaliEvent = {
     recordId: string;
     customerId?: string;
     payable: number;
+    customerCharge?: number;
     paid: number;
     bags?: number;
 }
@@ -147,26 +147,28 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
                     payable: sr.workerHamaliPayable,
                     paid: 0,
                     bags: sr.bagsIn,
+                    customerCharge: sr.hamaliPayable,
                 });
             }
         });
 
         unloadingRecords.forEach(ur => {
             const bagsRemaining = ur.bagsUnloaded - (ur.bagsSentToDrying || 0);
-            if (bagsRemaining > 0 && ur.workerHamaliPayable) {
-                const hamaliPerBag = ur.hamaliPerBag || 0; 
-                const remainingPayable = bagsRemaining * hamaliPerBag;
-                if (remainingPayable > 0) {
-                    events.push({
-                        date: toDate(ur.unloadingDate),
-                        description: 'Unloading Hamali (Pending Finalize)',
-                        recordId: ur.billNo || ur.id.substring(0, 5),
-                        customerId: ur.customerId,
-                        payable: remainingPayable,
-                        paid: 0,
-                        bags: bagsRemaining,
-                    });
-                }
+            if (bagsRemaining > 0 && ur.totalHamali > 0) {
+                const proportion = bagsRemaining / ur.bagsUnloaded;
+                const customerCharge = ur.totalHamali * proportion;
+                const workerPayable = (ur.workerHamaliPayable ?? ur.totalHamali) * proportion;
+
+                events.push({
+                    date: toDate(ur.unloadingDate),
+                    description: 'Unloading Hamali (pending finalize)',
+                    recordId: ur.billNo || ur.id.substring(0, 5),
+                    customerId: ur.customerId,
+                    payable: workerPayable,
+                    paid: 0,
+                    bags: bagsRemaining,
+                    customerCharge: customerCharge,
+                });
             }
         });
 
@@ -177,6 +179,7 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses }:
                 recordId: exp.id,
                 payable: 0,
                 paid: exp.amount,
+                customerCharge: 0,
             });
         });
 

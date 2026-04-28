@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -25,6 +24,8 @@ export function WorkerHamaliReportTable({ events, customers, title }: ReportTabl
     const totalPayable = events.reduce((acc, event) => acc + event.payable, 0);
     const totalPaid = events.reduce((acc, event) => acc + event.paid, 0);
     const balance = totalPayable - totalPaid;
+    const totalCustomerCharge = events.reduce((acc, event) => acc + (event.customerCharge || 0), 0);
+    const totalDifference = totalCustomerCharge - totalPayable;
 
     return (
         <div className="bg-white p-4 rounded-lg">
@@ -41,12 +42,16 @@ export function WorkerHamaliReportTable({ events, customers, title }: ReportTabl
                         <TableHead>Description</TableHead>
                         <TableHead>Reference ID</TableHead>
                         <TableHead className="text-center">Bags</TableHead>
-                        <TableHead className="text-right">Payable</TableHead>
+                        <TableHead className="text-right">Worker Payable</TableHead>
+                        <TableHead className="text-right">Customer Charge</TableHead>
+                        <TableHead className="text-right">Difference</TableHead>
                         <TableHead className="text-right">Paid</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {events.map((event, index) => (
+                    {events.map((event, index) => {
+                        const difference = (event.customerCharge || event.payable) - event.payable;
+                        return (
                         <TableRow key={index}>
                             <TableCell>{format(event.date, 'dd MMM yyyy')}</TableCell>
                             <TableCell className="font-medium">{event.paid > 0 ? 'Payment' : getCustomerName(event.customerId)}</TableCell>
@@ -56,14 +61,20 @@ export function WorkerHamaliReportTable({ events, customers, title }: ReportTabl
                             <TableCell className="text-right font-mono">
                                 {event.payable > 0 ? formatCurrency(event.payable) : ''}
                             </TableCell>
+                            <TableCell className="text-right font-mono">
+                                {event.customerCharge && event.customerCharge > 0 ? formatCurrency(event.customerCharge) : (event.payable > 0 ? formatCurrency(event.payable) : '')}
+                            </TableCell>
+                             <TableCell className={`text-right font-mono ${difference > 0 ? 'text-green-600' : ''}`}>
+                                {event.customerCharge ? formatCurrency(difference) : ''}
+                            </TableCell>
                             <TableCell className="text-right font-mono text-green-600">
                                  {event.paid > 0 ? formatCurrency(event.paid) : ''}
                             </TableCell>
                         </TableRow>
-                    ))}
+                    )})}
                     {events.length === 0 && (
                         <TableRow>
-                            <TableCell colSpan={7} className="text-center text-muted-foreground">
+                            <TableCell colSpan={9} className="text-center text-muted-foreground">
                                 No worker hamali transactions found for the selected criteria.
                             </TableCell>
                         </TableRow>
@@ -73,10 +84,12 @@ export function WorkerHamaliReportTable({ events, customers, title }: ReportTabl
                     <TableRow>
                         <TableCell colSpan={5} className="text-right font-bold">Totals</TableCell>
                         <TableCell className="text-right font-mono font-bold">{formatCurrency(totalPayable)}</TableCell>
+                        <TableCell className="text-right font-mono font-bold">{formatCurrency(totalCustomerCharge)}</TableCell>
+                        <TableCell className="text-right font-mono font-bold text-green-600">{formatCurrency(totalDifference)}</TableCell>
                         <TableCell className="text-right font-mono font-bold text-green-600">{formatCurrency(totalPaid)}</TableCell>
                     </TableRow>
                      <TableRow>
-                        <TableCell colSpan={6} className="text-right font-bold">Pending Balance</TableCell>
+                        <TableCell colSpan={8} className="text-right font-bold">Pending Balance (Worker Payable - Paid)</TableCell>
                         <TableCell className="text-right font-mono font-bold text-destructive">{formatCurrency(balance)}</TableCell>
                     </TableRow>
                 </TableFooter>

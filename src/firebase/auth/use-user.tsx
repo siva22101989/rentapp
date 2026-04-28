@@ -1,12 +1,10 @@
-
 'use client';
 
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { type User } from 'firebase/auth';
 import { useAuth, useFirestore } from '@/firebase/provider';
-import type { AppUser, ManagedWarehouse } from '@/lib/definitions';
-import { collection, query, where, getDocs, doc, getDoc, writeBatch, setDoc, addDoc } from 'firebase/firestore';
-import { cleanForFirestore } from '@/lib/utils';
+import type { AppUser } from '@/lib/definitions';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 interface UserContextType {
   user: User | null;
@@ -42,99 +40,42 @@ export function UserProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      setUser(fbUser); // Set the Firebase user object immediately
+      setUser(fbUser);
 
       try {
         const userDocRef = doc(firestore, 'users', fbUser.uid);
         const userDocSnap = await getDoc(userDocRef);
 
         if (userDocSnap.exists()) {
-          // User document already exists, we're good.
+          // Path 1: The user document already exists. This is the normal flow for returning users.
           setAppUser({ id: userDocSnap.id, ...userDocSnap.data() } as AppUser);
         } else {
-          // User does not have a user document with their UID, so we need to provision one.
+          // Path 2: The user document does not exist. We need to create it (provision it).
           const userEmail = fbUser.email?.toLowerCase();
-          let provisionedAppUser: AppUser | null = null;
           
-          // SCENARIO 1: Super-Admin ('admin@gmail.com')
-          if (userEmail === 'admin@gmail.com') {
-            const newAppUserData: Omit<AppUser, 'id'> = { role: 'super-admin', email: userEmail, phone: '' };
-            await setDoc(userDocRef, newAppUserData);
-            provisionedAppUser = { id: fbUser.uid, ...newAppUserData } as AppUser;
-          }
-          // SCENARIO 2: Special Main Owner ('sivasandeepreddy01@gmail.com')
-          else if (userEmail === 'sivasandeepreddy01@gmail.com') {
-              const warehouseId = 'sri-lakshmi-warehouse';
-              const newAppUserData: Omit<AppUser, 'id'> = {
-                  email: userEmail,
-                  role: 'owner',
-                  phone: fbUser.phoneNumber || '',
-                  warehouseId: warehouseId,
-              };
-              
-              const batch = writeBatch(firestore);
-              batch.set(userDocRef, newAppUserData);
-
-              const managedWarehouseRef = doc(firestore, 'managedWarehouses', warehouseId);
-              batch.set(managedWarehouseRef, cleanForFirestore({
-                  name: 'Sri Lakshmi Warehouse',
-                  ownerName: 'Siva Sandeep Reddy',
-                  ownerEmail: userEmail,
-                  yearlyAmount: 0,
-                  subscriptionStatus: 'active' as const,
-                  createdAt: new Date(),
-              }), { merge: true });
-
-              const warehouseSettingsRef = doc(firestore, 'warehouses', warehouseId);
-              batch.set(warehouseSettingsRef, { name: 'Sri Lakshmi Warehouse', ownerName: 'Siva Sandeep Reddy' }, { merge: true });
-
-              await batch.commit();
-              provisionedAppUser = { id: fbUser.uid, ...newAppUserData } as AppUser;
-          }
-          // SCENARIO 3: Other Warehouse Owners (Google Sign-In)
-          else if (userEmail && !userEmail.startsWith('+')) {
-            const warehousesCol = collection(firestore, 'managedWarehouses');
-            const q = query(warehousesCol, where('ownerEmail', '==', userEmail), where('subscriptionStatus', 'in', ['active', 'trial']));
-            const warehouseSnap = await getDocs(q);
-
-            if (!warehouseSnap.empty) {
-              const warehouseDoc = warehouseSnap.docs[0];
-              const newAppUserData: Omit<AppUser, 'id'> = {
-                  email: userEmail,
-                  role: 'owner',
-                  phone: fbUser.phoneNumber || '',
-                  warehouseId: warehouseDoc.id,
-              };
-              await setDoc(userDocRef, newAppUserData);
-              provisionedAppUser = { id: fbUser.uid, ...newAppUserData } as AppUser;
-            }
-          }
-          // SCENARIO 4: Staff Member (Phone Auth)
-          else if (userEmail && userEmail.startsWith('+')) {
-            const phone = userEmail.substring(1, userEmail.indexOf('@'));
-            const usersCol = collection(firestore, 'users');
-            const q = query(usersCol, where('phone', '==', phone));
-            const staffSnap = await getDocs(q);
+          // Special provisioning for the main owner account.
+          if (userEmail === 'sivasandeepreddy01@gmail.com') {
+            const warehouseId = 'sri-lakshmi-warehouse';
+            const newAppUserData: Omit<AppUser, 'id'> = {
+              email: userEmail,
+              role: 'owner',
+              phone: fbUser.phoneNumber || '',
+              warehouseId: warehouseId,
+            };
             
-            if (!staffSnap.empty) {
-              const staffDocToDelete = staffSnap.docs[0];
-              const newAppUserData = staffDocToDelete.data() as Omit<AppUser, 'id'>;
-              
-              const batch = writeBatch(firestore);
-              batch.set(userDocRef, newAppUserData);
-              batch.delete(staffDocToDelete.ref); // Migrate from old doc ID to UID
-              await batch.commit();
+            // Create the user document with their role and warehouse.
+            await setDoc(userDocRef, newAppUserData);
 
-              provisionedAppUser = { id: fbUser.uid, ...newAppUserData } as AppUser;
-            }
-          }
+            // Also ensure the main warehouse document exists.
+            const warehouseSettingsRef = doc(firestore, 'warehouses', warehouseId);
+            await setDoc(warehouseSettingsRef, { name: 'Sri Lakshmi Warehouse' }, { merge: true });
 
-          // FINAL CHECK: If a user was provisioned, set them. Otherwise, they are unauthorized.
-          if (provisionedAppUser) {
-            setAppUser(provisionedAppUser);
+            // Set the newly created user as the active appUser.
+            setAppUser({ id: fbUser.uid, ...newAppUserData } as AppUser);
           } else {
+            // If the user is not the special owner and has no user document, they are unauthorized.
             setAppUser(null);
-            setProvisioningError('Your account is not authorized to access this application. Please contact your administrator.');
+            setProvisioningError('Your account is not registered. Please contact your warehouse administrator.');
           }
         }
       } catch (err) {

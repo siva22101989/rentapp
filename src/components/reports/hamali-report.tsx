@@ -5,7 +5,7 @@ import type { Customer, StorageRecord, UnloadingRecord, Expense, WarehouseInfo }
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toDate } from '@/lib/utils';
-import { useDateFilter } from '@/firebase/provider';
+import { useDateFilter } from '@/firebase';
 import { CustomerHamaliReportTable } from './customer-hamali-report-table';
 import { WorkerHamaliReportTable } from './worker-hamali-report-table';
 import { HamaliProfitReportTable } from './hamali-profit-report-table';
@@ -236,7 +236,7 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses, w
     const renderReport = () => {
         switch(reportView) {
             case 'customer':
-                return <CustomerHamaliReportTable events={customerHamaliEvents} customers={customers} title={title} warehouseInfo={warehouseInfo} view="customer" workerEvents={[]}/>;
+                return <CustomerHamaliReportTable customerEvents={customerHamaliEvents} customers={customers} title={title} warehouseInfo={warehouseInfo} />;
             case 'worker':
                 return <WorkerHamaliReportTable events={workerAndProfitEvents} customers={customers} title={title} />;
             case 'difference':

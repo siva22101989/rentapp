@@ -2,7 +2,6 @@
 'use server';
 
 import { z } from 'zod';
-import * as https from 'https';
 
 const SendSmsSchema = z.object({
   apiKey: z.string().min(1, { message: 'API Key is required.' }),
@@ -32,81 +31,59 @@ export async function sendSms(formData: { apiKey: string; to: string; message: s
   }
   const tenDigitPhoneNumber = cleanedPhoneNumber.slice(-10);
 
-  return new Promise((resolve) => {
-    let path: string;
-    let postData: string;
-    
-    // Logic for sending SMS via textbee.dev API
-    if (deviceId) {
-      // Using a device gateway
-      path = `/api/v1/gateway/devices/${deviceId}/send-sms`;
-      postData = JSON.stringify({
-        recipients: [`+91${tenDigitPhoneNumber}`], // Device gateway usually requires the country code
-        message: message
-      });
-    } else {
-      // Using bulk SMS API
-      path = '/api/v1/bulksms/send';
-      postData = JSON.stringify({
-        messages: [
-            {
-                message: message,
-                recipients: [tenDigitPhoneNumber] // Bulk API might prefer numbers without country code
-            }
-        ],
-        sender_id: senderId || 'TXTBEE', // Corrected parameter name
-      });
-    }
-    
-    const options = {
-      hostname: 'api.textbee.dev',
-      port: 443,
-      path: path,
+  let url: string;
+  let postData: string;
+
+  if (deviceId) {
+    url = `https://api.textbee.dev/api/v1/gateway/devices/${deviceId}/send-sms`;
+    postData = JSON.stringify({
+      recipients: [`+91${tenDigitPhoneNumber}`],
+      message: message
+    });
+  } else {
+    url = 'https://api.textbee.dev/api/v1/bulksms/send';
+    postData = JSON.stringify({
+      messages: [
+        {
+          message: message,
+          recipients: [tenDigitPhoneNumber]
+        }
+      ],
+      sender_id: senderId || 'TXTBEE',
+    });
+  }
+  
+  try {
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
-        'Content-Length': Buffer.byteLength(postData),
       },
-    };
+      body: postData,
+    });
 
-    const req = https.request(options, (res) => {
-      let responseBody = '';
-      res.setEncoding('utf8');
-      res.on('data', (chunk) => {
-        responseBody += chunk;
-      });
-      res.on('end', () => {
-        try {
-          const responseData = JSON.parse(responseBody);
-          if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
-            // Textbee API might return a 200 OK but still have an error in the body
-            if (responseData.status === 'SUCCESS' || responseData.status === 'success' || (res.statusCode === 200 && !responseData.error)) {
-                console.log('SMS sent successfully:', responseData);
-                resolve({ success: true, message: responseData.message || "SMS sent successfully!" });
-            } else {
-                 const apiMessage = responseData.error?.message || responseData.error || responseData.message || `Unknown API error`;
-                 console.error('Failed to send SMS (API Error):', responseData);
-                 resolve({ success: false, message: `Failed to send SMS: ${apiMessage}` });
-            }
-          } else {
-            const apiMessage = responseData.error?.message || responseData.error || responseData.message || `Unknown API error (Status: ${res.statusCode})`;
-            console.error('Failed to send SMS (HTTP Error):', responseData);
-            resolve({ success: false, message: `Failed to send SMS: ${apiMessage}` });
-          }
-        } catch (e) {
-          console.error('Error parsing textbee.dev response:', e, 'Body:', responseBody);
-          resolve({ success: false, message: 'Failed to parse response from SMS service.' });
+    const responseData = await response.json();
+
+    if (response.ok) {
+        if (responseData.status === 'SUCCESS' || responseData.status === 'success' || !responseData.error) {
+            console.log('SMS sent successfully:', responseData);
+            return { success: true, message: responseData.message || "SMS sent successfully!" };
+        } else {
+            const apiMessage = responseData.error?.message || responseData.error || responseData.message || `Unknown API error`;
+            console.error('Failed to send SMS (API Error):', responseData);
+            return { success: false, message: `Failed to send SMS: ${apiMessage}` };
         }
-      });
-    });
-
-    req.on('error', (e) => {
-      console.error(`Problem with request: ${e.message}`);
-      resolve({ success: false, message: `Network error: ${e.message}` });
-    });
-
-    req.write(postData);
-    req.end();
-  });
+    } else {
+        const apiMessage = responseData.error?.message || responseData.error || responseData.message || `Unknown API error (Status: ${response.status})`;
+        console.error('Failed to send SMS (HTTP Error):', responseData);
+        return { success: false, message: `Failed to send SMS: ${apiMessage}` };
+    }
+  } catch (e) {
+      console.error('Error in sendSms fetch request:', e);
+      if (e instanceof Error) {
+        return { success: false, message: `Network error: ${e.message}` };
+      }
+      return { success: false, message: 'An unknown network error occurred.' };
+  }
 }

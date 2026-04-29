@@ -26,7 +26,7 @@ export type WorkerHamaliEvent = {
     recordId: string;
     customerId?: string;
     payable: number;
-    charge?: number;
+    charge: number;
     paid: number;
     bags?: number;
 }
@@ -141,13 +141,13 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses, w
         const events: WorkerHamaliEvent[] = [];
 
         records.forEach(sr => {
-            if (sr.workerHamaliPayable && sr.workerHamaliPayable > 0) {
+            if (sr.hamaliPayable > 0) {
                 events.push({
                     date: toDate(sr.storageStartDate),
                     description: sr.inflowType === 'Plot' ? 'Plot to Storage Hamali' : 'Direct Inflow Hamali',
                     recordId: sr.id,
                     customerId: sr.customerId,
-                    payable: sr.workerHamaliPayable,
+                    payable: sr.workerHamaliPayable ?? sr.hamaliPayable,
                     charge: sr.hamaliPayable,
                     paid: 0,
                     bags: sr.bagsIn,
@@ -157,21 +157,22 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses, w
 
         unloadingRecords.forEach(ur => {
             const bagsRemaining = ur.bagsUnloaded - (ur.bagsSentToDrying || 0);
-            if (bagsRemaining > 0 && ur.workerHamaliPayable) {
-                const hamaliPerBag = ur.hamaliPerBag || 0; 
-                const remainingAmount = bagsRemaining * hamaliPerBag;
-                if (remainingAmount > 0) {
-                    events.push({
-                        date: toDate(ur.unloadingDate),
-                        description: 'Unloading Hamali (Pending Finalize)',
-                        recordId: ur.billNo || ur.id.substring(0, 5),
-                        customerId: ur.customerId,
-                        payable: remainingAmount,
-                        charge: remainingAmount,
-                        paid: 0,
-                        bags: bagsRemaining,
-                    });
-                }
+            if (bagsRemaining > 0 && ur.totalHamali > 0) {
+                const proportion = ur.bagsUnloaded > 0 ? bagsRemaining / ur.bagsUnloaded : 0;
+                
+                const customerChargeForRemaining = ur.totalHamali * proportion;
+                const workerPayableForRemaining = (ur.workerHamaliPayable ?? ur.totalHamali) * proportion;
+
+                events.push({
+                    date: toDate(ur.unloadingDate),
+                    description: 'Unloading Hamali (pending finalize)',
+                    recordId: ur.billNo || ur.id.substring(0, 5),
+                    customerId: ur.customerId,
+                    charge: customerChargeForRemaining,
+                    payable: workerPayableForRemaining,
+                    paid: 0,
+                    bags: bagsRemaining,
+                });
             }
         });
 
@@ -235,7 +236,7 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses, w
     const renderReport = () => {
         switch(reportView) {
             case 'customer':
-                return <CustomerHamaliReportTable events={customerHamaliEvents} customers={customers} title={title} />;
+                return <CustomerHamaliReportTable events={customerHamaliEvents} customers={customers} title={title} warehouseInfo={warehouseInfo} view="customer" workerEvents={[]}/>;
             case 'worker':
                 return <WorkerHamaliReportTable events={workerAndProfitEvents} customers={customers} title={title} />;
             case 'difference':

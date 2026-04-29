@@ -43,8 +43,8 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
     const [sendSmsNotification, setSendSmsNotification] = useState(true);
 
     const [bags, setBags] = useState<number | ''>('');
-    const [rate, setRate] = useState<number | ''>('');
-    const [hamali, setHamali] = useState(0);
+    const [customerRate, setCustomerRate] = useState<number | ''>('');
+    const [workerRate, setWorkerRate] = useState<number | ''>('');
     const [hamaliPaid, setHamaliPaid] = useState<number | ''>('');
     const [selectedCustomerId, setSelectedCustomerId] = useState('');
     const [selectedCommodity, setSelectedCommodity] = useState('');
@@ -92,19 +92,21 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
     }, [selectedCustomerId, customers]);
 
 
-    useEffect(() => {
-        const bagsValue = bags || 0;
-        const rateValue = rate || 0;
+    const { customerHamali, workerHamali } = useMemo(() => {
+        const bagsValue = Number(bags) || 0;
+        const custRateValue = Number(customerRate) || 0;
+        const workRateValue = Number(workerRate) || 0;
         
-        const currentHamali = bagsValue * rateValue;
-        setHamali(currentHamali);
-
-    }, [bags, rate]);
+        return {
+            customerHamali: bagsValue * custRateValue,
+            workerHamali: bagsValue * workRateValue
+        }
+    }, [bags, customerRate, workerRate]);
 
     const resetForm = () => {
         setBags('');
-        setRate('');
-        setHamali(0);
+        setCustomerRate('');
+        setWorkerRate('');
         setHamaliPaid('');
         setSelectedCustomerId('');
         setSelectedCommodity('');
@@ -151,10 +153,12 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
         startTransition(async () => {
             try {
                 const weightValue = Number(weight) || 0;
-                const hamaliRate = Number(rate) || 0;
+                const customerHamaliRate = Number(customerRate) || 0;
+                const workerHamaliRate = Number(workerRate) || customerHamaliRate;
                 const hamaliPaidAmount = Number(hamaliPaid) || 0;
 
-                const hamaliPayable = bagsStored * hamaliRate;
+                const hamaliPayable = bagsStored * customerHamaliRate;
+                const workerHamaliPayable = bagsStored * workerHamaliRate;
 
                 const payments: Payment[] = [];
                 if (hamaliPaidAmount > 0) {
@@ -178,8 +182,8 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                     billingCycle: '6-Month Initial' as const,
                     payments,
                     hamaliPayable,
-                    hamaliRate: hamaliRate,
-                    workerHamaliPayable: hamaliPayable,
+                    hamaliRate: customerHamaliRate,
+                    workerHamaliPayable: workerHamaliPayable,
                     totalRentBilled: 0,
                     lorryTractorNo: lorryTractorNo,
                     weight: weightValue,
@@ -327,34 +331,44 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label htmlFor="hamaliRate">Storage Inflow Hamali Rate (per bag)</Label>
-                            <Input id="hamaliRate" name="hamaliRate" type="number" placeholder="0.00" step="0.01" value={rate} onChange={e => setRate(e.target.value === '' ? '' : Number(e.target.value))}/>
+                            <Label htmlFor="customerHamaliRate">Customer Hamali Rate (per bag)</Label>
+                            <Input id="customerHamaliRate" name="customerHamaliRate" type="number" placeholder="0.00" step="0.01" value={customerRate} onChange={e => setCustomerRate(e.target.value === '' ? '' : Number(e.target.value))}/>
                         </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="workerHamaliRate">Worker Hamali Rate (per bag)</Label>
+                            <Input id="workerHamaliRate" name="workerHamaliRate" type="number" placeholder="0.00" step="0.01" value={workerRate} onChange={e => setWorkerRate(e.target.value === '' ? '' : Number(e.target.value))}/>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="hamaliPaid">Hamali Paid Now</Label>
                             <Input id="hamaliPaid" name="hamaliPaid" type="number" placeholder="0.00" step="0.01" value={hamaliPaid} onChange={e => setHamaliPaid(e.target.value === '' ? '' : Number(e.target.value))}/>
                         </div>
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="khataAmount">Khata Amount (Weighbridge)</Label>
-                        <Input id="khataAmount" name="khataAmount" type="number" placeholder="0.00" step="0.01" value={khataAmount} onChange={e => setKhataAmount(e.target.value === '' ? '' : Number(e.target.value))} />
+                        <div className="space-y-2">
+                            <Label htmlFor="khataAmount">Khata Amount (Weighbridge)</Label>
+                            <Input id="khataAmount" name="khataAmount" type="number" placeholder="0.00" step="0.01" value={khataAmount} onChange={e => setKhataAmount(e.target.value === '' ? '' : Number(e.target.value))} />
+                        </div>
                     </div>
                      <Separator />
                      <div className="space-y-4">
                         <h4 className="font-medium">Billing Summary</h4>
                         <div className="space-y-2 text-sm">
-                            <div className="flex justify-between items-center">
-                                <span className="text-muted-foreground">Storage Inflow Hamali</span>
-                                <span className="font-mono">{formatCurrency((Number(bags) || 0) * (Number(rate) || 0))}</span>
+                            <div className="flex justify-between items-center font-semibold">
+                                <span className="text-foreground">Total Hamali Payable (Customer)</span>
+                                <span className="font-mono">{formatCurrency(customerHamali)}</span>
+                            </div>
+                             <div className="flex justify-between items-center text-sm">
+                                <span className="text-muted-foreground">Total Hamali Payable (Worker)</span>
+                                <span className="font-mono">{formatCurrency(workerHamali)}</span>
+                            </div>
+                             <div className="flex justify-between items-center text-sm">
+                                <span className="text-muted-foreground">Profit/Loss on Hamali</span>
+                                <span className="font-mono">{formatCurrency(customerHamali - workerHamali)}</span>
                             </div>
                             <Separator />
                             <div className="flex justify-between items-center font-semibold">
-                                <span className="text-foreground">Total Hamali Payable</span>
-                                <span className="font-mono">{formatCurrency(hamali)}</span>
-                            </div>
-                            <div className="flex justify-between items-center font-semibold">
                                 <span className="text-destructive">Hamali Pending</span>
-                                <span className="font-mono text-destructive">{formatCurrency(hamali - (Number(hamaliPaid) || 0))}</span>
+                                <span className="font-mono text-destructive">{formatCurrency(customerHamali - (Number(hamaliPaid) || 0))}</span>
                             </div>
                             <p className="text-xs text-muted-foreground pt-2">
                                 Rent will be calculated at the time of withdrawal.

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -31,7 +30,8 @@ const EditUnloadingSchema = z.object({
   lorryTractorNo: z.string().optional(),
   unloadingDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
   bagsUnloaded: z.coerce.number().int().positive('Number of bags must be positive.'),
-  hamaliPerBag: z.coerce.number().nonnegative('Hamali rate must be non-negative.'),
+  customerHamaliPerBag: z.coerce.number().nonnegative('Customer hamali rate must be non-negative.'),
+  workerHamaliPerBag: z.coerce.number().nonnegative('Worker hamali rate must be non-negative.').optional(),
 });
 
 type EditUnloadingFormData = z.infer<typeof EditUnloadingSchema>;
@@ -58,7 +58,8 @@ export function EditUnloadingRecordDialog({
   const [lorryTractorNo, setLorryTractorNo] = useState('');
   const [unloadingDate, setUnloadingDate] = useState('');
   const [bagsUnloaded, setBagsUnloaded] = useState<number | ''>('');
-  const [hamaliPerBag, setHamaliPerBag] = useState<number | ''>('');
+  const [customerHamaliPerBag, setCustomerHamaliPerBag] = useState<number | ''>('');
+  const [workerHamaliPerBag, setWorkerHamaliPerBag] = useState<number | ''>('');
   const [error, setError] = useState<Record<string, string>>({});
 
   const getLocalDateTimeForInput = (date: Date) => {
@@ -69,12 +70,17 @@ export function EditUnloadingRecordDialog({
   
   const handleOpenChange = (open: boolean) => {
     if (open) {
+      const workerRate = record.workerHamaliPayable !== undefined && record.bagsUnloaded > 0
+        ? record.workerHamaliPayable / record.bagsUnloaded
+        : record.hamaliPerBag;
+
       setCustomerId(record.customerId);
       setCommodityDescription(record.commodityDescription);
       setLorryTractorNo(record.lorryTractorNo || '');
       setUnloadingDate(getLocalDateTimeForInput(toDate(record.unloadingDate)));
       setBagsUnloaded(record.bagsUnloaded);
-      setHamaliPerBag(record.hamaliPerBag);
+      setCustomerHamaliPerBag(record.hamaliPerBag);
+      setWorkerHamaliPerBag(workerRate);
       setError({});
     }
     setIsOpen(open);
@@ -94,7 +100,8 @@ export function EditUnloadingRecordDialog({
       lorryTractorNo,
       unloadingDate,
       bagsUnloaded: Number(bagsUnloaded),
-      hamaliPerBag: Number(hamaliPerBag),
+      customerHamaliPerBag: Number(customerHamaliPerBag),
+      workerHamaliPerBag: Number(workerHamaliPerBag),
     };
 
     const result = EditUnloadingSchema.safeParse(dataToValidate);
@@ -115,12 +122,15 @@ export function EditUnloadingRecordDialog({
 
     startTransition(async () => {
       try {
-        const totalHamali = result.data.bagsUnloaded * result.data.hamaliPerBag;
+        const totalHamali = result.data.bagsUnloaded * result.data.customerHamaliPerBag;
+        const workerHamaliPayable = result.data.bagsUnloaded * (result.data.workerHamaliPerBag ?? result.data.customerHamaliPerBag);
+        
         const updateData = {
           ...result.data,
+          hamaliPerBag: result.data.customerHamaliPerBag,
           unloadingDate: new Date(result.data.unloadingDate),
           totalHamali,
-          workerHamaliPayable: totalHamali,
+          workerHamaliPayable,
         };
         await updateUnloadingRecord(firestore, record.id, updateData);
         toast({ title: 'Success', description: 'Unloading record updated.' });
@@ -179,16 +189,21 @@ export function EditUnloadingRecordDialog({
               <Input id="unloadingDate" type="datetime-local" value={unloadingDate} onChange={e => setUnloadingDate(e.target.value)} />
               {error.unloadingDate && <p className="text-sm font-medium text-destructive">{error.unloadingDate}</p>}
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
+            <div className="space-y-2">
                 <Label htmlFor="bagsUnloaded">Bags Unloaded</Label>
                 <Input id="bagsUnloaded" type="number" value={bagsUnloaded} onChange={e => setBagsUnloaded(e.target.value === '' ? '' : Number(e.target.value))} />
                 {error.bagsUnloaded && <p className="text-sm font-medium text-destructive">{error.bagsUnloaded}</p>}
               </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="hamaliPerBag">Hamali per Bag</Label>
-                <Input id="hamaliPerBag" type="number" step="0.01" value={hamaliPerBag} onChange={e => setHamaliPerBag(e.target.value === '' ? '' : Number(e.target.value))} />
-                 {error.hamaliPerBag && <p className="text-sm font-medium text-destructive">{error.hamaliPerBag}</p>}
+                <Label htmlFor="customerHamaliPerBag">Customer Hamali per Bag</Label>
+                <Input id="customerHamaliPerBag" type="number" step="0.01" value={customerHamaliPerBag} onChange={e => setCustomerHamaliPerBag(e.target.value === '' ? '' : Number(e.target.value))} />
+                 {error.customerHamaliPerBag && <p className="text-sm font-medium text-destructive">{error.customerHamaliPerBag}</p>}
+              </div>
+               <div className="space-y-2">
+                <Label htmlFor="workerHamaliPerBag">Worker Hamali per Bag</Label>
+                <Input id="workerHamaliPerBag" type="number" step="0.01" value={workerHamaliPerBag} onChange={e => setWorkerHamaliPerBag(e.target.value === '' ? '' : Number(e.target.value))} />
+                 {error.workerHamaliPerBag && <p className="text-sm font-medium text-destructive">{error.workerHamaliPerBag}</p>}
               </div>
             </div>
             {record.bagsSentToDrying > 0 && <p className="text-xs text-muted-foreground">Note: {record.bagsSentToDrying} bags have already been sent for drying from this record.</p>}

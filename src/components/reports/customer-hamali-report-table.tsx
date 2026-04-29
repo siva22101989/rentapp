@@ -8,23 +8,23 @@ import { useMemo } from "react";
 import type { CustomerHamaliEvent } from "./hamali-report";
 
 type ReportTableProps = {
-    customerEvents: CustomerHamaliEvent[];
+    events: CustomerHamaliEvent[];
     customers: Customer[];
     title: string;
     warehouseInfo: WarehouseInfo | null;
 }
 
-export function CustomerHamaliReportTable({ customerEvents, customers, title, warehouseInfo }: ReportTableProps) {
+export function CustomerHamaliReportTable({ events, customers, title, warehouseInfo }: ReportTableProps) {
     const generatedDate = useMemo(() => format(new Date(), 'dd MMM yyyy, hh:mm a'), []);
+    const safeEvents = events || [];
 
     const getCustomerName = (customerId?: string) => {
         if (!customerId) return '';
         return customers.find(c => c.id === customerId)?.name ?? 'Unknown';
     }
 
-    const events = customerEvents || [];
-    const totalCharges = events.filter(e => e.type === 'charge').reduce((acc, event) => acc + event.amount, 0);
-    const totalPayments = events.filter(e => e.type === 'payment').reduce((acc, event) => acc + event.amount, 0);
+    const totalCharges = safeEvents.filter(e => e.type === 'charge').reduce((acc, event) => acc + event.amount, 0);
+    const totalPayments = safeEvents.filter(e => e.type === 'payment').reduce((acc, event) => acc + event.amount, 0);
     
     return (
         <div className="bg-white p-4 rounded-lg">
@@ -46,7 +46,7 @@ export function CustomerHamaliReportTable({ customerEvents, customers, title, wa
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {events.map((event, index) => (
+                    {safeEvents.map((event, index) => (
                         <TableRow key={index}>
                             <TableCell>{format(event.date, 'dd MMM yyyy')}</TableCell>
                             <TableCell className="font-medium">{getCustomerName(event.customerId)}</TableCell>
@@ -61,7 +61,7 @@ export function CustomerHamaliReportTable({ customerEvents, customers, title, wa
                             </TableCell>
                         </TableRow>
                     ))}
-                    {events.length === 0 && (
+                    {safeEvents.length === 0 && (
                         <TableRow>
                             <TableCell colSpan={7} className="text-center text-muted-foreground">
                                 No hamali transactions found for the selected criteria.

@@ -236,7 +236,7 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses, w
     const renderReport = () => {
         switch(reportView) {
             case 'customer':
-                return <CustomerHamaliReportTable customerEvents={customerHamaliEvents} customers={customers} title={title} warehouseInfo={warehouseInfo} />;
+                return <CustomerHamaliReportTable events={customerHamaliEvents} customers={customers} title={title} warehouseInfo={warehouseInfo} />;
             case 'worker':
                 return <WorkerHamaliReportTable events={workerAndProfitEvents} customers={customers} title={title} />;
             case 'difference':

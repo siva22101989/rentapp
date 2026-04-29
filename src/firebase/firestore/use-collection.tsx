@@ -5,7 +5,7 @@ import { onSnapshot, type Query, type DocumentData } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { toDate } from '@/lib/utils';
-import { useAuth } from '../provider';
+import { useAuth } from '@/firebase';
 
 interface UseCollectionReturn<T> {
   data: T[] | null;

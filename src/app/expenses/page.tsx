@@ -1,3 +1,4 @@
+
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { AddExpenseDialog } from "@/components/expenses/add-expense-dialog";
@@ -9,11 +10,9 @@ import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, Table
 import type { Expense, StorageRecord, UnloadingRecord, WarehouseInfo, Borrowing, Lending, OtherIncome, Commodity } from "@/lib/definitions";
 import { format, differenceInCalendarMonths, differenceInCalendarYears } from "date-fns";
 import { ExpenseActionsMenu } from "@/components/expenses/expense-actions-menu";
-import { useCollection } from "@/firebase/firestore/use-collection";
-import { useFirestore, useDateFilter } from "@/firebase/provider";
+import { useCollection, useFirestore, useDateFilter, useDoc, useAppUser } from "@/firebase";
 import { collection, doc, query, where } from "firebase/firestore";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
-import { useDoc } from "@/firebase/firestore/use-doc";
 import { ManageInvestmentDialog } from "@/components/expenses/manage-investment-dialog";
 import { AddBorrowingDialog } from "@/components/borrowings/add-borrowing-dialog";
 import { AddLendingDialog } from "@/components/lendings/add-lending-dialog";
@@ -22,7 +21,6 @@ import { Separator } from "@/components/ui/separator";
 import { calculateFinalRent } from "@/lib/billing";
 import { BorrowingActionsMenu } from "@/components/borrowings/borrowing-actions-menu";
 import { LendingActionsMenu } from "@/components/lendings/lending-actions-menu";
-import { useAppUser } from "@/firebase/auth/use-user";
 
 function IncomesTable({ incomes }: { incomes: OtherIncome[] }) {
     if (incomes.length === 0) {

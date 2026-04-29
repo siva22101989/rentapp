@@ -11,7 +11,7 @@ import { Badge } from "../ui/badge";
 import { Skeleton } from "../ui/skeleton";
 import { useTransition, useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { useFirestore } from "@/firebase/provider";
+import { useFirestore } from "@/firebase";
 import { updateUser } from "@/lib/data";
 import type { AppUser } from "@/lib/definitions";
 

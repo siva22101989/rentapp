@@ -1,13 +1,12 @@
+
 'use client';
 import { useState, useTransition } from 'react';
-import { useFirestore } from '@/firebase/provider';
-import { useCollection } from '@/firebase/firestore/use-collection';
-import { useMemoFirebase } from '@/hooks/use-memo-firebase';
+import { useFirestore, useCollection, useAppUser } from '@/firebase';
 import { collection, addDoc, deleteDoc, doc, query, where } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { cleanForFirestore } from '@/lib/utils';
 import type { AppUser } from '@/lib/definitions';
-import { useAppUser } from '@/firebase/auth/use-user';
+import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 
 import {
   Dialog,

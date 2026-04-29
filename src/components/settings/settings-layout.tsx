@@ -9,7 +9,7 @@ import { CropsRatesSettings } from "./crops-rates-settings";
 import { DataSettings } from "./data-settings";
 import { Card, CardContent } from "../ui/card";
 import { SmsSettings } from "./sms-settings";
-import { useAppUser } from "@/firebase/auth/use-user";
+import { useAppUser } from "@/firebase";
 import { BillingSettings } from "./billing-settings";
 
 const allTabs = [

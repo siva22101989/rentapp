@@ -11,11 +11,9 @@ import {
 } from '@/components/ui/dialog';
 import { UnloadingReceipt } from './unloading-receipt';
 import type { Customer, UnloadingRecord, WarehouseInfo } from '@/lib/definitions';
-import { useDoc } from '@/firebase/firestore/use-doc';
-import { useFirestore } from '@/firebase/provider';
+import { useDoc, useFirestore, useAppUser } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
-import { useAppUser } from '@/firebase/auth/use-user';
 
 export function ViewUnloadingReceiptDialog({
   record,

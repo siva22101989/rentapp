@@ -2,16 +2,14 @@
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
-import { useCollection } from "@/firebase/firestore/use-collection";
+import { useCollection, useFirestore, useAppUser } from "@/firebase";
 import { collection, query, where } from "firebase/firestore";
-import { useFirestore } from "@/firebase/provider";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 import type { Customer, UnloadingRecord, Lot, StorageRecord, Commodity } from "@/lib/definitions";
 import { AddCustomerDialog } from "@/components/customers/add-customer-dialog";
 import { InitiateDryingForm } from "@/components/drying/initiate-drying-form";
 import { useMemo } from "react";
 import { toDate } from "@/lib/utils";
-import { useAppUser } from "@/firebase/auth/use-user";
 import { Card, CardContent } from "@/components/ui/card";
 
 export default function DryingPage() {

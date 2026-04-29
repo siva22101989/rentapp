@@ -5,7 +5,7 @@ import { onSnapshot, type DocumentReference, type DocumentData } from 'firebase/
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { toDate } from '@/lib/utils';
-import { useAuth } from '../provider';
+import { useAuth } from '@/firebase';
 
 interface UseDocReturn<T> {
   data: T | null;

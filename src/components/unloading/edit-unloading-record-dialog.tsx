@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -17,7 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import type { Customer, UnloadingRecord, Commodity } from '@/lib/definitions';
-import { useFirestore } from '@/firebase/provider';
+import { useFirestore } from '@/firebase';
 import { z } from 'zod';
 import { updateUnloadingRecord } from '@/lib/data';
 import { toDate, cleanForFirestore } from '@/lib/utils';

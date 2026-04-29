@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useTransition, useEffect, useState } from 'react';
@@ -7,14 +8,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore } from '@/firebase/provider';
+import { useFirestore, useDoc, useAppUser } from '@/firebase';
 import type { WarehouseInfo } from '@/lib/definitions';
 import { doc, setDoc } from 'firebase/firestore';
-import { useDoc } from '@/firebase/firestore/use-doc';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 import { cleanForFirestore } from '@/lib/utils';
 import { Skeleton } from '../ui/skeleton';
-import { useAppUser } from '@/firebase/auth/use-user';
 import { Separator } from '../ui/separator';
 import { sendSms } from '@/lib/sms';
 import { Label } from '../ui/label';

@@ -8,7 +8,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
-import { useAppUser } from '@/firebase/auth/use-user';
+import { useAppUser } from '@/firebase';
 import type { LucideIcon } from 'lucide-react';
 import {
   ArrowDownToDot,

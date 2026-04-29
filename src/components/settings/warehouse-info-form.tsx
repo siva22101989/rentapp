@@ -7,15 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore } from '@/firebase/provider';
+import { useFirestore, useDoc, useAppUser } from '@/firebase';
 import type { WarehouseInfo } from '@/lib/definitions';
 import { doc, setDoc } from 'firebase/firestore';
-import { useDoc } from '@/firebase/firestore/use-doc';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 import { cleanForFirestore } from '@/lib/utils';
 import { Skeleton } from '../ui/skeleton';
 import { Textarea } from '../ui/textarea';
-import { useAppUser } from '@/firebase/auth/use-user';
 import { z } from 'zod';
 
 const WarehouseInfoSchema = z.object({

@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { type User } from 'firebase/auth';
-import { useAuth, useFirestore } from '@/firebase/provider';
+import { useAuth, useFirestore } from '@/firebase';
 import type { AppUser } from '@/lib/definitions';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 
@@ -47,13 +48,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
         const userDocSnap = await getDoc(userDocRef);
 
         if (userDocSnap.exists()) {
-          // Path 1: The user document already exists. This is the normal flow for returning users.
           setAppUser({ id: userDocSnap.id, ...userDocSnap.data() } as AppUser);
         } else {
-          // Path 2: The user document does not exist. We need to create it (provision it).
           const userEmail = fbUser.email?.toLowerCase();
           
-          // Special provisioning for the main owner account.
           if (userEmail === 'sivasandeepreddy01@gmail.com') {
             const warehouseId = 'sri-lakshmi-warehouse';
             const newAppUserData: Omit<AppUser, 'id'> = {
@@ -63,19 +61,25 @@ export function UserProvider({ children }: { children: ReactNode }) {
               warehouseId: warehouseId,
             };
             
-            // Create the user document with their role and warehouse.
             await setDoc(userDocRef, newAppUserData);
 
-            // Also ensure the main warehouse document exists.
             const warehouseSettingsRef = doc(firestore, 'warehouses', warehouseId);
             await setDoc(warehouseSettingsRef, { name: 'Sri Lakshmi Warehouse' }, { merge: true });
 
-            // Set the newly created user as the active appUser.
             setAppUser({ id: fbUser.uid, ...newAppUserData } as AppUser);
           } else {
-            // If the user is not the special owner and has no user document, they are unauthorized.
-            setAppUser(null);
-            setProvisioningError('Your account is not registered. Please contact your warehouse administrator.');
+            const phone = fbUser.email?.split('@')[0].replace('+', '');
+            const q = query(collection(firestore, 'users'), where('phone', '==', phone));
+            const querySnapshot = await getDocs(q);
+
+            if (!querySnapshot.empty) {
+                const existingUserDoc = querySnapshot.docs[0];
+                await updateDoc(userDocRef, { ...existingUserDoc.data(), email: fbUser.email });
+                setAppUser({ id: userDocRef.id, ...existingUserDoc.data(), email: fbUser.email } as AppUser);
+            } else {
+                setAppUser(null);
+                setProvisioningError('Your account is not registered. Please contact your warehouse administrator.');
+            }
           }
         }
       } catch (err) {

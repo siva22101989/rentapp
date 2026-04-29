@@ -2,10 +2,10 @@
 'use client';
 
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
-import { type User } from 'firebase/auth';
+import type { User } from 'firebase/auth';
 import { useAuth, useFirestore } from '@/firebase';
-import type { AppUser } from '@/lib/definitions';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import type { AppUser, ManagedWarehouse } from '@/lib/definitions';
+import { doc, getDoc, setDoc, query, collection, where, getDocs, updateDoc } from 'firebase/firestore';
 
 interface UserContextType {
   user: User | null;
@@ -50,8 +50,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
         if (userDocSnap.exists()) {
           setAppUser({ id: userDocSnap.id, ...userDocSnap.data() } as AppUser);
         } else {
+          // This block is for auto-provisioning new users or linking existing ones.
           const userEmail = fbUser.email?.toLowerCase();
           
+          // Special case for the main owner of this specific app.
           if (userEmail === 'sivasandeepreddy01@gmail.com') {
             const warehouseId = 'sri-lakshmi-warehouse';
             const newAppUserData: Omit<AppUser, 'id'> = {
@@ -63,23 +65,64 @@ export function UserProvider({ children }: { children: ReactNode }) {
             
             await setDoc(userDocRef, newAppUserData);
 
+            // Also ensure the warehouse info doc exists.
             const warehouseSettingsRef = doc(firestore, 'warehouses', warehouseId);
             await setDoc(warehouseSettingsRef, { name: 'Sri Lakshmi Warehouse' }, { merge: true });
 
             setAppUser({ id: fbUser.uid, ...newAppUserData } as AppUser);
-          } else {
+          } 
+          // Case for staff members who sign in with phone + password
+          else if (fbUser.email?.startsWith('+')) {
             const phone = fbUser.email?.split('@')[0].replace('+', '');
             const q = query(collection(firestore, 'users'), where('phone', '==', phone));
-            const querySnapshot = await getDocs(q);
+            const phoneUserSnapshot = await getDocs(q);
 
-            if (!querySnapshot.empty) {
-                const existingUserDoc = querySnapshot.docs[0];
-                await updateDoc(userDocRef, { ...existingUserDoc.data(), email: fbUser.email });
-                setAppUser({ id: userDocRef.id, ...existingUserDoc.data(), email: fbUser.email } as AppUser);
+            if (!phoneUserSnapshot.empty) {
+                 const phoneUserDoc = phoneUserSnapshot.docs[0];
+                 // Found the user doc by phone number. Now we need to create a user doc with the *new auth UID*
+                 // but containing the role and warehouseId from the doc we found.
+                 const newStaffUserData: Omit<AppUser, 'id'> = {
+                     email: userEmail,
+                     phone: phoneUserDoc.data().phone,
+                     role: phoneUserDoc.data().role,
+                     warehouseId: phoneUserDoc.data().warehouseId,
+                 };
+                 await setDoc(userDocRef, newStaffUserData);
+                 setAppUser({ id: fbUser.uid, ...newStaffUserData } as AppUser);
             } else {
-                setAppUser(null);
-                setProvisioningError('Your account is not registered. Please contact your warehouse administrator.');
+                 setProvisioningError('Your phone number is not registered. Please contact your administrator.');
+                 setAppUser(null);
+                 await auth.signOut();
             }
+          }
+          // Case for super-admin or other warehouse owners (more generic)
+          else {
+              let newAppUser: Omit<AppUser, 'id'> | null = null;
+              if (userEmail === 'admin@gmail.com') {
+                  newAppUser = { email: userEmail, role: 'super-admin', phone: '' };
+              } else {
+                  const q = query(collection(firestore, 'managedWarehouses'), where('ownerEmail', '==', userEmail));
+                  const querySnapshot = await getDocs(q);
+
+                  if (!querySnapshot.empty) {
+                      const warehouseDoc = querySnapshot.docs[0];
+                      newAppUser = {
+                          email: userEmail,
+                          role: 'owner',
+                          phone: fbUser.phoneNumber || '',
+                          warehouseId: warehouseDoc.id,
+                      };
+                  }
+              }
+
+              if (newAppUser) {
+                await setDoc(userDocRef, newAppUser);
+                setAppUser({ id: fbUser.uid, ...newAppUser } as AppUser);
+              } else {
+                setProvisioningError('Your account is not authorized. Please contact the administrator.');
+                setAppUser(null);
+                await auth.signOut();
+              }
           }
         }
       } catch (err) {

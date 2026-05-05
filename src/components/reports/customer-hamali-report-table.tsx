@@ -7,53 +7,43 @@ import { formatCurrency } from '@/lib/utils';
 import { useMemo } from "react";
 import type { CustomerHamaliEvent } from "./hamali-report";
 
-type ReportTableProps = {
-    events: CustomerHamaliEvent[];
-    customers: Customer[];
-    title: string;
-    warehouseInfo: WarehouseInfo | null;
-}
-
-export function CustomerHamaliReportTable({ events, customers, title, warehouseInfo }: ReportTableProps) {
+export function CustomerHamaliReportTable({ events, customers, title, warehouseInfo }: { events: CustomerHamaliEvent[], customers: Customer[], title: string, warehouseInfo: WarehouseInfo | null }) {
     const generatedDate = useMemo(() => format(new Date(), 'dd MMM yyyy, hh:mm a'), []);
-    const safeEvents = events || [];
+    const getCustomerName = (id: string) => customers.find(c => c.id === id)?.name ?? 'Unknown';
 
-    const getCustomerName = (customerId?: string) => {
-        if (!customerId) return '';
-        return customers.find(c => c.id === customerId)?.name ?? 'Unknown';
-    }
-
-    const totalCharges = safeEvents.filter(e => e.type === 'charge').reduce((acc, event) => acc + event.amount, 0);
-    const totalPayments = safeEvents.filter(e => e.type === 'payment').reduce((acc, event) => acc + event.amount, 0);
+    const totalCharges = events.filter(e => e.type === 'charge').reduce((acc, e) => acc + e.amount, 0);
+    const totalPayments = events.filter(e => e.type === 'payment').reduce((acc, e) => acc + e.amount, 0);
     
     return (
         <div className="bg-white p-4 rounded-lg">
-             <div className="mb-4">
-                <h2 className="text-xl font-bold">GrainDost</h2>
-                <p className="text-muted-foreground">{title}</p>
-                <p className="text-xs text-muted-foreground">Generated on: {generatedDate}</p>
+             <div className="mb-4 text-center">
+                <h2 className="text-xl font-bold">{warehouseInfo?.name || "GrainDost"}</h2>
+                <p className="text-lg font-semibold">{title}</p>
+                <p className="text-xs text-muted-foreground">Generated: {generatedDate}</p>
             </div>
-            <Table>
+            <Table className="text-xs">
                 <TableHeader>
                     <TableRow>
                         <TableHead>Date</TableHead>
+                        <TableHead>Patti No</TableHead>
                         <TableHead>Customer</TableHead>
-                        <TableHead>Description</TableHead>
-                        <TableHead>Reference ID</TableHead>
-                        <TableHead className="text-center">Bags</TableHead>
-                        <TableHead className="text-right">Charge</TableHead>
-                        <TableHead className="text-right">Payment</TableHead>
+                        <TableHead>Particulars</TableHead>
+                        <TableHead className="text-right">Bags</TableHead>
+                        <TableHead className="text-right">Rate</TableHead>
+                        <TableHead className="text-right">Charge (Dr)</TableHead>
+                        <TableHead className="text-right">Payment (Cr)</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {safeEvents.map((event, index) => (
+                    {events.map((event, index) => (
                         <TableRow key={index}>
-                            <TableCell>{format(event.date, 'dd MMM yyyy')}</TableCell>
-                            <TableCell className="font-medium">{getCustomerName(event.customerId)}</TableCell>
+                            <TableCell>{format(event.date, 'dd/MM/yy')}</TableCell>
+                            <TableCell className="font-mono">{event.recordId}</TableCell>
+                            <TableCell className="font-medium whitespace-nowrap">{getCustomerName(event.customerId)}</TableCell>
                             <TableCell>{event.description}</TableCell>
-                            <TableCell>{event.recordId}</TableCell>
-                            <TableCell className="text-center">{event.bags || ''}</TableCell>
-                            <TableCell className="text-right font-mono">
+                            <TableCell className="text-right font-mono">{event.bags || ''}</TableCell>
+                            <TableCell className="text-right font-mono">{event.rate ? event.rate.toFixed(2) : ''}</TableCell>
+                            <TableCell className="text-right font-mono text-destructive">
                                 {event.type === 'charge' ? formatCurrency(event.amount) : ''}
                             </TableCell>
                             <TableCell className="text-right font-mono text-green-600">
@@ -61,23 +51,17 @@ export function CustomerHamaliReportTable({ events, customers, title, warehouseI
                             </TableCell>
                         </TableRow>
                     ))}
-                    {safeEvents.length === 0 && (
-                        <TableRow>
-                            <TableCell colSpan={7} className="text-center text-muted-foreground">
-                                No hamali transactions found for the selected criteria.
-                            </TableCell>
-                        </TableRow>
-                    )}
+                    {events.length === 0 && <TableRow><TableCell colSpan={8} className="text-center py-8">No records found.</TableCell></TableRow>}
                 </TableBody>
                 <TableFooter>
                     <TableRow>
-                        <TableCell colSpan={5} className="text-right font-bold">Totals</TableCell>
-                        <TableCell className="text-right font-mono font-bold">{formatCurrency(totalCharges)}</TableCell>
+                        <TableCell colSpan={6} className="text-right font-bold">Totals</TableCell>
+                        <TableCell className="text-right font-mono font-bold text-destructive">{formatCurrency(totalCharges)}</TableCell>
                         <TableCell className="text-right font-mono font-bold text-green-600">{formatCurrency(totalPayments)}</TableCell>
                     </TableRow>
-                     <TableRow>
-                        <TableCell colSpan={6} className="text-right font-bold">Pending Hamali</TableCell>
-                        <TableCell className="text-right font-mono font-bold text-destructive">{formatCurrency(totalCharges - totalPayments)}</TableCell>
+                     <TableRow className="bg-muted/30">
+                        <TableCell colSpan={7} className="text-right font-bold">Balance Pending from Customer</TableCell>
+                        <TableCell className="text-right font-mono font-bold text-destructive text-lg">{formatCurrency(totalCharges - totalPayments)}</TableCell>
                     </TableRow>
                 </TableFooter>
             </Table>

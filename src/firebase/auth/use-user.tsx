@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
@@ -46,7 +45,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
         const warehouseId = 'sri-lakshmi-warehouse';
 
         // --- SPECIAL OWNER PROVISIONING ---
-        // Ensure this specific user is ALWAYS treated as the owner of the main warehouse.
         if (userEmail === 'sivasandeepreddy01@gmail.com') {
             const ownerIdentity: AppUser = {
                 id: fbUser.uid,
@@ -59,7 +57,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
             setUser(fbUser);
             setLoading(false);
 
-            // Sync profile in background without blocking rendering
+            // Ensure profile exists in background
             getDoc(userDocRef).then(async (snap) => {
                 if (!snap.exists() || snap.data().warehouseId !== warehouseId) {
                     await setDoc(userDocRef, {
@@ -69,7 +67,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
                         warehouseId: warehouseId,
                     }, { merge: true });
                 }
-            }).catch(e => console.warn("Owner sync deferred:", e));
+            }).catch(e => console.warn("Background provisioning sync deferred:", e));
             return;
         }
 

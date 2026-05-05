@@ -1,4 +1,3 @@
-
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { Timestamp } from "firebase/firestore";
@@ -15,29 +14,30 @@ export function formatCurrency(amount: number) {
   }).format(amount);
 }
 
-export function toDate(date: Date | Timestamp | string | null | undefined): Date {
-    if (!date) {
-        return new Date();
-    }
-    if (date instanceof Date) {
-        return date;
-    }
+export function toDate(date: any): Date {
+    if (!date) return new Date();
+    
+    // Firestore Timestamp
+    if (date instanceof Timestamp) return date.toDate();
+    if (typeof date.toDate === 'function') return date.toDate();
+    
+    // JS Date
+    if (date instanceof Date) return date;
+    
+    // String
     if (typeof date === 'string') {
-        return new Date(date);
+        const parsed = new Date(date);
+        return isNaN(parsed.getTime()) ? new Date() : parsed;
     }
-    // Assumes it's a Firestore Timestamp
-    if (typeof (date as Timestamp).toDate === 'function') {
-      return (date as Timestamp).toDate();
+
+    // Object with seconds/nanoseconds (raw Firestore format often seen in JSON)
+    if (typeof date === 'object' && 'seconds' in date) {
+        return new Date(date.seconds * 1000 + (date.nanoseconds || 0) / 1000000);
     }
+    
     return new Date();
 }
 
-/**
- * Recursively cleans an object to be Firestore-compatible.
- * - Removes properties with `undefined` values.
- * - Converts `Date` objects to Firestore `Timestamp` objects.
- * This function should be used on any data object before it's sent to Firestore.
- */
 export function cleanForFirestore(data: any): any {
   if (data === null || data === undefined) {
     return null;
@@ -51,8 +51,7 @@ export function cleanForFirestore(data: any): any {
     return Timestamp.fromDate(data);
   }
 
-  if (data.toDate && typeof data.toDate === 'function') {
-    // It's already a Firestore Timestamp, return as is.
+  if (data instanceof Timestamp || (data.toDate && typeof data.toDate === 'function')) {
     return data;
   }
 

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo, useTransition } from 'react';
@@ -33,7 +32,7 @@ const UnloadingRecordSchema = z.object({
   unloadingDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
   bagsUnloaded: z.coerce.number().int().positive('Number of bags must be positive.'),
   customerHamaliPerBag: z.coerce.number().nonnegative('Customer hamali rate must be non-negative.'),
-  workerHamaliPerBag: z.coerce.number().nonnegative('Worker hamali rate must be non-negative.').optional(),
+  workerHamaliPerBag: z.coerce.number().nonnegative('Worker hamali rate must be non-negative.'),
   billNo: z.string(),
 });
 
@@ -45,7 +44,6 @@ const getLocalDateTimeForInput = () => {
     const localDate = new Date(now.getTime() - timezoneOffsetInMs);
     return localDate.toISOString().slice(0, 16);
 };
-
 
 export function AddUnloadingRecordForm({ customers, commodities, lots, storageRecords, nextBillNo }: { customers: Customer[], commodities: Commodity[], lots: Lot[], storageRecords: StorageRecord[], nextBillNo: string }) {
     const { toast } = useToast();
@@ -59,7 +57,6 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
       [firestore, appUser]
     );
     const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
-
 
     const form = useForm<UnloadingFormData>({
         resolver: zodResolver(UnloadingRecordSchema),
@@ -126,26 +123,19 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
 
     const onSubmit = async (data: UnloadingFormData) => {
         if (!firestore || !appUser?.warehouseId) {
-            toast({ title: 'Error', description: 'Could not add record: user or warehouse context is missing.', variant: 'destructive' });
+            toast({ title: 'Error', description: 'Context missing.', variant: 'destructive' });
             return;
         }
         
         const receiptUrl = `/unloading/receipt/${data.billNo}`;
         const receiptWindow = window.open(receiptUrl, '_blank');
-        if (!receiptWindow) {
-            toast({
-                title: "Popup Blocked",
-                description: "Please allow popups for this site to view receipts.",
-                variant: "destructive",
-            });
-            return;
-        }
         
         startTransition(async () => {
             try {
                 const totalHamali = data.bagsUnloaded * data.customerHamaliPerBag;
-                const workerHamaliPayable = data.bagsUnloaded * (data.workerHamaliPerBag ?? data.customerHamaliPerBag);
+                const workerHamaliPayable = data.bagsUnloaded * data.workerHamaliPerBag;
                 const unloadingDate = new Date(data.unloadingDate);
+                
                 const rawRecord = {
                     ...data,
                     hamaliPerBag: data.customerHamaliPerBag, 
@@ -156,13 +146,13 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                     totalHamali,
                     workerHamaliPayable,
                 };
+
                 const docRef = doc(firestore, 'unloadingRecords', data.billNo);
                 await setDoc(docRef, cleanForFirestore(rawRecord));
 
                 if (sendSmsNotification && warehouseInfo?.textbeeApiKey && selectedCustomer?.phone) {
-                    const defaultTemplate = `Dear {customerName}, your plot bags are unloaded at {location},\nNo of bags : {bags} , Commodity : {commodity} on {date}.\nBill No: {billNo}.\nHamali: {hamaliAmount}.\nThank you. - {warehouseName},Owk`;
+                    const defaultTemplate = `Dear {customerName}, unloading of {bags} bags at {location}. Bill: {billNo}. Hamali: {hamaliAmount}. - {warehouseName}`;
                     const template = warehouseInfo?.smsUnloadingTemplate || defaultTemplate;
-                    
                     const message = template
                         .replace('{customerName}', selectedCustomer.name)
                         .replace('{bags}', String(data.bagsUnloaded))
@@ -173,16 +163,10 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                         .replace('{hamaliAmount}', formatCurrency(totalHamali))
                         .replace('{warehouseName}', warehouseInfo?.name || 'GrainDost');
 
-                    sendSms({
-                        apiKey: warehouseInfo.textbeeApiKey,
-                        deviceId: warehouseInfo.textbeeDeviceId,
-                        to: selectedCustomer.phone,
-                        message,
-                    }).catch(console.error);
+                    sendSms({ apiKey: warehouseInfo.textbeeApiKey, deviceId: warehouseInfo.textbeeDeviceId, to: selectedCustomer.phone, message }).catch(console.error);
                 }
                 
                 toast({ title: 'Success', description: 'Unloading record added.' });
-                
                 form.reset({
                     customerId: '',
                     commodityDescription: '',
@@ -196,7 +180,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                 });
             } catch (error) {
                 console.error(error);
-                toast({ title: 'Error', description: 'Failed to add unloading record.', variant: 'destructive' });
+                toast({ title: 'Error', description: 'Failed to add record.', variant: 'destructive' });
                 if (receiptWindow) receiptWindow.close();
             }
         });
@@ -228,14 +212,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                         render={({ field }) => (
                             <FormItem className="flex flex-col">
                                 <FormLabel>Customer</FormLabel>
-                                <Combobox
-                                    options={customerOptions}
-                                    value={field.value}
-                                    onChange={field.onChange}
-                                    placeholder="Select a customer..."
-                                    searchPlaceholder="Search customers..."
-                                    emptyPlaceholder="No customer found."
-                                />
+                                <Combobox options={customerOptions} value={field.value} onChange={field.onChange} placeholder="Select a customer..." />
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -256,16 +233,10 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                              <FormItem>
                                 <FormLabel>Commodity</FormLabel>
                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select a commodity" />
-                                        </SelectTrigger>
-                                    </FormControl>
+                                    <FormControl><SelectTrigger><SelectValue placeholder="Select a commodity" /></SelectTrigger></FormControl>
                                     <SelectContent>
                                         {commodities.map(commodity => (
-                                            <SelectItem key={commodity.id} value={commodity.name}>
-                                                {commodity.name}
-                                            </SelectItem>
+                                            <SelectItem key={commodity.id} value={commodity.name}>{commodity.name}</SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
@@ -280,14 +251,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                         render={({ field }) => (
                             <FormItem className="flex flex-col">
                                 <FormLabel>Storage Location (Lot No.)</FormLabel>
-                                <Combobox
-                                    options={lotOptions}
-                                    value={field.value}
-                                    onChange={field.onChange}
-                                    placeholder="Select a location..."
-                                    searchPlaceholder="Search locations..."
-                                    emptyPlaceholder="No locations found."
-                                />
+                                <Combobox options={lotOptions} value={field.value} onChange={field.onChange} placeholder="Select a location..." />
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -298,7 +262,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                         name="lorryTractorNo"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Lorry / Tractor No. <span className="text-muted-foreground">(Optional)</span></FormLabel>
+                                <FormLabel>Lorry / Tractor No.</FormLabel>
                                 <FormControl><Input placeholder="e.g., AP 21 1234" {...field} value={field.value ?? ''} /></FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -332,7 +296,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                             name="customerHamaliPerBag"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Customer Hamali per Bag</FormLabel>
+                                    <FormLabel>Cust. Hamali/Bag</FormLabel>
                                     <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -343,7 +307,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                             name="workerHamaliPerBag"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Worker Hamali per Bag</FormLabel>
+                                    <FormLabel>Worker Hamali/Bag</FormLabel>
                                     <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -363,9 +327,10 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                         </div>
                          <div className="flex justify-between items-center text-sm">
                             <span className="text-muted-foreground">Profit/Loss on Hamali</span>
-                            <span className="font-mono">{formatCurrency(totalCustomerHamali - totalWorkerHamali)}</span>
+                            <span className={`font-mono ${(totalCustomerHamali - totalWorkerHamali) >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+                                {formatCurrency(totalCustomerHamali - totalWorkerHamali)}
+                            </span>
                         </div>
-                         <p className="text-xs text-muted-foreground pt-2">This amount will be charged to the customer and is payable to the worker.</p>
                     </div>
 
                      <div className="flex items-center space-x-2 pt-4">
@@ -375,22 +340,13 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                             onCheckedChange={(checked) => setSendSmsNotification(Boolean(checked))}
                             disabled={!warehouseInfo?.textbeeApiKey || !selectedCustomer?.phone}
                         />
-                        <label
-                            htmlFor="sendSmsUnloading"
-                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                        >
-                            Send SMS Notification to Customer
-                        </label>
+                        <label htmlFor="sendSmsUnloading" className="text-sm font-medium leading-none">Send SMS to Customer</label>
                     </div>
 
                 </CardContent>
                 <CardFooter>
                     <Button type="submit" disabled={isPending} className="w-full">
-                        {isPending ? (
-                            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
-                        ) : (
-                            'Add Record & Generate Bill'
-                        )}
+                        {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : 'Add Record & Generate Bill'}
                     </Button>
                 </CardFooter>
             </form>

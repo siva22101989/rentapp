@@ -27,6 +27,8 @@ export function HamaliLedgerTable({ customerEvents, workerEvents, customers, tit
     if (view === 'customer') {
         const totalCharges = customerEvents.filter(e => e.type === 'charge').reduce((acc, event) => acc + event.amount, 0);
         const totalPayments = customerEvents.filter(e => e.type === 'payment').reduce((acc, event) => acc + event.amount, 0);
+        const totalDifferenceCust = customerEvents.reduce((acc, event) => acc + (event.difference || 0), 0);
+
         return (
             <div className="bg-white p-4 rounded-lg">
                  <div className="mb-4">
@@ -43,6 +45,7 @@ export function HamaliLedgerTable({ customerEvents, workerEvents, customers, tit
                             <TableHead>Reference ID</TableHead>
                             <TableHead className="text-center">Bags</TableHead>
                             <TableHead className="text-right">Charge</TableHead>
+                            <TableHead className="text-right">Difference</TableHead>
                             <TableHead className="text-right">Payment</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -57,6 +60,9 @@ export function HamaliLedgerTable({ customerEvents, workerEvents, customers, tit
                                 <TableCell className="text-right font-mono">
                                     {event.type === 'charge' ? formatCurrency(event.amount) : ''}
                                 </TableCell>
+                                <TableCell className="text-right font-mono font-semibold">
+                                    {event.difference !== undefined && event.difference !== 0 ? formatCurrency(event.difference) : ''}
+                                </TableCell>
                                 <TableCell className="text-right font-mono text-green-600">
                                     {event.type === 'payment' ? formatCurrency(event.amount) : ''}
                                 </TableCell>
@@ -64,7 +70,7 @@ export function HamaliLedgerTable({ customerEvents, workerEvents, customers, tit
                         ))}
                         {customerEvents.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={7} className="text-center text-muted-foreground">
+                                <TableCell colSpan={8} className="text-center text-muted-foreground">
                                     No hamali transactions found for the selected criteria.
                                 </TableCell>
                             </TableRow>
@@ -74,10 +80,11 @@ export function HamaliLedgerTable({ customerEvents, workerEvents, customers, tit
                         <TableRow>
                             <TableCell colSpan={5} className="text-right font-bold">Totals</TableCell>
                             <TableCell className="text-right font-mono font-bold">{formatCurrency(totalCharges)}</TableCell>
+                            <TableCell className="text-right font-mono font-bold">{formatCurrency(totalDifferenceCust)}</TableCell>
                             <TableCell className="text-right font-mono font-bold text-green-600">{formatCurrency(totalPayments)}</TableCell>
                         </TableRow>
                          <TableRow>
-                            <TableCell colSpan={6} className="text-right font-bold">Pending Hamali</TableCell>
+                            <TableCell colSpan={7} className="text-right font-bold">Pending Hamali</TableCell>
                             <TableCell className="text-right font-mono font-bold text-destructive">{formatCurrency(totalCharges - totalPayments)}</TableCell>
                         </TableRow>
                     </TableFooter>
@@ -146,7 +153,7 @@ export function HamaliLedgerTable({ customerEvents, workerEvents, customers, tit
                 </TableBody>
                 <TableFooter>
                     <TableRow>
-                        <TableCell colSpan={view === 'worker' ? 5 : 4} className="text-right font-bold">Totals</TableCell>
+                        <TableCell colSpan={5} className="text-right font-bold">Totals</TableCell>
                         <TableCell className="text-right font-mono font-bold">{formatCurrency(totalCharge)}</TableCell>
                         <TableCell className="text-right font-mono font-bold">{formatCurrency(totalPayable)}</TableCell>
                         <TableCell className="text-right font-mono font-bold">{formatCurrency(totalDifference)}</TableCell>

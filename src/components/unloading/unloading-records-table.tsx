@@ -63,7 +63,7 @@ export function UnloadingRecordsTable({ unloadingRecords, customers, commodities
                     <TableHead className="hidden md:table-cell">Date</TableHead>
                     <TableHead>Bill No.</TableHead>
                     <TableHead>Customer</TableHead>
-                    <TableHead>Lot No.</TableHead>
+                    <TableHead>Storage Location (Lot No.)</TableHead>
                     <TableHead className="text-right hidden lg:table-cell">Total Bags</TableHead>
                     <TableHead className="text-right hidden lg:table-cell">Bags for Drying</TableHead>
                     <TableHead className="text-right">Bags Remaining</TableHead>

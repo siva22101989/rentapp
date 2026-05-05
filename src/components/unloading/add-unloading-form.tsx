@@ -27,11 +27,12 @@ import { useAppUser } from '@/firebase/auth/use-user';
 const UnloadingRecordSchema = z.object({
   customerId: z.string().min(1, 'Customer is required.'),
   commodityDescription: z.string().min(1, 'Commodity is required.'),
-  location: z.string().min(1, 'Lot No. is required.'),
+  location: z.string().min(1, 'Storage location is required.'),
   lorryTractorNo: z.string().optional(),
   unloadingDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
   bagsUnloaded: z.coerce.number().int().positive('Number of bags must be positive.'),
   hamaliPerBag: z.coerce.number().nonnegative('Hamali rate must be non-negative.'),
+  workerHamaliPerBag: z.coerce.number().nonnegative('Worker hamali rate must be non-negative.'),
   billNo: z.string(),
 });
 
@@ -69,6 +70,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
           unloadingDate: getLocalDateTimeForInput(),
           bagsUnloaded: undefined,
           hamaliPerBag: undefined,
+          workerHamaliPerBag: undefined,
           billNo: nextBillNo,
         },
       });
@@ -104,7 +106,9 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
       
     const bagsUnloaded = form.watch('bagsUnloaded');
     const hamaliPerBag = form.watch('hamaliPerBag');
+    const workerHamaliPerBag = form.watch('workerHamaliPerBag');
     const totalHamali = (Number(bagsUnloaded) || 0) * (Number(hamaliPerBag) || 0);
+    const totalWorkerHamali = (Number(bagsUnloaded) || 0) * (Number(workerHamaliPerBag) || 0);
 
     const selectedCustomerId = form.watch('customerId');
     const selectedCustomer = useMemo(() => {
@@ -131,6 +135,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
         startTransition(async () => {
             try {
                 const totalHamali = data.bagsUnloaded * data.hamaliPerBag;
+                const workerHamaliPayable = data.bagsUnloaded * data.workerHamaliPerBag;
                 const unloadingDate = new Date(data.unloadingDate);
                 const rawRecord = {
                     ...data,
@@ -139,7 +144,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                     status: 'Unloading' as const,
                     bagsSentToDrying: 0,
                     totalHamali,
-                    workerHamaliPayable: totalHamali,
+                    workerHamaliPayable,
                 };
                 const docRef = doc(firestore, 'unloadingRecords', data.billNo);
                 await setDoc(docRef, cleanForFirestore(rawRecord));
@@ -177,6 +182,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                     unloadingDate: getLocalDateTimeForInput(),
                     bagsUnloaded: undefined,
                     hamaliPerBag: undefined,
+                    workerHamaliPerBag: undefined,
                 });
             } catch (error) {
                 console.error(error);
@@ -263,7 +269,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                         name="location"
                         render={({ field }) => (
                             <FormItem className="flex flex-col">
-                                <FormLabel>Lot No.</FormLabel>
+                                <FormLabel>Storage Location (Lot No.)</FormLabel>
                                 <Combobox
                                     options={lotOptions}
                                     value={field.value}
@@ -299,7 +305,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                             </FormItem>
                         )}
                     />
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-4">
                         <FormField
                             control={form.control}
                             name="bagsUnloaded"
@@ -311,26 +317,47 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                                 </FormItem>
                             )}
                         />
-                        <FormField
-                            control={form.control}
-                            name="hamaliPerBag"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Hamali per Bag</FormLabel>
-                                    <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormField
+                                control={form.control}
+                                name="hamaliPerBag"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Customer Hamali Rate</FormLabel>
+                                        <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="workerHamaliPerBag"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Worker Hamali Rate</FormLabel>
+                                        <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
                     </div>
                      <Separator />
                      <div className="space-y-2">
                         <h4 className="font-medium">Summary</h4>
-                        <div className="flex justify-between items-center text-sm font-semibold">
-                            <span>Total Unloading Hamali</span>
+                        <div className="flex justify-between items-center text-sm">
+                            <span className="text-muted-foreground">Total Customer Charge</span>
                             <span className="font-mono">{formatCurrency(totalHamali)}</span>
                         </div>
-                         <p className="text-xs text-muted-foreground">This amount will be charged to the customer and is payable to the worker.</p>
+                        <div className="flex justify-between items-center text-sm">
+                            <span className="text-muted-foreground">Total Worker Payable</span>
+                            <span className="font-mono">{formatCurrency(totalWorkerHamali)}</span>
+                        </div>
+                        <Separator />
+                        <div className="flex justify-between items-center font-bold text-primary">
+                            <span>Hamali Profit (Difference)</span>
+                            <span className="font-mono">{formatCurrency(totalHamali - totalWorkerHamali)}</span>
+                        </div>
                     </div>
 
                      <div className="flex items-center space-x-2 pt-4">

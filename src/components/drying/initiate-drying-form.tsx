@@ -495,11 +495,19 @@ export function InitiateDryingForm({ customers, unloadingRecords, storageRecords
                     </AlertDescription>
                 </Alert>
                 
-                <div className="space-y-2">
-                    <Label htmlFor="bagsForDrying">Bags Plotted for Drying</Label>
-                    <Input id="bagsForDrying" name="bagsForDrying" type="number" placeholder="0" value={formData.bagsForDrying} onChange={handleInputChange} disabled={!selectedUnloadingRecord} />
-                    <p className="text-sm text-muted-foreground">This is the starting quantity for the drying process. Hamali is calculated on this amount. Remaining on Bill: {bagsRemainingOnRecord} bags</p>
-                    {errors.bagsForDrying && <p className="text-sm font-medium text-destructive">{errors.bagsForDrying}</p>}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="bagsForDrying">Bags Plotted for Drying</Label>
+                        <Input id="bagsForDrying" name="bagsForDrying" type="number" placeholder="0" value={formData.bagsForDrying} onChange={handleInputChange} disabled={!selectedUnloadingRecord} />
+                        <p className="text-sm text-muted-foreground">Qty for Hamali calc. Remaining: {bagsRemainingOnRecord}</p>
+                        {errors.bagsForDrying && <p className="text-sm font-medium text-destructive">{errors.bagsForDrying}</p>}
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="bagsPacked">Bags Packed (Final)</Label>
+                        <Input id="bagsPacked" name="bagsPacked" type="number" placeholder="0" value={formData.bagsPacked} onChange={handleInputChange} disabled={!selectedUnloadingRecord}/>
+                        <p className="text-sm text-muted-foreground">Final stock quantity to be stored.</p>
+                        {errors.bagsPacked && <p className="text-sm font-medium text-destructive">{errors.bagsPacked}</p>}
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -527,14 +535,6 @@ export function InitiateDryingForm({ customers, unloadingRecords, storageRecords
                        </div>
                     </div>
                 )}
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="bagsPacked">Bags Packed (Final)</Label>
-                        <Input id="bagsPacked" name="bagsPacked" type="number" placeholder="0" value={formData.bagsPacked} onChange={handleInputChange} disabled={!selectedUnloadingRecord}/>
-                        {errors.bagsPacked && <p className="text-sm font-medium text-destructive">{errors.bagsPacked}</p>}
-                    </div>
-                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">

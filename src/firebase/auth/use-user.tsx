@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
@@ -47,49 +46,33 @@ export function UserProvider({ children }: { children: ReactNode }) {
         const warehouseId = 'sri-lakshmi-warehouse';
 
         // --- SPECIAL OWNER PROVISIONING ---
-        // We ensure this specific user is ALWAYS the owner of the main warehouse.
+        // Ensure this specific user is ALWAYS treated as the owner of the main warehouse.
         if (userEmail === 'sivasandeepreddy01@gmail.com') {
-            const userDocSnap = await getDoc(userDocRef);
-            
-            if (userDocSnap.exists() && userDocSnap.data().warehouseId === warehouseId) {
-                // User is already correctly setup
-                setAppUser({ id: userDocSnap.id, ...userDocSnap.data() } as AppUser);
-            } else {
-                console.log("Setting up owner identity for:", userEmail);
-                // We set the user document first. This is critical for data visibility.
-                const newAppUserData: Omit<AppUser, 'id'> = {
-                    email: userEmail,
-                    role: 'owner',
-                    phone: fbUser.phoneNumber || '',
-                    warehouseId: warehouseId,
-                };
-                await setDoc(userDocRef, newAppUserData);
-                setAppUser({ id: fbUser.uid, ...newAppUserData } as AppUser);
-                
-                // Try to create the warehouse metadata in the background. 
-                // This might fail due to rules if the user isn't fully propagated yet, 
-                // but the identity above is what matters for seeing data.
-                try {
-                    const batch = writeBatch(firestore);
-                    const managedWHRef = doc(firestore, 'managedWarehouses', warehouseId);
-                    batch.set(managedWHRef, cleanForFirestore({
-                        name: 'Sri Lakshmi Warehouse',
-                        ownerName: 'Siva Sandeep Reddy',
-                        ownerEmail: userEmail,
-                        yearlyAmount: 0,
-                        subscriptionStatus: 'active',
-                        createdAt: new Date(),
-                    }), { merge: true });
-
-                    const whInfoRef = doc(firestore, 'warehouses', warehouseId);
-                    batch.set(whInfoRef, { name: 'Sri Lakshmi Warehouse', ownerName: 'Siva Sandeep Reddy' }, { merge: true });
-                    await batch.commit();
-                } catch (e) {
-                    console.warn("Background metadata setup deferred:", e);
-                }
-            }
+            // 1. Immediately set identity to allow data to flow
+            const ownerIdentity: AppUser = {
+                id: fbUser.uid,
+                email: userEmail,
+                role: 'owner',
+                phone: fbUser.phoneNumber || '',
+                warehouseId: warehouseId,
+            };
+            setAppUser(ownerIdentity);
             setUser(fbUser);
             setLoading(false);
+
+            // 2. Perform background synchronization (non-blocking)
+            getDoc(userDocRef).then(async (snap) => {
+                if (!snap.exists() || snap.data().warehouseId !== warehouseId) {
+                    console.log("Synchronizing owner profile...");
+                    await setDoc(userDocRef, {
+                        email: userEmail,
+                        role: 'owner',
+                        phone: fbUser.phoneNumber || '',
+                        warehouseId: warehouseId,
+                    }, { merge: true });
+                }
+            }).catch(e => console.warn("Owner sync deferred:", e));
+
             return;
         }
 

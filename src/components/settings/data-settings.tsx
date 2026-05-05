@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useTransition, useState, useRef } from 'react';
@@ -6,7 +5,7 @@ import { Loader2, Trash2, Download, Upload, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useFirestore, useAppUser } from '@/firebase'; // Fixed import to use barrel file
+import { useFirestore, useAppUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { collection, writeBatch, getDocs, doc, query, where, getDoc, updateDoc } from 'firebase/firestore';
 import {
@@ -32,9 +31,7 @@ export function DataSettings() {
   const [isClearingDb, startClearingDbTransition] = useTransition();
   const [isExporting, startExportingTransition] = useTransition();
   const [isImporting, startImportingTransition] = useTransition();
-  const [isClearingUnloading, startClearingUnloadingTransition] = useTransition();
-  const [isFixing, startFixingTransition] = useTransition();
-  
+
   const [dataToImport, setDataToImport] = useState<{ customersToCreate: Omit<Customer, 'id'>[], storageRecords: any[] } | null>(null);
   const [isImportAlertOpen, setIsImportAlertOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);

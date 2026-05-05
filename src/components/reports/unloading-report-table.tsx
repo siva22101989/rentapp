@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -37,7 +36,7 @@ export function UnloadingReportTable({ records, customers, title, commodities }:
                         <TableHead>Date</TableHead>
                         <TableHead>Bill No</TableHead>
                         <TableHead>Customer</TableHead>
-                        <TableHead>Lot/Plot No</TableHead>
+                        <TableHead>Lot No</TableHead>
                         <TableHead>Commodity</TableHead>
                         <TableHead>Lorry/Tractor No</TableHead>
                         <TableHead className="text-right">Bags Unloaded</TableHead>

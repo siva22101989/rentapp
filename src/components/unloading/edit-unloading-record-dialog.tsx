@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useEffect, useMemo } from 'react';
@@ -202,7 +201,7 @@ export function EditUnloadingRecordDialog({
                  {error.commodityDescription && <p className="text-sm font-medium text-destructive">{error.commodityDescription}</p>}
             </div>
             <div className="space-y-2">
-                <Label htmlFor="location">Lot No. / Plot No.</Label>
+                <Label htmlFor="location">Lot No.</Label>
                 <Combobox
                     options={lotOptions}
                     value={location}

@@ -147,7 +147,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                 const unloadingDate = new Date(data.unloadingDate);
                 const rawRecord = {
                     ...data,
-                    hamaliPerBag: data.customerHamaliPerBag, // Keep for backward compatibility
+                    hamaliPerBag: data.customerHamaliPerBag, 
                     warehouseId: appUser.warehouseId,
                     unloadingDate,
                     status: 'Unloading' as const,
@@ -183,7 +183,6 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                 toast({ title: 'Success', description: 'Unloading record added.' });
                 
                 form.reset({
-                    ...form.getValues(),
                     customerId: '',
                     commodityDescription: '',
                     location: '',
@@ -192,6 +191,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                     bagsUnloaded: undefined,
                     customerHamaliPerBag: undefined,
                     workerHamaliPerBag: undefined,
+                    billNo: nextBillNo,
                 });
             } catch (error) {
                 console.error(error);

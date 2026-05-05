@@ -58,7 +58,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
             setUser(fbUser);
             setLoading(false);
 
-            // Sync profile in background without blocking
+            // Sync profile in background without blocking rendering
             getDoc(userDocRef).then(async (snap) => {
                 if (!snap.exists() || snap.data().warehouseId !== warehouseId) {
                     await setDoc(userDocRef, {

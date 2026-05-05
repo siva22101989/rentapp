@@ -4,7 +4,8 @@ import { useTransition, useState, useRef } from 'react';
 import { Loader2, Trash2, Download, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useFirestore, useAppUser } from '@/firebase';
+import { useFirestore } from '@/firebase/provider';
+import { useAppUser } from '@/firebase/auth/use-user';
 import { useToast } from '@/hooks/use-toast';
 import { collection, writeBatch, getDocs, doc, query, where } from 'firebase/firestore';
 import {

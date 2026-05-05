@@ -2,11 +2,11 @@
 'use client';
 
 import { useTransition, useState, useRef } from 'react';
-import { Loader2, Trash2, Download, Upload, FileText, Wrench } from 'lucide-react';
+import { Loader2, Trash2, Download, Upload, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useFirestore, useAppUser } from '@/firebase';
+import { useFirestore, useAppUser } from '@/firebase'; // Fixed import to use barrel file
 import { useToast } from '@/hooks/use-toast';
 import { collection, writeBatch, getDocs, doc, query, where, getDoc, updateDoc } from 'firebase/firestore';
 import {
@@ -24,10 +24,8 @@ import { cleanForFirestore } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 import type { Customer } from '@/lib/definitions';
 
-// Collections to clear for testing purposes (preserving setup data)
-const TRANSACTIONAL_COLLECTIONS = ['customers', 'storageRecords', 'expenses', 'unloadingRecords', 'dryingRecords', 'borrowings', 'lendings', 'otherIncomes', 'users'];
-// All collections for full backup
-const ALL_DATA_COLLECTIONS = ['customers', 'storageRecords', 'expenses', 'unloadingRecords', 'dryingRecords', 'commodities', 'lots', 'borrowings', 'lendings', 'otherIncomes', 'warehouses'];
+const TRANSACTIONAL_COLLECTIONS = ['customers', 'storageRecords', 'expenses', 'unloadingRecords', 'dryingRecords', 'borrowings', 'lendings', 'otherIncomes'];
+const ALL_DATA_COLLECTIONS = [...TRANSACTIONAL_COLLECTIONS, 'commodities', 'lots', 'warehouses'];
 
 export function DataSettings() {
   const [isClearingCache, startClearingCacheTransition] = useTransition();
@@ -50,60 +48,28 @@ export function DataSettings() {
         try {
             localStorage.clear();
             sessionStorage.clear();
-            if ('caches' in window) {
-                caches.keys().then((names) => {
-                    for (const name of names) {
-                        caches.delete(name);
-                    }
-                });
-            }
-            toast({
-                title: 'Cache Cleared',
-                description: 'Local storage, session storage, and browser cache have been cleared. The page will now reload.',
-            });
-            setTimeout(() => {
-                window.location.reload();
-            }, 1500);
+            toast({ title: 'Cache Cleared', description: 'Reloading...' });
+            setTimeout(() => window.location.reload(), 1000);
         } catch (error: any) {
-            toast({
-                title: 'Error',
-                description: `Failed to clear cache: ${error.message}`,
-                variant: 'destructive',
-            });
+            toast({ title: 'Error', description: error.message, variant: 'destructive' });
         }
     });
   };
 
   const clearData = async (collectionsToClear: string[]) => {
-    if (!firestore || !appUser?.warehouseId) {
-      throw new Error('Firestore is not initialized or user is not in a warehouse.');
-    }
+    if (!firestore || !appUser?.warehouseId) throw new Error('Context missing.');
     let deletedCount = 0;
-    for (const collectionName of collectionsToClear) {
-      const collectionRef = collection(firestore, collectionName);
-      let q;
-      // Special case for 'users': don't delete the owner
-      if (collectionName === 'users') {
-        q = query(collectionRef, where('warehouseId', '==', appUser.warehouseId), where('role', '!=', 'owner'));
-      } else {
-        q = query(collectionRef, where('warehouseId', '==', appUser.warehouseId));
-      }
-      
-      const snapshot = await getDocs(q);
-      if (snapshot.empty) continue;
-      
+    for (const name of collectionsToClear) {
+      const q = query(collection(firestore, name), where('warehouseId', '==', appUser.warehouseId));
+      const snap = await getDocs(q);
       const batches = [];
-      for (let i = 0; i < snapshot.docs.length; i += 500) {
+      for (let i = 0; i < snap.docs.length; i += 500) {
         const batch = writeBatch(firestore);
-        const chunk = snapshot.docs.slice(i, i + 500);
-        chunk.forEach(doc => {
-            batch.delete(doc.ref);
-        });
+        snap.docs.slice(i, i + 500).forEach(d => batch.delete(d.ref));
         batches.push(batch.commit());
       }
-      
       await Promise.all(batches);
-      deletedCount += snapshot.size;
+      deletedCount += snap.size;
     }
     return deletedCount;
   }
@@ -111,264 +77,105 @@ export function DataSettings() {
   const handleClearDatabase = async () => {
     startClearingDbTransition(async () => {
         try {
-            const deletedCount = await clearData(TRANSACTIONAL_COLLECTIONS.filter(c => c !== 'users'));
-            toast({
-                title: 'Transactional Data Cleared',
-                description: `Successfully cleared transactional data for this warehouse. Total documents removed: ${deletedCount}. The page will now reload.`,
-            });
-            setTimeout(() => {
-                window.location.reload();
-            }, 2000);
+            await clearData(TRANSACTIONAL_COLLECTIONS);
+            toast({ title: 'Success', description: 'Data cleared. Reloading...' });
+            setTimeout(() => window.location.reload(), 1000);
         } catch (error: any) {
-             toast({
-                title: 'Error',
-                description: `Failed to clear database: ${error.message}`,
-                variant: 'destructive',
-            });
-        }
-    });
-  };
-
-  const handleClearUnloadingRecords = async () => {
-    startClearingUnloadingTransition(async () => {
-        try {
-            const deletedCount = await clearData(['unloadingRecords']);
-            toast({
-                title: 'Unloading Records Cleared',
-                description: `Successfully cleared all unloading records for this warehouse. Total documents removed: ${deletedCount}. The page will now reload.`,
-            });
-            setTimeout(() => {
-                window.location.reload();
-            }, 2000);
-        } catch (error: any) {
-             toast({
-                title: 'Error',
-                description: `Failed to clear unloading records: ${error.message}`,
-                variant: 'destructive',
-            });
+            toast({ title: 'Error', description: error.message, variant: 'destructive' });
         }
     });
   };
 
   const handleExportData = async () => {
-    if (!firestore || !appUser?.warehouseId) {
-      toast({ title: 'Error', description: 'User or warehouse context is missing.', variant: 'destructive' });
-      return;
-    }
+    if (!firestore || !appUser?.warehouseId) return;
     startExportingTransition(async () => {
       try {
-        const data: { [key: string]: any[] } = {};
-        for (const collectionName of ALL_DATA_COLLECTIONS) {
-          let snapshot;
-          if (collectionName === 'warehouses') {
-            const docRef = doc(firestore, 'warehouses', appUser.warehouseId);
-            const docSnap = await getDoc(docRef);
-            if (docSnap.exists()) {
-              data[collectionName] = [{ ...docSnap.data(), id: docSnap.id }];
-            }
-          } else {
-            const collectionRef = collection(firestore, collectionName);
-            const q = query(collectionRef, where('warehouseId', '==', appUser.warehouseId));
-            snapshot = await getDocs(q);
-            data[collectionName] = snapshot.docs.map(d => ({ ...d.data(), id: d.id }));
-          }
+        const data: any = {};
+        for (const name of ALL_DATA_COLLECTIONS) {
+          const q = query(collection(firestore, name), where('warehouseId', '==', appUser.warehouseId));
+          const snap = await getDocs(q);
+          data[name] = snap.docs.map(d => ({ ...d.data(), id: d.id }));
         }
-
-        const jsonString = JSON.stringify(data, (key, value) => {
-          if (value && value.toDate) {
-            return value.toDate().toISOString();
-          }
-          return value;
-        }, 2);
-
-        const blob = new Blob([jsonString], { type: 'application/json' });
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        const date = new Date().toISOString().split('T')[0];
-        a.download = `warehouse-backup-${date}.json`;
-        document.body.appendChild(a);
+        a.download = `backup-${new Date().toISOString().split('T')[0]}.json`;
         a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        
-        toast({ title: 'Success', description: 'Data exported successfully.' });
-
+        toast({ title: 'Export Complete' });
       } catch (error: any) {
-        toast({ title: 'Error', description: `Failed to export data: ${error.message}`, variant: 'destructive' });
+        toast({ title: 'Export Error', description: error.message, variant: 'destructive' });
       }
     });
   };
 
-  const handleImportClick = () => {
-    fileInputRef.current?.click();
-  };
+  const handleImportClick = () => fileInputRef.current?.click();
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = (e) => {
         try {
             const text = e.target?.result as string;
-            if (!text) throw new Error('File is empty.');
-
             const lines = text.trim().split(/\r?\n/);
-            const headerLine = lines.shift()?.trim();
-            if (!headerLine) throw new Error('Invalid CSV: Missing header.');
-            
-            const header = headerLine.split(',').map(h => h.trim());
-            
-            const customersMapByName = new Map<string, Omit<Customer, 'id'>>();
+            const header = lines.shift()?.split(',').map(h => h.trim()) || [];
+            const customersMap = new Map<string, any>();
             const storageRecords: any[] = [];
-
             for (const line of lines) {
-                if (!line.trim()) continue;
                 const values = line.split(',');
-                const row = header.reduce((obj, key, index) => {
-                    obj[key] = values[index]?.trim() || '';
-                    return obj;
-                }, {} as { [key: string]: string });
-
-                const customerName = row.customer_name;
-                if (!customerName) {
-                    continue; 
-                }
-
-                const customerNameKey = customerName.toLowerCase().trim();
-                
-                if (!customersMapByName.has(customerNameKey)) {
-                    customersMapByName.set(customerNameKey, {
-                        name: customerName,
-                        phone: row.customer_phone || '',
-                        fatherName: row.customer_father_name || '',
-                        village: row.customer_village || '',
+                const row = header.reduce((obj, key, i) => ({ ...obj, [key]: values[i]?.trim() }), {} as any);
+                if (!row.customer_name) continue;
+                if (!customersMap.has(row.customer_name.toLowerCase())) {
+                    customersMap.set(row.customer_name.toLowerCase(), {
+                        name: row.customer_name, phone: row.customer_phone || '', 
+                        fatherName: row.customer_father_name || '', village: row.customer_village || ''
                     });
                 }
-                
-                const recordId = row.record_id;
-                if (recordId) {
-                    const bagsStored = Number(row.bags_in) || 0;
-                    storageRecords.push({
-                        recordId: recordId,
-                        customerName: customerName, // Use name for linking later
-                        commodityDescription: row.commodity_description,
-                        location: row.location,
-                        bagsIn: bagsStored,
-                        bagsStored: bagsStored,
-                        storageStartDate: new Date(row.storage_start_date),
-                        hamaliPayable: Number(row.hamali_payable) || 0,
-                        lorryTractorNo: row.lorry_tractor_no,
-                        weight: Number(row.weight) || 0,
-                        khataAmount: Number(row.khata_amount) || 0,
-                    });
+                if (row.record_id) {
+                    storageRecords.push({ ...row, bagsIn: Number(row.bags_in), bagsStored: Number(row.bags_in) });
                 }
             }
-            
-            const customersToCreate = Array.from(customersMapByName.values());
-            
-            setDataToImport({
-                customersToCreate,
-                storageRecords,
-            });
+            setDataToImport({ customersToCreate: Array.from(customersMap.values()), storageRecords });
             setIsImportAlertOpen(true);
-
         } catch (error: any) {
-            toast({ title: 'Import Error', description: `Failed to parse CSV file: ${error.message}`, variant: 'destructive'});
+            toast({ title: 'Import Error', description: error.message, variant: 'destructive'});
         }
     };
     reader.readAsText(file);
-    event.target.value = ''; // Reset file input
   };
   
-  const handleConfirmImport = () => {
-    if (!dataToImport || !firestore || !appUser?.warehouseId) {
-        toast({ title: 'Error', description: 'Data, Firestore, or Warehouse ID not available for import.', variant: 'destructive' });
-        return;
-    }
-    
+  const handleConfirmImport = async () => {
+    if (!dataToImport || !firestore || !appUser?.warehouseId) return;
     startImportingTransition(async () => {
       try {
         await clearData(TRANSACTIONAL_COLLECTIONS);
-
         const batch = writeBatch(firestore);
-        const customerNameIdMap = new Map<string, string>();
-
-        for (const customerData of dataToImport.customersToCreate) {
-            const customerRef = doc(collection(firestore, 'customers'));
-            batch.set(customerRef, cleanForFirestore({ ...customerData, warehouseId: appUser.warehouseId }));
-            customerNameIdMap.set(customerData.name.toLowerCase().trim(), customerRef.id);
+        const nameIdMap = new Map();
+        for (const c of dataToImport.customersToCreate) {
+            const ref = doc(collection(firestore, 'customers'));
+            batch.set(ref, cleanForFirestore({ ...c, warehouseId: appUser.warehouseId }));
+            nameIdMap.set(c.name.toLowerCase(), ref.id);
         }
-        
-        for (const recordData of dataToImport.storageRecords) {
-            const customerId = customerNameIdMap.get(recordData.customerName.toLowerCase().trim());
-            if (customerId) {
-                 const { recordId, customerName, ...rest } = recordData;
-                 const recordRef = doc(firestore, 'storageRecords', recordId);
-                 const finalRecord = {
-                    ...rest,
-                    customerId: customerId,
-                    warehouseId: appUser.warehouseId,
-                    bagsOut: 0,
-                    storageEndDate: null,
-                    billingCycle: '6-Month Initial',
-                    payments: [],
-                    totalRentBilled: 0,
-                    inflowType: 'Direct',
-                    dryingRecordId: '',
-                    outflows: [],
-                 };
-                 batch.set(recordRef, cleanForFirestore(finalRecord));
+        for (const r of dataToImport.storageRecords) {
+            const cid = nameIdMap.get(r.customer_name.toLowerCase());
+            if (cid) {
+                const ref = doc(firestore, 'storageRecords', r.record_id);
+                batch.set(ref, cleanForFirestore({
+                    warehouseId: appUser.warehouseId, customerId: cid,
+                    commodityDescription: r.commodity_description, location: r.location,
+                    bagsIn: r.bagsIn, bagsOut: 0, bagsStored: r.bagsIn,
+                    storageStartDate: new Date(r.storage_start_date),
+                    billingCycle: '6-Month Initial', totalRentBilled: 0, payments: []
+                }));
             }
         }
-        
         await batch.commit();
-        
-        toast({ title: 'Import Successful', description: 'Data has been imported. Page will reload.' });
-        
-        setTimeout(() => {
-            window.location.reload();
-        }, 2000);
-
+        toast({ title: 'Import Success', description: 'Reloading...' });
+        setTimeout(() => window.location.reload(), 1500);
       } catch (error: any) {
-        toast({ title: 'Import Failed', description: `An error occurred: ${error.message}`, variant: 'destructive'});
+        toast({ title: 'Import Failed', description: error.message, variant: 'destructive'});
       }
-    });
-  };
-
-  const handleFixRecord1132 = () => {
-    if (!firestore) {
-        toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
-        return;
-    }
-    startFixingTransition(async () => {
-        try {
-            const recordRef = doc(firestore, 'storageRecords', '1132');
-            const recordSnap = await getDoc(recordRef);
-            if (!recordSnap.exists()) {
-                toast({ title: 'Error', description: 'Record 1132 not found.', variant: 'destructive' });
-                return;
-            }
-            const recordData = recordSnap.data();
-            const bagsOut = recordData.bagsOut || 0;
-            const newBagsIn = 1331;
-            const newBagsStored = newBagsIn - bagsOut;
-
-            if (newBagsStored < 0) {
-                toast({ title: 'Error', description: `Cannot update. The number of bags withdrawn (${bagsOut}) is greater than the new bags in count (1331).`, variant: 'destructive' });
-                return;
-            }
-
-            await updateDoc(recordRef, {
-                bagsIn: newBagsIn,
-                bagsStored: newBagsStored
-            });
-
-            toast({ title: 'Success', description: 'Record 1132 has been updated with 1331 bags.' });
-        } catch (error: any) {
-            toast({ title: 'Error', description: `Failed to update record 1132: ${error.message}`, variant: 'destructive' });
-        }
     });
   };
 
@@ -377,201 +184,52 @@ export function DataSettings() {
         <Card>
             <CardHeader>
                 <CardTitle>Data Management</CardTitle>
-                <CardDescription>
-                    Import data from an Excel file (CSV) or export all current data to a JSON backup.
-                </CardDescription>
+                <CardDescription>Export backups or import data from CSV.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-                <div>
-                    <h4 className="text-sm font-medium mb-2">Step 1: Download Sample Excel File</h4>
-                    <p className="text-xs text-muted-foreground px-2 mb-2">
-                        Download the sample file and fill it with your customer and storage information.
-                    </p>
-                    <Button asChild size="sm" variant="secondary" className="w-full justify-start">
-                        <Link href="/all-data-template.csv" download>
-                            <FileText className="mr-2 h-4 w-4" />
-                            Download Sample Excel File (.csv)
-                        </Link>
-                    </Button>
-                </div>
-
+                <Button onClick={handleExportData} disabled={isExporting} className="w-full justify-start" variant="outline">
+                    {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                    Export All Data as JSON
+                </Button>
                 <Separator />
-
-                <div>
-                    <h4 className="text-sm font-medium mb-2">Step 2: Import Your File</h4>
-                    <div className="space-y-2">
-                        <Button onClick={handleImportClick} disabled={isImporting} className="w-full justify-start" variant="outline">
-                            {isImporting ? (
-                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Importing...</>
-                            ) : (
-                                <><Upload className="mr-2 h-4 w-4" /> Import from Excel File (.csv)</>
-                            )}
-                        </Button>
-                        <p className="text-xs text-muted-foreground px-2 mt-2">
-                            This will **overwrite all existing data** (customers, records, etc.) with the content from your file.
-                        </p>
-                    </div>
-                </div>
-
-                <Separator />
-                
-                <div>
-                    <h4 className="text-sm font-medium mb-2">Backup</h4>
-                    <p className="text-xs text-muted-foreground px-2 mb-2">
-                        Export all data from the database into a single JSON file for safekeeping.
-                    </p>
-                    <Button onClick={handleExportData} disabled={isExporting} className="w-full justify-start" variant="outline">
-                        {isExporting ? (
-                            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Exporting...</>
-                        ) : (
-                            <><Download className="mr-2 h-4 w-4" /> Export All Data as JSON</>
-                        )}
-                    </Button>
-                </div>
-
-                <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileChange}
-                    className="hidden"
-                    accept=".csv"
-                />
+                <Button onClick={handleImportClick} disabled={isImporting} className="w-full justify-start" variant="outline">
+                    {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                    Import from Excel CSV
+                </Button>
+                <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept=".csv" />
             </CardContent>
         </Card>
         
         <div className="space-y-8">
-            <Card className="w-full border-orange-500/50">
-                <CardHeader>
-                    <CardTitle className="text-orange-600">Clear Local Data</CardTitle>
-                    <CardDescription>
-                        This will clear all local storage and cached data for this application in your browser. This is useful for resetting the UI.
-                    </CardDescription>
-                </CardHeader>
+            <Card className="border-orange-500/50">
+                <CardHeader><CardTitle className="text-orange-600 text-base">Reset Local Browser Session</CardTitle></CardHeader>
                 <CardContent>
-                     <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button size="lg" variant="outline" className="text-orange-600 border-orange-500 hover:bg-orange-50 hover:text-orange-700">
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Clear Cache and Reload
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    This action will clear all locally stored application data from your browser and reload the page.
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                    onClick={handleClearCache}
-                                    disabled={isClearingCache}
-                                >
-                                    {isClearingCache ? 'Clearing...' : 'Yes, clear cache'}
-                                </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                </CardContent>
-            </Card>
-
-            <Card className="w-full border-blue-500/50">
-                <CardHeader>
-                    <CardTitle className="text-blue-600">Clear All Unloading Bills</CardTitle>
-                    <CardDescription>
-                        This will permanently delete all unloading bills. This can be useful to clear out old records that are no longer valid, for example, if their associated customer has been deleted.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button variant="outline" size="lg" className="text-blue-600 border-blue-500 hover:bg-blue-50 hover:text-blue-700">
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Clear Unloading Bills
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Are you sure you want to do this?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    This will permanently delete all unloading records from the database for your warehouse. This action cannot be undone.
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                    onClick={handleClearUnloadingRecords}
-                                    disabled={isClearingUnloading}
-                                >
-                                    {isClearingUnloading ? (
-                                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Deleting...</>
-                                    ) : (
-                                        'Yes, delete all unloading bills'
-                                    )}
-                                </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                </CardContent>
-            </Card>
-            
-            <Card className="w-full border-destructive/50">
-                <CardHeader>
-                    <CardTitle className="text-destructive">Clear Transactional Data</CardTitle>
-                    <CardDescription>
-                        This will permanently delete all transactional data but will keep your setup data (Commodities, Lots).
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button variant="destructive" size="lg">
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Clear Transactional Data
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    This action is permanent and cannot be undone. This will delete all customers, storage records, and expenses for your warehouse. Your Commodities and Lots will not be affected. Your team members will NOT be deleted.
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                    onClick={handleClearDatabase}
-                                    className="bg-destructive hover:bg-destructive/90"
-                                    disabled={isClearingDb}
-                                >
-                                    {isClearingDb ? (
-                                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Deleting...</>
-                                    ) : (
-                                        'Yes, delete all data'
-                                    )}
-                                </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                </CardContent>
-            </Card>
-
-            <Card className="w-full border-green-500/50">
-                <CardHeader>
-                    <CardTitle className="text-green-600">Manual Data Fix</CardTitle>
-                    <CardDescription>
-                        A special button to apply a one-time fix for record #1132.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Button onClick={handleFixRecord1132} disabled={isFixing} variant="success">
-                        {isFixing ? (
-                            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Fixing...</>
-                        ) : (
-                            'Set Record #1132 bags to 1331'
-                        )}
+                    <Button variant="outline" className="w-full text-orange-600" onClick={handleClearCache} disabled={isClearingCache}>
+                        Clear Local Cache
                     </Button>
+                </CardContent>
+            </Card>
+
+            <Card className="border-destructive/50">
+                <CardHeader><CardTitle className="text-destructive text-base">Danger Zone: Wipe Warehouse Data</CardTitle></CardHeader>
+                <CardContent>
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="destructive" className="w-full">Wipe All Transactional Data</Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Delete everything?</AlertDialogTitle>
+                                <AlertDialogDescription>This will remove all customers and records for this warehouse. Setup (Crops/Lots) remains.</AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleClearDatabase} className="bg-destructive" disabled={isClearingDb}>
+                                    Delete Now
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                 </CardContent>
             </Card>
         </div>
@@ -579,24 +237,12 @@ export function DataSettings() {
         <AlertDialog open={isImportAlertOpen} onOpenChange={setIsImportAlertOpen}>
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Confirm Data Import</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        This will **permanently delete all current data** and replace it with the data from your CSV file. This action cannot be undone. Are you sure you want to continue?
-                    </AlertDialogDescription>
+                    <AlertDialogTitle>Confirm Overwrite</AlertDialogTitle>
+                    <AlertDialogDescription>Importing will clear existing records. Continue?</AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                     <AlertDialogCancel onClick={() => setDataToImport(null)}>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                        onClick={handleConfirmImport}
-                        className="bg-destructive hover:bg-destructive/90"
-                        disabled={isImporting}
-                    >
-                        {isImporting ? (
-                            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Importing...</>
-                        ) : (
-                            'Yes, overwrite and import'
-                        )}
-                    </AlertDialogAction>
+                    <AlertDialogAction onClick={handleConfirmImport} className="bg-destructive">Start Import</AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>

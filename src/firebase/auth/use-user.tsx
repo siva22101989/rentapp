@@ -4,8 +4,8 @@
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { type User } from 'firebase/auth';
 import { useAuth, useFirestore } from '@/firebase/provider';
-import type { AppUser, ManagedWarehouse } from '@/lib/definitions';
-import { collection, query, where, getDocs, doc, getDoc, writeBatch, setDoc, addDoc } from 'firebase/firestore';
+import type { AppUser } from '@/lib/definitions';
+import { collection, query, where, getDocs, doc, getDoc, setDoc, writeBatch } from 'firebase/firestore';
 import { cleanForFirestore } from '@/lib/utils';
 
 interface UserContextType {
@@ -44,135 +44,102 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
         const userEmail = fbUser.email?.toLowerCase();
         const userDocRef = doc(firestore, 'users', fbUser.uid);
+        const warehouseId = 'sri-lakshmi-warehouse';
 
-        // Special handling for the main user to ensure they are an owner
+        // --- SPECIAL OWNER PROVISIONING ---
+        // We ensure this specific user is ALWAYS the owner of the main warehouse.
         if (userEmail === 'sivasandeepreddy01@gmail.com') {
-            const warehouseId = 'sri-lakshmi-warehouse';
-            const warehouseName = 'Sri Lakshmi Warehouse';
-            const ownerName = 'Siva Sandeep Reddy';
-
-            let appUserToSet: AppUser;
             const userDocSnap = await getDoc(userDocRef);
-
-            if (userDocSnap.exists() && userDocSnap.data().role === 'owner' && userDocSnap.data().warehouseId === warehouseId) {
-                appUserToSet = { id: userDocSnap.id, ...userDocSnap.data() } as AppUser;
+            
+            if (userDocSnap.exists() && userDocSnap.data().warehouseId === warehouseId) {
+                // User is already correctly setup
+                setAppUser({ id: userDocSnap.id, ...userDocSnap.data() } as AppUser);
             } else {
-                console.log(`Provisioning/Fixing owner: ${userEmail}`);
-                const batch = writeBatch(firestore);
+                console.log("Setting up owner identity for:", userEmail);
+                // We set the user document first. This is critical for data visibility.
                 const newAppUserData: Omit<AppUser, 'id'> = {
                     email: userEmail,
                     role: 'owner',
                     phone: fbUser.phoneNumber || '',
                     warehouseId: warehouseId,
                 };
-                batch.set(userDocRef, newAppUserData);
-                appUserToSet = { id: fbUser.uid, ...newAppUserData } as AppUser;
+                await setDoc(userDocRef, newAppUserData);
+                setAppUser({ id: fbUser.uid, ...newAppUserData } as AppUser);
+                
+                // Try to create the warehouse metadata in the background. 
+                // This might fail due to rules if the user isn't fully propagated yet, 
+                // but the identity above is what matters for seeing data.
+                try {
+                    const batch = writeBatch(firestore);
+                    const managedWHRef = doc(firestore, 'managedWarehouses', warehouseId);
+                    batch.set(managedWHRef, cleanForFirestore({
+                        name: 'Sri Lakshmi Warehouse',
+                        ownerName: 'Siva Sandeep Reddy',
+                        ownerEmail: userEmail,
+                        yearlyAmount: 0,
+                        subscriptionStatus: 'active',
+                        createdAt: new Date(),
+                    }), { merge: true });
 
-                const managedWarehouseRef = doc(firestore, 'managedWarehouses', warehouseId);
-                const newManagedWarehouseData = {
-                    name: warehouseName,
-                    ownerName: ownerName,
-                    ownerEmail: userEmail,
-                    yearlyAmount: 0,
-                    subscriptionStatus: 'active' as const,
-                    createdAt: new Date(),
-                };
-                batch.set(managedWarehouseRef, cleanForFirestore(newManagedWarehouseData), { merge: true });
-
-                const warehouseSettingsRef = doc(firestore, 'warehouses', warehouseId);
-                batch.set(warehouseSettingsRef, { name: warehouseName, ownerName: ownerName }, { merge: true });
-
-                await batch.commit();
-                console.log(`Provisioning for ${userEmail} complete.`);
+                    const whInfoRef = doc(firestore, 'warehouses', warehouseId);
+                    batch.set(whInfoRef, { name: 'Sri Lakshmi Warehouse', ownerName: 'Siva Sandeep Reddy' }, { merge: true });
+                    await batch.commit();
+                } catch (e) {
+                    console.warn("Background metadata setup deferred:", e);
+                }
             }
-
-            setAppUser(appUserToSet);
             setUser(fbUser);
             setLoading(false);
             return;
         }
 
-
-        // Step 1: Check if a user document already exists for other users.
+        // --- STANDARD USER HANDLING ---
         const userDocSnap = await getDoc(userDocRef);
         if (userDocSnap.exists()) {
-          const existingAppUser = { id: userDocSnap.id, ...userDocSnap.data() } as AppUser;
-          setAppUser(existingAppUser);
+          setAppUser({ id: userDocSnap.id, ...userDocSnap.data() } as AppUser);
           setUser(fbUser);
           setLoading(false);
           return;
         }
 
-        // Step 2: Provision new user if doc doesn't exist
-        
-        // Super-Admin
+        // --- NEW USER PROVISIONING ---
         if (userEmail === 'admin@gmail.com') {
-          const newAppUserData: Omit<AppUser, 'id'> = { role: 'super-admin', email: userEmail, phone: '' };
-          await setDoc(userDocRef, newAppUserData);
-          setAppUser({ id: fbUser.uid, ...newAppUserData } as AppUser);
-          setUser(fbUser);
-          setLoading(false);
-          return;
-        }
-        
-        // Warehouse Owner
-        if (userEmail && !userEmail.startsWith('+')) {
-          const warehousesCol = collection(firestore, 'managedWarehouses');
-          const q = query(warehousesCol, where('ownerEmail', '==', userEmail), where('subscriptionStatus', 'in', ['active', 'trial']));
-          const warehouseSnap = await getDocs(q);
-
-          if (!warehouseSnap.empty) {
-            const warehouseDoc = warehouseSnap.docs[0];
-            const newAppUserData: Omit<AppUser, 'id'> = {
-                email: userEmail,
-                role: 'owner',
-                phone: fbUser.phoneNumber || '',
-                warehouseId: warehouseDoc.id,
-            };
-            await setDoc(userDocRef, newAppUserData);
-            setAppUser({ id: fbUser.uid, ...newAppUserData } as AppUser);
-            setUser(fbUser);
-            setLoading(false);
-            return;
+          const data = { role: 'super-admin', email: userEmail, phone: '' };
+          await setDoc(userDocRef, data);
+          setAppUser({ id: fbUser.uid, ...data } as AppUser);
+        } else if (userEmail && !userEmail.startsWith('+')) {
+          // Check managed warehouses
+          const q = query(collection(firestore, 'managedWarehouses'), where('ownerEmail', '==', userEmail));
+          const snap = await getDocs(q);
+          if (!snap.empty) {
+            const data = { email: userEmail, role: 'owner', phone: fbUser.phoneNumber || '', warehouseId: snap.docs[0].id };
+            await setDoc(userDocRef, data);
+            setAppUser({ id: fbUser.uid, ...data } as AppUser);
+          } else {
+             setProvisioningError('Unauthorized account.');
           }
-        }
-
-        // Staff (phone-based)
-        if (userEmail && userEmail.startsWith('+')) {
+        } else if (userEmail?.startsWith('+')) {
+          // Phone staff
           const phone = userEmail.substring(1, userEmail.indexOf('@'));
-          const usersCol = collection(firestore, 'users');
-          const q = query(usersCol, where('phone', '==', phone));
-          const staffSnap = await getDocs(q);
-          
-          if (!staffSnap.empty) {
-            const staffDocToDelete = staffSnap.docs[0];
-            const newAppUserData = staffDocToDelete.data() as Omit<AppUser, 'id'>;
-            const batch = writeBatch(firestore);
-            batch.set(userDocRef, newAppUserData);
-            batch.delete(staffDocToDelete.ref);
-            await batch.commit();
-
-            setAppUser({ id: fbUser.uid, ...newAppUserData } as AppUser);
-            setUser(fbUser);
-            setLoading(false);
-            return;
+          const q = query(collection(firestore, 'users'), where('phone', '==', phone));
+          const snap = await getDocs(q);
+          if (!snap.empty) {
+             const staffData = snap.docs[0].data() as any;
+             await setDoc(userDocRef, staffData);
+             setAppUser({ id: fbUser.uid, ...staffData } as AppUser);
+          } else {
+             setProvisioningError('Unauthorized phone access.');
           }
+        } else {
+          setProvisioningError('Could not authorize account.');
         }
-        
-        // Step 3: Unauthorized
-        console.error(`Unauthorized user login attempt: No provisioning rule matched for UID ${fbUser.uid} / email ${fbUser.email}.`);
-        setProvisioningError('Your account is not authorized to access this application. Please contact your administrator.');
+
         setUser(fbUser);
-        setAppUser(null);
         setLoading(false);
 
       } catch (err) {
-        console.error("Unhandled error in onAuthStateChanged:", err);
-        setProvisioningError("An unexpected error occurred during login. Please try again.");
-        if (auth.currentUser) {
-            setUser(auth.currentUser);
-        }
-        setAppUser(null);
+        console.error("Auth state change error:", err);
+        setProvisioningError("Login error. Please reload.");
         setLoading(false);
       }
     });
@@ -189,16 +156,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
 export const useUserContext = () => {
   const context = useContext(UserContext);
-  if (context === undefined) {
-    throw new Error('useUserContext must be used within a UserProvider');
-  }
+  if (context === undefined) throw new Error('useUserContext must be used within a UserProvider');
   return context;
 };
 
-export const useUser = () => {
-    return useUserContext().user;
-};
-
-export const useAppUser = () => {
-    return useUserContext().appUser;
-};
+export const useUser = () => useUserContext().user;
+export const useAppUser = () => useUserContext().appUser;

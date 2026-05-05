@@ -31,13 +31,8 @@ const UnloadingRecordSchema = z.object({
   lorryTractorNo: z.string().optional(),
   unloadingDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
   bagsUnloaded: z.coerce.number().int().positive('Number of bags must be positive.'),
-<<<<<<< HEAD
   customerHamaliPerBag: z.coerce.number().nonnegative('Customer hamali rate must be non-negative.'),
   workerHamaliPerBag: z.coerce.number().nonnegative('Worker hamali rate must be non-negative.').optional(),
-=======
-  hamaliPerBag: z.coerce.number().nonnegative('Hamali rate must be non-negative.'),
-  workerHamaliPerBag: z.coerce.number().nonnegative('Worker hamali rate must be non-negative.'),
->>>>>>> eb54f14baec35e8872611cd70d6a9b9a1b8f4f33
   billNo: z.string(),
 });
 
@@ -74,11 +69,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
           lorryTractorNo: '',
           unloadingDate: getLocalDateTimeForInput(),
           bagsUnloaded: undefined,
-<<<<<<< HEAD
           customerHamaliPerBag: undefined,
-=======
-          hamaliPerBag: undefined,
->>>>>>> eb54f14baec35e8872611cd70d6a9b9a1b8f4f33
           workerHamaliPerBag: undefined,
           billNo: nextBillNo,
         },
@@ -114,7 +105,6 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
     }, [lots, lotOccupancy]);
       
     const bagsUnloaded = form.watch('bagsUnloaded');
-<<<<<<< HEAD
     const customerHamaliPerBag = form.watch('customerHamaliPerBag');
     const workerHamaliPerBag = form.watch('workerHamaliPerBag');
 
@@ -127,12 +117,6 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
             totalWorkerHamali: bags * workRate,
         }
     }, [bagsUnloaded, customerHamaliPerBag, workerHamaliPerBag]);
-=======
-    const hamaliPerBag = form.watch('hamaliPerBag');
-    const workerHamaliPerBag = form.watch('workerHamaliPerBag');
-    const totalHamali = (Number(bagsUnloaded) || 0) * (Number(hamaliPerBag) || 0);
-    const totalWorkerHamali = (Number(bagsUnloaded) || 0) * (Number(workerHamaliPerBag) || 0);
->>>>>>> eb54f14baec35e8872611cd70d6a9b9a1b8f4f33
 
     const selectedCustomerId = form.watch('customerId');
     const selectedCustomer = useMemo(() => {
@@ -158,13 +142,8 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
         
         startTransition(async () => {
             try {
-<<<<<<< HEAD
                 const totalHamali = data.bagsUnloaded * data.customerHamaliPerBag;
                 const workerHamaliPayable = data.bagsUnloaded * (data.workerHamaliPerBag ?? data.customerHamaliPerBag);
-=======
-                const totalHamali = data.bagsUnloaded * data.hamaliPerBag;
-                const workerHamaliPayable = data.bagsUnloaded * data.workerHamaliPerBag;
->>>>>>> eb54f14baec35e8872611cd70d6a9b9a1b8f4f33
                 const unloadingDate = new Date(data.unloadingDate);
                 const rawRecord = {
                     ...data,
@@ -211,11 +190,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                     lorryTractorNo: '',
                     unloadingDate: getLocalDateTimeForInput(),
                     bagsUnloaded: undefined,
-<<<<<<< HEAD
                     customerHamaliPerBag: undefined,
-=======
-                    hamaliPerBag: undefined,
->>>>>>> eb54f14baec35e8872611cd70d6a9b9a1b8f4f33
                     workerHamaliPerBag: undefined,
                 });
             } catch (error) {
@@ -339,7 +314,6 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                             </FormItem>
                         )}
                     />
-<<<<<<< HEAD
                     <FormField
                         control={form.control}
                         name="bagsUnloaded"
@@ -352,9 +326,6 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                         )}
                     />
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-=======
-                    <div className="space-y-4">
->>>>>>> eb54f14baec35e8872611cd70d6a9b9a1b8f4f33
                         <FormField
                             control={form.control}
                             name="customerHamaliPerBag"
@@ -366,7 +337,6 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                                 </FormItem>
                             )}
                         />
-<<<<<<< HEAD
                         <FormField
                             control={form.control}
                             name="workerHamaliPerBag"
@@ -378,37 +348,10 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                                 </FormItem>
                             )}
                         />
-=======
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormField
-                                control={form.control}
-                                name="hamaliPerBag"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Customer Hamali Rate</FormLabel>
-                                        <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} /></FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="workerHamaliPerBag"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Worker Hamali Rate</FormLabel>
-                                        <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} /></FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
->>>>>>> eb54f14baec35e8872611cd70d6a9b9a1b8f4f33
                     </div>
                      <Separator />
                      <div className="space-y-2">
                         <h4 className="font-medium">Summary</h4>
-<<<<<<< HEAD
                         <div className="flex justify-between items-center text-sm font-semibold">
                             <span>Total Hamali (Customer)</span>
                             <span className="font-mono">{formatCurrency(totalCustomerHamali)}</span>
@@ -422,21 +365,6 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                             <span className="font-mono">{formatCurrency(totalCustomerHamali - totalWorkerHamali)}</span>
                         </div>
                          <p className="text-xs text-muted-foreground pt-2">This amount will be charged to the customer and is payable to the worker.</p>
-=======
-                        <div className="flex justify-between items-center text-sm">
-                            <span className="text-muted-foreground">Total Customer Charge</span>
-                            <span className="font-mono">{formatCurrency(totalHamali)}</span>
-                        </div>
-                        <div className="flex justify-between items-center text-sm">
-                            <span className="text-muted-foreground">Total Worker Payable</span>
-                            <span className="font-mono">{formatCurrency(totalWorkerHamali)}</span>
-                        </div>
-                        <Separator />
-                        <div className="flex justify-between items-center font-bold text-primary">
-                            <span>Hamali Profit (Difference)</span>
-                            <span className="font-mono">{formatCurrency(totalHamali - totalWorkerHamali)}</span>
-                        </div>
->>>>>>> eb54f14baec35e8872611cd70d6a9b9a1b8f4f33
                     </div>
 
                      <div className="flex items-center space-x-2 pt-4">

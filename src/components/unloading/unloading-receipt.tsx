@@ -45,6 +45,7 @@ export const UnloadingReceipt = React.forwardRef<HTMLDivElement, { record: Unloa
                 <div className="flex"><span className="w-1/3 font-bold">CUSTOMER</span><span>: {customer.name}</span></div>
                 {customer.fatherName && <div className="flex"><span className="w-1/3 font-bold">FATHER'S NAME</span><span>: {customer.fatherName}</span></div>}
                 <div className="flex"><span className="w-1/3 font-bold">VILLAGE</span><span>: {customer.village || 'N/A'}</span></div>
+                <div className="flex"><span className="w-1/3 font-bold">LOT/PLOT No.</span><span>: {record.location || 'N/A'}</span></div>
                 <div className="flex"><span className="w-1/3 font-bold">LORRY/TRACTOR No.</span><span>: {record.lorryTractorNo || 'N/A'}</span></div>
                 <div className="flex"><span className="w-1/3 font-bold">PRODUCT</span><span>: {record.commodityDescription}</span></div>
             </div>

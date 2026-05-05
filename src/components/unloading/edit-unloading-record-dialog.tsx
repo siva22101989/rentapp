@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useTransition, useEffect } from 'react';
+import { useState, useTransition, useEffect, useMemo } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,7 +17,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import type { Customer, UnloadingRecord, Commodity } from '@/lib/definitions';
+import type { Customer, UnloadingRecord, Commodity, Lot, StorageRecord } from '@/lib/definitions';
 import { useFirestore } from '@/firebase/provider';
 import { z } from 'zod';
 import { updateUnloadingRecord } from '@/lib/data';
@@ -28,6 +28,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 const EditUnloadingSchema = z.object({
   customerId: z.string().min(1, 'Customer is required.'),
   commodityDescription: z.string().min(1, 'Commodity is required.'),
+  location: z.string().min(1, 'Lot No. is required.'),
   lorryTractorNo: z.string().optional(),
   unloadingDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
   bagsUnloaded: z.coerce.number().int().positive('Number of bags must be positive.'),
@@ -40,11 +41,15 @@ export function EditUnloadingRecordDialog({
     record, 
     customers, 
     commodities,
+    lots,
+    storageRecords,
     children 
 }: { 
     record: UnloadingRecord, 
     customers: Customer[], 
     commodities: Commodity[],
+    lots: Lot[],
+    storageRecords: StorageRecord[],
     children: React.ReactNode 
 }) {
   const { toast } = useToast();
@@ -55,11 +60,35 @@ export function EditUnloadingRecordDialog({
 
   const [customerId, setCustomerId] = useState('');
   const [commodityDescription, setCommodityDescription] = useState('');
+  const [location, setLocation] = useState('');
   const [lorryTractorNo, setLorryTractorNo] = useState('');
   const [unloadingDate, setUnloadingDate] = useState('');
   const [bagsUnloaded, setBagsUnloaded] = useState<number | ''>('');
   const [hamaliPerBag, setHamaliPerBag] = useState<number | ''>('');
   const [error, setError] = useState<Record<string, string>>({});
+
+  const lotOccupancy = useMemo(() => {
+    const occupancy: { [lotName: string]: number } = {};
+    storageRecords.forEach(r => {
+        if (r.location && r.bagsStored > 0) {
+            occupancy[r.location] = (occupancy[r.location] || 0) + r.bagsStored;
+        }
+    });
+    return occupancy;
+  }, [storageRecords]);
+
+  const lotOptions = useMemo(() => {
+    return lots
+        .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
+        .map(lot => {
+            const occupied = lotOccupancy[lot.name] || 0;
+            const capacity = lot.capacity ? ` / ${lot.capacity}` : '';
+            return ({
+                value: lot.name,
+                label: `${lot.name} (${occupied}${capacity} bags)`
+            })
+        });
+  }, [lots, lotOccupancy]);
 
   const getLocalDateTimeForInput = (date: Date) => {
     const timezoneOffsetInMs = date.getTimezoneOffset() * 60000;
@@ -71,6 +100,7 @@ export function EditUnloadingRecordDialog({
     if (open) {
       setCustomerId(record.customerId);
       setCommodityDescription(record.commodityDescription);
+      setLocation(record.location || '');
       setLorryTractorNo(record.lorryTractorNo || '');
       setUnloadingDate(getLocalDateTimeForInput(toDate(record.unloadingDate)));
       setBagsUnloaded(record.bagsUnloaded);
@@ -91,6 +121,7 @@ export function EditUnloadingRecordDialog({
     const dataToValidate = {
       customerId,
       commodityDescription,
+      location,
       lorryTractorNo,
       unloadingDate,
       bagsUnloaded: Number(bagsUnloaded),
@@ -143,7 +174,7 @@ export function EditUnloadingRecordDialog({
               Adjust details for Bill No. {record.billNo}.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+          <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
             <div className="space-y-2">
                 <Label htmlFor="customerId">Customer</Label>
                 <Combobox
@@ -169,6 +200,18 @@ export function EditUnloadingRecordDialog({
                     </SelectContent>
                 </Select>
                  {error.commodityDescription && <p className="text-sm font-medium text-destructive">{error.commodityDescription}</p>}
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="location">Lot No. / Plot No.</Label>
+                <Combobox
+                    options={lotOptions}
+                    value={location}
+                    onChange={setLocation}
+                    placeholder="Select a location..."
+                    searchPlaceholder="Search locations..."
+                    emptyPlaceholder="No locations found."
+                />
+                {error.location && <p className="text-sm font-medium text-destructive">{error.location}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="lorryTractorNo">Lorry/Tractor No.</Label>

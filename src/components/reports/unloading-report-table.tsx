@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -36,6 +37,7 @@ export function UnloadingReportTable({ records, customers, title, commodities }:
                         <TableHead>Date</TableHead>
                         <TableHead>Bill No</TableHead>
                         <TableHead>Customer</TableHead>
+                        <TableHead>Lot/Plot No</TableHead>
                         <TableHead>Commodity</TableHead>
                         <TableHead>Lorry/Tractor No</TableHead>
                         <TableHead className="text-right">Bags Unloaded</TableHead>
@@ -52,6 +54,7 @@ export function UnloadingReportTable({ records, customers, title, commodities }:
                                 <TableCell>{format(toDate(record.unloadingDate), 'dd MMM yyyy')}</TableCell>
                                 <TableCell>{record.billNo}</TableCell>
                                 <TableCell className="font-medium">{getCustomerName(record.customerId)}</TableCell>
+                                <TableCell>{record.location || 'N/A'}</TableCell>
                                 <TableCell>{record.commodityDescription}</TableCell>
                                 <TableCell>{record.lorryTractorNo}</TableCell>
                                 <TableCell className="text-right font-mono">{record.bagsUnloaded}</TableCell>
@@ -59,7 +62,9 @@ export function UnloadingReportTable({ records, customers, title, commodities }:
                                     <UnloadingTableActionsMenu 
                                         record={recordWithPending} 
                                         customers={customers} 
-                                        commodities={commodities} 
+                                        commodities={commodities}
+                                        lots={[]} // Empty array here as it's not needed for the action menu in report view
+                                        storageRecords={[]}
                                     />
                                 </TableCell>
                             </TableRow>
@@ -67,7 +72,7 @@ export function UnloadingReportTable({ records, customers, title, commodities }:
                     })}
                     {records.length === 0 && (
                         <TableRow>
-                            <TableCell colSpan={7} className="text-center text-muted-foreground">
+                            <TableCell colSpan={8} className="text-center text-muted-foreground">
                                 No unloading records found for the selected criteria.
                             </TableCell>
                         </TableRow>
@@ -75,7 +80,7 @@ export function UnloadingReportTable({ records, customers, title, commodities }:
                 </TableBody>
                 <TableFooter>
                     <TableRow>
-                        <TableCell colSpan={5} className="text-right font-bold">Total Bags Unloaded</TableCell>
+                        <TableCell colSpan={6} className="text-right font-bold">Total Bags Unloaded</TableCell>
                         <TableCell className="text-right font-mono font-bold">{totalBagsUnloaded}</TableCell>
                         <TableCell className="print-hide"></TableCell>
                     </TableRow>

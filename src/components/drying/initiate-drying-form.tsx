@@ -127,14 +127,16 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
 
     const bagsRemainingOnRecord = selectedUnloadingRecord ? selectedUnloadingRecord.bagsUnloaded - (selectedUnloadingRecord.bagsSentToDrying || 0) : 0;
     
-    const { totalCustomerCharge, totalWorkerPayable, extraDryingDays, proportionalUnloadingHamali, day1DryingHamali, pavHamali, cuppaHamali, workerHamaliDay1 } = useMemo(() => {
+    const { totalCustomerCharge, totalWorkerPayable, extraDryingDays, dryingDays, proportionalUnloadingHamali, day1DryingHamali, pavHamali, cuppaHamali, workerHamaliDay1 } = useMemo(() => {
         let extraDays = 0;
+        let totalDaysCount = null;
         try {
             const start = new Date(dryingStartDate);
             const end = new Date(dryingEndDate);
             if (!isNaN(start.getTime()) && !isNaN(end.getTime()) && end >= start) {
                 const days = differenceInDays(end, start);
                 extraDays = days > 0 ? days : 0;
+                totalDaysCount = days + 1;
             }
         } catch (e) { /* ignore */ }
 
@@ -154,6 +156,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
             totalCustomerCharge: totalCustCharge,
             totalWorkerPayable: totalWorkerPay,
             extraDryingDays: extraDays,
+            dryingDays: totalDaysCount,
             proportionalUnloadingHamali: pUnloadingHamali,
             day1DryingHamali: d1DryingHamali,
             pavHamali: pavH,
@@ -546,7 +549,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                             <span className="text-xs">Wait before drying</span>
                        </div>
                        <div className="flex flex-col items-center">
-                           <span className="font-bold text-foreground">{extraDryingDays + 1 ?? '-'}</span>
+                           <span className="font-bold text-foreground">{dryingDays ?? '-'}</span>
                            <span className="text-xs">Total drying days</span>
                        </div>
                     </div>

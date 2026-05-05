@@ -1,13 +1,13 @@
-
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
 import { useCollection, useFirestore, useAppUser } from "@/firebase";
 import { collection, query, where } from "firebase/firestore";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
-import type { Customer, UnloadingRecord, Lot, StorageRecord, Commodity } from "@/lib/definitions";
+import type { Customer, UnloadingRecord, Lot, StorageRecord, Commodity, DryingRecord } from "@/lib/definitions";
 import { AddCustomerDialog } from "@/components/customers/add-customer-dialog";
 import { InitiateDryingForm } from "@/components/drying/initiate-drying-form";
+import { DryingHistoryTable } from "@/components/drying/drying-history-table";
 import { useMemo } from "react";
 import { toDate } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
@@ -47,6 +47,12 @@ export default function DryingPage() {
   );
   const { data: commodities, loading: loadingCommodities } = useCollection<Commodity>(commoditiesQuery);
 
+  const dryingRecordsQuery = useMemoFirebase(
+    () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'dryingRecords'), where('warehouseId', '==', appUser.warehouseId)) : null),
+    [firestore, appUser]
+  );
+  const { data: dryingRecords, loading: loadingDryingRecords } = useCollection<DryingRecord>(dryingRecordsQuery);
+
   const availableForDryingRecords = useMemo(() => {
     if (!unloadingRecords) return [];
     const filtered = unloadingRecords.filter(r => r.bagsUnloaded > (r.bagsSentToDrying || 0));
@@ -54,7 +60,7 @@ export default function DryingPage() {
   }, [unloadingRecords]);
 
 
-  if (loadingCustomers || loadingUnloadingRecords || loadingLots || loadingStorageRecords || loadingCommodities) {
+  if (loadingCustomers || loadingUnloadingRecords || loadingLots || loadingStorageRecords || loadingCommodities || loadingDryingRecords) {
     return <AppLayout><div>Loading...</div></AppLayout>;
   }
 
@@ -78,6 +84,15 @@ export default function DryingPage() {
         ) : (
           <Card><CardContent className="p-8 text-center text-muted-foreground">This function is not available for super-admins.</CardContent></Card>
         )}
+
+        <DryingHistoryTable 
+            dryingRecords={dryingRecords || []}
+            customers={customers || []}
+            unloadingRecords={unloadingRecords || []}
+            lots={lots || []}
+            storageRecords={storageRecords || []}
+            commodities={commodities || []}
+        />
       </div>
     </AppLayout>
   );

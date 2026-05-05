@@ -32,7 +32,7 @@ const UnloadingRecordSchema = z.object({
   unloadingDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
   bagsUnloaded: z.coerce.number().int().positive('Number of bags must be positive.'),
   customerHamaliPerBag: z.coerce.number().nonnegative('Customer hamali rate must be non-negative.'),
-  workerHamaliPerBag: z.coerce.number().nonnegative('Worker hamali rate must be non-negative.'),
+  workerHamaliPerBag: z.coerce.number().nonnegative('Worker hamali rate must be non-negative.').optional(),
   billNo: z.string(),
 });
 
@@ -133,7 +133,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
         startTransition(async () => {
             try {
                 const totalHamali = data.bagsUnloaded * data.customerHamaliPerBag;
-                const workerHamaliPayable = data.bagsUnloaded * data.workerHamaliPerBag;
+                const workerHamaliPayable = data.bagsUnloaded * (data.workerHamaliPerBag ?? data.customerHamaliPerBag);
                 const unloadingDate = new Date(data.unloadingDate);
                 
                 const rawRecord = {

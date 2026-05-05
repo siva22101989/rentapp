@@ -16,7 +16,7 @@ import { Button } from '../ui/button';
 import { Loader2 } from 'lucide-react';
 import { useFirestore } from '@/firebase/provider';
 import { doc, writeBatch } from 'firebase/firestore';
-import type { DryingRecord, UnloadingRecord, StorageRecord, Lot } from '@/lib/definitions';
+import type { DryingRecord, UnloadingRecord, StorageRecord, Lot, Commodity } from '@/lib/definitions';
 import { toDate, cleanForFirestore } from '@/lib/utils';
 import { format, differenceInDays } from 'date-fns';
 import { useAppUser } from '@/firebase/auth/use-user';
@@ -25,12 +25,14 @@ export function BillProcessDialog({
   record,
   unloadingRecord,
   storageRecords,
+  commodities,
   children,
 }: {
   record: DryingRecord;
   unloadingRecord?: UnloadingRecord;
   lots: Lot[];
   storageRecords: StorageRecord[];
+  commodities: Commodity[];
   children: React.ReactNode;
 }) {
   const { toast } = useToast();
@@ -68,7 +70,9 @@ export function BillProcessDialog({
         }, 0);
         const nextSerialNumber = (maxId + 1).toString();
         
-        // 2. Prepare new storage record
+        // Find commodity to carry over current rates
+        const commodityDetails = commodities.find(c => c.name === record.commodityDescription);
+
         const billingDate = new Date();
         const bagsStored = record.bagsPacked || 0;
 
@@ -85,15 +89,23 @@ export function BillProcessDialog({
             billingCycle: '6-Month Initial' as const,
             payments: [], 
             hamaliPayable: record.totalDryingHamali, 
+            workerHamaliPayable: record.workerHamaliPayable ?? record.totalDryingHamali,
+            hamaliDetails: record.hamaliDetails || [],
             totalRentBilled: 0,
             lorryTractorNo: unloadingRecord?.lorryTractorNo || '',
             weight: 0, 
             inflowType: 'Plot' as const,
             dryingRecordId: record.id,
-            khataAmount: 0, 
+            khataAmount: 0,
+            // Carry over rates
+            billingType: commodityDetails?.billingType,
+            monthlyRate: commodityDetails?.monthlyRate,
+            minBillingMonths: commodityDetails?.minBillingMonths,
+            insuranceRate: commodityDetails?.insuranceRate,
+            rate6Months: commodityDetails?.rate6Months,
+            rate1Year: commodityDetails?.rate1Year,
         };
 
-        // 3. Create a batch write to ensure atomicity
         const batch = writeBatch(firestore);
 
         const dryingRecordRef = doc(firestore, 'dryingRecords', record.id);
@@ -105,7 +117,6 @@ export function BillProcessDialog({
         const newStorageRecordRef = doc(firestore, 'storageRecords', nextSerialNumber);
         batch.set(newStorageRecordRef, cleanForFirestore(newStorageRecord));
         
-        // 4. Commit the batch
         await batch.commit();
 
         toast({ 

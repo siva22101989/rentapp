@@ -1,15 +1,26 @@
-
 'use client';
 
 import { MoreHorizontal, FileCheck, IndianRupee, Trash2, Pencil } from "lucide-react";
 import { Button } from "../ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from "../ui/dropdown-menu";
-import type { DryingRecord, UnloadingRecord, Lot, StorageRecord } from "@/lib/definitions";
+import type { DryingRecord, UnloadingRecord, Lot, StorageRecord, Commodity } from "@/lib/definitions";
 import { EditDryingDialog } from "./manage-drying-charges-dialog";
 import { BillProcessDialog } from "./bill-process-dialog";
 import { DeleteDryingRecordDialog } from "./delete-drying-record-dialog";
 
-export function DryingActionsMenu({ record, unloadingRecord, lots, storageRecords }: { record: DryingRecord, unloadingRecord?: UnloadingRecord, lots: Lot[], storageRecords: StorageRecord[] }) {
+export function DryingActionsMenu({ 
+    record, 
+    unloadingRecord, 
+    lots, 
+    storageRecords,
+    commodities 
+}: { 
+    record: DryingRecord, 
+    unloadingRecord?: UnloadingRecord, 
+    lots: Lot[], 
+    storageRecords: StorageRecord[],
+    commodities: Commodity[]
+}) {
 
     const isBilled = record.status === 'Billed';
 
@@ -32,7 +43,13 @@ export function DryingActionsMenu({ record, unloadingRecord, lots, storageRecord
                     </DropdownMenuItem>
                 </EditDryingDialog>
                 
-                <BillProcessDialog record={record} unloadingRecord={unloadingRecord} lots={lots} storageRecords={storageRecords}>
+                <BillProcessDialog 
+                    record={record} 
+                    unloadingRecord={unloadingRecord} 
+                    lots={lots} 
+                    storageRecords={storageRecords}
+                    commodities={commodities}
+                >
                     <DropdownMenuItem 
                         onSelect={(e) => e.preventDefault()} 
                         disabled={isBilled || !record.packingDate}

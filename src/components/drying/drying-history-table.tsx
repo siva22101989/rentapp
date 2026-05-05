@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -12,7 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns';
 import { formatCurrency, toDate } from "@/lib/utils";
-import type { Customer, DryingRecord, UnloadingRecord, DryingStatus, Lot, StorageRecord } from "@/lib/definitions";
+import type { Customer, DryingRecord, UnloadingRecord, DryingStatus, Lot, StorageRecord, Commodity } from "@/lib/definitions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { DryingActionsMenu } from "@/components/drying/drying-actions-menu";
 import { useMemo } from "react";
@@ -36,9 +35,10 @@ type TableProps = {
   unloadingRecords: UnloadingRecord[];
   lots: Lot[];
   storageRecords: StorageRecord[];
+  commodities: Commodity[];
 }
 
-export function DryingHistoryTable({ dryingRecords, customers, unloadingRecords, lots, storageRecords }: TableProps) {
+export function DryingHistoryTable({ dryingRecords, customers, unloadingRecords, lots, storageRecords, commodities }: TableProps) {
 
     const getCustomerName = (customerId: string) => {
         return customers.find(c => c.id === customerId)?.name ?? 'Unknown';
@@ -65,8 +65,8 @@ export function DryingHistoryTable({ dryingRecords, customers, unloadingRecords,
     return (
       <Card>
         <CardHeader>
-            <CardTitle>Active Drying Processes</CardTitle>
-            <CardDescription>A log of all ongoing drying and packing activities that need action.</CardDescription>
+            <CardTitle>Drying Process History</CardTitle>
+            <CardDescription>Track ongoing and completed drying activities.</CardDescription>
         </CardHeader>
         <CardContent>
             <Table>
@@ -100,7 +100,13 @@ export function DryingHistoryTable({ dryingRecords, customers, unloadingRecords,
                             </Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                            <DryingActionsMenu record={record} unloadingRecord={unloadingRecords.find(ur => ur.id === record.unloadingRecordId)} lots={lots} storageRecords={storageRecords} />
+                            <DryingActionsMenu 
+                                record={record} 
+                                unloadingRecord={unloadingRecords.find(ur => ur.id === record.unloadingRecordId)} 
+                                lots={lots} 
+                                storageRecords={storageRecords} 
+                                commodities={commodities}
+                            />
                         </TableCell>
                     </TableRow>
                     )

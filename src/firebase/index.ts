@@ -12,4 +12,4 @@ export {
 } from './provider';
 export { useCollection } from './firestore/use-collection';
 export { useDoc } from './firestore/use-doc';
-export { useUser, useAppUser, UserProvider } from './auth/use-user';
+export { useUser, useAppUser, UserProvider, useUserContext } from './auth/use-user';

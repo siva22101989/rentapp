@@ -162,6 +162,7 @@ export type UnloadingRecord = {
   customerId: string;
   commodityDescription: string;
   lorryTractorNo?: string;
+  location?: string;
   unloadingDate: Date | Timestamp;
   bagsUnloaded: number;
   status: UnloadingStatus;

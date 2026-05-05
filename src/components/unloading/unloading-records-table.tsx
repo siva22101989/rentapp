@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -12,7 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns';
 import { formatCurrency, toDate } from "@/lib/utils";
-import type { Customer, UnloadingRecord, Commodity } from "@/lib/definitions";
+import type { Customer, UnloadingRecord, Commodity, Lot, StorageRecord } from "@/lib/definitions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { UnloadingTableActionsMenu } from "./unloading-table-actions-menu";
 
@@ -32,7 +31,7 @@ const getRecordStatus = (record: UnloadingRecord): StatusInfo => {
     return { text: 'Drying Complete', variant: 'bg-green-100 text-green-800' };
 };
   
-export function UnloadingRecordsTable({ unloadingRecords, customers, commodities }: { unloadingRecords: UnloadingRecord[], customers: Customer[], commodities: Commodity[] }) {
+export function UnloadingRecordsTable({ unloadingRecords, customers, commodities, lots, storageRecords }: { unloadingRecords: UnloadingRecord[], customers: Customer[], commodities: Commodity[], lots: Lot[], storageRecords: StorageRecord[] }) {
 
     const getCustomerName = (customerId: string) => {
         return customers.find(c => c.id === customerId)?.name ?? 'Unknown';
@@ -64,6 +63,7 @@ export function UnloadingRecordsTable({ unloadingRecords, customers, commodities
                     <TableHead className="hidden md:table-cell">Date</TableHead>
                     <TableHead>Bill No.</TableHead>
                     <TableHead>Customer</TableHead>
+                    <TableHead>Storage Location (Lot No.)</TableHead>
                     <TableHead className="text-right hidden lg:table-cell">Total Bags</TableHead>
                     <TableHead className="text-right hidden lg:table-cell">Bags for Drying</TableHead>
                     <TableHead className="text-right">Bags Remaining</TableHead>
@@ -84,6 +84,7 @@ export function UnloadingRecordsTable({ unloadingRecords, customers, commodities
                         <TableCell className="hidden md:table-cell">{unloadingDate ? format(unloadingDate, 'dd MMM yyyy') : 'N/A'}</TableCell>
                         <TableCell>{record.billNo}</TableCell>
                         <TableCell className="font-medium">{getCustomerName(record.customerId)}</TableCell>
+                        <TableCell>{record.location || 'N/A'}</TableCell>
                         <TableCell className="text-right hidden lg:table-cell">{record.bagsUnloaded}</TableCell>
                         <TableCell className="text-right hidden lg:table-cell">{bagsSent}</TableCell>
                         <TableCell className="text-right font-bold">{bagsRemaining}</TableCell>
@@ -95,14 +96,20 @@ export function UnloadingRecordsTable({ unloadingRecords, customers, commodities
                             </Badge>
                         </TableCell>
                         <TableCell>
-                            <UnloadingTableActionsMenu record={record} customers={customers} commodities={commodities} />
+                            <UnloadingTableActionsMenu 
+                                record={record} 
+                                customers={customers} 
+                                commodities={commodities}
+                                lots={lots}
+                                storageRecords={storageRecords}
+                            />
                         </TableCell>
                     </TableRow>
                     )
                 })}
                  {unloadingRecords.length === 0 && (
                     <TableRow>
-                        <TableCell colSpan={10} className="text-center text-muted-foreground">
+                        <TableCell colSpan={11} className="text-center text-muted-foreground">
                             No unloading records found.
                         </TableCell>
                     </TableRow>

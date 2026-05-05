@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase/provider';
-import type { Customer, Commodity, UnloadingRecord, WarehouseInfo, SmsInfo } from '@/lib/definitions';
+import type { Customer, Commodity, UnloadingRecord, WarehouseInfo, Lot, StorageRecord } from '@/lib/definitions';
 import { setDoc, doc } from 'firebase/firestore';
 import { formatCurrency, cleanForFirestore } from '@/lib/utils';
 import { Separator } from '../ui/separator';
@@ -27,11 +27,17 @@ import { useAppUser } from '@/firebase/auth/use-user';
 const UnloadingRecordSchema = z.object({
   customerId: z.string().min(1, 'Customer is required.'),
   commodityDescription: z.string().min(1, 'Commodity is required.'),
+  location: z.string().min(1, 'Storage location is required.'),
   lorryTractorNo: z.string().optional(),
   unloadingDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
   bagsUnloaded: z.coerce.number().int().positive('Number of bags must be positive.'),
+<<<<<<< HEAD
   customerHamaliPerBag: z.coerce.number().nonnegative('Customer hamali rate must be non-negative.'),
   workerHamaliPerBag: z.coerce.number().nonnegative('Worker hamali rate must be non-negative.').optional(),
+=======
+  hamaliPerBag: z.coerce.number().nonnegative('Hamali rate must be non-negative.'),
+  workerHamaliPerBag: z.coerce.number().nonnegative('Worker hamali rate must be non-negative.'),
+>>>>>>> eb54f14baec35e8872611cd70d6a9b9a1b8f4f33
   billNo: z.string(),
 });
 
@@ -45,7 +51,7 @@ const getLocalDateTimeForInput = () => {
 };
 
 
-export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: { customers: Customer[], commodities: Commodity[], nextBillNo: string }) {
+export function AddUnloadingRecordForm({ customers, commodities, lots, storageRecords, nextBillNo }: { customers: Customer[], commodities: Commodity[], lots: Lot[], storageRecords: StorageRecord[], nextBillNo: string }) {
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
     const firestore = useFirestore();
@@ -64,10 +70,15 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
         defaultValues: {
           customerId: '',
           commodityDescription: '',
+          location: '',
           lorryTractorNo: '',
           unloadingDate: getLocalDateTimeForInput(),
           bagsUnloaded: undefined,
+<<<<<<< HEAD
           customerHamaliPerBag: undefined,
+=======
+          hamaliPerBag: undefined,
+>>>>>>> eb54f14baec35e8872611cd70d6a9b9a1b8f4f33
           workerHamaliPerBag: undefined,
           billNo: nextBillNo,
         },
@@ -78,8 +89,32 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
     }, [nextBillNo, form]);
     
     const customerOptions = customers.map(c => ({ value: c.id, label: c.name }));
+
+    const lotOccupancy = useMemo(() => {
+        const occupancy: { [lotName: string]: number } = {};
+        storageRecords.forEach(record => {
+            if (record.location && record.bagsStored > 0) {
+                occupancy[record.location] = (occupancy[record.location] || 0) + record.bagsStored;
+            }
+        });
+        return occupancy;
+    }, [storageRecords]);
+
+    const lotOptions = useMemo(() => {
+        return lots
+            .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
+            .map(lot => {
+                const occupied = lotOccupancy[lot.name] || 0;
+                const capacity = lot.capacity ? ` / ${lot.capacity}` : '';
+                return ({
+                    value: lot.name,
+                    label: `${lot.name} (${occupied}${capacity} bags)`
+                })
+            });
+    }, [lots, lotOccupancy]);
       
     const bagsUnloaded = form.watch('bagsUnloaded');
+<<<<<<< HEAD
     const customerHamaliPerBag = form.watch('customerHamaliPerBag');
     const workerHamaliPerBag = form.watch('workerHamaliPerBag');
 
@@ -92,6 +127,12 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
             totalWorkerHamali: bags * workRate,
         }
     }, [bagsUnloaded, customerHamaliPerBag, workerHamaliPerBag]);
+=======
+    const hamaliPerBag = form.watch('hamaliPerBag');
+    const workerHamaliPerBag = form.watch('workerHamaliPerBag');
+    const totalHamali = (Number(bagsUnloaded) || 0) * (Number(hamaliPerBag) || 0);
+    const totalWorkerHamali = (Number(bagsUnloaded) || 0) * (Number(workerHamaliPerBag) || 0);
+>>>>>>> eb54f14baec35e8872611cd70d6a9b9a1b8f4f33
 
     const selectedCustomerId = form.watch('customerId');
     const selectedCustomer = useMemo(() => {
@@ -117,8 +158,13 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
         
         startTransition(async () => {
             try {
+<<<<<<< HEAD
                 const totalHamali = data.bagsUnloaded * data.customerHamaliPerBag;
                 const workerHamaliPayable = data.bagsUnloaded * (data.workerHamaliPerBag ?? data.customerHamaliPerBag);
+=======
+                const totalHamali = data.bagsUnloaded * data.hamaliPerBag;
+                const workerHamaliPayable = data.bagsUnloaded * data.workerHamaliPerBag;
+>>>>>>> eb54f14baec35e8872611cd70d6a9b9a1b8f4f33
                 const unloadingDate = new Date(data.unloadingDate);
                 const rawRecord = {
                     ...data,
@@ -134,13 +180,14 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
                 await setDoc(docRef, cleanForFirestore(rawRecord));
 
                 if (sendSmsNotification && warehouseInfo?.textbeeApiKey && selectedCustomer?.phone) {
-                    const defaultTemplate = `Dear {customerName}, your plot bags are unloaded outside of the warehouse,\nNo of bags : {bags} , Commodity : {commodity} on {date}.\nBill No: {billNo}.\nHamali: {hamaliAmount}.\nThank you. - {warehouseName},Owk`;
+                    const defaultTemplate = `Dear {customerName}, your plot bags are unloaded at {location},\nNo of bags : {bags} , Commodity : {commodity} on {date}.\nBill No: {billNo}.\nHamali: {hamaliAmount}.\nThank you. - {warehouseName},Owk`;
                     const template = warehouseInfo?.smsUnloadingTemplate || defaultTemplate;
                     
                     const message = template
                         .replace('{customerName}', selectedCustomer.name)
                         .replace('{bags}', String(data.bagsUnloaded))
                         .replace('{commodity}', data.commodityDescription)
+                        .replace('{location}', data.location)
                         .replace('{billNo}', data.billNo)
                         .replace('{date}', format(unloadingDate, 'dd/MM/yy'))
                         .replace('{hamaliAmount}', formatCurrency(totalHamali))
@@ -160,10 +207,15 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
                     ...form.getValues(),
                     customerId: '',
                     commodityDescription: '',
+                    location: '',
                     lorryTractorNo: '',
                     unloadingDate: getLocalDateTimeForInput(),
                     bagsUnloaded: undefined,
+<<<<<<< HEAD
                     customerHamaliPerBag: undefined,
+=======
+                    hamaliPerBag: undefined,
+>>>>>>> eb54f14baec35e8872611cd70d6a9b9a1b8f4f33
                     workerHamaliPerBag: undefined,
                 });
             } catch (error) {
@@ -245,6 +297,26 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
                             </FormItem>
                         )}
                     />
+
+                    <FormField
+                        control={form.control}
+                        name="location"
+                        render={({ field }) => (
+                            <FormItem className="flex flex-col">
+                                <FormLabel>Storage Location (Lot No.)</FormLabel>
+                                <Combobox
+                                    options={lotOptions}
+                                    value={field.value}
+                                    onChange={field.onChange}
+                                    placeholder="Select a location..."
+                                    searchPlaceholder="Search locations..."
+                                    emptyPlaceholder="No locations found."
+                                />
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+
                     <FormField
                         control={form.control}
                         name="lorryTractorNo"
@@ -267,6 +339,7 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
                             </FormItem>
                         )}
                     />
+<<<<<<< HEAD
                     <FormField
                         control={form.control}
                         name="bagsUnloaded"
@@ -279,6 +352,9 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
                         )}
                     />
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+=======
+                    <div className="space-y-4">
+>>>>>>> eb54f14baec35e8872611cd70d6a9b9a1b8f4f33
                         <FormField
                             control={form.control}
                             name="customerHamaliPerBag"
@@ -290,6 +366,7 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
                                 </FormItem>
                             )}
                         />
+<<<<<<< HEAD
                         <FormField
                             control={form.control}
                             name="workerHamaliPerBag"
@@ -301,10 +378,37 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
                                 </FormItem>
                             )}
                         />
+=======
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormField
+                                control={form.control}
+                                name="hamaliPerBag"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Customer Hamali Rate</FormLabel>
+                                        <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="workerHamaliPerBag"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Worker Hamali Rate</FormLabel>
+                                        <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
+>>>>>>> eb54f14baec35e8872611cd70d6a9b9a1b8f4f33
                     </div>
                      <Separator />
                      <div className="space-y-2">
                         <h4 className="font-medium">Summary</h4>
+<<<<<<< HEAD
                         <div className="flex justify-between items-center text-sm font-semibold">
                             <span>Total Hamali (Customer)</span>
                             <span className="font-mono">{formatCurrency(totalCustomerHamali)}</span>
@@ -318,6 +422,21 @@ export function AddUnloadingRecordForm({ customers, commodities, nextBillNo }: {
                             <span className="font-mono">{formatCurrency(totalCustomerHamali - totalWorkerHamali)}</span>
                         </div>
                          <p className="text-xs text-muted-foreground pt-2">This amount will be charged to the customer and is payable to the worker.</p>
+=======
+                        <div className="flex justify-between items-center text-sm">
+                            <span className="text-muted-foreground">Total Customer Charge</span>
+                            <span className="font-mono">{formatCurrency(totalHamali)}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-sm">
+                            <span className="text-muted-foreground">Total Worker Payable</span>
+                            <span className="font-mono">{formatCurrency(totalWorkerHamali)}</span>
+                        </div>
+                        <Separator />
+                        <div className="flex justify-between items-center font-bold text-primary">
+                            <span>Hamali Profit (Difference)</span>
+                            <span className="font-mono">{formatCurrency(totalHamali - totalWorkerHamali)}</span>
+                        </div>
+>>>>>>> eb54f14baec35e8872611cd70d6a9b9a1b8f4f33
                     </div>
 
                      <div className="flex items-center space-x-2 pt-4">

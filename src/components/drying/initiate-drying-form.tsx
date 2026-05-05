@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useTransition, useState, useEffect, useMemo } from 'react';
@@ -21,7 +20,6 @@ import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 import { useAppUser } from '@/firebase/auth/use-user';
 import { sendSms } from '@/lib/sms';
 import { z } from 'zod';
-import { Checkbox } from '../ui/checkbox';
 
 const InitiateDryingSchema = z.object({
   unloadingRecordId: z.string().min(1, 'An unloading bill is required.'),
@@ -33,7 +31,6 @@ const InitiateDryingSchema = z.object({
   cuppaHamaliPerBag: z.coerce.number().nonnegative('Cuppa hamali rate must be non-negative.').optional(),
   bagsForDrying: z.coerce.number().int().positive('Bags sent to plot for drying must be positive.'),
   bagsPacked: z.coerce.number().int().positive("Bags packed must be a positive number."),
-  lotNo: z.string().min(1, 'Storage location (Lot No.) is required.'),
 })
 .refine(data => new Date(data.dryingEndDate) >= new Date(data.dryingStartDate), {
     message: "End date must be on or after start date.",
@@ -52,7 +49,7 @@ interface InitiateDryingFormProps {
     commodities: Commodity[];
 }
 
-export function InitiateDryingForm({ customers, unloadingRecords, lots, storageRecords, commodities }: InitiateDryingFormProps) {
+export function InitiateDryingForm({ customers, unloadingRecords, storageRecords, commodities }: InitiateDryingFormProps) {
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
     const [isPartialSaving, setIsPartialSaving] = useState(false);
@@ -70,7 +67,6 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
       cuppaHamaliPerBag: 0,
       bagsForDrying: 0,
       bagsPacked: 0,
-      lotNo: '',
     };
     const [formData, setFormData] = useState<any>(initialFormData);
     const [errors, setErrors] = useState<Record<string, string | undefined>>({});
@@ -80,30 +76,6 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
       [firestore, appUser]
     );
     const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
-
-    const lotOccupancy = useMemo(() => {
-        const occupancy: { [lotName: string]: number } = {};
-        storageRecords.forEach(record => {
-            if (record.location && record.bagsStored > 0) {
-                occupancy[record.location] = (occupancy[record.location] || 0) + record.bagsStored;
-            }
-        });
-        return occupancy;
-    }, [storageRecords]);
-
-    const lotOptions = useMemo(() => {
-        return lots
-            .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
-            .map(lot => {
-                const occupied = lotOccupancy[lot.name] || 0;
-                const capacity = lot.capacity ? ` / ${lot.capacity}` : '';
-                return ({
-                    value: lot.name,
-                    label: `${lot.name} (${occupied}${capacity} bags)`
-                })
-            });
-    }, [lots, lotOccupancy]);
-
 
     const unloadingQueueOptions = useMemo(() => {
         const customerMap = new Map(customers.map(c => [c.id, c.name]));
@@ -127,14 +99,16 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
 
     const bagsRemainingOnRecord = selectedUnloadingRecord ? selectedUnloadingRecord.bagsUnloaded - (selectedUnloadingRecord.bagsSentToDrying || 0) : 0;
     
-    const { totalCustomerCharge, totalWorkerPayable, extraDryingDays, proportionalUnloadingHamali, day1DryingHamali, pavHamali, cuppaHamali, workerHamaliDay1 } = useMemo(() => {
+    const { totalCustomerCharge, totalWorkerPayable, extraDryingDays, dryingDays, proportionalUnloadingHamali, day1DryingHamali, pavHamali, cuppaHamali, workerHamaliDay1 } = useMemo(() => {
         let extraDays = 0;
+        let totalDaysCount = 0;
         try {
             const start = new Date(dryingStartDate);
             const end = new Date(dryingEndDate);
             if (!isNaN(start.getTime()) && !isNaN(end.getTime()) && end >= start) {
                 const days = differenceInDays(end, start);
                 extraDays = days > 0 ? days : 0;
+                totalDaysCount = days + 1;
             }
         } catch (e) { /* ignore */ }
 
@@ -154,6 +128,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
             totalCustomerCharge: totalCustCharge,
             totalWorkerPayable: totalWorkerPay,
             extraDryingDays: extraDays,
+            dryingDays: totalDaysCount,
             proportionalUnloadingHamali: pUnloadingHamali,
             day1DryingHamali: d1DryingHamali,
             pavHamali: pavH,
@@ -407,7 +382,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                     warehouseId: appUser.warehouseId,
                     customerId: selectedRecordOnSubmit.customerId,
                     commodityDescription: selectedRecordOnSubmit.commodityDescription,
-                    location: data.lotNo,
+                    location: selectedRecordOnSubmit.location || '',
                     bagsIn: bagsStored,
                     bagsForDrying: data.bagsForDrying,
                     bagsOut: 0,
@@ -455,7 +430,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                         .replace('{date}', format(finalStorageDate, 'dd MMM yyyy'))
                         .replace('{newBillNo}', nextId)
                         .replace('{hamaliAmount}', formatCurrency(totalHamaliForCustomer))
-                        .replace('{location}', data.lotNo)
+                        .replace('{location}', selectedRecordOnSubmit.location || 'N/A')
                         .replace('{warehouseName}', warehouseInfo?.name || 'GrainDost');
 
                     sendSms({
@@ -508,6 +483,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                         </div>
                         <p><strong>Phone:</strong> {selectedCustomer.phone}</p>
                         <p><strong>Unloaded:</strong> {format(toDate(selectedUnloadingRecord.unloadingDate), 'dd MMM yyyy, hh:mm a')}</p>
+                        <p><strong>Stored Location:</strong> {selectedUnloadingRecord.location || 'N/A'}</p>
                     </div>
                 )}
 
@@ -519,11 +495,19 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                     </AlertDescription>
                 </Alert>
                 
-                <div className="space-y-2">
-                    <Label htmlFor="bagsForDrying">Bags Plotted for Drying</Label>
-                    <Input id="bagsForDrying" name="bagsForDrying" type="number" placeholder="0" value={formData.bagsForDrying} onChange={handleInputChange} disabled={!selectedUnloadingRecord} />
-                    <p className="text-sm text-muted-foreground">This is the starting quantity for the drying process. Hamali is calculated on this amount. Remaining on Bill: {bagsRemainingOnRecord} bags</p>
-                    {errors.bagsForDrying && <p className="text-sm font-medium text-destructive">{errors.bagsForDrying}</p>}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="bagsForDrying">Bags Plotted for Drying</Label>
+                        <Input id="bagsForDrying" name="bagsForDrying" type="number" placeholder="0" value={formData.bagsForDrying} onChange={handleInputChange} disabled={!selectedUnloadingRecord} />
+                        <p className="text-sm text-muted-foreground">Qty for Hamali calc. Remaining: {bagsRemainingOnRecord}</p>
+                        {errors.bagsForDrying && <p className="text-sm font-medium text-destructive">{errors.bagsForDrying}</p>}
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="bagsPacked">Bags Packed (Final)</Label>
+                        <Input id="bagsPacked" name="bagsPacked" type="number" placeholder="0" value={formData.bagsPacked} onChange={handleInputChange} disabled={!selectedUnloadingRecord}/>
+                        <p className="text-sm text-muted-foreground">Final stock quantity to be stored.</p>
+                        {errors.bagsPacked && <p className="text-sm font-medium text-destructive">{errors.bagsPacked}</p>}
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -546,32 +530,11 @@ export function InitiateDryingForm({ customers, unloadingRecords, lots, storageR
                             <span className="text-xs">Wait before drying</span>
                        </div>
                        <div className="flex flex-col items-center">
-                           <span className="font-bold text-foreground">{extraDryingDays + 1 ?? '-'}</span>
+                           <span className="font-bold text-foreground">{dryingDays ?? '-'}</span>
                            <span className="text-xs">Total drying days</span>
                        </div>
                     </div>
                 )}
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="bagsPacked">Bags Packed (Final)</Label>
-                        <Input id="bagsPacked" name="bagsPacked" type="number" placeholder="0" value={formData.bagsPacked} onChange={handleInputChange} disabled={!selectedUnloadingRecord}/>
-                        {errors.bagsPacked && <p className="text-sm font-medium text-destructive">{errors.bagsPacked}</p>}
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Storage Location (Lot No.)</Label>
-                        <Combobox
-                            options={lotOptions || []}
-                            value={formData.lotNo}
-                            onChange={(value) => handleValueChange('lotNo', value)}
-                            placeholder="Select a lot..."
-                            searchPlaceholder="Search lots..."
-                            emptyPlaceholder="No lots found."
-                            disabled={!selectedUnloadingRecord}
-                        />
-                        {errors.lotNo && <p className="text-sm font-medium text-destructive">{errors.lotNo}</p>}
-                    </div>
-                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">

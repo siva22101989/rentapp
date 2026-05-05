@@ -6,7 +6,7 @@ import { useCollection } from "@/firebase/firestore/use-collection";
 import { collection, query, where } from "firebase/firestore";
 import { useFirestore } from "@/firebase/provider";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
-import type { Customer, UnloadingRecord, Commodity } from "@/lib/definitions";
+import type { Customer, UnloadingRecord, Commodity, Lot, StorageRecord } from "@/lib/definitions";
 import { AddCustomerDialog } from "@/components/customers/add-customer-dialog";
 import { AddUnloadingRecordForm } from "@/components/unloading/add-unloading-form";
 import { useMemo } from "react";
@@ -36,6 +36,18 @@ export default function UnloadingPage() {
   );
   const { data: commodities, loading: loadingCommodities } = useCollection<Commodity>(commoditiesQuery);
 
+  const lotsQuery = useMemoFirebase(
+    () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'lots'), where('warehouseId', '==', appUser.warehouseId)) : null),
+    [firestore, appUser]
+  );
+  const { data: lots, loading: loadingLots } = useCollection<Lot>(lotsQuery);
+
+  const storageRecordsQuery = useMemoFirebase(
+    () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'storageRecords'), where('warehouseId', '==', appUser.warehouseId)) : null),
+    [firestore, appUser]
+  );
+  const { data: storageRecords, loading: loadingStorage } = useCollection<StorageRecord>(storageRecordsQuery);
+
   const nextBillNo = useMemo(() => {
     if (!unloadingRecords) return '1';
     const maxBillNo = unloadingRecords.reduce((max, record) => {
@@ -45,7 +57,7 @@ export default function UnloadingPage() {
     return (maxBillNo + 1).toString();
   }, [unloadingRecords]);
 
-  if (loadingCustomers || loadingRecords || loadingCommodities) {
+  if (loadingCustomers || loadingRecords || loadingCommodities || loadingLots || loadingStorage) {
     return <AppLayout><div>Loading...</div></AppLayout>;
   }
 
@@ -61,7 +73,13 @@ export default function UnloadingPage() {
       <div className="grid gap-8 lg:grid-cols-3">
           {canAdd && (
             <div className="lg:col-span-1">
-              <AddUnloadingRecordForm customers={customers || []} commodities={commodities || []} nextBillNo={nextBillNo} />
+              <AddUnloadingRecordForm 
+                customers={customers || []} 
+                commodities={commodities || []} 
+                lots={lots || []}
+                storageRecords={storageRecords || []}
+                nextBillNo={nextBillNo} 
+              />
             </div>
           )}
           <div className={canAdd ? "lg:col-span-2" : "lg:col-span-3"}>
@@ -69,6 +87,8 @@ export default function UnloadingPage() {
               unloadingRecords={unloadingRecords || []} 
               customers={customers || []}
               commodities={commodities || []}
+              lots={lots || []}
+              storageRecords={storageRecords || []}
             />
           </div>
       </div>

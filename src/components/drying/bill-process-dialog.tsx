@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useMemo } from 'react';
@@ -16,18 +15,15 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '../ui/button';
 import { Loader2 } from 'lucide-react';
 import { useFirestore } from '@/firebase/provider';
-import { doc, getDocs, collection, writeBatch } from 'firebase/firestore';
+import { doc, writeBatch } from 'firebase/firestore';
 import type { DryingRecord, UnloadingRecord, StorageRecord, Lot } from '@/lib/definitions';
 import { toDate, cleanForFirestore } from '@/lib/utils';
 import { format, differenceInDays } from 'date-fns';
-import { Label } from '../ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAppUser } from '@/firebase/auth/use-user';
 
 export function BillProcessDialog({
   record,
   unloadingRecord,
-  lots,
   storageRecords,
   children,
 }: {
@@ -42,17 +38,6 @@ export function BillProcessDialog({
   const [isPending, startTransition] = useTransition();
   const firestore = useFirestore();
   const appUser = useAppUser();
-  const [location, setLocation] = useState('');
-
-  const lotOccupancy = useMemo(() => {
-    const occupancy: { [lotName: string]: number } = {};
-    (storageRecords || []).forEach(record => {
-      if (record.location && record.bagsStored > 0) {
-        occupancy[record.location] = (occupancy[record.location] || 0) + record.bagsStored;
-      }
-    });
-    return occupancy;
-  }, [storageRecords]);
 
   const dryingDays = useMemo(() => {
     if (record.dryingStartDate && record.packingDate) {
@@ -74,10 +59,6 @@ export function BillProcessDialog({
         toast({ title: 'Error', description: 'Cannot bill a record that has not been packed.', variant: 'destructive' });
         return;
     }
-    if (!location.trim()) {
-        toast({ title: 'Error', description: 'Please enter a Storage Location (Lot No.).', variant: 'destructive' });
-        return;
-    }
 
     startTransition(async () => {
       try {
@@ -95,21 +76,21 @@ export function BillProcessDialog({
             warehouseId: appUser.warehouseId,
             customerId: record.customerId,
             commodityDescription: record.commodityDescription,
-            location: location.trim(),
+            location: unloadingRecord?.location || '',
             bagsIn: bagsStored,
             bagsOut: 0,
             bagsStored: bagsStored,
             storageStartDate: billingDate,
             storageEndDate: null,
             billingCycle: '6-Month Initial' as const,
-            payments: [], // No payment is made at this stage in the new flow
-            hamaliPayable: record.totalDryingHamali, // Total hamali comes from the drying process
+            payments: [], 
+            hamaliPayable: record.totalDryingHamali, 
             totalRentBilled: 0,
             lorryTractorNo: unloadingRecord?.lorryTractorNo || '',
-            weight: 0, // Not applicable for Plot to Storage
+            weight: 0, 
             inflowType: 'Plot' as const,
             dryingRecordId: record.id,
-            khataAmount: 0, // Not applicable
+            khataAmount: 0, 
         };
 
         // 3. Create a batch write to ensure atomicity
@@ -151,44 +132,24 @@ export function BillProcessDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>Confirm Billing & Create Storage Record?</AlertDialogTitle>
           <AlertDialogDescription>
-            This will mark the drying process for customer <span className="font-bold">{record.customerId}</span> as 'Billed', and automatically create the final storage record. This action cannot be undone.
+            This will mark the drying process for customer <span className="font-bold">{record.customerId}</span> as 'Billed', and automatically create the final storage record. The location will be set to <span className="font-bold">{unloadingRecord?.location || 'N/A'}</span> as per the unloading bill.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <div className="space-y-4">
             <div className="text-sm space-y-1">
-            <div><span className="font-medium text-foreground">Packing Date:</span> {record.packingDate ? format(toDate(record.packingDate), 'dd MMM yyyy') : 'N/A'}</div>
-            {dryingDays !== null && (
-              <div><span className="font-medium text-foreground">Total Drying Days:</span> {dryingDays}</div>
-            )}
-            <div><span className="font-medium text-foreground">Bags Packed:</span> {record.bagsPacked ?? 'N/A'}</div>
-            </div>
-            <div>
-              <Label htmlFor="location">Storage Location (Lot No.)</Label>
-              <Select onValueChange={setLocation} value={location} required>
-                  <SelectTrigger id="location" className="mt-1">
-                      <SelectValue placeholder="Select a lot" />
-                  </SelectTrigger>
-                  <SelectContent>
-                      {lots
-                        .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
-                        .map(lot => {
-                            const occupied = lotOccupancy[lot.name] || 0;
-                            const capacity = lot.capacity ? ` / ${lot.capacity}` : '';
-                            return (
-                                <SelectItem key={lot.id} value={lot.name}>
-                                    {lot.name} ({occupied}{capacity} bags)
-                                </SelectItem>
-                            )
-                      })}
-                  </SelectContent>
-              </Select>
+                <div><span className="font-medium text-foreground">Packing Date:</span> {record.packingDate ? format(toDate(record.packingDate), 'dd MMM yyyy') : 'N/A'}</div>
+                {dryingDays !== null && (
+                <div><span className="font-medium text-foreground">Total Drying Days:</span> {dryingDays}</div>
+                )}
+                <div><span className="font-medium text-foreground">Bags Packed:</span> {record.bagsPacked ?? 'N/A'}</div>
+                <div><span className="font-medium text-foreground">Assigned Lot:</span> {unloadingRecord?.location || 'N/A'}</div>
             </div>
         </div>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <Button
             onClick={handleBilling}
-            disabled={isPending || !location.trim()}
+            disabled={isPending}
             className="bg-green-600 hover:bg-green-700"
           >
             {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

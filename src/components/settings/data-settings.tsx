@@ -7,17 +7,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useFirestore, useAppUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { collection, writeBatch, getDocs, doc, query, where } from 'firebase/firestore';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
 import { cleanForFirestore, toDate } from '@/lib/utils';
 import * as XLSX from 'xlsx';
 

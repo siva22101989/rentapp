@@ -45,7 +45,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
         const warehouseId = 'sri-lakshmi-warehouse';
 
         // --- REINFORCED OWNER PROVISIONING ---
-        // Force mapping for the owner account to prevent data visibility issues
         if (userEmail === 'sivasandeepreddy01@gmail.com') {
             const ownerIdentity: AppUser = {
                 id: fbUser.uid,
@@ -58,7 +57,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
             setUser(fbUser);
             setLoading(false);
 
-            // Background sync of the user record to ensure it exists in Firestore
             getDoc(userDocRef).then(async (snap) => {
                 if (!snap.exists() || snap.data().warehouseId !== warehouseId) {
                     await setDoc(userDocRef, {
@@ -72,7 +70,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
             return;
         }
 
-        // --- STANDARD USER HANDLING ---
         const userDocSnap = await getDoc(userDocRef);
         if (userDocSnap.exists()) {
           const data = userDocSnap.data();
@@ -82,13 +79,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        // --- NEW USER PROVISIONING ---
         if (userEmail === 'admin@gmail.com') {
           const data = { role: 'super-admin', email: userEmail, phone: '' };
           await setDoc(userDocRef, data);
           setAppUser({ id: fbUser.uid, ...data } as AppUser);
         } else if (userEmail && !userEmail.startsWith('+')) {
-          // Check managedWarehouses for the owner email
           const q = query(collection(firestore, 'managedWarehouses'), where('ownerEmail', '==', userEmail));
           const snap = await getDocs(q);
           if (!snap.empty) {
@@ -99,7 +94,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
              setProvisioningError('Unauthorized account. Please contact admin.');
           }
         } else if (userEmail?.startsWith('+')) {
-          // Staff sign-in via phone shadow email
           const phone = userEmail.substring(1, userEmail.indexOf('@'));
           const q = query(collection(firestore, 'users'), where('phone', '==', phone));
           const snap = await getDocs(q);

@@ -16,7 +16,7 @@ export function formatCurrency(amount: number) {
 
 /**
  * Robustly converts any date-like input into a standard JS Date.
- * Handles Firestore Timestamps, strings, raw objects with seconds/nanos,
+ * Handles Firestore Timestamps, ISO strings, raw objects with seconds/nanos,
  * and Excel serial numbers.
  */
 export function toDate(date: any): Date {

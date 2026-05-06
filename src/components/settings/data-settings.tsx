@@ -1,7 +1,7 @@
 'use client';
 
 import { useTransition, useRef } from 'react';
-import { Loader2, Download, Upload, FileSpreadsheet, FileJson, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { Loader2, Download, Upload, FileSpreadsheet, FileJson, ShieldCheck, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useFirestore, useAppUser } from '@/firebase';
@@ -95,6 +95,25 @@ export function DataSettings() {
       }
     });
   };
+
+  const handleDownloadTemplate = () => {
+    const wb = XLSX.utils.book_new();
+    
+    // Customers Sheet
+    const custData = [{ name: 'Example Customer', phone: '9652369143', fatherName: 'Example Father', village: 'Example Village', address: 'Example Address' }];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(custData), 'customers');
+
+    // Storage Records Sheet
+    const storageData = [{ id: '1001', customerId: 'PASTE_ID_HERE', commodityDescription: 'Paddy', location: 'A1/Top', bagsIn: 100, bagsStored: 100, storageStartDate: '2024-01-01', hamaliPayable: 1000, billingCycle: '6-Month Initial' }];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(storageData), 'storageRecords');
+
+    // Unloading Records Sheet
+    const unloadingData = [{ billNo: '1', customerId: 'PASTE_ID_HERE', commodityDescription: 'Paddy', location: 'A1/Top', unloadingDate: '2024-01-01 10:30', bagsUnloaded: 100, totalHamali: 1000 }];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(unloadingData), 'unloadingRecords');
+
+    XLSX.writeFile(wb, 'GrainDost-Data-Template.xlsx');
+    toast({ title: 'Template Downloaded', description: 'Use this format to set up your old data.' });
+  }
 
   const repairDates = (obj: any) => {
       if (!obj || typeof obj !== 'object') return;
@@ -241,6 +260,11 @@ export function DataSettings() {
                     <CardDescription>Upload your backup file. Our system will repair date formats to ensure accurate rent calculations.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                    <Button onClick={handleDownloadTemplate} variant="secondary" className="w-full justify-start">
+                        <FileDown className="mr-2 h-4 w-4" />
+                        Download Excel Format
+                    </Button>
+
                     <Button onClick={() => excelInputRef.current?.click()} disabled={isImporting} className="w-full justify-start" variant="outline">
                         {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
                         Restore from Excel

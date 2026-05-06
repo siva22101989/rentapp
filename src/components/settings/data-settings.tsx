@@ -1,7 +1,7 @@
 'use client';
 
 import { useTransition, useRef } from 'react';
-import { Loader2, Download, Upload, FileSpreadsheet, FileJson, ShieldCheck } from 'lucide-react';
+import { Loader2, Download, Upload, FileSpreadsheet, FileJson, ShieldCheck, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useFirestore, useAppUser } from '@/firebase';
@@ -45,8 +45,6 @@ export function DataSettings() {
   const firestore = useFirestore();
   const appUser = useAppUser();
   const { toast } = useToast();
-
-  // --- EXPORT LOGIC ---
 
   const handleExportJSON = async () => {
     if (!firestore || !appUser?.warehouseId) return;
@@ -110,7 +108,20 @@ export function DataSettings() {
     });
   };
 
-  // --- IMPORT LOGIC ---
+  const repairDates = (obj: any) => {
+      if (!obj || typeof obj !== 'object') return;
+      for (const key in obj) {
+          const val = obj[key];
+          // Check if key implies a date or if value looks like a serial number/ISO string
+          if (key.toLowerCase().includes('date') || key === 'storageStartDate' || key === 'storageEndDate') {
+              obj[key] = toDate(val);
+          } else if (Array.isArray(val)) {
+              val.forEach(repairDates);
+          } else if (typeof val === 'object') {
+              repairDates(val);
+          }
+      }
+  };
 
   const handleImportJSON = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -120,40 +131,30 @@ export function DataSettings() {
         try {
             const reader = new FileReader();
             reader.onload = async (e) => {
-                const data = JSON.parse(e.target?.result as string);
-                const batch = writeBatch(firestore);
-                let total = 0;
+                try {
+                    const data = JSON.parse(e.target?.result as string);
+                    const batch = writeBatch(firestore);
+                    let total = 0;
 
-                for (const colName in data) {
-                    if (!COLLECTIONS.includes(colName)) continue;
-                    const items = data[colName];
-                    for (const item of items) {
-                        const { id, ...rest } = item;
-                        const cleaned = { ...rest, warehouseId: appUser.warehouseId };
-                        
-                        // Repair nested dates recursively
-                        const repairDates = (obj: any) => {
-                            if (!obj || typeof obj !== 'object') return;
-                            for (const key in obj) {
-                                if (key.toLowerCase().includes('date') || key === 'storageStartDate' || key === 'storageEndDate') {
-                                    obj[key] = toDate(obj[key]);
-                                } else if (Array.isArray(obj[key])) {
-                                    obj[key].forEach(repairDates);
-                                } else if (typeof obj[key] === 'object') {
-                                    repairDates(obj[key]);
-                                }
-                            }
-                        };
-                        repairDates(cleaned);
+                    for (const colName in data) {
+                        if (!COLLECTIONS.includes(colName)) continue;
+                        const items = data[colName];
+                        for (const item of items) {
+                            const { id, ...rest } = item;
+                            const cleaned = { ...rest, warehouseId: appUser.warehouseId };
+                            repairDates(cleaned);
 
-                        const ref = id ? doc(firestore, colName, String(id)) : doc(collection(firestore, colName));
-                        batch.set(ref, cleanForFirestore(cleaned), { merge: true });
-                        total++;
+                            const ref = id ? doc(firestore, colName, String(id)) : doc(collection(firestore, colName));
+                            batch.set(ref, cleanForFirestore(cleaned), { merge: true });
+                            total++;
+                        }
                     }
+                    await batch.commit();
+                    toast({ title: 'Import Success', description: `${total} records restored from JSON.` });
+                    setTimeout(() => window.location.reload(), 2000);
+                } catch (err: any) {
+                    toast({ title: 'JSON Error', description: 'Failed to parse JSON file.', variant: 'destructive' });
                 }
-                await batch.commit();
-                toast({ title: 'Import Success', description: `${total} records restored and dates repaired.` });
-                setTimeout(() => window.location.reload(), 2000);
             };
             reader.readAsText(file);
         } catch (error: any) {
@@ -182,30 +183,23 @@ export function DataSettings() {
             for (const row of rows) {
               const { id, ...docData } = row;
               const cleaned: any = { ...docData, warehouseId: appUser.warehouseId };
+              
               for (const key in cleaned) {
                 const val = cleaned[key];
                 if (typeof val === 'string') {
                     if (val.startsWith('[') || val.startsWith('{')) {
                         try {
                             const parsed = JSON.parse(val);
-                            if (Array.isArray(parsed)) {
-                                cleaned[key] = parsed.map(item => {
-                                    // Deep search for dates in nested objects
-                                    const deepRepair = (obj: any) => {
-                                        if (typeof obj !== 'object' || !obj) return;
-                                        for (const k in obj) {
-                                            if (k.toLowerCase().includes('date')) obj[k] = toDate(obj[k]);
-                                            else deepRepair(obj[k]);
-                                        }
-                                    };
-                                    deepRepair(item);
-                                    return item;
-                                });
-                            } else {
-                                cleaned[key] = parsed;
-                            }
-                        } catch { }
+                            repairDates(parsed);
+                            cleaned[key] = parsed;
+                        } catch { 
+                            // Not JSON, treat as string
+                        }
                     } else if (key.toLowerCase().includes('date') || key === 'storageStartDate' || key === 'storageEndDate') {
+                        cleaned[key] = toDate(val);
+                    }
+                } else if (typeof val === 'number') {
+                    if (key.toLowerCase().includes('date') || key === 'storageStartDate' || key === 'storageEndDate') {
                         cleaned[key] = toDate(val);
                     }
                 }
@@ -232,8 +226,8 @@ export function DataSettings() {
             <CardHeader className="flex flex-row items-center gap-4">
                 <ShieldCheck className="h-8 w-8 text-primary" />
                 <div>
-                    <CardTitle>Data Protection Hub</CardTitle>
-                    <CardDescription>Always keep a local backup. Use these tools to protect your historical records and original dates.</CardDescription>
+                    <CardTitle>Data Protection & Recovery</CardTitle>
+                    <CardDescription>Always keep a local backup. Use these tools to restore your historical records while preserving original dates.</CardDescription>
                 </div>
             </CardHeader>
         </Card>
@@ -241,8 +235,8 @@ export function DataSettings() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <Card>
                 <CardHeader>
-                    <CardTitle>Security Backup (Export)</CardTitle>
-                    <CardDescription>Download your entire database to your computer.</CardDescription>
+                    <CardTitle>Create Backup (Export)</CardTitle>
+                    <CardDescription>Save your database as a readable Excel file or technical JSON file.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <Button onClick={handleExportExcel} disabled={isExporting} className="w-full justify-start" variant="outline">
@@ -259,7 +253,7 @@ export function DataSettings() {
             <Card>
                 <CardHeader>
                     <CardTitle>Restore Data (Import)</CardTitle>
-                    <CardDescription>Restore records from your local backup files. This will intelligently repair historical dates.</CardDescription>
+                    <CardDescription>Upload your backup file. Our system will repair date formats to ensure accurate rent calculations.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <Button onClick={() => excelInputRef.current?.click()} disabled={isImporting} className="w-full justify-start" variant="outline">
@@ -277,9 +271,9 @@ export function DataSettings() {
             </Card>
             
             <Card className="md:col-span-2 border-destructive/30">
-                <CardHeader>
-                    <CardTitle className="text-destructive text-base">Advanced Options</CardTitle>
-                    <CardDescription>Tools for managing your database storage.</CardDescription>
+                <CardHeader className="flex flex-row items-center gap-2">
+                    <AlertTriangle className="h-5 w-5 text-destructive" />
+                    <CardTitle className="text-destructive text-base">Danger Zone</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <AlertDialog>
@@ -290,7 +284,7 @@ export function DataSettings() {
                             <AlertDialogHeader>
                                 <AlertDialogTitle>WARNING: Permanent Deletion</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                    This will delete all customers, storage records, unloading records, and payments. This cannot be undone. Please ensure you have an Excel backup first.
+                                    This will delete all customers, storage records, unloading records, and payments. This cannot be undone. Please ensure you have a backup first.
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -307,7 +301,7 @@ export function DataSettings() {
                                     }
                                     toast({ title: "Data Cleared", description: "All warehouse transactions have been deleted." });
                                     setTimeout(() => window.location.reload(), 1500);
-                                }}>Delete Permanently</AlertDialogAction>
+                                }}>Delete Everything Permanently</AlertDialogAction>
                             </AlertDialogFooter>
                         </AlertDialogContent>
                     </AlertDialog>

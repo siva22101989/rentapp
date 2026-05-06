@@ -16,7 +16,8 @@ export function formatCurrency(amount: number) {
 
 /**
  * Robustly converts any date-like input into a standard JS Date.
- * Handles Firestore Timestamps, strings, and raw objects with seconds/nanos.
+ * Handles Firestore Timestamps, strings, raw objects with seconds/nanos,
+ * and Excel serial numbers.
  */
 export function toDate(date: any): Date {
     if (!date) return new Date();
@@ -28,6 +29,12 @@ export function toDate(date: any): Date {
     // Handle JS Date
     if (date instanceof Date) return date;
     
+    // Handle Excel Serial Number (e.g. 45321)
+    if (typeof date === 'number' && date > 30000 && date < 60000) {
+        // Excel base date is 1899-12-30. 25569 is the offset for 1970-01-01.
+        return new Date((date - 25569) * 86400 * 1000);
+    }
+
     // Handle String (ISO or standard)
     if (typeof date === 'string') {
         const parsed = new Date(date);

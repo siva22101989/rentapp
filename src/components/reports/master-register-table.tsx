@@ -38,7 +38,7 @@ export function MasterRegisterTable({ records, customers, title }: { records: St
 
     return (
         <div className="bg-white p-4 rounded-lg overflow-x-auto">
-             <div className="mb-6 text-center">
+             <div className="mb-6 text-center report-component-header">
                 <h2 className="text-2xl font-bold">GrainDost Master Register</h2>
                 <p className="text-muted-foreground">{title}</p>
                 <p className="text-xs text-muted-foreground">Generated: {generatedDate}</p>
@@ -56,7 +56,7 @@ export function MasterRegisterTable({ records, customers, title }: { records: St
                         <TableHead className="text-right">Paid</TableHead>
                         <TableHead className="text-right">Balance</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead className="print-hide">Action</TableHead>
+                        <TableHead className="print-hide text-right">Action</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>

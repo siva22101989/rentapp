@@ -19,7 +19,6 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { cleanForFirestore, toDate } from '@/lib/utils';
-import { Separator } from '../ui/separator';
 import * as XLSX from 'xlsx';
 
 const COLLECTIONS = [
@@ -112,7 +111,6 @@ export function DataSettings() {
       if (!obj || typeof obj !== 'object') return;
       for (const key in obj) {
           const val = obj[key];
-          // Check if key implies a date or if value looks like a serial number/ISO string
           if (key.toLowerCase().includes('date') || key === 'storageStartDate' || key === 'storageEndDate') {
               obj[key] = toDate(val);
           } else if (Array.isArray(val)) {
@@ -192,9 +190,7 @@ export function DataSettings() {
                             const parsed = JSON.parse(val);
                             repairDates(parsed);
                             cleaned[key] = parsed;
-                        } catch { 
-                            // Not JSON, treat as string
-                        }
+                        } catch { }
                     } else if (key.toLowerCase().includes('date') || key === 'storageStartDate' || key === 'storageEndDate') {
                         cleaned[key] = toDate(val);
                     }
@@ -267,44 +263,6 @@ export function DataSettings() {
                         Restore from JSON
                     </Button>
                     <input type="file" ref={jsonInputRef} onChange={handleImportJSON} className="hidden" accept=".json" />
-                </CardContent>
-            </Card>
-            
-            <Card className="md:col-span-2 border-destructive/30">
-                <CardHeader className="flex flex-row items-center gap-2">
-                    <AlertTriangle className="h-5 w-5 text-destructive" />
-                    <CardTitle className="text-destructive text-base">Danger Zone</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button variant="destructive" className="w-full sm:w-auto">Clear All Transactional Data</Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>WARNING: Permanent Deletion</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    This will delete all customers, storage records, unloading records, and payments. This cannot be undone. Please ensure you have a backup first.
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={async () => {
-                                    if (!firestore || !appUser?.warehouseId) return;
-                                    const colls = ['customers', 'storageRecords', 'unloadingRecords', 'dryingRecords', 'expenses', 'borrowings', 'lendings', 'otherIncomes'];
-                                    for (const name of colls) {
-                                        const q = query(collection(firestore, name), where('warehouseId', '==', appUser.warehouseId));
-                                        const snap = await getDocs(q);
-                                        const batch = writeBatch(firestore);
-                                        snap.docs.forEach(d => batch.delete(d.ref));
-                                        await batch.commit();
-                                    }
-                                    toast({ title: "Data Cleared", description: "All warehouse transactions have been deleted." });
-                                    setTimeout(() => window.location.reload(), 1500);
-                                }}>Delete Everything Permanently</AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
                 </CardContent>
             </Card>
         </div>

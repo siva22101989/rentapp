@@ -70,7 +70,6 @@ export function BillProcessDialog({
         }, 0);
         const nextSerialNumber = (maxId + 1).toString();
         
-        // Find commodity to carry over current rates
         const commodityDetails = commodities.find(c => c.name === record.commodityDescription);
 
         const billingDate = new Date();
@@ -97,7 +96,6 @@ export function BillProcessDialog({
             inflowType: 'Plot' as const,
             dryingRecordId: record.id,
             khataAmount: 0,
-            // Carry over rates
             billingType: commodityDetails?.billingType,
             monthlyRate: commodityDetails?.monthlyRate,
             minBillingMonths: commodityDetails?.minBillingMonths,
@@ -121,7 +119,7 @@ export function BillProcessDialog({
 
         toast({ 
             title: 'Success!', 
-            description: `Drying process billed and new storage record ${nextSerialNumber} created.` 
+            description: `Drying process billed and new patti record ${nextSerialNumber} created.` 
         });
         setIsOpen(false);
         

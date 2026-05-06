@@ -45,6 +45,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         const warehouseId = 'sri-lakshmi-warehouse';
 
         // --- SPECIAL OWNER PROVISIONING ---
+        // Ensure this specific email is ALWAYS correctly linked to its data
         if (userEmail === 'sivasandeepreddy01@gmail.com') {
             const ownerIdentity: AppUser = {
                 id: fbUser.uid,
@@ -57,7 +58,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
             setUser(fbUser);
             setLoading(false);
 
-            // Ensure profile exists in background
+            // Ensure profile exists in Firestore in the background
             getDoc(userDocRef).then(async (snap) => {
                 if (!snap.exists() || snap.data().warehouseId !== warehouseId) {
                     await setDoc(userDocRef, {
@@ -67,7 +68,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
                         warehouseId: warehouseId,
                     }, { merge: true });
                 }
-            }).catch(e => console.warn("Background provisioning sync deferred:", e));
+            }).catch(e => console.warn("Background sync deferred:", e));
             return;
         }
 

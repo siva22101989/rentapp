@@ -14,23 +14,27 @@ export function formatCurrency(amount: number) {
   }).format(amount);
 }
 
+/**
+ * Robustly converts any date-like input into a standard JS Date.
+ * Handles Firestore Timestamps, strings, and raw objects with seconds/nanos.
+ */
 export function toDate(date: any): Date {
     if (!date) return new Date();
     
-    // Firestore Timestamp
+    // Handle Firestore Timestamp
     if (date instanceof Timestamp) return date.toDate();
     if (typeof date.toDate === 'function') return date.toDate();
     
-    // JS Date
+    // Handle JS Date
     if (date instanceof Date) return date;
     
-    // String
+    // Handle String (ISO or standard)
     if (typeof date === 'string') {
         const parsed = new Date(date);
         return isNaN(parsed.getTime()) ? new Date() : parsed;
     }
 
-    // Object with seconds/nanoseconds (raw Firestore format often seen in JSON)
+    // Handle JSON object with seconds/nanoseconds (common in backups)
     if (typeof date === 'object' && 'seconds' in date) {
         return new Date(date.seconds * 1000 + (date.nanoseconds || 0) / 1000000);
     }
@@ -38,6 +42,10 @@ export function toDate(date: any): Date {
     return new Date();
 }
 
+/**
+ * Recursively cleans objects for Firestore by converting Dates to Timestamps
+ * and stripping undefined fields.
+ */
 export function cleanForFirestore(data: any): any {
   if (data === null || data === undefined) {
     return null;
@@ -51,7 +59,7 @@ export function cleanForFirestore(data: any): any {
     return Timestamp.fromDate(data);
   }
 
-  if (data instanceof Timestamp || (data.toDate && typeof data.toDate === 'function')) {
+  if (data instanceof Timestamp) {
     return data;
   }
 

@@ -44,8 +44,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
         const userDocRef = doc(firestore, 'users', fbUser.uid);
         const warehouseId = 'sri-lakshmi-warehouse';
 
-        // --- SPECIAL OWNER PROVISIONING ---
-        // Ensure this specific email is ALWAYS correctly linked to its data
+        // --- REINFORCED OWNER PROVISIONING ---
+        // Force mapping for the owner account to prevent data visibility issues
         if (userEmail === 'sivasandeepreddy01@gmail.com') {
             const ownerIdentity: AppUser = {
                 id: fbUser.uid,
@@ -58,7 +58,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
             setUser(fbUser);
             setLoading(false);
 
-            // Ensure profile exists in Firestore in the background
+            // Background sync of the user record
             getDoc(userDocRef).then(async (snap) => {
                 if (!snap.exists() || snap.data().warehouseId !== warehouseId) {
                     await setDoc(userDocRef, {
@@ -68,7 +68,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
                         warehouseId: warehouseId,
                     }, { merge: true });
                 }
-            }).catch(e => console.warn("Background sync deferred:", e));
+            }).catch(e => console.warn("Background user sync deferred:", e));
             return;
         }
 
@@ -95,7 +95,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
             await setDoc(userDocRef, data);
             setAppUser({ id: fbUser.uid, ...data } as AppUser);
           } else {
-             setProvisioningError('Unauthorized account.');
+             setProvisioningError('Unauthorized account. Please contact admin.');
           }
         } else if (userEmail?.startsWith('+')) {
           const phone = userEmail.substring(1, userEmail.indexOf('@'));
@@ -116,7 +116,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         setLoading(false);
       } catch (err) {
         console.error("Auth state change error:", err);
-        setProvisioningError("Login error. Please reload.");
+        setProvisioningError("Login error. Please reload the page.");
         setLoading(false);
       }
     });

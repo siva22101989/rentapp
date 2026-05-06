@@ -16,8 +16,14 @@ export function MasterRegisterTable({ records, customers, title }: { records: St
         return [...records].map(r => {
             const paid = (r.payments || []).reduce((acc, p) => acc + p.amount, 0);
             const billed = (r.hamaliPayable || 0) + (r.totalRentBilled || 0);
-            return { ...r, billed, paid, due: billed - paid };
-        }).sort((a, b) => toDate(b.storageStartDate).getTime() - toDate(a.storageStartDate).getTime());
+            return { 
+                ...r, 
+                billed, 
+                paid, 
+                due: billed - paid,
+                startDate: toDate(r.storageStartDate)
+            };
+        }).sort((a, b) => b.startDate.getTime() - a.startDate.getTime());
     }, [records]);
 
     const totals = useMemo(() => {
@@ -44,7 +50,7 @@ export function MasterRegisterTable({ records, customers, title }: { records: St
                         <TableHead>Patti No</TableHead>
                         <TableHead>Customer</TableHead>
                         <TableHead>Product</TableHead>
-                        <TableHead>Lot</TableHead>
+                        <TableHead>Location (Lot)</TableHead>
                         <TableHead className="text-right">Stock</TableHead>
                         <TableHead className="text-right">Billed</TableHead>
                         <TableHead className="text-right">Paid</TableHead>
@@ -56,31 +62,40 @@ export function MasterRegisterTable({ records, customers, title }: { records: St
                 <TableBody>
                     {processed.map(r => (
                         <TableRow key={r.id}>
-                            <TableCell>{format(toDate(r.storageStartDate), 'dd/MM/yy')}</TableCell>
+                            <TableCell>{format(r.startDate, 'dd/MM/yy')}</TableCell>
                             <TableCell className="font-mono font-medium">{r.id}</TableCell>
-                            <TableCell className="whitespace-nowrap">{getCustomerName(r.customerId)}</TableCell>
+                            <TableCell className="whitespace-nowrap font-medium">{getCustomerName(r.customerId)}</TableCell>
                             <TableCell>{r.commodityDescription}</TableCell>
                             <TableCell>{r.location}</TableCell>
-                            <TableCell className="text-right font-mono">{r.bagsStored}</TableCell>
+                            <TableCell className="text-right font-mono font-semibold">{r.bagsStored}</TableCell>
                             <TableCell className="text-right font-mono">{formatCurrency(r.billed)}</TableCell>
                             <TableCell className="text-right font-mono text-green-600">{formatCurrency(r.paid)}</TableCell>
                             <TableCell className={`text-right font-mono font-bold ${r.due > 0.5 ? 'text-destructive' : ''}`}>{formatCurrency(r.due)}</TableCell>
                             <TableCell>
-                                <Badge variant={r.storageEndDate ? 'secondary' : 'default'}>{r.storageEndDate ? 'Closed' : 'Active'}</Badge>
+                                <Badge variant={r.storageEndDate ? 'secondary' : 'default'} className={r.storageEndDate ? 'bg-zinc-100 text-zinc-800' : 'bg-green-100 text-green-800'}>
+                                    {r.storageEndDate ? 'Closed' : 'Active'}
+                                </Badge>
                             </TableCell>
-                            <TableCell className="print-hide">
+                            <TableCell className="print-hide text-right">
                                 <ActionsMenu record={r} customers={customers} allRecords={records} />
                             </TableCell>
                         </TableRow>
                     ))}
+                    {processed.length === 0 && (
+                        <TableRow>
+                            <TableCell colSpan={11} className="text-center py-12 text-muted-foreground italic">
+                                No records found in the system.
+                            </TableCell>
+                        </TableRow>
+                    )}
                 </TableBody>
                 <TableFooter>
-                    <TableRow className="font-bold">
+                    <TableRow className="font-bold border-t-2 border-primary">
                         <TableCell colSpan={5} className="text-right">Grand Totals</TableCell>
-                        <TableCell className="text-right font-mono">{totals.bags}</TableCell>
+                        <TableCell className="text-right font-mono text-lg">{totals.bags}</TableCell>
                         <TableCell className="text-right font-mono">{formatCurrency(totals.billed)}</TableCell>
                         <TableCell className="text-right font-mono text-green-600">{formatCurrency(totals.paid)}</TableCell>
-                        <TableCell className="text-right font-mono text-destructive">{formatCurrency(totals.due)}</TableCell>
+                        <TableCell className="text-right font-mono text-destructive text-lg">{formatCurrency(totals.due)}</TableCell>
                         <TableCell colSpan={2} />
                     </TableRow>
                 </TableFooter>

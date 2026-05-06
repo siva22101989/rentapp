@@ -66,9 +66,9 @@ export function UnloadingRecordsTable({ unloadingRecords, customers, commodities
                     <TableHead>Storage Location (Lot No.)</TableHead>
                     <TableHead className="text-right hidden lg:table-cell">Total Bags</TableHead>
                     <TableHead className="text-right hidden lg:table-cell">Bags for Drying</TableHead>
-                    <TableHead className="text-right">Bags Remaining</TableHead>
+                    <TableHead className="text-right font-bold">Bags Remaining</TableHead>
                     <TableHead className="text-right hidden md:table-cell">Total Hamali</TableHead>
-                    <TableHead className="text-right">Hamali Pending</TableHead>
+                    <TableHead className="text-right font-bold">Hamali Pending</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
@@ -82,14 +82,14 @@ export function UnloadingRecordsTable({ unloadingRecords, customers, commodities
                     return (
                     <TableRow key={record.id}>
                         <TableCell className="hidden md:table-cell">{unloadingDate ? format(unloadingDate, 'dd MMM yyyy') : 'N/A'}</TableCell>
-                        <TableCell>{record.billNo}</TableCell>
+                        <TableCell className="font-mono">{record.billNo}</TableCell>
                         <TableCell className="font-medium">{getCustomerName(record.customerId)}</TableCell>
-                        <TableCell>{record.location || 'N/A'}</TableCell>
+                        <TableCell className="font-medium text-primary">{record.location || 'N/A'}</TableCell>
                         <TableCell className="text-right hidden lg:table-cell">{record.bagsUnloaded}</TableCell>
                         <TableCell className="text-right hidden lg:table-cell">{bagsSent}</TableCell>
-                        <TableCell className="text-right font-bold">{bagsRemaining}</TableCell>
+                        <TableCell className="text-right font-mono font-bold">{bagsRemaining}</TableCell>
                         <TableCell className="text-right font-mono hidden md:table-cell">{formatCurrency(record.totalHamali || 0)}</TableCell>
-                        <TableCell className="text-right font-mono text-destructive">{formatCurrency(record.hamaliPending)}</TableCell>
+                        <TableCell className="text-right font-mono text-destructive font-bold">{formatCurrency(record.hamaliPending)}</TableCell>
                         <TableCell>
                             <Badge variant="secondary" className={statusInfo.variant}>
                                 {statusInfo.text}
@@ -109,7 +109,7 @@ export function UnloadingRecordsTable({ unloadingRecords, customers, commodities
                 })}
                  {unloadingRecords.length === 0 && (
                     <TableRow>
-                        <TableCell colSpan={11} className="text-center text-muted-foreground">
+                        <TableCell colSpan={11} className="text-center py-12 text-muted-foreground italic">
                             No unloading records found.
                         </TableCell>
                     </TableRow>

@@ -217,7 +217,7 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses, w
             <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4 print-hide">
                 <div className="flex-1">
                     <CardTitle>Hamali Register</CardTitle>
-                    <CardDescription>Track charges to customers vs payments to workers.</CardDescription>
+                    <CardDescription>Detailed tracking of charges to customers vs payments to workers.</CardDescription>
                 </div>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto flex-wrap">
                     <Select onValueChange={(v) => setReportView(v as any)} value={reportView}>

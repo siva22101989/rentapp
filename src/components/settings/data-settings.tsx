@@ -1,7 +1,7 @@
 'use client';
 
 import { useTransition, useRef } from 'react';
-import { Loader2, Download, Upload, FileSpreadsheet, FileJson } from 'lucide-react';
+import { Loader2, Download, Upload, FileSpreadsheet, FileJson, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useFirestore, useAppUser } from '@/firebase';
@@ -131,16 +131,20 @@ export function DataSettings() {
                         const { id, ...rest } = item;
                         const cleaned = { ...rest, warehouseId: appUser.warehouseId };
                         
-                        // Repair nested dates (payments, outflows, etc)
-                        if (Array.isArray(cleaned.payments)) {
-                            cleaned.payments = cleaned.payments.map((p: any) => ({ ...p, date: toDate(p.date) }));
-                        }
-                        if (Array.isArray(cleaned.outflows)) {
-                            cleaned.outflows = cleaned.outflows.map((o: any) => ({ ...o, date: toDate(o.date) }));
-                        }
-                        if (cleaned.storageStartDate) cleaned.storageStartDate = toDate(cleaned.storageStartDate);
-                        if (cleaned.storageEndDate) cleaned.storageEndDate = toDate(cleaned.storageEndDate);
-                        if (cleaned.unloadingDate) cleaned.unloadingDate = toDate(cleaned.unloadingDate);
+                        // Repair nested dates recursively
+                        const repairDates = (obj: any) => {
+                            if (!obj || typeof obj !== 'object') return;
+                            for (const key in obj) {
+                                if (key.toLowerCase().includes('date') || key === 'storageStartDate' || key === 'storageEndDate') {
+                                    obj[key] = toDate(obj[key]);
+                                } else if (Array.isArray(obj[key])) {
+                                    obj[key].forEach(repairDates);
+                                } else if (typeof obj[key] === 'object') {
+                                    repairDates(obj[key]);
+                                }
+                            }
+                        };
+                        repairDates(cleaned);
 
                         const ref = id ? doc(firestore, colName, String(id)) : doc(collection(firestore, colName));
                         batch.set(ref, cleanForFirestore(cleaned), { merge: true });
@@ -148,7 +152,7 @@ export function DataSettings() {
                     }
                 }
                 await batch.commit();
-                toast({ title: 'Import Success', description: `${total} records restored.` });
+                toast({ title: 'Import Success', description: `${total} records restored and dates repaired.` });
                 setTimeout(() => window.location.reload(), 2000);
             };
             reader.readAsText(file);
@@ -186,15 +190,23 @@ export function DataSettings() {
                             const parsed = JSON.parse(val);
                             if (Array.isArray(parsed)) {
                                 cleaned[key] = parsed.map(item => {
-                                    if (item.date) return { ...item, date: toDate(item.date) };
+                                    // Deep search for dates in nested objects
+                                    const deepRepair = (obj: any) => {
+                                        if (typeof obj !== 'object' || !obj) return;
+                                        for (const k in obj) {
+                                            if (k.toLowerCase().includes('date')) obj[k] = toDate(obj[k]);
+                                            else deepRepair(obj[k]);
+                                        }
+                                    };
+                                    deepRepair(item);
                                     return item;
                                 });
                             } else {
                                 cleaned[key] = parsed;
                             }
                         } catch { }
-                    } else if (!isNaN(Date.parse(val)) && val.includes('-')) {
-                        cleaned[key] = new Date(val);
+                    } else if (key.toLowerCase().includes('date') || key === 'storageStartDate' || key === 'storageEndDate') {
+                        cleaned[key] = toDate(val);
                     }
                 }
               }
@@ -204,7 +216,7 @@ export function DataSettings() {
             }
           }
           await batch.commit();
-          toast({ title: 'Import Success', description: `${totalImported} records restored.` });
+          toast({ title: 'Import Success', description: `${totalImported} records restored from Excel.` });
           setTimeout(() => window.location.reload(), 2000);
         };
         reader.readAsArrayBuffer(file);
@@ -215,78 +227,93 @@ export function DataSettings() {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-6">
-        <Card>
-            <CardHeader>
-                <CardTitle>Data Backup (Export)</CardTitle>
-                <CardDescription>Save your data to your local device.</CardDescription>
+    <div className="space-y-6 mt-6">
+        <Card className="bg-primary/5 border-primary/20">
+            <CardHeader className="flex flex-row items-center gap-4">
+                <ShieldCheck className="h-8 w-8 text-primary" />
+                <div>
+                    <CardTitle>Data Protection Hub</CardTitle>
+                    <CardDescription>Always keep a local backup. Use these tools to protect your historical records and original dates.</CardDescription>
+                </div>
             </CardHeader>
-            <CardContent className="space-y-4">
-                <Button onClick={handleExportExcel} disabled={isExporting} className="w-full justify-start" variant="outline">
-                    {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileSpreadsheet className="mr-2 h-4 w-4" />}
-                    Export Full Backup to Excel
-                </Button>
-                <Button onClick={handleExportJSON} disabled={isExporting} className="w-full justify-start" variant="outline">
-                    {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileJson className="mr-2 h-4 w-4" />}
-                    Export Full Backup to JSON
-                </Button>
-            </CardContent>
         </Card>
 
-        <Card>
-            <CardHeader>
-                <CardTitle>Data Restore (Import)</CardTitle>
-                <CardDescription>Restore data from a backup file. Existing records will be merged.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <Button onClick={() => excelInputRef.current?.click()} disabled={isImporting} className="w-full justify-start" variant="outline">
-                    {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                    Restore from Excel Backup
-                </Button>
-                <input type="file" ref={excelInputRef} onChange={handleImportExcel} className="hidden" accept=".xlsx,.xls" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Security Backup (Export)</CardTitle>
+                    <CardDescription>Download your entire database to your computer.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <Button onClick={handleExportExcel} disabled={isExporting} className="w-full justify-start" variant="outline">
+                        {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileSpreadsheet className="mr-2 h-4 w-4" />}
+                        Export to Excel (.xlsx)
+                    </Button>
+                    <Button onClick={handleExportJSON} disabled={isExporting} className="w-full justify-start" variant="outline">
+                        {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileJson className="mr-2 h-4 w-4" />}
+                        Export to JSON (.json)
+                    </Button>
+                </CardContent>
+            </Card>
 
-                <Button onClick={() => jsonInputRef.current?.click()} disabled={isImporting} className="w-full justify-start" variant="outline">
-                    {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                    Restore from JSON Backup
-                </Button>
-                <input type="file" ref={jsonInputRef} onChange={handleImportJSON} className="hidden" accept=".json" />
-            </CardContent>
-        </Card>
-        
-        <Card className="md:col-span-2 border-destructive/50">
-            <CardHeader>
-                <CardTitle className="text-destructive text-base">Danger Zone</CardTitle>
-                <CardDescription>Permanently remove data from this warehouse.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                        <Button variant="destructive" className="w-full">Clear Transactional Data</Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                            <AlertDialogDescription>This will delete all customers, storage records, unloading records, expenses, and payments. THIS CANNOT BE UNDONE.</AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction className="bg-destructive" onClick={async () => {
-                                if (!firestore || !appUser?.warehouseId) return;
-                                const colls = ['customers', 'storageRecords', 'unloadingRecords', 'dryingRecords', 'expenses', 'borrowings', 'lendings', 'otherIncomes'];
-                                for (const name of colls) {
-                                    const q = query(collection(firestore, name), where('warehouseId', '==', appUser.warehouseId));
-                                    const snap = await getDocs(q);
-                                    const batch = writeBatch(firestore);
-                                    snap.docs.forEach(d => batch.delete(d.ref));
-                                    await batch.commit();
-                                }
-                                window.location.reload();
-                            }}>Delete Everything</AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
-            </CardContent>
-        </Card>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Restore Data (Import)</CardTitle>
+                    <CardDescription>Restore records from your local backup files. This will intelligently repair historical dates.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <Button onClick={() => excelInputRef.current?.click()} disabled={isImporting} className="w-full justify-start" variant="outline">
+                        {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                        Restore from Excel
+                    </Button>
+                    <input type="file" ref={excelInputRef} onChange={handleImportExcel} className="hidden" accept=".xlsx,.xls" />
+
+                    <Button onClick={() => jsonInputRef.current?.click()} disabled={isImporting} className="w-full justify-start" variant="outline">
+                        {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                        Restore from JSON
+                    </Button>
+                    <input type="file" ref={jsonInputRef} onChange={handleImportJSON} className="hidden" accept=".json" />
+                </CardContent>
+            </Card>
+            
+            <Card className="md:col-span-2 border-destructive/30">
+                <CardHeader>
+                    <CardTitle className="text-destructive text-base">Advanced Options</CardTitle>
+                    <CardDescription>Tools for managing your database storage.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="destructive" className="w-full sm:w-auto">Clear All Transactional Data</Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>WARNING: Permanent Deletion</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    This will delete all customers, storage records, unloading records, and payments. This cannot be undone. Please ensure you have an Excel backup first.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={async () => {
+                                    if (!firestore || !appUser?.warehouseId) return;
+                                    const colls = ['customers', 'storageRecords', 'unloadingRecords', 'dryingRecords', 'expenses', 'borrowings', 'lendings', 'otherIncomes'];
+                                    for (const name of colls) {
+                                        const q = query(collection(firestore, name), where('warehouseId', '==', appUser.warehouseId));
+                                        const snap = await getDocs(q);
+                                        const batch = writeBatch(firestore);
+                                        snap.docs.forEach(d => batch.delete(d.ref));
+                                        await batch.commit();
+                                    }
+                                    toast({ title: "Data Cleared", description: "All warehouse transactions have been deleted." });
+                                    setTimeout(() => window.location.reload(), 1500);
+                                }}>Delete Permanently</AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </CardContent>
+            </Card>
+        </div>
     </div>
   );
 }

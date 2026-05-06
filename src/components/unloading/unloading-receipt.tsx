@@ -67,7 +67,7 @@ export const UnloadingReceipt = React.forwardRef<HTMLDivElement, { record: Unloa
                     </TableRow>
                 </TableBody>
                 <TableFooter>
-                    <TableRow>
+                    <TableRow className="border-t-2 border-black">
                         <TableCell colSpan={3} className="text-right font-bold">Total Hamali</TableCell>
                         <TableCell className="text-right font-bold font-mono">{formatCurrency(record.totalHamali)}</TableCell>
                     </TableRow>

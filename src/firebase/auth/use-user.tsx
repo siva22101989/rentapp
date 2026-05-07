@@ -45,7 +45,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         const userDocRef = doc(firestore, 'users', fbUser.uid);
         const warehouseId = 'sri-lakshmi-warehouse';
 
-        // --- REINFORCED OWNER PROVISIONING ---
+        // --- REINFORCED OWNER PROVISIONING FOR SANDEEP ---
         if (userEmail === 'sivasandeepreddy01@gmail.com') {
             const ownerIdentity: AppUser = {
                 id: fbUser.uid,
@@ -58,6 +58,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
             setUser(fbUser);
             setLoading(false);
 
+            // Sync document in background
             getDoc(userDocRef).then(async (snap) => {
                 if (!snap.exists() || snap.data().warehouseId !== warehouseId) {
                     await setDoc(userDocRef, {

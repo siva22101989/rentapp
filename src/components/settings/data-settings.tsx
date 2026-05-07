@@ -22,8 +22,19 @@ const COLLECTIONS = [
     'otherIncomes',
     'commodities',
     'lots',
-    'warehouses'
 ];
+
+// Map internal collection names to User-Friendly Excel Sheet Names
+const SHEET_NAMES: Record<string, string> = {
+    'customers': 'Customers',
+    'storageRecords': 'Storage Records',
+    'unloadingRecords': 'Unloading Process',
+    'expenses': 'Expenses',
+    'commodities': 'Crops',
+    'lots': 'Lots',
+    'withdrawals': 'Withdrawals',
+    'payments': 'Payments'
+};
 
 export function DataSettings() {
   const [isExporting, startExportingTransition] = useTransition();
@@ -35,51 +46,30 @@ export function DataSettings() {
   const appUser = useAppUser();
   const { toast } = useToast();
 
-  const handleExportJSON = async () => {
-    if (!firestore || !appUser?.warehouseId) return;
-    startExportingTransition(async () => {
-      try {
-        const fullData: any = {};
-        for (const name of COLLECTIONS) {
-          const q = query(collection(firestore, name), where('warehouseId', '==', appUser.warehouseId));
-          const snap = await getDocs(q);
-          fullData[name] = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        }
-        
-        const blob = new Blob([JSON.stringify(fullData, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `GrainDost-Backup-${new Date().toISOString().split('T')[0]}.json`;
-        a.click();
-        toast({ title: 'Export Complete', description: 'JSON backup downloaded.' });
-      } catch (error: any) {
-        toast({ title: 'Export Error', description: error.message, variant: 'destructive' });
-      }
-    });
-  };
-
   const handleExportExcel = async () => {
     if (!firestore || !appUser?.warehouseId) return;
     startExportingTransition(async () => {
       try {
         const wb = XLSX.utils.book_new();
-        for (const name of COLLECTIONS) {
-          const q = query(collection(firestore, name), where('warehouseId', '==', appUser.warehouseId));
+        
+        // 1. Export Standard Collections
+        for (const colName of COLLECTIONS) {
+          const q = query(collection(firestore, colName), where('warehouseId', '==', appUser.warehouseId));
           const snap = await getDocs(q);
           const data = snap.docs.map(d => {
               const docData = d.data();
               const flat: any = { id: d.id };
               for (const key in docData) {
                   const val = docData[key];
-                  if (val && typeof val === 'object') {
+                  if (val && typeof val === 'object' && !Array.isArray(val)) {
                       if (val.toDate || (val.seconds !== undefined)) {
                           flat[key] = toDate(val).toISOString();
-                      } else if (Array.isArray(val)) {
-                          flat[key] = JSON.stringify(val);
                       } else {
                           flat[key] = JSON.stringify(val);
                       }
+                  } else if (Array.isArray(val)) {
+                      // We will export payments and withdrawals separately
+                      continue;
                   } else {
                       flat[key] = val;
                   }
@@ -87,12 +77,58 @@ export function DataSettings() {
               return flat;
           });
           if (data.length > 0) {
-              const ws = XLSX.utils.json_to_sheet(data);
-              XLSX.utils.book_append_sheet(wb, ws, name);
+              XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), SHEET_NAMES[colName] || colName);
           }
         }
+
+        // 2. Export Flattened Withdrawals (Outflows)
+        const storageQ = query(collection(firestore, 'storageRecords'), where('warehouseId', '==', appUser.warehouseId));
+        const storageSnap = await getDocs(storageQ);
+        const allWithdrawals: any[] = [];
+        const allPayments: any[] = [];
+
+        storageSnap.docs.forEach(d => {
+            const data = d.data();
+            if (data.outflows) {
+                data.outflows.forEach((o: any) => allWithdrawals.push({
+                    recordId: d.id,
+                    date: toDate(o.date).toISOString(),
+                    bagsWithdrawn: o.bagsWithdrawn,
+                    rentBilled: o.rentBilled,
+                    discount: o.discount || 0
+                }));
+            }
+            if (data.payments) {
+                data.payments.forEach((p: any) => allPayments.push({
+                    recordId: d.id,
+                    recordType: 'storage',
+                    date: toDate(p.date).toISOString(),
+                    amount: p.amount,
+                    type: p.type || 'other'
+                }));
+            }
+        });
+
+        const unloadingQ = query(collection(firestore, 'unloadingRecords'), where('warehouseId', '==', appUser.warehouseId));
+        const unloadingSnap = await getDocs(unloadingQ);
+        unloadingSnap.docs.forEach(d => {
+            const data = d.data();
+            if (data.payments) {
+                data.payments.forEach((p: any) => allPayments.push({
+                    recordId: d.id,
+                    recordType: 'unloading',
+                    date: toDate(p.date).toISOString(),
+                    amount: p.amount,
+                    type: p.type || 'unloading'
+                }));
+            }
+        });
+
+        if (allWithdrawals.length > 0) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(allWithdrawals), 'Withdrawals');
+        if (allPayments.length > 0) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(allPayments), 'Payments');
+
         XLSX.writeFile(wb, `GrainDost-Backup-${new Date().toISOString().split('T')[0]}.xlsx`);
-        toast({ title: 'Export Complete', description: 'Excel backup downloaded.' });
+        toast({ title: 'Export Complete', description: 'Multi-sheet Excel backup downloaded.' });
       } catch (error: any) {
         toast({ title: 'Export Error', description: error.message, variant: 'destructive' });
       }
@@ -102,94 +138,26 @@ export function DataSettings() {
   const handleDownloadTemplate = () => {
     const wb = XLSX.utils.book_new();
     
-    // Customers Sheet
-    const custData = [
-        { id: 'C1', name: 'Sample Customer', phone: '9876543210', fatherName: 'Mr. X', village: 'Owk', address: 'Main Street' },
-    ];
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(custData), 'customers');
-
-    // Storage Records Sheet
-    const storageData = [
-        { 
-          id: '1001', 
-          customerId: 'C1', 
-          commodityDescription: 'Paddy', 
-          location: 'A1', 
-          bagsIn: 100, 
-          bagsStored: 100, 
-          storageStartDate: '2024-01-01', 
-          hamaliPayable: 1200, 
-          workerHamaliPayable: 1000, 
-          billingCycle: '6-Month Initial', 
-          payments: '[{"amount":500,"date":"2024-01-05","type":"hamali"}]',
-          outflows: '[{"bagsWithdrawn":20,"date":"2024-02-01","rentBilled":300}]'
-        }
-    ];
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(storageData), 'storageRecords');
+    // Customers
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ id: 'C1', name: 'Sandeep Reddy', phone: '9160606633', village: 'Owk' }]), 'Customers');
     
-    // Unloading Records
-    const unloadingData = [
-        { billNo: 'U101', customerId: 'C1', commodityDescription: 'Maize', bagsUnloaded: 150, unloadingDate: '2024-01-01', location: 'B2', totalHamali: 1500 }
-    ];
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(unloadingData), 'unloadingRecords');
+    // Storage Records
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ id: '1001', customerId: 'C1', commodityDescription: 'Paddy', location: 'A1', bagsIn: 100, bagsStored: 100, storageStartDate: '2024-05-01' }]), 'Storage Records');
+    
+    // Withdrawals
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ recordId: '1001', date: '2024-06-01', bagsWithdrawn: 20, rentBilled: 500 }]), 'Withdrawals');
+    
+    // Payments
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ recordId: '1001', date: '2024-06-02', amount: 500, type: 'rent' }]), 'Payments');
+    
+    // Other Sheets
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ billNo: 'U101', customerId: 'C1', bagsUnloaded: 150, unloadingDate: '2024-05-01', location: 'B1' }]), 'Unloading Process');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ name: 'Paddy', billingType: 'slab', rate6Months: 36, rate1Year: 55 }]), 'Crops');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ name: 'A1', capacity: 1000 }]), 'Lots');
 
-    XLSX.writeFile(wb, 'GrainDost-Data-Template.xlsx');
-    toast({ title: 'Template Downloaded', description: 'Fill the sheets and use the "Restore" button to import.' });
+    XLSX.writeFile(wb, 'GrainDost-Format-Template.xlsx');
+    toast({ title: 'Template Downloaded', description: 'Organize your data exactly like the tabs in the template.' });
   }
-
-  const repairDates = (obj: any) => {
-      if (!obj || typeof obj !== 'object') return;
-      for (const key in obj) {
-          const val = obj[key];
-          if (key.toLowerCase().includes('date') || key === 'storageStartDate' || key === 'storageEndDate') {
-              obj[key] = toDate(val);
-          } else if (Array.isArray(val)) {
-              val.forEach(repairDates);
-          } else if (typeof val === 'object') {
-              repairDates(val);
-          }
-      }
-  };
-
-  const handleImportJSON = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !firestore || !appUser?.warehouseId) return;
-
-    startImportingTransition(async () => {
-        try {
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                try {
-                    const data = JSON.parse(e.target?.result as string);
-                    const batch = writeBatch(firestore);
-                    let total = 0;
-
-                    for (const colName in data) {
-                        if (!COLLECTIONS.includes(colName)) continue;
-                        const items = data[colName];
-                        for (const item of items) {
-                            const { id, ...rest } = item;
-                            const cleaned = { ...rest, warehouseId: appUser.warehouseId };
-                            repairDates(cleaned);
-
-                            const ref = id ? doc(firestore, colName, String(id)) : doc(collection(firestore, colName));
-                            batch.set(ref, cleanForFirestore(cleaned), { merge: true });
-                            total++;
-                        }
-                    }
-                    await batch.commit();
-                    toast({ title: 'Import Success', description: `${total} records restored from JSON.` });
-                    setTimeout(() => window.location.reload(), 1500);
-                } catch (err: any) {
-                    toast({ title: 'JSON Error', description: 'Failed to parse JSON file.', variant: 'destructive' });
-                }
-            };
-            reader.readAsText(file);
-        } catch (error: any) {
-            toast({ title: 'Import Error', description: error.message, variant: 'destructive' });
-        }
-    });
-  };
 
   const handleImportExcel = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -202,50 +170,81 @@ export function DataSettings() {
           const data = new Uint8Array(e.target?.result as ArrayBuffer);
           const workbook = XLSX.read(data, { type: 'array' });
           const batch = writeBatch(firestore);
-          let totalImported = 0;
+          
+          const recordWithdrawals: Record<string, any[]> = {};
+          const recordPayments: Record<string, any[]> = {};
 
+          // 1. Process Flat Sheets first (Withdrawals/Payments) to gather info
+          workbook.SheetNames.forEach(sheetName => {
+              if (sheetName === 'Withdrawals') {
+                  const rows: any[] = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+                  rows.forEach(r => {
+                      if (!recordWithdrawals[r.recordId]) recordWithdrawals[r.recordId] = [];
+                      recordWithdrawals[r.recordId].push({
+                          date: toDate(r.date),
+                          bagsWithdrawn: Number(r.bagsWithdrawn),
+                          rentBilled: Number(r.rentBilled),
+                          discount: Number(r.discount || 0)
+                      });
+                  });
+              }
+              if (sheetName === 'Payments') {
+                  const rows: any[] = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+                  rows.forEach(r => {
+                      if (!recordPayments[r.recordId]) recordPayments[r.recordId] = [];
+                      recordPayments[r.recordId].push({
+                          date: toDate(r.date),
+                          amount: Number(r.amount),
+                          type: r.type || 'other'
+                      });
+                  });
+              }
+          });
+
+          // 2. Process Main Collection Sheets
+          let totalImported = 0;
           for (const sheetName of workbook.SheetNames) {
-            if (!COLLECTIONS.includes(sheetName)) continue;
+            // Find which collection this sheet belongs to
+            const colName = Object.keys(SHEET_NAMES).find(key => SHEET_NAMES[key] === sheetName) || 
+                            COLLECTIONS.find(c => c.toLowerCase() === sheetName.toLowerCase());
+            
+            if (!colName || colName === 'withdrawals' || colName === 'payments') continue;
+
             const sheet = workbook.Sheets[sheetName];
             const rows: any[] = XLSX.utils.sheet_to_json(sheet);
+            
             for (const row of rows) {
               const { id, billNo, ...docData } = row;
               const cleaned: any = { ...docData, warehouseId: appUser.warehouseId };
               
+              // Repair dates and attach withdrawals/payments
               for (const key in cleaned) {
-                const val = cleaned[key];
-                if (typeof val === 'string') {
-                    if (val.startsWith('[') || val.startsWith('{')) {
-                        try {
-                            const parsed = JSON.parse(val);
-                            repairDates(parsed);
-                            cleaned[key] = parsed;
-                        } catch { }
-                    } else if (key.toLowerCase().includes('date') || key === 'storageStartDate' || key === 'storageEndDate') {
-                        cleaned[key] = toDate(val);
-                    }
-                } else if (typeof val === 'number') {
-                    if (key.toLowerCase().includes('date') || key === 'storageStartDate' || key === 'storageEndDate') {
-                        cleaned[key] = toDate(val);
-                    }
-                }
+                  if (key.toLowerCase().includes('date')) cleaned[key] = toDate(cleaned[key]);
               }
-              
-              const docId = (sheetName === 'unloadingRecords' && billNo) ? String(billNo) : (id ? String(id) : null);
-              const ref = docId ? doc(firestore, sheetName, docId) : doc(collection(firestore, sheetName));
-              if (sheetName === 'unloadingRecords' && billNo) cleaned.billNo = String(billNo);
 
+              const docId = (colName === 'unloadingRecords' && billNo) ? String(billNo) : (id ? String(id) : null);
+              
+              if (colName === 'storageRecords' && docId) {
+                  cleaned.outflows = recordWithdrawals[docId] || [];
+                  cleaned.payments = recordPayments[docId] || [];
+              }
+              if (colName === 'unloadingRecords' && docId) {
+                  cleaned.payments = recordPayments[docId] || [];
+              }
+
+              const ref = docId ? doc(firestore, colName, docId) : doc(collection(firestore, colName));
               batch.set(ref, cleanForFirestore(cleaned), { merge: true });
               totalImported++;
             }
           }
+
           await batch.commit();
-          toast({ title: 'Import Success', description: `${totalImported} records restored from Excel.` });
-          setTimeout(() => window.location.reload(), 1500);
+          toast({ title: 'Restore Complete', description: `${totalImported} records successfully restored with original dates.` });
+          setTimeout(() => window.location.reload(), 2000);
         };
         reader.readAsArrayBuffer(file);
       } catch (error: any) {
-        toast({ title: 'Import Error', description: error.message, variant: 'destructive' });
+        toast({ title: 'Restore Error', description: error.message, variant: 'destructive' });
       }
     });
   };
@@ -256,8 +255,8 @@ export function DataSettings() {
             <CardHeader className="flex flex-row items-center gap-4">
                 <ShieldCheck className="h-8 w-8 text-primary" />
                 <div>
-                    <CardTitle>Data Protection & Recovery</CardTitle>
-                    <CardDescription>Always keep a local backup. Use these tools to restore your historical records while preserving original dates.</CardDescription>
+                    <CardTitle>Data Protection (Excel System)</CardTitle>
+                    <CardDescription>Secure your entire warehouse history. All inflow, outflow, and payment dates are preserved exactly as recorded.</CardDescription>
                 </div>
             </CardHeader>
         </Card>
@@ -265,43 +264,33 @@ export function DataSettings() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <Card>
                 <CardHeader>
-                    <CardTitle>Create Backup (Export)</CardTitle>
-                    <CardDescription>Save your database as a readable Excel file or technical JSON file.</CardDescription>
+                    <CardTitle>Download Backup</CardTitle>
+                    <CardDescription>Creates a file with separate tabs for Customers, Records, etc.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent>
                     <Button onClick={handleExportExcel} disabled={isExporting} className="w-full justify-start" variant="outline">
                         {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileSpreadsheet className="mr-2 h-4 w-4" />}
-                        Export to Excel (.xlsx)
-                    </Button>
-                    <Button onClick={handleExportJSON} disabled={isExporting} className="w-full justify-start" variant="outline">
-                        {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileJson className="mr-2 h-4 w-4" />}
-                        Export to JSON (.json)
+                        Export to Multi-Sheet Excel (.xlsx)
                     </Button>
                 </CardContent>
             </Card>
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Restore Data (Import)</CardTitle>
-                    <CardDescription>Upload your backup file. Our system will repair date formats to ensure accurate rent calculations.</CardDescription>
+                    <CardTitle>Restore from Excel</CardTitle>
+                    <CardDescription>Upload your backup to rebuild your database and fix historical dates.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <Button onClick={handleDownloadTemplate} variant="secondary" className="w-full justify-start">
                         <FileDown className="mr-2 h-4 w-4" />
-                        Download Excel Format (Recommended)
+                        Download Excel Format Template
                     </Button>
 
                     <Button onClick={() => excelInputRef.current?.click()} disabled={isImporting} className="w-full justify-start" variant="outline">
                         {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                        Restore from Excel
+                        Upload & Deep Restore from Excel
                     </Button>
                     <input type="file" ref={excelInputRef} onChange={handleImportExcel} className="hidden" accept=".xlsx,.xls" />
-
-                    <Button onClick={() => jsonInputRef.current?.click()} disabled={isImporting} className="w-full justify-start" variant="outline">
-                        {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                        Restore from JSON
-                    </Button>
-                    <input type="file" ref={jsonInputRef} onChange={handleImportJSON} className="hidden" accept=".json" />
                 </CardContent>
             </Card>
         </div>

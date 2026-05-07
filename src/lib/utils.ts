@@ -1,3 +1,4 @@
+
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { Timestamp } from "firebase/firestore";
@@ -30,9 +31,13 @@ export function toDate(date: any): Date {
     if (date instanceof Date) return date;
     
     // Handle Excel Serial Number (e.g. 45321)
-    if (typeof date === 'number' && date > 30000 && date < 60000) {
-        // Excel base date is 1899-12-30. 25569 is the offset for 1970-01-01.
-        return new Date((date - 25569) * 86400 * 1000);
+    if (typeof date === 'number') {
+        if (date > 30000 && date < 60000) {
+            // Excel base date is 1899-12-30. 25569 is the offset for 1970-01-01.
+            return new Date((date - 25569) * 86400 * 1000);
+        }
+        // Handle direct timestamp (ms)
+        if (date > 1000000000000) return new Date(date);
     }
 
     // Handle String (ISO or standard)

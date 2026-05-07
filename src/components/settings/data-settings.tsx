@@ -74,6 +74,8 @@ export function DataSettings() {
                   if (val && typeof val === 'object') {
                       if (val.toDate || (val.seconds !== undefined)) {
                           flat[key] = toDate(val).toISOString();
+                      } else if (Array.isArray(val)) {
+                          flat[key] = JSON.stringify(val);
                       } else {
                           flat[key] = JSON.stringify(val);
                       }
@@ -100,19 +102,20 @@ export function DataSettings() {
     const wb = XLSX.utils.book_new();
     
     // Customers Sheet
-    const custData = [{ name: 'Example Customer', phone: '9652369143', fatherName: 'Example Father', village: 'Example Village', address: 'Example Address' }];
+    const custData = [
+        { id: 'CUST-1', name: 'M.yellaya', phone: '9963368248', fatherName: '', village: 'Koilakuntla road owk', address: '' },
+        { id: 'CUST-2', name: 'Bala muni', phone: '9177942110', fatherName: '', village: 'Metupalle', address: '' }
+    ];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(custData), 'customers');
 
     // Storage Records Sheet
-    const storageData = [{ id: '1001', customerId: 'PASTE_ID_HERE', commodityDescription: 'Paddy', location: 'A1/Top', bagsIn: 100, bagsStored: 100, storageStartDate: '2024-01-01', hamaliPayable: 1000, billingCycle: '6-Month Initial' }];
+    const storageData = [
+        { id: '1001', customerId: 'CUST-1', commodityDescription: 'Paddy', location: 'A1', bagsIn: 100, bagsStored: 100, storageStartDate: '2024-01-15', hamaliPayable: 1200, workerHamaliPayable: 1000, billingCycle: '6-Month Initial' }
+    ];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(storageData), 'storageRecords');
 
-    // Unloading Records Sheet
-    const unloadingData = [{ billNo: '1', customerId: 'PASTE_ID_HERE', commodityDescription: 'Paddy', location: 'A1/Top', unloadingDate: '2024-01-01 10:30', bagsUnloaded: 100, totalHamali: 1000 }];
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(unloadingData), 'unloadingRecords');
-
     XLSX.writeFile(wb, 'GrainDost-Data-Template.xlsx');
-    toast({ title: 'Template Downloaded', description: 'Use this format to set up your old data.' });
+    toast({ title: 'Template Downloaded', description: 'Fill the id column in customers and use it in customerId for records.' });
   }
 
   const repairDates = (obj: any) => {
@@ -157,7 +160,7 @@ export function DataSettings() {
                     }
                     await batch.commit();
                     toast({ title: 'Import Success', description: `${total} records restored from JSON.` });
-                    setTimeout(() => window.location.reload(), 2000);
+                    setTimeout(() => window.location.reload(), 1500);
                 } catch (err: any) {
                     toast({ title: 'JSON Error', description: 'Failed to parse JSON file.', variant: 'destructive' });
                 }
@@ -215,7 +218,7 @@ export function DataSettings() {
           }
           await batch.commit();
           toast({ title: 'Import Success', description: `${totalImported} records restored from Excel.` });
-          setTimeout(() => window.location.reload(), 2000);
+          setTimeout(() => window.location.reload(), 1500);
         };
         reader.readAsArrayBuffer(file);
       } catch (error: any) {
@@ -262,7 +265,7 @@ export function DataSettings() {
                 <CardContent className="space-y-4">
                     <Button onClick={handleDownloadTemplate} variant="secondary" className="w-full justify-start">
                         <FileDown className="mr-2 h-4 w-4" />
-                        Download Excel Format
+                        Download Excel Format (Recommended)
                     </Button>
 
                     <Button onClick={() => excelInputRef.current?.click()} disabled={isImporting} className="w-full justify-start" variant="outline">

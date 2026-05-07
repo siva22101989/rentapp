@@ -110,7 +110,7 @@ export function DataSettings() {
 
     // Storage Records Sheet
     const storageData = [
-        { id: '1001', customerId: 'CUST-1', commodityDescription: 'Paddy', location: 'A1', bagsIn: 100, bagsStored: 100, storageStartDate: '2024-01-15', hamaliPayable: 1200, workerHamaliPayable: 1000, billingCycle: '6-Month Initial' }
+        { id: '1001', customerId: 'CUST-1', commodityDescription: 'Paddy', location: 'A1', bagsIn: 100, bagsStored: 100, storageStartDate: '2024-01-15', hamaliPayable: 1200, workerHamaliPayable: 1000, billingCycle: '6-Month Initial', payments: '[]', outflows: '[]' }
     ];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(storageData), 'storageRecords');
 

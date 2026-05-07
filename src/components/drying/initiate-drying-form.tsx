@@ -163,7 +163,6 @@ export function InitiateDryingForm({ customers, unloadingRecords, storageRecords
                 bagsPacked: 0,
             }));
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedUnloadingRecordId]);
 
     useEffect(() => {
@@ -172,7 +171,6 @@ export function InitiateDryingForm({ customers, unloadingRecords, storageRecords
             setFormData(initialFormData);
             toast({ title: "Record List Updated", description: "The selected unloading record was modified. Please select another." });
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [unloadingRecords]);
 
     const nextId = useMemo(() => {
@@ -483,7 +481,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, storageRecords
                         </div>
                         <p><strong>Phone:</strong> {selectedCustomer.phone}</p>
                         <p><strong>Unloaded:</strong> {format(toDate(selectedUnloadingRecord.unloadingDate), 'dd MMM yyyy, hh:mm a')}</p>
-                        <p><strong>Stored Location:</strong> {selectedUnloadingRecord.location || 'N/A'}</p>
+                        <p><strong>Storage Location (Lot No.):</strong> {selectedUnloadingRecord.location || 'N/A'}</p>
                     </div>
                 )}
 

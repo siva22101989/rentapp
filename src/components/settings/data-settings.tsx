@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useTransition, useRef } from 'react';
@@ -103,19 +104,37 @@ export function DataSettings() {
     
     // Customers Sheet
     const custData = [
-        { id: 'CUST-1', name: 'M.yellaya', phone: '9963368248', fatherName: '', village: 'Koilakuntla road owk', address: '' },
-        { id: 'CUST-2', name: 'Bala muni', phone: '9177942110', fatherName: '', village: 'Metupalle', address: '' }
+        { id: 'C1', name: 'Sample Customer', phone: '9876543210', fatherName: 'Mr. X', village: 'Owk', address: 'Main Street' },
     ];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(custData), 'customers');
 
     // Storage Records Sheet
     const storageData = [
-        { id: '1001', customerId: 'CUST-1', commodityDescription: 'Paddy', location: 'A1', bagsIn: 100, bagsStored: 100, storageStartDate: '2024-01-15', hamaliPayable: 1200, workerHamaliPayable: 1000, billingCycle: '6-Month Initial', payments: '[]', outflows: '[]' }
+        { 
+          id: '1001', 
+          customerId: 'C1', 
+          commodityDescription: 'Paddy', 
+          location: 'A1', 
+          bagsIn: 100, 
+          bagsStored: 100, 
+          storageStartDate: '2024-01-01', 
+          hamaliPayable: 1200, 
+          workerHamaliPayable: 1000, 
+          billingCycle: '6-Month Initial', 
+          payments: '[{"amount":500,"date":"2024-01-05","type":"hamali"}]',
+          outflows: '[{"bagsWithdrawn":20,"date":"2024-02-01","rentBilled":300}]'
+        }
     ];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(storageData), 'storageRecords');
+    
+    // Unloading Records
+    const unloadingData = [
+        { billNo: 'U101', customerId: 'C1', commodityDescription: 'Maize', bagsUnloaded: 150, unloadingDate: '2024-01-01', location: 'B2', totalHamali: 1500 }
+    ];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(unloadingData), 'unloadingRecords');
 
     XLSX.writeFile(wb, 'GrainDost-Data-Template.xlsx');
-    toast({ title: 'Template Downloaded', description: 'Fill the id column in customers and use it in customerId for records.' });
+    toast({ title: 'Template Downloaded', description: 'Fill the sheets and use the "Restore" button to import.' });
   }
 
   const repairDates = (obj: any) => {
@@ -190,7 +209,7 @@ export function DataSettings() {
             const sheet = workbook.Sheets[sheetName];
             const rows: any[] = XLSX.utils.sheet_to_json(sheet);
             for (const row of rows) {
-              const { id, ...docData } = row;
+              const { id, billNo, ...docData } = row;
               const cleaned: any = { ...docData, warehouseId: appUser.warehouseId };
               
               for (const key in cleaned) {
@@ -211,7 +230,11 @@ export function DataSettings() {
                     }
                 }
               }
-              const ref = id ? doc(firestore, sheetName, String(id)) : doc(collection(firestore, sheetName));
+              
+              const docId = (sheetName === 'unloadingRecords' && billNo) ? String(billNo) : (id ? String(id) : null);
+              const ref = docId ? doc(firestore, sheetName, docId) : doc(collection(firestore, sheetName));
+              if (sheetName === 'unloadingRecords' && billNo) cleaned.billNo = String(billNo);
+
               batch.set(ref, cleanForFirestore(cleaned), { merge: true });
               totalImported++;
             }

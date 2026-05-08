@@ -1,7 +1,7 @@
 'use client';
 
 import { useTransition, useState, useRef } from 'react';
-import { Loader2, Trash2, Download, Upload, FileSpreadsheet, ShieldCheck } from 'lucide-react';
+import { Loader2, Trash2, Download, Upload, FileSpreadsheet, ShieldCheck, FileJson } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useFirestore, useAppUser } from '@/firebase';
@@ -33,7 +33,7 @@ export function DataSettings() {
 
   const [isImportAlertOpen, setIsImportAlertOpen] = useState(false);
   const [pendingImportData, setPendingImportData] = useState<any>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const jsonInputRef = useRef<HTMLInputElement>(null);
   const excelInputRef = useRef<HTMLInputElement>(null);
 
   const firestore = useFirestore();
@@ -142,6 +142,22 @@ export function DataSettings() {
     reader.readAsArrayBuffer(file);
   };
 
+  const handleJSONFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = JSON.parse(event.target?.result as string);
+        setPendingImportData({ type: 'json', data });
+        setIsImportAlertOpen(true);
+      } catch (err: any) {
+        toast({ title: 'Import Error', description: 'Invalid JSON file format.', variant: 'destructive' });
+      }
+    };
+    reader.readAsText(file);
+  };
+
   const executeDeepRestore = async () => {
     if (!pendingImportData || !firestore || !appUser?.warehouseId) return;
     startImportingTransition(async () => {
@@ -149,14 +165,14 @@ export function DataSettings() {
             const batch = writeBatch(firestore);
             const { type, data } = pendingImportData;
 
-            if (type === 'excel') {
-                // Clear old transactional data for this warehouse first
-                for (const colName of TRANSACTIONAL_COLLECTIONS) {
-                    const q = query(collection(firestore, colName), where('warehouseId', '==', appUser.warehouseId));
-                    const snap = await getDocs(q);
-                    snap.docs.forEach(d => batch.delete(d.ref));
-                }
+            // 1. CLEAR EXISTING TRANSACTIONAL DATA
+            for (const colName of TRANSACTIONAL_COLLECTIONS) {
+                const q = query(collection(firestore, colName), where('warehouseId', '==', appUser.warehouseId));
+                const snap = await getDocs(q);
+                snap.docs.forEach(d => batch.delete(d.ref));
+            }
 
+            if (type === 'excel') {
                 // Restore Customers
                 if (data.customers) {
                     data.customers.forEach((c: any) => {
@@ -166,13 +182,12 @@ export function DataSettings() {
                 }
 
                 // Restore Storage Records (Pattis)
-                const pattiMap = new Map();
                 if (data.storageRecords) {
                     data.storageRecords.forEach((r: any) => {
                         const cleanRecord = {
                             ...r,
                             warehouseId: appUser.warehouseId,
-                            storageStartDate: new Date(r.storageStartDate),
+                            storageStartDate: toDate(r.storageStartDate),
                             payments: [],
                             outflows: [],
                             bagsOut: 0,
@@ -181,18 +196,17 @@ export function DataSettings() {
                         };
                         const ref = doc(firestore, 'storageRecords', String(r.id));
                         batch.set(ref, cleanForFirestore(cleanRecord));
-                        pattiMap.set(String(r.id), cleanRecord);
                     });
                 }
 
-                // Apply Withdrawals to records
+                // Apply Withdrawals
                 if (data.withdrawals) {
                     data.withdrawals.forEach((w: any) => {
                         const recordId = String(w.pattiId);
                         const ref = doc(firestore, 'storageRecords', recordId);
                         batch.update(ref, {
                             outflows: XLSX.utils.sheet_to_json(XLSX.utils.json_to_sheet([w])).map((item: any) => cleanForFirestore({
-                                date: new Date(item.date),
+                                date: toDate(item.date),
                                 bagsWithdrawn: Number(item.bagsWithdrawn),
                                 rentBilled: Number(item.rentBilled),
                                 discount: Number(item.discount || 0)
@@ -201,7 +215,7 @@ export function DataSettings() {
                     });
                 }
 
-                // Apply Payments to records
+                // Apply Payments
                 if (data.payments) {
                     data.payments.forEach((p: any) => {
                         const recordId = String(p.pattiId);
@@ -209,12 +223,29 @@ export function DataSettings() {
                         batch.update(ref, {
                             payments: XLSX.utils.sheet_to_json(XLSX.utils.json_to_sheet([p])).map((item: any) => cleanForFirestore({
                                 amount: Number(item.amount),
-                                date: new Date(item.date),
+                                date: toDate(item.date),
                                 type: item.type || 'rent'
                             }))
                         });
                     });
                 }
+            } else if (type === 'json') {
+                // Technical JSON Restore
+                Object.keys(data).forEach(colName => {
+                  if (TRANSACTIONAL_COLLECTIONS.includes(colName)) {
+                    data[colName].forEach((docData: any) => {
+                      const { id, ...rest } = docData;
+                      const ref = doc(firestore, colName, id);
+                      // Repair dates in JSON
+                      const repairedData = { ...rest };
+                      Object.keys(repairedData).forEach(k => {
+                        if (repairedData[k]?.seconds) repairedData[k] = toDate(repairedData[k]);
+                        else if (k.toLowerCase().includes('date') && typeof repairedData[k] === 'string') repairedData[k] = toDate(repairedData[k]);
+                      });
+                      batch.set(ref, cleanForFirestore({ ...repairedData, warehouseId: appUser.warehouseId }));
+                    });
+                  }
+                });
             }
 
             await batch.commit();
@@ -257,7 +288,7 @@ export function DataSettings() {
                     <div className="space-y-2">
                         <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Step 2: Security</h4>
                         <Button onClick={handleDownloadTemplate} variant="secondary" className="w-full justify-start py-6">
-                            <FileSpreadsheet className="mr-2 h-5 w-5" />
+                            <FileSpreadsheet className="mr-2 h-5 w-5 text-primary" />
                             <div className="text-left">
                                 <p className="font-bold">Download Excel Format</p>
                                 <p className="text-xs text-muted-foreground">Format for organizing old data</p>
@@ -273,12 +304,18 @@ export function DataSettings() {
                     <p className="text-xs text-muted-foreground bg-secondary/50 p-3 rounded-md border border-dashed border-primary/30">
                         <strong>Important:</strong> Restoring from a file will replace all current transactional data for your warehouse. Patti numbers, original inflow dates, and payments will be perfectly reconstructed.
                     </p>
-                    <div className="flex gap-2">
-                        <Button onClick={() => excelInputRef.current?.click()} disabled={isImporting} className="flex-1" variant="default">
+                    <div className="grid grid-cols-1 gap-3">
+                        <Button onClick={() => excelInputRef.current?.click()} disabled={isImporting} className="w-full" variant="default">
                             {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
                             Deep Restore from Excel File
                         </Button>
                         <input type="file" ref={excelInputRef} onChange={handleExcelFileChange} className="hidden" accept=".xlsx,.xls" />
+
+                        <Button onClick={() => jsonInputRef.current?.click()} disabled={isImporting} className="w-full" variant="outline">
+                            {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileJson className="mr-2 h-4 w-4" />}
+                            Deep Restore from JSON File
+                        </Button>
+                        <input type="file" ref={jsonInputRef} onChange={handleJSONFileChange} className="hidden" accept=".json" />
                     </div>
                 </div>
             </CardContent>

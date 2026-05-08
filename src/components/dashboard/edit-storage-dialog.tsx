@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useTransition, useMemo } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -28,7 +28,7 @@ import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 import { collection, query, where } from "firebase/firestore";
 import { Separator } from '../ui/separator';
 import { useAppUser } from '@/firebase/auth/use-user';
-
+import { Combobox } from '../ui/combobox';
 
 const EditStorageRecordSchema = z.object({
   customerId: z.string().min(1, 'Customer is required.'),
@@ -40,7 +40,7 @@ const EditStorageRecordSchema = z.object({
   lorryTractorNo: z.string().optional(),
   khataAmount: z.coerce.number().nonnegative().optional(),
   hamaliRate: z.coerce.number().nonnegative().optional(),
-  bagsForDrying: z.coerce.number().int().nonnegative('Must be a non-negative number.').optional(),
+  bagsForDrying: z.coerce.number().int().nonnegative().optional(),
   dryingStartDate: z.string().optional(),
   customerHamaliPerBag: z.coerce.number().nonnegative().optional(),
   workerHamaliPerBag: z.coerce.number().nonnegative().optional(),
@@ -55,6 +55,7 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
   const firestore = useFirestore();
   const appUser = useAppUser();
   
+  // State for all form fields
   const [customerId, setCustomerId] = useState('');
   const [commodityDescription, setCommodityDescription] = useState('');
   const [location, setLocation] = useState('');
@@ -75,13 +76,13 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
     () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'commodities'), where('warehouseId', '==', appUser.warehouseId)) : null),
     [firestore, appUser]
   );
-  const { data: commodities, loading: loadingCommodities } = useCollection<Commodity>(commoditiesQuery);
+  const { data: commodities } = useCollection<Commodity>(commoditiesQuery);
 
   const lotsQuery = useMemoFirebase(
     () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'lots'), where('warehouseId', '==', appUser.warehouseId)) : null),
     [firestore, appUser]
   );
-  const { data: lots, loading: loadingLots } = useCollection<Lot>(lotsQuery);
+  const { data: lots } = useCollection<Lot>(lotsQuery);
 
   const lotOccupancy = useMemo(() => {
     const occupancy: { [lotName: string]: number } = {};
@@ -93,14 +94,17 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
     return occupancy;
   }, [allRecords, record.id]);
 
-  const handleOpenChange = (open: boolean) => {
-    if (open) {
+  const customerOptions = customers.map(c => ({ value: c.id, label: c.name }));
+  const commodityOptions = (commodities || []).map(c => ({ value: c.name, label: c.name }));
+
+  useEffect(() => {
+    if (isOpen) {
       const getRate = (desc: string) => record.hamaliDetails?.find(d => d.description.toLowerCase().includes(desc.toLowerCase()))?.rate;
 
-      setCustomerId(record.customerId);
-      setCommodityDescription(record.commodityDescription);
+      setCustomerId(record.customerId || '');
+      setCommodityDescription(record.commodityDescription || '');
       setLocation(record.location || '');
-      setStorageStartDate(format(toDate(record.storageStartDate), 'yyyy-MM-dd'));
+      setStorageStartDate(record.storageStartDate ? format(toDate(record.storageStartDate), 'yyyy-MM-dd') : '');
       setBagsIn(record.bagsIn ?? record.bagsStored ?? '');
       setWeight(record.weight ?? '');
       setLorryTractorNo(record.lorryTractorNo || '');
@@ -111,16 +115,18 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
       setCustomerHamaliPerBag(getRate('Customer Hamali') ?? '');
       setPavHamaliPerBag(getRate('Pav Hamali') ?? '');
       setCuppaHamaliPerBag(getRate('Cuppa Hamali') ?? '');
-      setWorkerHamaliPerBag(record.workerHamaliPayable !== undefined && record.bagsIn > 0 ? record.workerHamaliPayable / record.bagsIn : '');
+      setWorkerHamaliPerBag(record.workerHamaliPayable !== undefined && (record.bagsIn || record.bagsForDrying || 1) > 0 
+        ? record.workerHamaliPayable / (record.bagsIn || record.bagsForDrying || 1) 
+        : '');
     }
-    setIsOpen(open);
-  }
+  }, [isOpen, record]);
   
   const calculatedHamali = useMemo(() => {
     const unloadingHamaliDetail = record.hamaliDetails?.find(d => d.description === 'Unloading Hamali');
     const proportionalUnloadingHamali = unloadingHamaliDetail?.amount || 0;
 
-    const day1CustomerHamali = (Number(bagsForDrying) || 0) * (Number(customerHamaliPerBag) || 0);
+    const currentBags = Number(bagsForDrying) || Number(bagsIn) || 0;
+    const day1CustomerHamali = currentBags * (Number(customerHamaliPerBag) || 0);
 
     let extraDryingDays = 0;
     if (dryingStartDate && storageStartDate) {
@@ -132,11 +138,11 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
         }
     }
     
-    const pavHamali = (Number(bagsForDrying) || 0) * (Number(pavHamaliPerBag) || 0) * extraDryingDays;
-    const cuppaHamali = (Number(bagsForDrying) || 0) * (Number(cuppaHamaliPerBag) || 0) * extraDryingDays;
+    const pavHamali = currentBags * (Number(pavHamaliPerBag) || 0) * extraDryingDays;
+    const cuppaHamali = currentBags * (Number(cuppaHamaliPerBag) || 0) * extraDryingDays;
     const totalCustomerCharge = proportionalUnloadingHamali + day1CustomerHamali + pavHamali + cuppaHamali;
     
-    const day1WorkerHamali = (Number(bagsForDrying) || 0) * (Number(workerHamaliPerBag) || 0);
+    const day1WorkerHamali = currentBags * (Number(workerHamaliPerBag) || 0);
     const totalWorkerPayable = proportionalUnloadingHamali + day1WorkerHamali + pavHamali + cuppaHamali;
 
     return {
@@ -149,7 +155,7 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
         totalWorkerPayable: workerHamaliPerBag !== '' ? totalWorkerPayable : undefined,
     }
 
-  }, [bagsForDrying, customerHamaliPerBag, dryingStartDate, storageStartDate, pavHamaliPerBag, cuppaHamaliPerBag, workerHamaliPerBag, record.hamaliDetails]);
+  }, [bagsIn, bagsForDrying, customerHamaliPerBag, dryingStartDate, storageStartDate, pavHamaliPerBag, cuppaHamaliPerBag, workerHamaliPerBag, record.hamaliDetails]);
 
 
   const onSubmit = (e: React.FormEvent) => {
@@ -170,7 +176,7 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
       khataAmount: Number(khataAmount),
       hamaliRate: Number(hamaliRate),
       bagsForDrying: Number(bagsForDrying),
-      dryingStartDate,
+      dryingStartDate: dryingStartDate || undefined,
       customerHamaliPerBag: Number(customerHamaliPerBag),
       workerHamaliPerBag: workerHamaliPerBag === '' ? undefined : Number(workerHamaliPerBag),
       pavHamaliPerBag: Number(pavHamaliPerBag),
@@ -209,7 +215,7 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
             updateData.hamaliRate = directHamaliRate;
             updateData.hamaliPayable = hamaliPayable;
             updateData.workerHamaliPayable = hamaliPayable;
-        } else if (calculatedHamali) {
+        } else {
             updateData.bagsForDrying = data.bagsForDrying;
             updateData.dryingStartDate = data.dryingStartDate ? new Date(data.dryingStartDate) : null;
             updateData.dryingEndDate = new Date(data.storageStartDate); 
@@ -217,9 +223,9 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
             const hamaliDetails: HamaliChargeItem[] = [];
             const unloadingHamaliDetail = record.hamaliDetails?.find(d => d.description === 'Unloading Hamali');
             if(unloadingHamaliDetail) hamaliDetails.push(unloadingHamaliDetail);
-            if(calculatedHamali.day1CustomerHamali > 0) hamaliDetails.push({ description: 'Customer Hamali', bags: data.bagsForDrying || 0, rate: data.customerHamaliPerBag || 0, amount: calculatedHamali.day1CustomerHamali });
-            if(calculatedHamali.pavHamali > 0) hamaliDetails.push({ description: `Pav Hamali (${calculatedHamali.extraDryingDays} extra day${calculatedHamali.extraDryingDays !== 1 ? 's' : ''})`, bags: data.bagsForDrying || 0, rate: data.pavHamaliPerBag || 0, amount: calculatedHamali.pavHamali });
-            if(calculatedHamali.cuppaHamali > 0) hamaliDetails.push({ description: `Cuppa Hamali (${calculatedHamali.extraDryingDays} extra day${calculatedHamali.extraDryingDays !== 1 ? 's' : ''})`, bags: data.bagsForDrying || 0, rate: data.cuppaHamaliPerBag || 0, amount: calculatedHamali.cuppaHamali });
+            if(calculatedHamali.day1CustomerHamali > 0) hamaliDetails.push({ description: 'Customer Hamali', bags: data.bagsForDrying || data.bagsIn, rate: data.customerHamaliPerBag || 0, amount: calculatedHamali.day1CustomerHamali });
+            if(calculatedHamali.pavHamali > 0) hamaliDetails.push({ description: `Pav Hamali (${calculatedHamali.extraDryingDays} extra day${calculatedHamali.extraDryingDays !== 1 ? 's' : ''})`, bags: data.bagsForDrying || data.bagsIn, rate: data.pavHamaliPerBag || 0, amount: calculatedHamali.pavHamali });
+            if(calculatedHamali.cuppaHamali > 0) hamaliDetails.push({ description: `Cuppa Hamali (${calculatedHamali.extraDryingDays} extra day${calculatedHamali.extraDryingDays !== 1 ? 's' : ''})`, bags: data.bagsForDrying || data.bagsIn, rate: data.cuppaHamaliPerBag || 0, amount: calculatedHamali.cuppaHamali });
 
             updateData.hamaliDetails = hamaliDetails;
             updateData.hamaliPayable = calculatedHamali.totalCustomerCharge;
@@ -229,7 +235,7 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
         }
 
         await updateStorageRecord(firestore, record.id, updateData);
-        toast({ title: 'Success', description: 'Storage record updated.' });
+        toast({ title: 'Success', description: 'Storage record updated successfully.' });
         setIsOpen(false);
       } catch (error) {
         console.error(error);
@@ -237,48 +243,40 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
       }
     });
   };
-  
-  if (loadingCommodities || loadingLots) {
-      return <div>Loading...</div>
-  }
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <form onSubmit={onSubmit}>
           <DialogHeader>
             <DialogTitle>Edit Storage Record</DialogTitle>
             <DialogDescription>
-              Adjust any details for record {record.id}. Everything is fully unlocked and editable.
+              Adjust any details for record {record.id}. Everything is editable.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
+          <div className="grid gap-4 py-4 pr-2">
              <div className="space-y-2">
                 <Label htmlFor="edit-customer-id">Customer</Label>
-                <Select onValueChange={setCustomerId} value={customerId}>
-                    <SelectTrigger id="edit-customer-id"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                        {customers.map(customer => (
-                            <SelectItem key={customer.id} value={customer.id}>
-                                {customer.name}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+                <Combobox
+                    options={customerOptions}
+                    value={customerId}
+                    onChange={setCustomerId}
+                    placeholder="Select a customer..."
+                    searchPlaceholder="Search customers..."
+                    modal={true}
+                />
               </div>
                <div className="space-y-2">
                 <Label htmlFor="edit-commodity">Commodity</Label>
-                <Select onValueChange={setCommodityDescription} value={commodityDescription}>
-                    <SelectTrigger id="edit-commodity"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                         {commodities?.map(commodity => (
-                            <SelectItem key={commodity.id} value={commodity.name}>
-                                {commodity.name}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+                <Combobox
+                    options={commodityOptions}
+                    value={commodityDescription}
+                    onChange={setCommodityDescription}
+                    placeholder="Select a product..."
+                    searchPlaceholder="Search products..."
+                    modal={true}
+                />
               </div>
               
               <div className="grid grid-cols-2 gap-4">
@@ -286,53 +284,46 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
                   <div className="space-y-2"><Label htmlFor="edit-lorry-no">Lorry/Tractor No.</Label><Input id="edit-lorry-no" placeholder="AP 12 3456" value={lorryTractorNo} onChange={e => setLorryTractorNo(e.target.value)} /></div>
               </div>
 
-              <Separator className="my-4" />
-              <h4 className="text-sm font-semibold text-muted-foreground -mb-2">Drying & Hamali Details</h4>
-
-              <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2"><Label htmlFor="edit-drying-start">Drying Start Date</Label><Input id="edit-drying-start" type="date" value={dryingStartDate} onChange={(e) => setDryingStartDate(e.target.value)} /></div>
-                  <div className="space-y-2"><Label htmlFor="edit-bags-drying">Bags Plotted for Drying</Label><Input id="edit-bags-drying" type="number" value={bagsForDrying} onChange={(e) => setBagsForDrying(e.target.value === '' ? '' : Number(e.target.value))} /></div>
-              </div>
-
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="space-y-2"><Label htmlFor="edit-cust-hamali">Cust. Hamali/Bag</Label><Input id="edit-cust-hamali" type="number" step="0.01" value={customerHamaliPerBag} onChange={(e) => setCustomerHamaliPerBag(e.target.value === '' ? '' : Number(e.target.value))} /></div>
-                    <div className="space-y-2"><Label htmlFor="edit-work-hamali">Worker Hamali/Bag</Label><Input id="edit-work-hamali" type="number" step="0.01" value={workerHamaliPerBag} onChange={(e) => setWorkerHamaliPerBag(e.target.value === '' ? '' : Number(e.target.value))} placeholder="Worker Rate" /></div>
-                    <div className="space-y-2"><Label htmlFor="edit-pav-hamali">Pav Hamali/Bag/Day</Label><Input id="edit-pav-hamali" type="number" step="0.01" value={pavHamaliPerBag} onChange={(e) => setPavHamaliPerBag(e.target.value === '' ? '' : Number(e.target.value))} /></div>
-                    <div className="space-y-2"><Label htmlFor="edit-cuppa-hamali">Cuppa Hamali/Bag/Day</Label><Input id="edit-cuppa-hamali" type="number" step="0.01" value={cuppaHamaliPerBag} onChange={(e) => setCuppaHamaliPerBag(e.target.value === '' ? '' : Number(e.target.value))} /></div>
-              </div>
-              
-              {calculatedHamali && (
-                  <div className="space-y-2 p-3 border rounded-md text-sm bg-secondary/30">
-                      <h5 className="font-medium">Live Summary</h5>
-                      <div className="flex justify-between font-semibold"><span >Total Hamali for Customer:</span> <span className="font-mono">{formatCurrency(calculatedHamali.totalCustomerCharge)}</span></div>
-                        {calculatedHamali.totalWorkerPayable !== undefined && <div className="flex justify-between font-semibold"><span >Total Payable to Worker:</span> <span className="font-mono">{formatCurrency(calculatedHamali.totalWorkerPayable)}</span></div>}
-                  </div>
-              )}
-
-              <Separator className="my-4" />
-
               <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2"><Label htmlFor="edit-bags-in">Bags (Packed/Final)</Label><Input id="edit-bags-in" type="number" value={bagsIn} onChange={(e) => setBagsIn(e.target.value === '' ? '' : Number(e.target.value))} /></div>
                   <div className="space-y-2"><Label htmlFor="edit-weight">Weight (Kgs)</Label><Input id="edit-weight" type="number" step="0.01" value={weight} onChange={e => setWeight(e.target.value === '' ? '' : Number(e.target.value))} /></div>
               </div>
 
+              <Separator className="my-2" />
+              <h4 className="text-sm font-semibold text-muted-foreground">Hamali & Drying Details</h4>
+
               <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                      <Label htmlFor="edit-hamali-rate-direct">Direct Hamali Rate/Bag</Label>
-                      <Input id="edit-hamali-rate-direct" type="number" step="0.01" value={hamaliRate} onChange={e => setHamaliRate(e.target.value === '' ? '' : Number(e.target.value))} />
+                      <Label htmlFor="edit-hamali-rate-direct">Hamali Rate/Bag</Label>
+                      <Input id="edit-hamali-rate-direct" type="number" step="0.01" value={customerHamaliPerBag !== '' ? customerHamaliPerBag : hamaliRate} onChange={e => {
+                          const val = e.target.value === '' ? '' : Number(e.target.value);
+                          setCustomerHamaliPerBag(val);
+                          setHamaliRate(val);
+                      }} />
                   </div>
                   <div className="space-y-2">
-                      <Label htmlFor="edit-khataAmount">Khata Amount (Weighbridge)</Label>
+                      <Label htmlFor="edit-khataAmount">Khata Amount</Label>
                       <Input id="edit-khataAmount" type="number" step="0.01" placeholder="0.00" value={khataAmount} onChange={e => setKhataAmount(e.target.value === '' ? '' : Number(e.target.value))}/>
                   </div>
               </div>
 
+              {record.inflowType === 'Plot' && (
+                <div className="grid grid-cols-2 gap-4 p-4 border rounded-lg bg-secondary/10">
+                    <div className="space-y-2"><Label htmlFor="edit-drying-start">Drying Start Date</Label><Input id="edit-drying-start" type="date" value={dryingStartDate} onChange={(e) => setDryingStartDate(e.target.value)} /></div>
+                    <div className="space-y-2"><Label htmlFor="edit-bags-drying">Bags Plotted</Label><Input id="edit-bags-drying" type="number" value={bagsForDrying} onChange={(e) => setBagsForDrying(e.target.value === '' ? '' : Number(e.target.value))} /></div>
+                    
+                    <div className="space-y-2"><Label htmlFor="edit-work-hamali">Worker Rate</Label><Input id="edit-work-hamali" type="number" step="0.01" value={workerHamaliPerBag} onChange={(e) => setWorkerHamaliPerBag(e.target.value === '' ? '' : Number(e.target.value))} /></div>
+                    <div className="space-y-2"><Label htmlFor="edit-pav-hamali">Pav Rate</Label><Input id="edit-pav-hamali" type="number" step="0.01" value={pavHamaliPerBag} onChange={(e) => setPavHamaliPerBag(e.target.value === '' ? '' : Number(e.target.value))} /></div>
+                    <div className="space-y-2 col-span-2"><Label htmlFor="edit-cuppa-hamali">Cuppa Rate</Label><Input id="edit-cuppa-hamali" type="number" step="0.01" value={cuppaHamaliPerBag} onChange={(e) => setCuppaHamaliPerBag(e.target.value === '' ? '' : Number(e.target.value))} /></div>
+                </div>
+              )}
+
                <div className="space-y-2">
-                 <Label htmlFor="edit-location">Location</Label>
+                 <Label htmlFor="edit-location">Location (Lot No.)</Label>
                  <Select onValueChange={setLocation} value={location}>
                      <SelectTrigger id="edit-location"><SelectValue placeholder="Select a lot..."/></SelectTrigger>
                      <SelectContent>
-                         {lots?.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true })).map(lot => {
+                         {(lots || []).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true })).map(lot => {
                              const occupied = lotOccupancy[lot.name] || 0;
                              return ( <SelectItem key={lot.id} value={lot.name}> {lot.name} ({occupied} bags) </SelectItem> )
                          })}
@@ -340,19 +331,12 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
                  </Select>
                 </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="gap-2">
             <DialogClose asChild>
               <Button variant="outline" type="button">Cancel</Button>
             </DialogClose>
             <Button type="submit" disabled={isPending}>
-              {isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                'Save Changes'
-              )}
+              {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : <><Save className="mr-2 h-4 w-4" /> Save Changes</>}
             </Button>
           </DialogFooter>
         </form>

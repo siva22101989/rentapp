@@ -42,13 +42,13 @@ export function EditDryingDialog({ record, unloadingRecord, children }: { record
   const firestore = useFirestore();
 
   const [dryingStartDate, setDryingStartDate] = useState('');
-  const [packingDate, setPackingDate] = useState<string | undefined>('');
+  const [packingDate, setPackingDate] = useState('');
   const [bagsForDrying, setBagsForDrying] = useState<number | ''>('');
-  const [bagsPacked, setBagsPacked] = useState<number | '' | undefined>(undefined);
-  const [customerHamaliPerBag, setCustomerHamaliPerBag] = useState<number | '' | undefined>(undefined);
-  const [workerHamaliPerBag, setWorkerHamaliPerBag] = useState<number | '' | undefined>(undefined);
-  const [pavHamaliPerBag, setPavHamaliPerBag] = useState<number | '' | undefined>(undefined);
-  const [cuppaHamaliPerBag, setCuppaHamaliPerBag] = useState<number | '' | undefined>(undefined);
+  const [bagsPacked, setBagsPacked] = useState<number | ''>('');
+  const [customerHamaliPerBag, setCustomerHamaliPerBag] = useState<number | ''>('');
+  const [workerHamaliPerBag, setWorkerHamaliPerBag] = useState<number | ''>('');
+  const [pavHamaliPerBag, setPavHamaliPerBag] = useState<number | ''>('');
+  const [cuppaHamaliPerBag, setCuppaHamaliPerBag] = useState<number | ''>('');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
 
@@ -56,36 +56,26 @@ export function EditDryingDialog({ record, unloadingRecord, children }: { record
     if (isOpen) {
       const getRate = (desc: string) => record.hamaliDetails?.find(d => d.description.toLowerCase().includes(desc.toLowerCase()))?.rate;
       
-      setDryingStartDate(format(toDate(record.dryingStartDate), 'yyyy-MM-dd'));
+      setDryingStartDate(record.dryingStartDate ? format(toDate(record.dryingStartDate), 'yyyy-MM-dd') : '');
       setPackingDate(record.packingDate ? format(toDate(record.packingDate), 'yyyy-MM-dd') : '');
-      setBagsForDrying(record.bagsForDrying);
-      setBagsPacked(record.bagsPacked ?? undefined);
-      setCustomerHamaliPerBag(getRate('customer'));
-      setPavHamaliPerBag(getRate('pav'));
-      setCuppaHamaliPerBag(getRate('cuppa'));
-      setWorkerHamaliPerBag(record.workerHamaliPayable !== undefined && record.bagsForDrying > 0 ? record.workerHamaliPayable / record.bagsForDrying : undefined);
+      setBagsForDrying(record.bagsForDrying ?? '');
+      setBagsPacked(record.bagsPacked ?? '');
+      setCustomerHamaliPerBag(getRate('customer') ?? '');
+      setPavHamaliPerBag(getRate('pav') ?? '');
+      setCuppaHamaliPerBag(getRate('cuppa') ?? '');
+      setWorkerHamaliPerBag(record.workerHamaliPayable !== undefined && (record.bagsForDrying || 1) > 0 
+        ? record.workerHamaliPayable / (record.bagsForDrying || 1) 
+        : '');
       setErrors({});
     }
   }, [isOpen, record]);
   
-  const formValues = {
-    dryingStartDate,
-    packingDate,
-    bagsForDrying,
-    bagsPacked,
-    customerHamaliPerBag,
-    workerHamaliPerBag,
-    pavHamaliPerBag,
-    cuppaHamaliPerBag,
-  };
-
   const calculatedHamali = useMemo(() => {
-    const { dryingStartDate, packingDate, bagsForDrying, customerHamaliPerBag, workerHamaliPerBag, pavHamaliPerBag, cuppaHamaliPerBag } = formValues;
-
     const unloadingHamaliDetail = record.hamaliDetails?.find(d => d.description === 'Unloading Hamali');
     const proportionalUnloadingHamali = unloadingHamaliDetail?.amount || 0;
 
-    const day1CustomerHamali = (Number(bagsForDrying) || 0) * (Number(customerHamaliPerBag) || 0);
+    const bags = Number(bagsForDrying) || 0;
+    const day1CustomerHamali = bags * (Number(customerHamaliPerBag) || 0);
 
     let extraDryingDays = 0;
     if (dryingStartDate && packingDate) {
@@ -97,11 +87,11 @@ export function EditDryingDialog({ record, unloadingRecord, children }: { record
         }
     }
     
-    const pavHamali = (Number(bagsForDrying) || 0) * (Number(pavHamaliPerBag) || 0) * extraDryingDays;
-    const cuppaHamali = (Number(bagsForDrying) || 0) * (Number(cuppaHamaliPerBag) || 0) * extraDryingDays;
+    const pavHamali = bags * (Number(pavHamaliPerBag) || 0) * extraDryingDays;
+    const cuppaHamali = bags * (Number(cuppaHamaliPerBag) || 0) * extraDryingDays;
     const totalCustomerCharge = proportionalUnloadingHamali + day1CustomerHamali + pavHamali + cuppaHamali;
     
-    const day1WorkerHamali = (Number(bagsForDrying) || 0) * (Number(workerHamaliPerBag) || 0);
+    const day1WorkerHamali = bags * (Number(workerHamaliPerBag) || 0);
     const totalWorkerPayable = proportionalUnloadingHamali + day1WorkerHamali + pavHamali + cuppaHamali;
 
     return {
@@ -111,10 +101,10 @@ export function EditDryingDialog({ record, unloadingRecord, children }: { record
         cuppaHamali,
         totalCustomerCharge,
         extraDryingDays,
-        totalWorkerPayable: workerHamaliPerBag !== undefined ? totalWorkerPayable : undefined,
+        totalWorkerPayable: workerHamaliPerBag !== '' ? totalWorkerPayable : undefined,
     }
 
-  }, [formValues, record.hamaliDetails]);
+  }, [bagsForDrying, customerHamaliPerBag, dryingStartDate, packingDate, pavHamaliPerBag, cuppaHamaliPerBag, workerHamaliPerBag, record.hamaliDetails]);
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -128,7 +118,7 @@ export function EditDryingDialog({ record, unloadingRecord, children }: { record
       dryingStartDate,
       packingDate: packingDate || undefined,
       bagsForDrying: Number(bagsForDrying),
-      bagsPacked: bagsPacked === '' || bagsPacked === undefined ? undefined : Number(bagsPacked),
+      bagsPacked: bagsPacked === '' ? undefined : Number(bagsPacked),
       customerHamaliPerBag: customerHamaliPerBag === '' ? undefined : Number(customerHamaliPerBag),
       workerHamaliPerBag: workerHamaliPerBag === '' ? undefined : Number(workerHamaliPerBag),
       pavHamaliPerBag: pavHamaliPerBag === '' ? undefined : Number(pavHamaliPerBag),
@@ -149,9 +139,9 @@ export function EditDryingDialog({ record, unloadingRecord, children }: { record
         const hamaliDetails: HamaliChargeItem[] = [];
         const unloadingHamaliDetail = record.hamaliDetails?.find(d => d.description === 'Unloading Hamali');
         if(unloadingHamaliDetail) hamaliDetails.push(unloadingHamaliDetail);
-        if(calculatedHamali.day1CustomerHamali > 0) hamaliDetails.push({ description: 'Customer Hamali', bags: data.bagsForDrying || 0, rate: data.customerHamaliPerBag || 0, amount: calculatedHamali.day1CustomerHamali });
-        if(calculatedHamali.pavHamali > 0) hamaliDetails.push({ description: `Pav Hamali (${calculatedHamali.extraDryingDays} extra day${calculatedHamali.extraDryingDays !== 1 ? 's' : ''})`, bags: data.bagsForDrying || 0, rate: data.pavHamaliPerBag || 0, amount: calculatedHamali.pavHamali });
-        if(calculatedHamali.cuppaHamali > 0) hamaliDetails.push({ description: `Cuppa Hamali (${calculatedHamali.extraDryingDays} extra day${calculatedHamali.extraDryingDays !== 1 ? 's' : ''})`, bags: data.bagsForDrying || 0, rate: data.cuppaHamaliPerBag || 0, amount: calculatedHamali.cuppaHamali });
+        if(calculatedHamali.day1CustomerHamali > 0) hamaliDetails.push({ description: 'Customer Hamali', bags: data.bagsForDrying, rate: data.customerHamaliPerBag || 0, amount: calculatedHamali.day1CustomerHamali });
+        if(calculatedHamali.pavHamali > 0) hamaliDetails.push({ description: `Pav Hamali (${calculatedHamali.extraDryingDays} extra day${calculatedHamali.extraDryingDays !== 1 ? 's' : ''})`, bags: data.bagsForDrying, rate: data.pavHamaliPerBag || 0, amount: calculatedHamali.pavHamali });
+        if(calculatedHamali.cuppaHamali > 0) hamaliDetails.push({ description: `Cuppa Hamali (${calculatedHamali.extraDryingDays} extra day${calculatedHamali.extraDryingDays !== 1 ? 's' : ''})`, bags: data.bagsForDrying, rate: data.cuppaHamaliPerBag || 0, amount: calculatedHamali.cuppaHamali });
         
         const updateData: Partial<DryingRecord> = {
           dryingStartDate: new Date(data.dryingStartDate),
@@ -169,11 +159,11 @@ export function EditDryingDialog({ record, unloadingRecord, children }: { record
         
         await updateDryingRecord(firestore, record.id, record.bagsForDrying, updateData);
 
-        toast({ title: 'Success', description: 'Drying record has been updated.' });
+        toast({ title: 'Success', description: 'Drying record updated successfully.' });
         setIsOpen(false);
       } catch (error) {
         console.error(error);
-        toast({ title: 'Error', description: error instanceof Error ? error.message : 'Failed to update record.', variant: 'destructive' });
+        toast({ title: 'Error', description: 'Failed to update record.', variant: 'destructive' });
       }
     });
   };
@@ -181,15 +171,15 @@ export function EditDryingDialog({ record, unloadingRecord, children }: { record
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
           <form onSubmit={onSubmit}>
             <DialogHeader>
               <DialogTitle>Edit Drying Record</DialogTitle>
               <DialogDescription>
-                Update any detail for this process. Every field is fully unlocked and editable.
+                Adjust any detail for this process. All fields are unlocked.
               </DialogDescription>
             </DialogHeader>
-            <div className="py-4 space-y-4 max-h-[70vh] overflow-y-auto pr-4">
+            <div className="py-4 space-y-4 pr-2">
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <Label htmlFor="dryingStartDate">Drying Start Date</Label>
@@ -197,56 +187,44 @@ export function EditDryingDialog({ record, unloadingRecord, children }: { record
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="packingDate">Packing Date (Optional)</Label>
-                        <Input id="packingDate" type="date" value={packingDate || ''} onChange={(e) => setPackingDate(e.target.value)} />
+                        <Input id="packingDate" type="date" value={packingDate} onChange={(e) => setPackingDate(e.target.value)} />
                     </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                        <Label htmlFor="bagsForDrying">Bags Plotted for Drying</Label>
+                        <Label htmlFor="bagsForDrying">Bags for Drying</Label>
                         <Input id="bagsForDrying" type="number" value={bagsForDrying} onChange={(e) => setBagsForDrying(e.target.value === '' ? '' : Number(e.target.value))} />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="bagsPacked">Bags Packed (Optional)</Label>
-                        <Input id="bagsPacked" type="number" value={bagsPacked === undefined ? '' : bagsPacked} onChange={(e) => setBagsPacked(e.target.value === '' ? undefined : Number(e.target.value))} />
+                        <Input id="bagsPacked" type="number" value={bagsPacked} onChange={(e) => setBagsPacked(e.target.value === '' ? '' : Number(e.target.value))} />
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 border rounded-lg bg-secondary/10">
                     <div className="space-y-2">
-                        <Label htmlFor="customerHamaliPerBag">Cust. Hamali/Bag</Label>
-                        <Input id="customerHamaliPerBag" type="number" step="0.01" value={customerHamaliPerBag === undefined ? '' : customerHamaliPerBag} onChange={(e) => setCustomerHamaliPerBag(e.target.value === '' ? undefined : Number(e.target.value))} />
+                        <Label htmlFor="customerHamaliPerBag">Cust. Rate</Label>
+                        <Input id="customerHamaliPerBag" type="number" step="0.01" value={customerHamaliPerBag} onChange={(e) => setCustomerHamaliPerBag(e.target.value === '' ? '' : Number(e.target.value))} />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="workerHamaliPerBag">Worker Hamali/Bag</Label>
-                        <Input id="workerHamaliPerBag" type="number" step="0.01" value={workerHamaliPerBag === undefined ? '' : workerHamaliPerBag} onChange={(e) => setWorkerHamaliPerBag(e.target.value === '' ? undefined : Number(e.target.value))} placeholder="Worker Rate" />
+                        <Label htmlFor="workerHamaliPerBag">Worker Rate</Label>
+                        <Input id="workerHamaliPerBag" type="number" step="0.01" value={workerHamaliPerBag} onChange={(e) => setWorkerHamaliPerBag(e.target.value === '' ? '' : Number(e.target.value))} />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="pavHamaliPerBag">Pav Hamali/Bag/Day</Label>
-                        <Input id="pavHamaliPerBag" type="number" step="0.01" value={pavHamaliPerBag === undefined ? '' : pavHamaliPerBag} onChange={(e) => setPavHamaliPerBag(e.target.value === '' ? undefined : Number(e.target.value))} />
+                        <Label htmlFor="pavHamaliPerBag">Pav Rate</Label>
+                        <Input id="pavHamaliPerBag" type="number" step="0.01" value={pavHamaliPerBag} onChange={(e) => setPavHamaliPerBag(e.target.value === '' ? '' : Number(e.target.value))} />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="cuppaHamaliPerBag">Cuppa Hamali/Bag/Day</Label>
-                        <Input id="cuppaHamaliPerBag" type="number" step="0.01" value={cuppaHamaliPerBag === undefined ? '' : cuppaHamaliPerBag} onChange={(e) => setCuppaHamaliPerBag(e.target.value === '' ? undefined : Number(e.target.value))} />
+                        <Label htmlFor="cuppaHamaliPerBag">Cuppa Rate</Label>
+                        <Input id="cuppaHamaliPerBag" type="number" step="0.01" value={cuppaHamaliPerBag} onChange={(e) => setCuppaHamaliPerBag(e.target.value === '' ? '' : Number(e.target.value))} />
                     </div>
                 </div>
-                
-                {calculatedHamali && (
-                    <div className="space-y-2 p-3 border rounded-md text-sm bg-secondary/30">
-                        <h5 className="font-medium">Live Summary</h5>
-                        <div className="flex justify-between font-semibold"><span >Total Hamali for Customer:</span> <span className="font-mono">{formatCurrency(calculatedHamali.totalCustomerCharge)}</span></div>
-                         {calculatedHamali.totalWorkerPayable !== undefined && <div className="flex justify-between font-semibold"><span >Total Payable to Worker:</span> <span className="font-mono">{formatCurrency(calculatedHamali.totalWorkerPayable)}</span></div>}
-                    </div>
-                )}
             </div>
-            <DialogFooter>
+            <DialogFooter className="gap-2">
               <DialogClose asChild><Button variant="outline" type="button">Cancel</Button></DialogClose>
               <Button type="submit" disabled={isPending}>
-                {isPending ? (
-                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
-                ) : (
-                  <><Save className="mr-2 h-4 w-4" /> Save Changes</>
-                )}
+                {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : <><Save className="mr-2 h-4 w-4" /> Save Changes</>}
               </Button>
             </DialogFooter>
           </form>

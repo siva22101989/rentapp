@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition, useEffect, useMemo } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -56,6 +56,7 @@ export function EditUnloadingRecordDialog({
   const [isPending, startTransition] = useTransition();
   const firestore = useFirestore();
   const customerOptions = customers.map(c => ({ value: c.id, label: c.name }));
+  const commodityOptions = (commodities || []).map(c => ({ value: c.name, label: c.name }));
 
   const [customerId, setCustomerId] = useState('');
   const [commodityDescription, setCommodityDescription] = useState('');
@@ -66,11 +67,11 @@ export function EditUnloadingRecordDialog({
   const [customerHamaliPerBag, setCustomerHamaliPerBag] = useState<number | ''>('');
   const [workerHamaliPerBag, setWorkerHamaliPerBag] = useState<number | ''>('');
   const [billNo, setBillNo] = useState('');
-  const [error, setError] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const lotOccupancy = useMemo(() => {
     const occupancy: { [lotName: string]: number } = {};
-    storageRecords.forEach(r => {
+    (storageRecords || []).forEach(r => {
         if (r.location && r.bagsStored > 0) {
             occupancy[r.location] = (occupancy[r.location] || 0) + r.bagsStored;
         }
@@ -79,7 +80,7 @@ export function EditUnloadingRecordDialog({
   }, [storageRecords]);
 
   const lotOptions = useMemo(() => {
-    return lots
+    return (lots || [])
         .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
         .map(lot => {
             const occupied = lotOccupancy[lot.name] || 0;
@@ -96,29 +97,28 @@ export function EditUnloadingRecordDialog({
     return localDate.toISOString().slice(0, 16);
   };
   
-  const handleOpenChange = (open: boolean) => {
-    if (open) {
+  useEffect(() => {
+    if (isOpen) {
       const workerRate = record.workerHamaliPayable !== undefined && record.bagsUnloaded > 0
         ? record.workerHamaliPayable / record.bagsUnloaded
         : record.hamaliPerBag;
 
-      setCustomerId(record.customerId);
-      setCommodityDescription(record.commodityDescription);
+      setCustomerId(record.customerId || '');
+      setCommodityDescription(record.commodityDescription || '');
       setLocation(record.location || '');
       setLorryTractorNo(record.lorryTractorNo || '');
       setUnloadingDate(getLocalDateTimeForInput(toDate(record.unloadingDate)));
-      setBagsUnloaded(record.bagsUnloaded);
-      setCustomerHamaliPerBag(record.hamaliPerBag);
-      setWorkerHamaliPerBag(workerRate);
+      setBagsUnloaded(record.bagsUnloaded || '');
+      setCustomerHamaliPerBag(record.hamaliPerBag || '');
+      setWorkerHamaliPerBag(workerRate || '');
       setBillNo(record.billNo || '');
-      setError({});
+      setErrors({});
     }
-    setIsOpen(open);
-  }
+  }, [isOpen, record]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setError({});
+    setErrors({});
     if (!firestore) {
       toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
       return;
@@ -140,10 +140,13 @@ export function EditUnloadingRecordDialog({
 
     if (!result.success) {
       const fieldErrors = result.error.flatten().fieldErrors;
-      setError(Object.entries(fieldErrors).reduce((acc, [key, value]) => {
-        if(value) acc[key] = value[0];
-        return acc;
-      }, {} as Record<string, string>));
+      const newErrors: Record<string, string> = {};
+      Object.keys(fieldErrors).forEach(key => {
+        if (fieldErrors[key as keyof typeof fieldErrors]) {
+            newErrors[key] = fieldErrors[key as keyof typeof fieldErrors]![0];
+        }
+      });
+      setErrors(newErrors);
       return;
     }
 
@@ -170,20 +173,21 @@ export function EditUnloadingRecordDialog({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>Edit Unloading Record</DialogTitle>
             <DialogDescription>
-              Adjust details for Bill No. {record.billNo}. All fields are unlocked and fully editable.
+              Adjust details for Bill No. {record.billNo}. All fields are fully editable.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
+          <div className="grid gap-4 py-4 pr-2">
             <div className="space-y-2">
                 <Label htmlFor="edit-bill-no">Bill No.</Label>
                 <Input id="edit-bill-no" value={billNo} onChange={(e) => setBillNo(e.target.value)} />
+                {errors.billNo && <p className="text-xs text-destructive">{errors.billNo}</p>}
             </div>
             <div className="space-y-2">
                 <Label htmlFor="customerId">Customer</Label>
@@ -193,32 +197,33 @@ export function EditUnloadingRecordDialog({
                     onChange={setCustomerId}
                     placeholder="Select a customer..."
                     searchPlaceholder="Search customers..."
-                    emptyPlaceholder="No customer found."
+                    modal={true}
                 />
+                {errors.customerId && <p className="text-xs text-destructive">{errors.customerId}</p>}
             </div>
              <div className="space-y-2">
                 <Label htmlFor="commodityDescription">Commodity</Label>
-                <Select onValueChange={setCommodityDescription} value={commodityDescription}>
-                    <SelectTrigger id="commodityDescription"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                        {commodities.map(commodity => (
-                            <SelectItem key={commodity.id} value={commodity.name}>
-                                {commodity.name}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+                <Combobox
+                    options={commodityOptions}
+                    value={commodityDescription}
+                    onChange={setCommodityDescription}
+                    placeholder="Select a product..."
+                    searchPlaceholder="Search products..."
+                    modal={true}
+                />
+                {errors.commodityDescription && <p className="text-xs text-destructive">{errors.commodityDescription}</p>}
             </div>
             <div className="space-y-2">
                 <Label htmlFor="location">Storage Location (Lot No.)</Label>
-                <Combobox
-                    options={lotOptions}
-                    value={location}
-                    onChange={setLocation}
-                    placeholder="Select a location..."
-                    searchPlaceholder="Search locations..."
-                    emptyPlaceholder="No locations found."
-                />
+                <Select onValueChange={setLocation} value={location}>
+                    <SelectTrigger id="location"><SelectValue placeholder="Select a lot..." /></SelectTrigger>
+                    <SelectContent>
+                        {lotOptions.map(opt => (
+                            <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                {errors.location && <p className="text-xs text-destructive">{errors.location}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="lorryTractorNo">Lorry/Tractor No.</Label>
@@ -227,34 +232,33 @@ export function EditUnloadingRecordDialog({
             <div className="space-y-2">
               <Label htmlFor="unloadingDate">Unloading Date & Time</Label>
               <Input id="unloadingDate" type="datetime-local" value={unloadingDate} onChange={e => setUnloadingDate(e.target.value)} />
+              {errors.unloadingDate && <p className="text-xs text-destructive">{errors.unloadingDate}</p>}
             </div>
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="bagsUnloaded">Bags Unloaded</Label>
                 <Input id="bagsUnloaded" type="number" value={bagsUnloaded} onChange={e => setBagsUnloaded(e.target.value === '' ? '' : Number(e.target.value))} />
+                {errors.bagsUnloaded && <p className="text-xs text-destructive">{errors.bagsUnloaded}</p>}
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                    <Label htmlFor="customerHamaliPerBag">Customer Hamali per Bag</Label>
+                    <Label htmlFor="customerHamaliPerBag">Customer Rate</Label>
                     <Input id="customerHamaliPerBag" type="number" step="0.01" value={customerHamaliPerBag} onChange={e => setCustomerHamaliPerBag(e.target.value === '' ? '' : Number(e.target.value))} />
+                    {errors.customerHamaliPerBag && <p className="text-xs text-destructive">{errors.customerHamaliPerBag}</p>}
                 </div>
                  <div className="space-y-2">
-                    <Label htmlFor="workerHamaliPerBag">Worker Hamali per Bag</Label>
+                    <Label htmlFor="workerHamaliPerBag">Worker Rate</Label>
                     <Input id="workerHamaliPerBag" type="number" step="0.01" value={workerHamaliPerBag} onChange={e => setWorkerHamaliPerBag(e.target.value === '' ? '' : Number(e.target.value))} />
                 </div>
               </div>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="gap-2">
             <DialogClose asChild>
               <Button variant="outline" type="button">Cancel</Button>
             </DialogClose>
             <Button type="submit" disabled={isPending}>
-              {isPending ? (
-                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
-              ) : (
-                'Save Changes'
-              )}
+              {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : <><Save className="mr-2 h-4 w-4" /> Save Changes</>}
             </Button>
           </DialogFooter>
         </form>

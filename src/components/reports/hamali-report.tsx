@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -75,7 +76,7 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses, w
                         date: toDate(ur.unloadingDate),
                         customerId: ur.customerId,
                         description: 'Unloading Hamali (pending finalize)',
-                        recordId: ur.billNo || ur.id.substring(0, 5),
+                        recordId: ur.billNo || ur.id.substring(0, 5).replace(/\D/g, ''),
                         amount: remainingHamali,
                         type: 'charge',
                         bags: bagsRemaining,
@@ -104,7 +105,7 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses, w
                     date: toDate(payment.date),
                     customerId: ur.customerId,
                     description: 'Payment',
-                    recordId: ur.billNo || 'N/A',
+                    recordId: ur.billNo || ur.id.substring(0, 5).replace(/\D/g, ''),
                     amount: payment.amount,
                     type: 'payment',
                 });
@@ -159,7 +160,7 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses, w
                 events.push({
                     date: toDate(ur.unloadingDate),
                     description: 'Unloading Hamali (pending finalize)',
-                    recordId: ur.billNo || ur.id.substring(0, 5),
+                    recordId: ur.billNo || ur.id.substring(0, 5).replace(/\D/g, ''),
                     customerId: ur.customerId,
                     charge: customerChargeForRemaining,
                     payable: workerPayableForRemaining,
@@ -173,7 +174,7 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses, w
             events.push({
                 date: toDate(exp.date),
                 description: "Worker Payment",
-                recordId: exp.id,
+                recordId: exp.refNo || exp.id.substring(0, 5).replace(/\D/g, ''),
                 payable: 0,
                 paid: exp.amount,
                 charge: 0,

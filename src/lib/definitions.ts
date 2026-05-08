@@ -91,6 +91,7 @@ export type ExpenseCategory = typeof expenseCategories[number];
 
 export type Expense = {
   id: string;
+  refNo?: string;
   warehouseId?: string;
   description: string;
   amount: number;
@@ -101,6 +102,7 @@ export type Expense = {
 
 export type Borrowing = {
   id: string;
+  refNo?: string;
   warehouseId?: string;
   lenderName: string;
   principal: number;
@@ -112,6 +114,7 @@ export type Borrowing = {
 
 export type Lending = {
   id: string;
+  refNo?: string;
   warehouseId?: string;
   borrowerName: string;
   principal: number;
@@ -126,6 +129,7 @@ export type IncomeCategory = typeof incomeCategories[number];
 
 export type OtherIncome = {
     id: string;
+    refNo?: string;
     warehouseId?: string;
     description: string;
     amount: number;

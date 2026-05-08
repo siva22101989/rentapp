@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { Loader2, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -27,6 +27,7 @@ import { cleanForFirestore, formatCurrency } from '@/lib/utils';
 import { useAppUser } from '@/firebase/auth/use-user';
 
 const IncomeSchema = z.object({
+  refNo: z.string().regex(/^\d+$/, 'Reference No must be numerical only.').min(1, 'Reference No is required.'),
   description: z.string().min(2, 'Description is required.'),
   amount: z.coerce.number().positive('Amount must be a positive number.'),
   date: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
@@ -42,7 +43,7 @@ const IncomeSchema = z.object({
     }
 });
 
-export function AddIncomeDialog({ lendings }: { lendings: Lending[] }) {
+export function AddIncomeDialog({ lendings, nextRefNo }: { lendings: Lending[], nextRefNo: string }) {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -53,9 +54,14 @@ export function AddIncomeDialog({ lendings }: { lendings: Lending[] }) {
   const [category, setCategory] = useState<IncomeCategory | undefined>(undefined);
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState<number | ''>('');
+  const [refNo, setRefNo] = useState(nextRefNo);
   const [lendingId, setLendingId] = useState<string | undefined>(undefined);
   const [errors, setErrors] = useState<Record<string, string>>({});
   
+  useEffect(() => {
+    if (isOpen) setRefNo(nextRefNo);
+  }, [isOpen, nextRefNo]);
+
   const isLoanPayment = category === 'Loan Payment Received';
 
   const resetForm = () => {
@@ -63,6 +69,7 @@ export function AddIncomeDialog({ lendings }: { lendings: Lending[] }) {
     setCategory(undefined);
     setDescription('');
     setAmount('');
+    setRefNo(nextRefNo);
     setLendingId(undefined);
     setErrors({});
   };
@@ -75,7 +82,7 @@ export function AddIncomeDialog({ lendings }: { lendings: Lending[] }) {
       return;
     }
 
-    const dataToValidate = { description, amount, date, category, lendingId };
+    const dataToValidate = { refNo, description, amount, date, category, lendingId };
 
     const validationResult = IncomeSchema.safeParse(dataToValidate);
     if(!validationResult.success) {
@@ -104,6 +111,7 @@ export function AddIncomeDialog({ lendings }: { lendings: Lending[] }) {
         }
 
         const newIncome = {
+          refNo: data.refNo,
           description: finalDescription,
           amount: data.amount,
           date: new Date(data.date),
@@ -127,10 +135,7 @@ export function AddIncomeDialog({ lendings }: { lendings: Lending[] }) {
 
         await batch.commit();
         
-        const successMessage = isLoanPayment 
-            ? "Loan payment received and recorded as income."
-            : "Income added successfully.";
-        toast({ title: 'Success', description: successMessage });
+        toast({ title: 'Success', description: "Income added successfully." });
 
         setIsOpen(false);
         resetForm();
@@ -149,7 +154,7 @@ export function AddIncomeDialog({ lendings }: { lendings: Lending[] }) {
           Add Income
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-sm">
+      <DialogContent className="sm:max-w-md">
           <form onSubmit={handleSubmit}>
             <DialogHeader>
               <DialogTitle>Add Miscellaneous Income</DialogTitle>
@@ -157,11 +162,18 @@ export function AddIncomeDialog({ lendings }: { lendings: Lending[] }) {
                 Record any income received by the business.
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-2 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="date">Date</Label>
-                <Input id="date" type="date" value={date} onChange={e => setDate(e.target.value)} />
-                {errors.date && <p className="text-sm font-medium text-destructive">{errors.date}</p>}
+            <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-2">
+              <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="incRefNo">Reference No</Label>
+                    <Input id="incRefNo" type="number" value={refNo} onChange={e => setRefNo(e.target.value)} />
+                    {errors.refNo && <p className="text-sm font-medium text-destructive">{errors.refNo}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="incDate">Date</Label>
+                    <Input id="incDate" type="date" value={date} onChange={e => setDate(e.target.value)} />
+                    {errors.date && <p className="text-sm font-medium text-destructive">{errors.date}</p>}
+                  </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
@@ -183,7 +195,7 @@ export function AddIncomeDialog({ lendings }: { lendings: Lending[] }) {
                     <Label htmlFor="lendingId">Loan Account (Lending)</Label>
                     <Select onValueChange={setLendingId} value={lendingId}>
                         <SelectTrigger id="lendingId"><SelectValue placeholder="Select loan account" /></SelectTrigger>
-                        <SelectContent className="w-auto min-w-[var(--radix-select-trigger-width)]">
+                        <SelectContent>
                         {lendings
                             .filter(l => l.status !== 'Paid Off')
                             .map(l => (
@@ -212,10 +224,7 @@ export function AddIncomeDialog({ lendings }: { lendings: Lending[] }) {
               <DialogClose asChild><Button variant="outline" type="button">Cancel</Button></DialogClose>
               <Button type="submit" disabled={isPending}>
                 {isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
                 ) : (
                   'Save Income'
                 )}

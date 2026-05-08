@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { Loader2, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -27,6 +27,7 @@ import { cleanForFirestore, formatCurrency } from '@/lib/utils';
 import { useAppUser } from '@/firebase/auth/use-user';
 
 const ExpenseSchema = z.object({
+  refNo: z.string().regex(/^\d+$/, 'Reference No must be numerical only.').min(1, 'Reference No is required.'),
   description: z.string().min(2, 'Description is required.'),
   amount: z.coerce.number().positive('Amount must be a positive number.'),
   date: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
@@ -42,7 +43,7 @@ const ExpenseSchema = z.object({
     }
 });
 
-export function AddExpenseDialog({ borrowings }: { borrowings: Borrowing[] }) {
+export function AddExpenseDialog({ borrowings, nextRefNo }: { borrowings: Borrowing[], nextRefNo: string }) {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -53,8 +54,13 @@ export function AddExpenseDialog({ borrowings }: { borrowings: Borrowing[] }) {
   const [category, setCategory] = useState<ExpenseCategory | undefined>(undefined);
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState<number | ''>('');
+  const [refNo, setRefNo] = useState(nextRefNo);
   const [borrowingId, setBorrowingId] = useState<string | undefined>(undefined);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (isOpen) setRefNo(nextRefNo);
+  }, [isOpen, nextRefNo]);
 
   const isLoanPayment = category === 'Loan Repayment';
   
@@ -63,6 +69,7 @@ export function AddExpenseDialog({ borrowings }: { borrowings: Borrowing[] }) {
     setCategory(undefined);
     setDescription('');
     setAmount('');
+    setRefNo(nextRefNo);
     setBorrowingId(undefined);
     setErrors({});
   }
@@ -76,6 +83,7 @@ export function AddExpenseDialog({ borrowings }: { borrowings: Borrowing[] }) {
     }
 
     const dataToValidate = {
+        refNo,
         description,
         amount: Number(amount),
         date,
@@ -113,6 +121,7 @@ export function AddExpenseDialog({ borrowings }: { borrowings: Borrowing[] }) {
         }
 
         const newExpense = {
+          refNo: data.refNo,
           description: finalDescription,
           amount: data.amount,
           date: new Date(data.date),
@@ -136,10 +145,7 @@ export function AddExpenseDialog({ borrowings }: { borrowings: Borrowing[] }) {
 
         await batch.commit();
         
-        const successMessage = isLoanPayment 
-            ? "Loan payment recorded as an expense."
-            : "Expense added successfully.";
-        toast({ title: 'Success', description: successMessage });
+        toast({ title: 'Success', description: "Expense added successfully." });
 
         setIsOpen(false);
         resetForm();
@@ -166,11 +172,18 @@ export function AddExpenseDialog({ borrowings }: { borrowings: Borrowing[] }) {
                 Enter the details for the new expense.
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="date">Date</Label>
-                <Input type="date" value={date} onChange={e => setDate(e.target.value)} />
-                {errors.date && <p className="text-sm font-medium text-destructive">{errors.date}</p>}
+            <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-2">
+              <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="refNo">Voucher / Ref No</Label>
+                    <Input id="refNo" type="number" value={refNo} onChange={e => setRefNo(e.target.value)} />
+                    {errors.refNo && <p className="text-sm font-medium text-destructive">{errors.refNo}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="date">Date</Label>
+                    <Input type="date" id="date" value={date} onChange={e => setDate(e.target.value)} />
+                    {errors.date && <p className="text-sm font-medium text-destructive">{errors.date}</p>}
+                  </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
@@ -192,7 +205,7 @@ export function AddExpenseDialog({ borrowings }: { borrowings: Borrowing[] }) {
                   <Label htmlFor="borrowingId">Loan Account (Borrowing)</Label>
                   <Select onValueChange={setBorrowingId} value={borrowingId}>
                     <SelectTrigger id="borrowingId"><SelectValue placeholder="Select loan to pay against" /></SelectTrigger>
-                    <SelectContent className="w-auto min-w-[var(--radix-select-trigger-width)]">
+                    <SelectContent>
                       {borrowings
                         .filter(b => b.status !== 'Paid Off')
                         .map(b => (
@@ -221,10 +234,7 @@ export function AddExpenseDialog({ borrowings }: { borrowings: Borrowing[] }) {
               <DialogClose asChild><Button variant="outline" type="button">Cancel</Button></DialogClose>
               <Button type="submit" disabled={isPending}>
                 {isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
                 ) : (
                   'Save Expense'
                 )}

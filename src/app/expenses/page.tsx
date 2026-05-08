@@ -5,10 +5,10 @@ import { AddExpenseDialog } from "@/components/expenses/add-expense-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Scale, Banknote, IndianRupee } from "lucide-react";
 import { formatCurrency, toDate } from "@/lib/utils";
-import { useMemo, useState, useEffect } from "react";
-import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import type { Expense, StorageRecord, UnloadingRecord, WarehouseInfo, Borrowing, Lending, OtherIncome, Commodity } from "@/lib/definitions";
-import { format, differenceInCalendarMonths, differenceInCalendarYears } from "date-fns";
+import { useMemo } from "react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import type { Expense, StorageRecord, WarehouseInfo, Borrowing, Lending, OtherIncome, Commodity, UnloadingRecord } from "@/lib/definitions";
+import { format, differenceInCalendarMonths } from "date-fns";
 import { ExpenseActionsMenu } from "@/components/expenses/expense-actions-menu";
 import { useCollection, useFirestore, useDateFilter, useDoc, useAppUser } from "@/firebase";
 import { collection, doc, query, where } from "firebase/firestore";
@@ -36,6 +36,7 @@ function IncomesTable({ incomes }: { incomes: OtherIncome[] }) {
             <TableHeader>
               <TableRow>
                 <TableHead className="hidden sm:table-cell">Date</TableHead>
+                <TableHead>Ref No</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
@@ -45,6 +46,7 @@ function IncomesTable({ incomes }: { incomes: OtherIncome[] }) {
               {incomes.map((income) => (
                 <TableRow key={income.id}>
                   <TableCell className="hidden sm:table-cell">{format(toDate(income.date), 'dd MMM yyyy')}</TableCell>
+                  <TableCell className="font-mono">{income.refNo || income.id.substring(0, 5).replace(/\D/g, '') || '-'}</TableCell>
                   <TableCell>{income.category}</TableCell>
                   <TableCell className="font-medium">{income.description}</TableCell>
                   <TableCell className="text-right font-mono text-green-600">{formatCurrency(income.amount)}</TableCell>
@@ -56,6 +58,7 @@ function IncomesTable({ incomes }: { incomes: OtherIncome[] }) {
       </Card>
     );
 }
+
 function ExpensesTable({ expenses }: { expenses: Expense[] }) {
   const appUser = useAppUser();
   const canEdit = appUser?.role === 'owner';
@@ -83,6 +86,7 @@ function ExpensesTable({ expenses }: { expenses: Expense[] }) {
           <TableHeader>
             <TableRow>
               <TableHead className="hidden sm:table-cell">Date</TableHead>
+              <TableHead>Ref No</TableHead>
               <TableHead>Category</TableHead>
               <TableHead>Description</TableHead>
               <TableHead className="text-right">Amount</TableHead>
@@ -93,6 +97,7 @@ function ExpensesTable({ expenses }: { expenses: Expense[] }) {
             {expenses.map((expense) => (
               <TableRow key={expense.id}>
                 <TableCell className="hidden sm:table-cell">{format(toDate(expense.date), 'dd MMM yyyy')}</TableCell>
+                <TableCell className="font-mono">{expense.refNo || expense.id.substring(0, 5).replace(/\D/g, '') || '-'}</TableCell>
                 <TableCell>{expense.category}</TableCell>
                 <TableCell className="font-medium">{expense.description}</TableCell>
                 <TableCell className="text-right font-mono">{formatCurrency(expense.amount)}</TableCell>
@@ -169,6 +174,7 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
           <TableHeader>
             <TableRow>
               <TableHead className="px-6">Lender</TableHead>
+              <TableHead>Ref No</TableHead>
               <TableHead>Date Taken</TableHead>
               <TableHead>Interest</TableHead>
               <TableHead className="text-right">Yearly Interest</TableHead>
@@ -180,6 +186,7 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
             {borrowingsWithInterest.map((borrowing) => (
                 <TableRow key={borrowing.id}>
                   <TableCell className="font-medium px-6">{borrowing.lenderName}</TableCell>
+                  <TableCell className="font-mono">{borrowing.refNo || '-'}</TableCell>
                   <TableCell>{format(toDate(borrowing.dateTaken), 'dd MMM yyyy')}</TableCell>
                   <TableCell>{borrowing.interestRate}% Monthly</TableCell>
                   <TableCell className="text-right font-mono text-destructive">{formatCurrency(borrowing.interestDue)}</TableCell>
@@ -257,6 +264,7 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
           <TableHeader>
             <TableRow>
               <TableHead className="px-6">Borrower</TableHead>
+              <TableHead>Ref No</TableHead>
               <TableHead>Date Given</TableHead>
               <TableHead>Interest</TableHead>
               <TableHead className="text-right">Yearly Interest Income</TableHead>
@@ -268,6 +276,7 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
             {lendingsWithInterest.map((lending) => (
                 <TableRow key={lending.id}>
                   <TableCell className="font-medium px-6">{lending.borrowerName}</TableCell>
+                  <TableCell className="font-mono">{lending.refNo || '-'}</TableCell>
                   <TableCell>{format(toDate(lending.dateGiven), 'dd MMM yyyy')}</TableCell>
                   <TableCell>{lending.interestRate}% Monthly</TableCell>
                   <TableCell className="text-right font-mono text-green-600">{formatCurrency(lending.interestDue)}</TableCell>
@@ -284,7 +293,6 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
     </div>
   )
 }
-
 
 export default function ExpensesPage() {
   const firestore = useFirestore();
@@ -319,16 +327,14 @@ export default function ExpensesPage() {
   const otherIncomesQuery = useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'otherIncomes'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]);
   const { data: otherIncomes, loading: loadingOtherIncomes } = useCollection<OtherIncome>(otherIncomesQuery);
 
-
-  const { periodIncome, periodExpenses, periodBalance, filteredExpenses, filteredIncomes, interestOnCapital, estimatedRent, activeBags } = useMemo(() => {
+  const { periodIncome, periodExpenses, periodBalance, filteredExpenses, filteredIncomes, interestOnCapital, estimatedRent, activeBags, nextExpenseRefNo, nextIncomeRefNo } = useMemo(() => {
     if (!allRecords || !allExpenses || !allUnloadingRecords || !otherIncomes || !allCommodities) {
-        return { periodIncome: 0, periodExpenses: 0, periodBalance: 0, filteredExpenses: [], filteredIncomes: [], interestOnCapital: 0, estimatedRent: 0, activeBags: 0 };
+        return { periodIncome: 0, periodExpenses: 0, periodBalance: 0, filteredExpenses: [], filteredIncomes: [], interestOnCapital: 0, estimatedRent: 0, activeBags: 0, nextExpenseRefNo: '1', nextIncomeRefNo: '1' };
     }
 
     const inRange = (date: Date) => {
         if (financialYear === 'all-time') return true;
         if (!dateRange) return false;
-
         if (dateRange.from && date < dateRange.from) return false;
         if (dateRange.to) {
             const to = new Date(dateRange.to);
@@ -346,7 +352,6 @@ export default function ExpensesPage() {
         const from = dateRange.from;
         const to = dateRange.to ? new Date(dateRange.to) : new Date(); 
         to.setHours(23, 59, 59, 999);
-        
         const diffTime = to.getTime() - from.getTime();
         if (diffTime > 0) {
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
@@ -384,6 +389,13 @@ export default function ExpensesPage() {
     
     const totalActiveBags = activeRecords.reduce((acc, record) => acc + record.bagsStored, 0);
 
+    const getMaxRef = (list: any[]) => {
+      const max = list.reduce((max, item) => {
+        const val = parseInt(item.refNo || '0', 10);
+        return isNaN(val) ? max : Math.max(max, val);
+      }, 0);
+      return (max + 1).toString();
+    };
 
     return {
       periodIncome: income,
@@ -393,10 +405,11 @@ export default function ExpensesPage() {
       filteredIncomes: localFilteredOtherIncomes.sort((a,b) => toDate(b.date).getTime() - toDate(a.date).getTime()),
       interestOnCapital: calculatedInterest,
       estimatedRent: rentEstimate,
-      activeBags: totalActiveBags
+      activeBags: totalActiveBags,
+      nextExpenseRefNo: getMaxRef(allExpenses),
+      nextIncomeRefNo: getMaxRef(otherIncomes)
     };
   }, [allRecords, allExpenses, allUnloadingRecords, otherIncomes, dateRange, warehouseInfo, financialYear, allCommodities]);
-
 
   if (loadingRecords || loadingExpenses || loadingUnloading || loadingWarehouseInfo || loadingBorrowings || loadingLendings || loadingOtherIncomes || loadingCommodities) {
     return (
@@ -417,8 +430,8 @@ export default function ExpensesPage() {
         </div>
         {canEdit && (
             <div className="flex items-center gap-2 flex-wrap mt-4">
-                <AddIncomeDialog lendings={lendings || []} />
-                <AddExpenseDialog borrowings={borrowings || []} />
+                <AddIncomeDialog lendings={lendings || []} nextRefNo={nextIncomeRefNo} />
+                <AddExpenseDialog borrowings={borrowings || []} nextRefNo={nextExpenseRefNo} />
                 <Separator orientation="vertical" className="h-6" />
                 <AddLendingDialog />
                 <AddBorrowingDialog />

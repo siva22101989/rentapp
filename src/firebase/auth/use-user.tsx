@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
@@ -45,8 +44,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
         const userDocRef = doc(firestore, 'users', fbUser.uid);
         const warehouseId = 'sri-lakshmi-warehouse';
 
-        // --- SPECIAL OWNER PROVISIONING ---
+        // --- IDENTITY LOCK & DATA ACCESS PROTECTION ---
         // Ensure this specific user is ALWAYS treated as the owner of the main warehouse.
+        // This prevents data "loss" when roles are not synced correctly server-side.
         if (userEmail === 'sivasandeepreddy01@gmail.com') {
             const ownerIdentity: AppUser = {
                 id: fbUser.uid,

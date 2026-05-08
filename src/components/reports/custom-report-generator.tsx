@@ -19,12 +19,10 @@ import { Button } from '../ui/button';
 import { Printer, FileDown, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { DryingHistoryTable } from '@/components/drying/drying-history-table';
-import { MasterRegisterTable } from './master-register-table';
 
 const reportTypes = [
     { value: 'daily-summary', label: 'Daily Summary Report' },
     { value: 'profit-and-loss', label: 'Profit & Loss Report' },
-    { value: 'master-register', label: 'Master Data Register (All Info)' },
     { value: 'customer-statement', label: 'Customer Dues Statement (Detailed)' },
     { value: 'hamali-register', label: 'Hamali Register' },
     { value: 'drying-history', label: 'Drying History Report' },
@@ -129,8 +127,6 @@ export function CustomReportGenerator({
                             borrowings={borrowings}
                             lendings={lendings}
                         />;
-            case 'master-register':
-                return <MasterRegisterTable records={records} customers={customers} title="Complete Warehouse Master Register" />;
             case 'all-customers':
                 return <CustomersTable customers={customers} />;
             case 'customer-statement':
@@ -166,7 +162,7 @@ export function CustomReportGenerator({
                 return (
                     <Card>
                         <CardContent className="p-8 text-center text-muted-foreground">
-                            This report is not yet available.
+                            This report is no longer available.
                         </CardContent>
                     </Card>
                 );

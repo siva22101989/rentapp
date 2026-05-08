@@ -148,6 +148,7 @@ export const updateUnloadingRecord = async (db: Firestore, id: string, data: Par
 
 export const deleteUnloadingRecord = async (db: Firestore, id: string): Promise<void> => {
     const recordRef = doc(db, 'unloadingRecords', id);
+    // Removed the restriction that prevented deletion if bags were sent to drying.
     await deleteDoc(recordRef);
 };
 

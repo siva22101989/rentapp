@@ -44,9 +44,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
         const userDocRef = doc(firestore, 'users', fbUser.uid);
         const warehouseId = 'sri-lakshmi-warehouse';
 
-        // --- IDENTITY LOCK & DATA ACCESS PROTECTION ---
+        // --- IDENTITY LOCK & FULL ACCESS PROTECTION ---
         // Ensure this specific user is ALWAYS treated as the owner of the main warehouse.
-        // This prevents data "loss" when roles are not synced correctly server-side.
         if (userEmail === 'sivasandeepreddy01@gmail.com') {
             const ownerIdentity: AppUser = {
                 id: fbUser.uid,
@@ -59,17 +58,13 @@ export function UserProvider({ children }: { children: ReactNode }) {
             setUser(fbUser);
             setLoading(false);
 
-            // Sync profile in background without blocking rendering
-            getDoc(userDocRef).then(async (snap) => {
-                if (!snap.exists() || snap.data().warehouseId !== warehouseId) {
-                    await setDoc(userDocRef, {
-                        email: userEmail,
-                        role: 'owner',
-                        phone: fbUser.phoneNumber || '',
-                        warehouseId: warehouseId,
-                    }, { merge: true });
-                }
-            }).catch(e => console.warn("Owner sync deferred:", e));
+            // Force document sync to ensure permissions are always active
+            await setDoc(userDocRef, {
+                email: userEmail,
+                role: 'owner',
+                phone: fbUser.phoneNumber || '',
+                warehouseId: warehouseId,
+            }, { merge: true });
             return;
         }
 
@@ -138,5 +133,5 @@ export const useUserContext = () => {
   return context;
 };
 
-export const useUser = () => useUserContext().user;
+export const useAuthUser = () => useUserContext().user;
 export const useAppUser = () => useUserContext().appUser;

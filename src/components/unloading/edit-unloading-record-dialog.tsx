@@ -33,6 +33,7 @@ const EditUnloadingSchema = z.object({
   bagsUnloaded: z.coerce.number().int().positive('Number of bags must be positive.'),
   customerHamaliPerBag: z.coerce.number().nonnegative('Customer hamali rate must be non-negative.'),
   workerHamaliPerBag: z.coerce.number().nonnegative('Worker hamali rate must be non-negative.').optional(),
+  billNo: z.string().min(1, 'Bill No is required.'),
 });
 
 export function EditUnloadingRecordDialog({ 
@@ -64,6 +65,7 @@ export function EditUnloadingRecordDialog({
   const [bagsUnloaded, setBagsUnloaded] = useState<number | ''>('');
   const [customerHamaliPerBag, setCustomerHamaliPerBag] = useState<number | ''>('');
   const [workerHamaliPerBag, setWorkerHamaliPerBag] = useState<number | ''>('');
+  const [billNo, setBillNo] = useState('');
   const [error, setError] = useState<Record<string, string>>({});
 
   const lotOccupancy = useMemo(() => {
@@ -108,6 +110,7 @@ export function EditUnloadingRecordDialog({
       setBagsUnloaded(record.bagsUnloaded);
       setCustomerHamaliPerBag(record.hamaliPerBag);
       setWorkerHamaliPerBag(workerRate);
+      setBillNo(record.billNo || '');
       setError({});
     }
     setIsOpen(open);
@@ -130,6 +133,7 @@ export function EditUnloadingRecordDialog({
       bagsUnloaded: Number(bagsUnloaded),
       customerHamaliPerBag: Number(customerHamaliPerBag),
       workerHamaliPerBag: Number(workerHamaliPerBag),
+      billNo,
     };
 
     const result = EditUnloadingSchema.safeParse(dataToValidate);
@@ -173,10 +177,14 @@ export function EditUnloadingRecordDialog({
           <DialogHeader>
             <DialogTitle>Edit Unloading Record</DialogTitle>
             <DialogDescription>
-              Adjust details for Bill No. {record.billNo}. Everything is fully unlocked.
+              Adjust details for Bill No. {record.billNo}. All fields are unlocked and fully editable.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
+            <div className="space-y-2">
+                <Label htmlFor="edit-bill-no">Bill No.</Label>
+                <Input id="edit-bill-no" value={billNo} onChange={(e) => setBillNo(e.target.value)} />
+            </div>
             <div className="space-y-2">
                 <Label htmlFor="customerId">Customer</Label>
                 <Combobox

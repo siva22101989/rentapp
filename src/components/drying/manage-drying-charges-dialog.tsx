@@ -80,8 +80,6 @@ export function EditDryingDialog({ record, unloadingRecord, children }: { record
   };
 
   const calculatedHamali = useMemo(() => {
-    if (!unloadingRecord) return null;
-
     const { dryingStartDate, packingDate, bagsForDrying, customerHamaliPerBag, workerHamaliPerBag, pavHamaliPerBag, cuppaHamaliPerBag } = formValues;
 
     const unloadingHamaliDetail = record.hamaliDetails?.find(d => d.description === 'Unloading Hamali');
@@ -116,7 +114,7 @@ export function EditDryingDialog({ record, unloadingRecord, children }: { record
         totalWorkerPayable: workerHamaliPerBag !== undefined ? totalWorkerPayable : undefined,
     }
 
-  }, [formValues, record.hamaliDetails, unloadingRecord]);
+  }, [formValues, record.hamaliDetails]);
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -148,11 +146,6 @@ export function EditDryingDialog({ record, unloadingRecord, children }: { record
     
     startTransition(async () => {
       try {
-        if (!unloadingRecord || !calculatedHamali) {
-          toast({ title: 'Error', description: 'Source unloading record not found.', variant: 'destructive' });
-          return;
-        }
-
         const hamaliDetails: HamaliChargeItem[] = [];
         const unloadingHamaliDetail = record.hamaliDetails?.find(d => d.description === 'Unloading Hamali');
         if(unloadingHamaliDetail) hamaliDetails.push(unloadingHamaliDetail);
@@ -193,7 +186,7 @@ export function EditDryingDialog({ record, unloadingRecord, children }: { record
             <DialogHeader>
               <DialogTitle>Edit Drying Record</DialogTitle>
               <DialogDescription>
-                Update any detail for this process. All fields are unlocked.
+                Update any detail for this process. Every field is fully unlocked and editable.
               </DialogDescription>
             </DialogHeader>
             <div className="py-4 space-y-4 max-h-[70vh] overflow-y-auto pr-4">
@@ -239,7 +232,7 @@ export function EditDryingDialog({ record, unloadingRecord, children }: { record
                 </div>
                 
                 {calculatedHamali && (
-                    <div className="space-y-2 p-3 border rounded-md text-sm">
+                    <div className="space-y-2 p-3 border rounded-md text-sm bg-secondary/30">
                         <h5 className="font-medium">Live Summary</h5>
                         <div className="flex justify-between font-semibold"><span >Total Hamali for Customer:</span> <span className="font-mono">{formatCurrency(calculatedHamali.totalCustomerCharge)}</span></div>
                          {calculatedHamali.totalWorkerPayable !== undefined && <div className="flex justify-between font-semibold"><span >Total Payable to Worker:</span> <span className="font-mono">{formatCurrency(calculatedHamali.totalWorkerPayable)}</span></div>}

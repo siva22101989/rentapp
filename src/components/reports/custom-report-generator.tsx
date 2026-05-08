@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef } from 'react';
@@ -12,7 +11,7 @@ import { PendingPaymentsTable } from '@/components/payments/pending-payments-tab
 import { HamaliReport } from './hamali-report';
 import { InflowReport } from './inflow-report';
 import { OutflowReport } from './outflow-report';
-import { LotInventoryReport } from './lot-inventory-report';
+import { LotWiseStockReport } from './lot-wise-stock-report';
 import { UnloadingReport } from './unloading-report';
 import { PaymentReport } from './payment-report';
 import { DailySummaryReport } from './daily-summary-report';
@@ -25,15 +24,15 @@ import { LotOutflowReport } from './lot-outflow-report';
 const reportTypes = [
     { value: 'daily-summary', label: 'Daily Summary Report' },
     { value: 'profit-and-loss', label: 'Profit & Loss Report' },
+    { value: 'lot-wise-stock', label: 'Lot-wise Stock Report (Customer-wise)' },
     { value: 'customer-statement', label: 'Customer Dues Statement (Detailed)' },
     { value: 'hamali-register', label: 'Hamali Register' },
     { value: 'inflow-register', label: 'Inflow Register (Date Range)' },
     { value: 'outflow-register', label: 'Outflow Register (Date Range)' },
     { value: 'unloading-register', label: 'Unloading Register (Date Range)' },
     { value: 'payment-register', label: 'Payment Register (Date Range)' },
-    { value: 'lot-inventory', label: 'Lot Inventory (Patti mapping)' },
     { value: 'lot-outflow', label: 'Lot-wise Outflow Report' },
-    { value: 'active-inventory', label: 'Active Inventory (Stock)' },
+    { value: 'active-inventory', label: 'Active Inventory Summary' },
     { value: 'pending-dues', label: 'Pending Dues List' },
     { value: 'all-customers', label: 'All Customers List' },
 ];
@@ -72,38 +71,16 @@ export function CustomReportGenerator({
     
     const handleDownload = async () => {
         const printableArea = reportRef.current;
-        if (!printableArea) {
-            console.error("Report area not found!");
-            return;
-        }
-
+        if (!printableArea) return;
         setIsDownloading(true);
-        
         try {
             const { default: jsPDF } = await import('jspdf');
-            
-            const pdf = new jsPDF({
-                orientation: 'p',
-                unit: 'mm',
-                format: 'a4',
-            });
-            
+            const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
             await pdf.html(printableArea, {
-                html2canvas: {
-                    scale: 2,
-                    useCORS: true,
-                    backgroundColor: '#ffffff',
-                    height: printableArea.scrollHeight,
-                    windowHeight: printableArea.scrollHeight
-                },
-                margin: [10, 10, 10, 10],
-                autoPaging: 'text',
-                width: 190, // A4 width (210mm) - 2*10mm margin
-                windowWidth: printableArea.scrollWidth
+                html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', height: printableArea.scrollHeight, windowHeight: printableArea.scrollHeight },
+                margin: [10, 10, 10, 10], autoPaging: 'text', width: 190, windowWidth: printableArea.scrollWidth
             });
-
             pdf.save(`${selectedReport}-report.pdf`);
-
         } catch (error) {
             console.error("Error generating PDF:", error);
             toast({ title: "Download Error", description: "Failed to generate PDF.", variant: "destructive"});
@@ -117,24 +94,13 @@ export function CustomReportGenerator({
             case 'daily-summary':
                 return <DailySummaryReport records={records} customers={customers} unloadingRecords={unloadingRecords} expenses={expenses} otherIncomes={otherIncomes} />;
             case 'profit-and-loss':
-                return <ProfitAndLossReport 
-                            allRecords={records}
-                            allExpenses={expenses}
-                            allUnloadingRecords={unloadingRecords}
-                            otherIncomes={otherIncomes}
-                            warehouseInfo={warehouseInfo}
-                            borrowings={borrowings}
-                            lendings={lendings}
-                        />;
+                return <ProfitAndLossReport allRecords={records} allExpenses={expenses} allUnloadingRecords={unloadingRecords} otherIncomes={otherIncomes} warehouseInfo={warehouseInfo} borrowings={borrowings} lendings={lendings} />;
+            case 'lot-wise-stock':
+                return <LotWiseStockReport records={records} customers={customers} />;
             case 'all-customers':
                 return <CustomersTable customers={customers} />;
             case 'customer-statement':
-                return <ReportClient 
-                            records={records} 
-                            customers={customers} 
-                            unloadingRecords={unloadingRecords} 
-                            initialCustomerId={initialCustomerId}
-                        />;
+                return <ReportClient records={records} customers={customers} unloadingRecords={unloadingRecords} initialCustomerId={initialCustomerId} />;
             case 'active-inventory':
                 return <Card><CardHeader className="print-hide"><CardTitle>Active Inventory Summary</CardTitle></CardHeader><CardContent><StorageTable /></CardContent></Card>;
             case 'pending-dues':
@@ -149,18 +115,10 @@ export function CustomReportGenerator({
                 return <UnloadingReport unloadingRecords={unloadingRecords} customers={customers} commodities={commodities} />;
             case 'payment-register':
                 return <PaymentReport records={records} unloadingRecords={unloadingRecords} customers={customers} />;
-            case 'lot-inventory':
-                return <LotInventoryReport records={records} customers={customers} />;
             case 'lot-outflow':
                 return <LotOutflowReport records={records} customers={customers} />;
             default:
-                return (
-                    <Card>
-                        <CardContent className="p-8 text-center text-muted-foreground">
-                            This report is not yet available.
-                        </CardContent>
-                    </Card>
-                );
+                return <Card><CardContent className="p-8 text-center text-muted-foreground">Report unavailable.</CardContent></Card>;
         }
     };
 
@@ -184,15 +142,10 @@ export function CustomReportGenerator({
                 </div>
                 <div className="self-end flex items-center gap-2">
                      <Button onClick={() => window.print()} variant="outline">
-                        <Printer className="mr-2 h-4 w-4" />
-                        Print Report
+                        <Printer className="mr-2 h-4 w-4" /> Print
                     </Button>
                      <Button onClick={handleDownload} disabled={isDownloading}>
-                        {isDownloading ? (
-                            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Downloading...</>
-                        ) : (
-                            <><FileDown className="mr-2 h-4 w-4" /> Download PDF</>
-                        )}
+                        {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />} Download PDF
                     </Button>
                 </div>
             </div>

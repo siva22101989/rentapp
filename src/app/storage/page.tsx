@@ -1,4 +1,3 @@
-
 'use client';
 
 import { AppLayout } from "@/components/layout/app-layout";
@@ -56,16 +55,22 @@ export default function StoragePage() {
     const activeRecords = allRecords.filter(r => !r.storageEndDate && r.bagsStored > 0);
     const balanceStock = activeRecords.reduce((acc, record) => acc + record.bagsStored, 0);
 
+    const today = new Date();
     const estimatedRent = activeRecords.reduce((total, record) => {
-      let recordWithRates = { ...record };
-      if (record.rate6Months === undefined || record.rate1Year === undefined) {
-        const commodity = allCommodities.find(c => c.name === record.commodityDescription);
-        if (commodity) {
-            recordWithRates.rate6Months = commodity.rate6Months;
-            recordWithRates.rate1Year = commodity.rate1Year;
-        }
-      }
-      const { rent } = calculateFinalRent(recordWithRates, new Date(), record.bagsStored);
+      // Create a merged record object with fallback rates from the commodity definition
+      const commodity = allCommodities.find(c => c.name === record.commodityDescription);
+      
+      const recordWithRates: StorageRecord = {
+          ...record,
+          billingType: record.billingType || commodity?.billingType || 'slab',
+          monthlyRate: record.monthlyRate ?? commodity?.monthlyRate,
+          minBillingMonths: record.minBillingMonths ?? commodity?.minBillingMonths,
+          insuranceRate: record.insuranceRate ?? commodity?.insuranceRate,
+          rate6Months: record.rate6Months ?? commodity?.rate6Months,
+          rate1Year: record.rate1Year ?? commodity?.rate1Year,
+      };
+
+      const { rent } = calculateFinalRent(recordWithRates, today, record.bagsStored);
       return total + rent;
     }, 0);
 
@@ -82,7 +87,7 @@ export default function StoragePage() {
           title="Storage Records"
           description="View and manage all storage records."
         />
-        <div>Loading...</div>
+        <div className="flex items-center justify-center p-12">Loading storage data...</div>
       </AppLayout>
     );
   }
@@ -102,6 +107,7 @@ export default function StoragePage() {
             </CardHeader>
             <CardContent>
                 <div className="text-2xl font-bold">{stats.totalInflow} bags</div>
+                <p className="text-xs text-muted-foreground">Historically received</p>
             </CardContent>
         </Card>
         <Card>
@@ -111,6 +117,7 @@ export default function StoragePage() {
             </CardHeader>
             <CardContent>
                 <div className="text-2xl font-bold">{stats.totalOutflow} bags</div>
+                <p className="text-xs text-muted-foreground">Historically withdrawn</p>
             </CardContent>
         </Card>
         <Card>
@@ -120,6 +127,7 @@ export default function StoragePage() {
             </CardHeader>
             <CardContent>
                 <div className="text-2xl font-bold">{stats.balanceStock} bags</div>
+                <p className="text-xs text-muted-foreground">Currently in godown</p>
             </CardContent>
         </Card>
         <Card>
@@ -128,9 +136,9 @@ export default function StoragePage() {
                 <IndianRupee className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-bold">{formatCurrency(stats.estimatedRent)}</div>
+                <div className="text-2xl font-bold text-primary">{formatCurrency(stats.estimatedRent)}</div>
                 <p className="text-xs text-muted-foreground">
-                    Based on current active stock
+                    Accumulated on active stock
                 </p>
             </CardContent>
         </Card>

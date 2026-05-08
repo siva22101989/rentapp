@@ -1,4 +1,3 @@
-
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { AddExpenseDialog } from "@/components/expenses/add-expense-dialog";
@@ -374,16 +373,21 @@ export default function ExpensesPage() {
     const totalExpenses = expensesFromDb + calculatedInterest;
 
     const activeRecords = allRecords.filter(r => !r.storageEndDate && r.bagsStored > 0);
+    const today = new Date();
     const rentEstimate = activeRecords.reduce((total, record) => {
-      let recordWithRates = { ...record };
-      if (record.rate6Months === undefined || record.rate1Year === undefined) {
-          const commodity = allCommodities.find(c => c.name === record.commodityDescription);
-          if (commodity) {
-              recordWithRates.rate6Months = commodity.rate6Months;
-              recordWithRates.rate1Year = commodity.rate1Year;
-          }
-      }
-      const { rent } = calculateFinalRent(recordWithRates, new Date(), record.bagsStored);
+      const commodity = allCommodities.find(c => c.name === record.commodityDescription);
+      
+      const recordWithRates: StorageRecord = {
+          ...record,
+          billingType: record.billingType || commodity?.billingType || 'slab',
+          monthlyRate: record.monthlyRate ?? commodity?.monthlyRate,
+          minBillingMonths: record.minBillingMonths ?? commodity?.minBillingMonths,
+          insuranceRate: record.insuranceRate ?? commodity?.insuranceRate,
+          rate6Months: record.rate6Months ?? commodity?.rate6Months,
+          rate1Year: record.rate1Year ?? commodity?.rate1Year,
+      };
+
+      const { rent } = calculateFinalRent(recordWithRates, today, record.bagsStored);
       return total + rent;
     }, 0);
     
@@ -414,7 +418,7 @@ export default function ExpensesPage() {
   if (loadingRecords || loadingExpenses || loadingUnloading || loadingWarehouseInfo || loadingBorrowings || loadingLendings || loadingOtherIncomes || loadingCommodities) {
     return (
       <AppLayout>
-        <div>Loading...</div>
+        <div className="flex items-center justify-center p-12">Loading financials...</div>
       </AppLayout>
     );
   }

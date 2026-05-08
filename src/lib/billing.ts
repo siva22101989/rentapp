@@ -1,4 +1,3 @@
-
 import { differenceInMonths, startOfDay } from 'date-fns';
 import type { StorageRecord } from '@/lib/definitions';
 import { toDate } from './utils';
@@ -35,68 +34,75 @@ export function getRecordStatus(record: StorageRecord): RecordStatusInfo {
 }
 
 
+/**
+ * Calculates the rent for a given number of bags for a storage record.
+ * Handles both Monthly and Slab (stacked) billing types.
+ */
 export function calculateFinalRent(
     record: StorageRecord, 
-    withdrawalDate: Date, 
-    bagsToWithdraw: number
+    calculationDate: Date, 
+    bagsToCalculate: number
 ): { 
     rent: number;
     monthsStored: number;
     rentPerBag: number;
-    rentAlreadyPaidPerBag: number;
 } {
   const startDate = startOfDay(toDate(record.storageStartDate));
-  const endDate = startOfDay(withdrawalDate);
-  
-  const rentAlreadyPaidPerBag = 0; // Rent is never paid in advance.
-
-  let rentPerBag = 0;
+  const endDate = startOfDay(calculationDate);
   
   if (endDate < startDate) {
-    return { rent: 0, monthsStored: 0, rentPerBag: 0, rentAlreadyPaidPerBag: 0 };
+    return { rent: 0, monthsStored: 0, rentPerBag: 0 };
   }
 
-  // Calculate billing months, counting any partial month as one.
+  // Calculate billing months: partial months count as one full month.
+  // Standard logic: (Total months passed) + 1 for the current month.
   const billingMonths = differenceInMonths(endDate, startDate) + 1;
 
+  let rentPerBag = 0;
+
+  // 1. Monthly Billing Logic
   if (record.billingType === 'monthly') {
     const monthlyRate = record.monthlyRate || 0;
-    const effectiveMonths = Math.max(billingMonths, record.minBillingMonths || 0);
+    const minMonths = record.minBillingMonths || 0;
+    const effectiveMonths = Math.max(billingMonths, minMonths);
+    
     rentPerBag = effectiveMonths * monthlyRate;
     
+    // Add annual insurance if applicable
     if (record.insuranceRate && record.insuranceRate > 0) {
-        // Calculate number of years, rounding up. e.g., 1-12 months = 1 year, 13-24 months = 2 years.
+        // Insurance is charged per year, rounding up
         const yearsStored = Math.ceil(billingMonths / 12);
-        const insuranceCharge = (record.insuranceRate || 0) * (yearsStored > 0 ? yearsStored : 1);
-        rentPerBag += insuranceCharge;
+        rentPerBag += (record.insuranceRate * yearsStored);
     }
-  } else {
-    // Slab billing logic with stacking as per user's requirement
+  } 
+  // 2. Slab (Stacked) Billing Logic
+  else {
     const slab6Months = record.rate6Months ?? 0;
     const slab1Year = record.rate1Year ?? 0;
     
     if (billingMonths <= 0) {
         rentPerBag = 0;
     } else {
-        const years = Math.floor((billingMonths - 1) / 12);
-        const remainingMonths = billingMonths - (years * 12);
+        const fullYears = Math.floor((billingMonths - 1) / 12);
+        const remainingMonthsInCycle = billingMonths - (fullYears * 12);
 
-        rentPerBag = years * slab1Year;
+        // Calculate base rent for full years
+        rentPerBag = fullYears * slab1Year;
         
-        if (remainingMonths > 0 && remainingMonths <= 6) {
+        // Add the current year's slab
+        if (remainingMonthsInCycle > 0 && remainingMonthsInCycle <= 6) {
             rentPerBag += slab6Months;
-        } else if (remainingMonths > 6) {
+        } else if (remainingMonthsInCycle > 6) {
             rentPerBag += slab1Year;
         }
     }
   }
   
-  const finalRentForWithdrawnBags = rentPerBag * bagsToWithdraw;
+  const totalRent = rentPerBag * bagsToCalculate;
 
   return { 
-      rent: Math.max(0, finalRentForWithdrawnBags),
-      monthsStored: billingMonths, // Return the number of months used for billing
-      rentPerBag,
-      rentAlreadyPaidPerBag
+      rent: Math.max(0, totalRent),
+      monthsStored: billingMonths,
+      rentPerBag
   };
 }

@@ -1,9 +1,3 @@
-
-'use server';
-/**
- * @fileOverview A report that groups stock by storage location (Lot) and shows customer-wise stock and outflow details.
- */
-
 'use client';
 
 import React, { useMemo } from 'react';

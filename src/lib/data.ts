@@ -1,5 +1,4 @@
-
-'use client';
+'use server';
 
 import {
   collection,
@@ -21,8 +20,6 @@ import {
 } from 'firebase/firestore';
 import type { Customer, Expense, Payment, StorageRecord, Commodity, Outflow, UnloadingRecord, Borrowing, Lending, AppUser, ManagedWarehouse, DryingRecord } from './definitions';
 import { cleanForFirestore } from './utils';
-
-// These functions are intended for client-side use.
 
 export const saveCustomer = async (db: Firestore, customer: Omit<Customer, 'id'>, warehouseId: string): Promise<string> => {
   const dataToSave = { ...customer, warehouseId };
@@ -54,23 +51,19 @@ export const deleteStorageRecord = async (db: Firestore, id: string): Promise<vo
         }
         const recordData = recordSnap.data() as StorageRecord;
 
-        // If the storage record was created from the drying process ('Plot' inflow)
         if (recordData.inflowType === 'Plot' && recordData.dryingRecordId) {
             const unloadingRecordRef = doc(db, 'unloadingRecords', recordData.dryingRecordId);
             const bagsToReturn = recordData.bagsForDrying || 0;
 
             if (bagsToReturn > 0) {
-                // Ensure the unloading record exists before trying to update it.
                 const unloadingSnap = await transaction.get(unloadingRecordRef);
                 if (unloadingSnap.exists()) {
-                    // Decrement the bagsSentToDrying on the original unloading record.
                     transaction.update(unloadingRecordRef, {
                         bagsSentToDrying: increment(-bagsToReturn)
                     });
                 }
             }
         }
-        // Finally, delete the storage record itself. This runs for both 'Direct' and 'Plot' types.
         transaction.delete(recordRef);
     });
 };
@@ -155,14 +148,6 @@ export const updateUnloadingRecord = async (db: Firestore, id: string, data: Par
 
 export const deleteUnloadingRecord = async (db: Firestore, id: string): Promise<void> => {
     const recordRef = doc(db, 'unloadingRecords', id);
-    const recordSnap = await getDoc(recordRef);
-    if (!recordSnap.exists()) {
-        throw new Error("Record not found.");
-    }
-    const record = recordSnap.data() as UnloadingRecord;
-    if (record.bagsSentToDrying && record.bagsSentToDrying > 0) {
-        throw new Error("Cannot delete unloading record. It is already linked to a drying or storage process.");
-    }
     await deleteDoc(recordRef);
 };
 
@@ -172,23 +157,16 @@ export const deleteDryingRecord = async (db: Firestore, dryingRecordId: string):
   await runTransaction(db, async (transaction) => {
     const dryingRecordSnap = await transaction.get(dryingRecordRef);
     if (!dryingRecordSnap.exists()) {
-      throw new Error("Drying record not found.");
+      return;
     }
 
     const dryingRecordData = dryingRecordSnap.data() as DryingRecord;
-
-    if (dryingRecordData.status === 'Billed') {
-        throw new Error("Cannot delete a drying record that has already been billed and created a storage record.");
-    }
-
     const unloadingRecordRef = doc(db, 'unloadingRecords', dryingRecordData.unloadingRecordId);
     
-    // Decrement the bagsSentToDrying on the unloading record
     transaction.update(unloadingRecordRef, {
       bagsSentToDrying: increment(-(dryingRecordData.bagsForDrying || 0))
     });
 
-    // Delete the drying record
     transaction.delete(dryingRecordRef);
   });
 };
@@ -205,7 +183,6 @@ export const updateDryingRecord = async (db: Firestore, recordId: string, oldBag
 
         transaction.update(dryingRecordRef, cleanForFirestore(data));
 
-        // If bagsForDrying changed, update the source unloading record
         const newBagsForDrying = data.bagsForDrying;
         if (newBagsForDrying !== undefined && newBagsForDrying !== oldBagsForDrying) {
             const unloadingRecordRef = doc(db, 'unloadingRecords', dryingRecordData.unloadingRecordId);
@@ -213,23 +190,13 @@ export const updateDryingRecord = async (db: Firestore, recordId: string, oldBag
             
             const unloadingSnap = await transaction.get(unloadingRecordRef);
             if (unloadingSnap.exists()) {
-                const unloadingData = unloadingSnap.data() as UnloadingRecord;
-                const bagsAvailable = unloadingData.bagsUnloaded - (unloadingData.bagsSentToDrying || 0);
-
-                if (bagDifference > bagsAvailable) {
-                    throw new Error(`Cannot increase bags. Only ${bagsAvailable} bags available on unloading bill.`);
-                }
-                
                 transaction.update(unloadingRecordRef, {
                     bagsSentToDrying: increment(bagDifference)
                 });
-            } else {
-                throw new Error("Source unloading record not found. Cannot update bag count.");
             }
         }
     });
 };
-
 
 export const updateBorrowing = async (db: Firestore, id: string, data: Partial<Borrowing>): Promise<void> => {
     const borrowingRef = doc(db, 'borrowings', id);

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useEffect, useMemo } from 'react';
@@ -34,25 +33,7 @@ const EditDryingSchema = z.object({
   workerHamaliPerBag: z.coerce.number().nonnegative().optional(),
   pavHamaliPerBag: z.coerce.number().nonnegative().optional(),
   cuppaHamaliPerBag: z.coerce.number().nonnegative().optional(),
-}).refine(data => {
-    if (data.packingDate) {
-        return new Date(data.packingDate) >= new Date(data.dryingStartDate)
-    }
-    return true;
-}, {
-    message: "Packing Date must be on or after Drying Start Date.",
-    path: ["packingDate"],
-}).refine(data => {
-    if(data.bagsPacked !== undefined && data.bagsPacked !== null) {
-        return data.bagsPacked <= data.bagsForDrying;
-    }
-    return true;
-}, {
-    message: "Bags packed cannot be more than bags for drying.",
-    path: ["bagsPacked"],
 });
-
-type EditDryingFormData = z.infer<typeof EditDryingSchema>;
 
 export function EditDryingDialog({ record, unloadingRecord, children }: { record: DryingRecord; unloadingRecord?: UnloadingRecord; children: React.ReactNode }) {
   const { toast } = useToast();
@@ -73,7 +54,7 @@ export function EditDryingDialog({ record, unloadingRecord, children }: { record
 
   useEffect(() => {
     if (isOpen) {
-      const getRate = (desc: string) => record.hamaliDetails?.find(d => d.description.toLowerCase().includes(desc))?.rate;
+      const getRate = (desc: string) => record.hamaliDetails?.find(d => d.description.toLowerCase().includes(desc.toLowerCase()))?.rate;
       
       setDryingStartDate(format(toDate(record.dryingStartDate), 'yyyy-MM-dd'));
       setPackingDate(record.packingDate ? format(toDate(record.packingDate), 'yyyy-MM-dd') : '');
@@ -82,7 +63,7 @@ export function EditDryingDialog({ record, unloadingRecord, children }: { record
       setCustomerHamaliPerBag(getRate('customer'));
       setPavHamaliPerBag(getRate('pav'));
       setCuppaHamaliPerBag(getRate('cuppa'));
-      setWorkerHamaliPerBag(undefined);
+      setWorkerHamaliPerBag(record.workerHamaliPayable !== undefined && record.bagsForDrying > 0 ? record.workerHamaliPayable / record.bagsForDrying : undefined);
       setErrors({});
     }
   }, [isOpen, record]);
@@ -159,12 +140,6 @@ export function EditDryingDialog({ record, unloadingRecord, children }: { record
     const result = EditDryingSchema.safeParse(dataToValidate);
 
     if (!result.success) {
-      const flatErrors = result.error.flatten().fieldErrors;
-      const newErrors: Record<string, string> = {};
-      for(const key in flatErrors) {
-          if(flatErrors[key]) newErrors[key] = flatErrors[key]![0];
-      }
-      setErrors(newErrors);
       toast({ title: 'Validation Error', description: 'Please check the form for errors.', variant: 'destructive'});
       return;
     }
@@ -218,7 +193,7 @@ export function EditDryingDialog({ record, unloadingRecord, children }: { record
             <DialogHeader>
               <DialogTitle>Edit Drying Record</DialogTitle>
               <DialogDescription>
-                Update the details for this drying process. All fields are unlocked.
+                Update any detail for this process. All fields are unlocked.
               </DialogDescription>
             </DialogHeader>
             <div className="py-4 space-y-4 max-h-[70vh] overflow-y-auto pr-4">
@@ -226,12 +201,10 @@ export function EditDryingDialog({ record, unloadingRecord, children }: { record
                     <div className="space-y-2">
                         <Label htmlFor="dryingStartDate">Drying Start Date</Label>
                         <Input id="dryingStartDate" type="date" value={dryingStartDate} onChange={(e) => setDryingStartDate(e.target.value)} />
-                        {errors.dryingStartDate && <p className="text-sm font-medium text-destructive">{errors.dryingStartDate}</p>}
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="packingDate">Packing Date (Optional)</Label>
                         <Input id="packingDate" type="date" value={packingDate || ''} onChange={(e) => setPackingDate(e.target.value)} />
-                        {errors.packingDate && <p className="text-sm font-medium text-destructive">{errors.packingDate}</p>}
                     </div>
                 </div>
 
@@ -239,17 +212,12 @@ export function EditDryingDialog({ record, unloadingRecord, children }: { record
                     <div className="space-y-2">
                         <Label htmlFor="bagsForDrying">Bags Plotted for Drying</Label>
                         <Input id="bagsForDrying" type="number" value={bagsForDrying} onChange={(e) => setBagsForDrying(e.target.value === '' ? '' : Number(e.target.value))} />
-                        {errors.bagsForDrying && <p className="text-sm font-medium text-destructive">{errors.bagsForDrying}</p>}
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="bagsPacked">Bags Packed (Optional)</Label>
                         <Input id="bagsPacked" type="number" value={bagsPacked === undefined ? '' : bagsPacked} onChange={(e) => setBagsPacked(e.target.value === '' ? undefined : Number(e.target.value))} />
-                        {errors.bagsPacked && <p className="text-sm font-medium text-destructive">{errors.bagsPacked}</p>}
                     </div>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                    Bags available on source unloading bill: {unloadingRecord ? (unloadingRecord.bagsUnloaded - (unloadingRecord.bagsSentToDrying || 0) + record.bagsForDrying) : 'N/A'}
-                </p>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="space-y-2">
@@ -258,7 +226,7 @@ export function EditDryingDialog({ record, unloadingRecord, children }: { record
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="workerHamaliPerBag">Worker Hamali/Bag</Label>
-                        <Input id="workerHamaliPerBag" type="number" step="0.01" value={workerHamaliPerBag === undefined ? '' : workerHamaliPerBag} onChange={(e) => setWorkerHamaliPerBag(e.target.value === '' ? undefined : Number(e.target.value))} placeholder="Update Payable" />
+                        <Input id="workerHamaliPerBag" type="number" step="0.01" value={workerHamaliPerBag === undefined ? '' : workerHamaliPerBag} onChange={(e) => setWorkerHamaliPerBag(e.target.value === '' ? undefined : Number(e.target.value))} placeholder="Worker Rate" />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="pavHamaliPerBag">Pav Hamali/Bag/Day</Label>
@@ -273,11 +241,6 @@ export function EditDryingDialog({ record, unloadingRecord, children }: { record
                 {calculatedHamali && (
                     <div className="space-y-2 p-3 border rounded-md text-sm">
                         <h5 className="font-medium">Live Summary</h5>
-                        <div className="flex justify-between"><span className="text-muted-foreground">Unloading Hamali:</span> <span className="font-mono">{formatCurrency(calculatedHamali.proportionalUnloadingHamali)}</span></div>
-                        <div className="flex justify-between"><span className="text-muted-foreground">Day 1 Hamali:</span> <span className="font-mono">{formatCurrency(calculatedHamali.day1CustomerHamali)}</span></div>
-                        <div className="flex justify-between"><span className="text-muted-foreground">Pav Hamali ({calculatedHamali.extraDryingDays} extra day{calculatedHamali.extraDryingDays !== 1 ? 's' : ''}):</span> <span className="font-mono">{formatCurrency(calculatedHamali.pavHamali)}</span></div>
-                        <div className="flex justify-between"><span className="text-muted-foreground">Cuppa Hamali ({calculatedHamali.extraDryingDays} extra day{calculatedHamali.extraDryingDays !== 1 ? 's' : ''}):</span> <span className="font-mono">{formatCurrency(calculatedHamali.cuppaHamali)}</span></div>
-                        <Separator/>
                         <div className="flex justify-between font-semibold"><span >Total Hamali for Customer:</span> <span className="font-mono">{formatCurrency(calculatedHamali.totalCustomerCharge)}</span></div>
                          {calculatedHamali.totalWorkerPayable !== undefined && <div className="flex justify-between font-semibold"><span >Total Payable to Worker:</span> <span className="font-mono">{formatCurrency(calculatedHamali.totalWorkerPayable)}</span></div>}
                     </div>

@@ -40,33 +40,13 @@ const EditStorageRecordSchema = z.object({
   lorryTractorNo: z.string().optional(),
   khataAmount: z.coerce.number().nonnegative().optional(),
   hamaliRate: z.coerce.number().nonnegative().optional(),
-  // Plot specific fields
   bagsForDrying: z.coerce.number().int().nonnegative('Must be a non-negative number.').optional(),
   dryingStartDate: z.string().optional(),
   customerHamaliPerBag: z.coerce.number().nonnegative().optional(),
   workerHamaliPerBag: z.coerce.number().nonnegative().optional(),
   pavHamaliPerBag: z.coerce.number().nonnegative().optional(),
   cuppaHamaliPerBag: z.coerce.number().nonnegative().optional(),
-}).refine(data => {
-    if (data.dryingStartDate && data.storageStartDate) {
-        return new Date(data.storageStartDate) >= new Date(data.dryingStartDate)
-    }
-    return true;
-}, {
-    message: "Drying End Date must be on or after Drying Start Date.",
-    path: ["storageStartDate"],
-}).refine(data => {
-    if(data.bagsIn && data.bagsForDrying) {
-        return data.bagsIn <= data.bagsForDrying;
-    }
-    return true;
-}, {
-    message: "Bags packed cannot be more than bags for drying.",
-    path: ["bagsIn"],
 });
-
-type EditStorageRecordFormData = z.infer<typeof EditStorageRecordSchema>;
-
 
 export function EditStorageDialog({ record, customers, allRecords, children }: { record: StorageRecord, customers: Customer[], allRecords: StorageRecord[], children: React.ReactNode }) {
   const { toast } = useToast();
@@ -75,7 +55,6 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
   const firestore = useFirestore();
   const appUser = useAppUser();
   
-  // State for form fields
   const [customerId, setCustomerId] = useState('');
   const [commodityDescription, setCommodityDescription] = useState('');
   const [location, setLocation] = useState('');
@@ -85,7 +64,6 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
   const [lorryTractorNo, setLorryTractorNo] = useState('');
   const [khataAmount, setKhataAmount] = useState<number | ''>('');
   const [hamaliRate, setHamaliRate] = useState<number | ''>('');
-  // Plot specific
   const [bagsForDrying, setBagsForDrying] = useState<number | ''>('');
   const [dryingStartDate, setDryingStartDate] = useState('');
   const [customerHamaliPerBag, setCustomerHamaliPerBag] = useState<number | ''>('');
@@ -117,7 +95,7 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
 
   const handleOpenChange = (open: boolean) => {
     if (open) {
-      const getRate = (desc: string) => record.hamaliDetails?.find(d => d.description.startsWith(desc))?.rate;
+      const getRate = (desc: string) => record.hamaliDetails?.find(d => d.description.toLowerCase().includes(desc.toLowerCase()))?.rate;
 
       setCustomerId(record.customerId);
       setCommodityDescription(record.commodityDescription);
@@ -128,13 +106,12 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
       setLorryTractorNo(record.lorryTractorNo || '');
       setKhataAmount(record.khataAmount ?? '');
       setHamaliRate(record.hamaliRate ?? '');
-      // Plot specific
       setBagsForDrying(record.bagsForDrying ?? '');
       setDryingStartDate(record.dryingStartDate ? format(toDate(record.dryingStartDate), 'yyyy-MM-dd') : '');
       setCustomerHamaliPerBag(getRate('Customer Hamali') ?? '');
       setPavHamaliPerBag(getRate('Pav Hamali') ?? '');
       setCuppaHamaliPerBag(getRate('Cuppa Hamali') ?? '');
-      setWorkerHamaliPerBag(''); // Cannot derive reliably, user must re-enter if they want to change worker payable.
+      setWorkerHamaliPerBag(record.workerHamaliPayable !== undefined && record.bagsIn > 0 ? record.workerHamaliPayable / record.bagsIn : '');
     }
     setIsOpen(open);
   }
@@ -215,10 +192,6 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
     startTransition(async () => {
       try {
         const bagsStored = data.bagsIn - (record.bagsOut || 0);
-        if (bagsStored < 0) {
-            toast({ title: "Validation Error", description: "Bags in cannot be less than bags out.", variant: "destructive" });
-            return;
-        }
 
         const updateData: Partial<StorageRecord> = {
             customerId: data.customerId,
@@ -227,7 +200,7 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
             storageStartDate: new Date(data.storageStartDate),
             bagsIn: data.bagsIn,
             bagsStored,
-            weight: data.weight,
+            weight: data.weight || 0,
             lorryTractorNo: data.lorryTractorNo,
             khataAmount: data.khataAmount,
         };
@@ -281,7 +254,7 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
           <DialogHeader>
             <DialogTitle>Edit Storage Record</DialogTitle>
             <DialogDescription>
-              Adjust the details for record {record.id}. Payment history cannot be edited here.
+              Adjust any details for record {record.id}. Everything is editable.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
@@ -311,63 +284,56 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
                     </SelectContent>
                 </Select>
               </div>
-              {record.inflowType === 'Plot' ? (
+              
+              <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2"><Label htmlFor="edit-start-date">Date</Label><Input id="edit-start-date" type="date" value={storageStartDate} onChange={e => setStorageStartDate(e.target.value)} /></div>
+                  <div className="space-y-2"><Label htmlFor="edit-lorry-no">Lorry/Tractor No.</Label><Input id="edit-lorry-no" placeholder="AP 12 3456" value={lorryTractorNo} onChange={e => setLorryTractorNo(e.target.value)} /></div>
+              </div>
+
+              {record.inflowType === 'Plot' && (
                 <>
                     <Separator className="my-4" />
                     <h4 className="text-sm font-semibold text-muted-foreground -mb-2">Drying & Hamali Details</h4>
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2"><Label htmlFor="edit-drying-start">Drying Start Date</Label><Input id="edit-drying-start" type="date" value={dryingStartDate} onChange={(e) => setDryingStartDate(e.target.value)} /></div>
-                        <div className="space-y-2"><Label htmlFor="edit-storage-start">Drying End Date (Storage Date)</Label><Input id="edit-storage-start" type="date" value={storageStartDate} onChange={(e) => setStorageStartDate(e.target.value)} /></div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                         <div className="space-y-2"><Label htmlFor="edit-bags-drying">Bags Plotted for Drying</Label><Input id="edit-bags-drying" type="number" value={bagsForDrying} onChange={(e) => setBagsForDrying(e.target.value === '' ? '' : Number(e.target.value))} /></div>
-                         <div className="space-y-2"><Label htmlFor="edit-bags-in">Bags Packed (Final Stock)</Label><Input id="edit-bags-in" type="number" value={bagsIn} onChange={(e) => setBagsIn(e.target.value === '' ? '' : Number(e.target.value))} /></div>
+                        <div className="space-y-2"><Label htmlFor="edit-bags-drying">Bags Plotted for Drying</Label><Input id="edit-bags-drying" type="number" value={bagsForDrying} onChange={(e) => setBagsForDrying(e.target.value === '' ? '' : Number(e.target.value))} /></div>
                     </div>
 
                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div className="space-y-2"><Label htmlFor="edit-cust-hamali">Cust. Hamali/Bag</Label><Input id="edit-cust-hamali" type="number" step="0.01" value={customerHamaliPerBag} onChange={(e) => setCustomerHamaliPerBag(e.target.value === '' ? '' : Number(e.target.value))} /></div>
-                         <div className="space-y-2"><Label htmlFor="edit-work-hamali">Worker Hamali/Bag</Label><Input id="edit-work-hamali" type="number" step="0.01" value={workerHamaliPerBag} onChange={(e) => setWorkerHamaliPerBag(e.target.value === '' ? '' : Number(e.target.value))} placeholder="Re-enter to update" /></div>
+                         <div className="space-y-2"><Label htmlFor="edit-work-hamali">Worker Hamali/Bag</Label><Input id="edit-work-hamali" type="number" step="0.01" value={workerHamaliPerBag} onChange={(e) => setWorkerHamaliPerBag(e.target.value === '' ? '' : Number(e.target.value))} placeholder="Worker Rate" /></div>
                          <div className="space-y-2"><Label htmlFor="edit-pav-hamali">Pav Hamali/Bag/Day</Label><Input id="edit-pav-hamali" type="number" step="0.01" value={pavHamaliPerBag} onChange={(e) => setPavHamaliPerBag(e.target.value === '' ? '' : Number(e.target.value))} /></div>
                          <div className="space-y-2"><Label htmlFor="edit-cuppa-hamali">Cuppa Hamali/Bag/Day</Label><Input id="edit-cuppa-hamali" type="number" step="0.01" value={cuppaHamaliPerBag} onChange={(e) => setCuppaHamaliPerBag(e.target.value === '' ? '' : Number(e.target.value))} /></div>
                     </div>
                     {calculatedHamali && (
                         <div className="space-y-2 p-3 border rounded-md text-sm">
                             <h5 className="font-medium">Live Summary</h5>
-                            <div className="flex justify-between"><span className="text-muted-foreground">Unloading Hamali:</span> <span className="font-mono">{formatCurrency(calculatedHamali.proportionalUnloadingHamali)}</span></div>
-                            <div className="flex justify-between"><span className="text-muted-foreground">Day 1 Hamali:</span> <span className="font-mono">{formatCurrency(calculatedHamali.day1CustomerHamali)}</span></div>
-                            <div className="flex justify-between"><span className="text-muted-foreground">Pav Hamali ({calculatedHamali.extraDryingDays} extra day{calculatedHamali.extraDryingDays !== 1 ? 's' : ''}):</span> <span className="font-mono">{formatCurrency(calculatedHamali.pavHamali)}</span></div>
-                            <div className="flex justify-between"><span className="text-muted-foreground">Cuppa Hamali ({calculatedHamali.extraDryingDays} extra day{calculatedHamali.extraDryingDays !== 1 ? 's' : ''}):</span> <span className="font-mono">{formatCurrency(calculatedHamali.cuppaHamali)}</span></div>
-                            <Separator/>
                             <div className="flex justify-between font-semibold"><span >Total Hamali for Customer:</span> <span className="font-mono">{formatCurrency(calculatedHamali.totalCustomerCharge)}</span></div>
                              {calculatedHamali.totalWorkerPayable !== undefined && <div className="flex justify-between font-semibold"><span >Total Payable to Worker:</span> <span className="font-mono">{formatCurrency(calculatedHamali.totalWorkerPayable)}</span></div>}
                         </div>
                     )}
-                    <Separator className="my-4" />
-                </>
-              ) : (
-                <>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2"><Label htmlFor="edit-start-date">Start Date</Label><Input id="edit-start-date" type="date" value={storageStartDate} onChange={e => setStorageStartDate(e.target.value)} /></div>
-                        <div className="space-y-2"><Label htmlFor="edit-lorry-no">Lorry/Tractor No.</Label><Input id="edit-lorry-no" placeholder="AP 12 3456" value={lorryTractorNo} onChange={e => setLorryTractorNo(e.target.value)} /></div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2"><Label htmlFor="edit-bags-in-direct">Bags In</Label><Input id="edit-bags-in-direct" type="number" value={bagsIn} onChange={e => setBagsIn(e.target.value === '' ? '' : Number(e.target.value))} /></div>
-                        <div className="space-y-2"><Label htmlFor="edit-weight">Weight (Kgs)</Label><Input id="edit-weight" type="number" step="0.01" value={weight} onChange={e => setWeight(e.target.value === '' ? '' : Number(e.target.value))} /></div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="edit-hamali-rate-direct">Hamali Rate/Bag</Label>
-                            <Input id="edit-hamali-rate-direct" type="number" step="0.01" value={hamaliRate} onChange={e => setHamaliRate(e.target.value === '' ? '' : Number(e.target.value))} />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="edit-khataAmount">Khata Amount</Label>
-                            <Input id="edit-khataAmount" type="number" step="0.01" placeholder="0.00" value={khataAmount} onChange={e => setKhataAmount(e.target.value === '' ? '' : Number(e.target.value))}/>
-                        </div>
-                    </div>
                 </>
               )}
+
+              <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2"><Label htmlFor="edit-bags-in">Bags (Packed/Final)</Label><Input id="edit-bags-in" type="number" value={bagsIn} onChange={(e) => setBagsIn(e.target.value === '' ? '' : Number(e.target.value))} /></div>
+                  <div className="space-y-2"><Label htmlFor="edit-weight">Weight (Kgs)</Label><Input id="edit-weight" type="number" step="0.01" value={weight} onChange={e => setWeight(e.target.value === '' ? '' : Number(e.target.value))} /></div>
+              </div>
+
+              {record.inflowType !== 'Plot' && (
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="edit-hamali-rate-direct">Hamali Rate/Bag</Label>
+                        <Input id="edit-hamali-rate-direct" type="number" step="0.01" value={hamaliRate} onChange={e => setHamaliRate(e.target.value === '' ? '' : Number(e.target.value))} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="edit-khataAmount">Khata Amount</Label>
+                        <Input id="edit-khataAmount" type="number" step="0.01" placeholder="0.00" value={khataAmount} onChange={e => setKhataAmount(e.target.value === '' ? '' : Number(e.target.value))}/>
+                    </div>
+                </div>
+              )}
+
                <div className="space-y-2">
                  <Label htmlFor="edit-location">Location</Label>
                  <Select onValueChange={setLocation} value={location}>
@@ -375,8 +341,7 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
                      <SelectContent>
                          {lots?.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true })).map(lot => {
                              const occupied = lotOccupancy[lot.name] || 0;
-                             const capacity = lot.capacity ? ` / ${lot.capacity}` : '';
-                             return ( <SelectItem key={lot.id} value={lot.name}> {lot.name} ({occupied}{capacity} bags) </SelectItem> )
+                             return ( <SelectItem key={lot.id} value={lot.name}> {lot.name} ({occupied} bags) </SelectItem> )
                          })}
                      </SelectContent>
                  </Select>

@@ -35,8 +35,6 @@ const EditUnloadingSchema = z.object({
   workerHamaliPerBag: z.coerce.number().nonnegative('Worker hamali rate must be non-negative.').optional(),
 });
 
-type EditUnloadingFormData = z.infer<typeof EditUnloadingSchema>;
-
 export function EditUnloadingRecordDialog({ 
     record, 
     customers, 
@@ -83,10 +81,9 @@ export function EditUnloadingRecordDialog({
         .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
         .map(lot => {
             const occupied = lotOccupancy[lot.name] || 0;
-            const capacity = lot.capacity ? ` / ${lot.capacity}` : '';
             return ({
                 value: lot.name,
-                label: `${lot.name} (${occupied}${capacity} bags)`
+                label: `${lot.name} (${occupied} bags)`
             })
         });
   }, [lots, lotOccupancy]);
@@ -146,11 +143,6 @@ export function EditUnloadingRecordDialog({
       return;
     }
 
-    if (result.data.bagsUnloaded < (record.bagsSentToDrying || 0)) {
-        setError({ bagsUnloaded: `Cannot be less than bags already sent to drying (${record.bagsSentToDrying}).` });
-        return;
-    }
-
     startTransition(async () => {
       try {
         const totalHamali = result.data.bagsUnloaded * result.data.customerHamaliPerBag;
@@ -181,7 +173,7 @@ export function EditUnloadingRecordDialog({
           <DialogHeader>
             <DialogTitle>Edit Unloading Record</DialogTitle>
             <DialogDescription>
-              Adjust details for Bill No. {record.billNo}.
+              Adjust details for Bill No. {record.billNo}. Everything is fully unlocked.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
@@ -195,7 +187,6 @@ export function EditUnloadingRecordDialog({
                     searchPlaceholder="Search customers..."
                     emptyPlaceholder="No customer found."
                 />
-                {error.customerId && <p className="text-sm font-medium text-destructive">{error.customerId}</p>}
             </div>
              <div className="space-y-2">
                 <Label htmlFor="commodityDescription">Commodity</Label>
@@ -209,7 +200,6 @@ export function EditUnloadingRecordDialog({
                         ))}
                     </SelectContent>
                 </Select>
-                 {error.commodityDescription && <p className="text-sm font-medium text-destructive">{error.commodityDescription}</p>}
             </div>
             <div className="space-y-2">
                 <Label htmlFor="location">Storage Location (Lot No.)</Label>
@@ -221,7 +211,6 @@ export function EditUnloadingRecordDialog({
                     searchPlaceholder="Search locations..."
                     emptyPlaceholder="No locations found."
                 />
-                {error.location && <p className="text-sm font-medium text-destructive">{error.location}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="lorryTractorNo">Lorry/Tractor No.</Label>
@@ -230,28 +219,23 @@ export function EditUnloadingRecordDialog({
             <div className="space-y-2">
               <Label htmlFor="unloadingDate">Unloading Date & Time</Label>
               <Input id="unloadingDate" type="datetime-local" value={unloadingDate} onChange={e => setUnloadingDate(e.target.value)} />
-              {error.unloadingDate && <p className="text-sm font-medium text-destructive">{error.unloadingDate}</p>}
             </div>
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="bagsUnloaded">Bags Unloaded</Label>
                 <Input id="bagsUnloaded" type="number" value={bagsUnloaded} onChange={e => setBagsUnloaded(e.target.value === '' ? '' : Number(e.target.value))} />
-                {error.bagsUnloaded && <p className="text-sm font-medium text-destructive">{error.bagsUnloaded}</p>}
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <Label htmlFor="customerHamaliPerBag">Customer Hamali per Bag</Label>
                     <Input id="customerHamaliPerBag" type="number" step="0.01" value={customerHamaliPerBag} onChange={e => setCustomerHamaliPerBag(e.target.value === '' ? '' : Number(e.target.value))} />
-                    {error.customerHamaliPerBag && <p className="text-sm font-medium text-destructive">{error.customerHamaliPerBag}</p>}
                 </div>
                  <div className="space-y-2">
                     <Label htmlFor="workerHamaliPerBag">Worker Hamali per Bag</Label>
                     <Input id="workerHamaliPerBag" type="number" step="0.01" value={workerHamaliPerBag} onChange={e => setWorkerHamaliPerBag(e.target.value === '' ? '' : Number(e.target.value))} />
-                    {error.workerHamaliPerBag && <p className="text-sm font-medium text-destructive">{error.workerHamaliPerBag}</p>}
                 </div>
               </div>
             </div>
-            {record.bagsSentToDrying > 0 && <p className="text-xs text-muted-foreground">Note: {record.bagsSentToDrying} bags have already been sent for drying from this record.</p>}
           </div>
           <DialogFooter>
             <DialogClose asChild>

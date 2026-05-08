@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useTransition, useMemo } from 'react';
@@ -51,11 +52,12 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
     
     const [amountPaidNow, setAmountPaidNow] = useState<number | ''>('');
     const [discount, setDiscount] = useState<number | ''>('');
+    const [khataAmountInput, setKhataAmountInput] = useState<number | ''>('');
     const [withdrawalDate, setWithdrawalDate] = useState(new Date());
     
     const [totalRent, setTotalRent] = useState(0);
     const [totalPendingHamali, setTotalPendingHamali] = useState(0);
-    const [totalKhata, setTotalKhata] = useState(0);
+    const [totalKhataFromRecords, setTotalKhataFromRecords] = useState(0);
     const [totalBags, setTotalBags] = useState(0);
 
     const warehouseInfoRef = useMemoFirebase(
@@ -82,10 +84,12 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
 
     const isMultiLotWithdrawal = useMemo(() => withdrawalEntries.length > 1, [withdrawalEntries]);
 
-    const totalPayable = totalRent + totalPendingHamali + totalKhata - (Number(discount) || 0);
+    // Total Payable: Rent + Pending Hamali + Khata (from input) - Discount
+    const totalPayable = totalRent + totalPendingHamali + (Number(khataAmountInput) || 0) - (Number(discount) || 0);
 
     useEffect(() => {
         setWithdrawals({});
+        setKhataAmountInput('');
     }, [selectedCustomerId]);
 
     useEffect(() => {
@@ -118,8 +122,6 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                     const pendingHamali = (record.hamaliPayable || 0) - hamaliPaid;
                     runningHamali += Math.max(0, pendingHamali);
                     
-                    // Add Khata if it exists and hasn't been paid as 'other'
-                    // For now we assume Khata is added to final bill
                     runningKhata += (record.khataAmount || 0);
                     
                     processedRecords.add(recordId);
@@ -130,15 +132,21 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
         
         setTotalRent(runningRent);
         setTotalPendingHamali(runningHamali);
-        setTotalKhata(runningKhata);
+        setTotalKhataFromRecords(runningKhata);
         setTotalBags(runningBags);
-    }, [withdrawals, withdrawalDate, records, commodities]);
+        
+        // Initialize khata amount input if it's empty and we have a value from records
+        if (khataAmountInput === '' && runningKhata > 0) {
+            setKhataAmountInput(runningKhata);
+        }
+    }, [withdrawals, withdrawalDate, records, commodities, khataAmountInput]);
 
     const resetForm = () => {
         setSelectedCustomerId('');
         setWithdrawals({});
         setAmountPaidNow('');
         setDiscount('');
+        setKhataAmountInput('');
         setWithdrawalDate(new Date());
     }
     
@@ -147,6 +155,7 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
         setWithdrawals({});
         setAmountPaidNow('');
         setDiscount('');
+        setKhataAmountInput('');
     }
 
     const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -193,6 +202,7 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
             queryParams.set('rent', String(rentForThisWithdrawal));
             queryParams.set('paidNow', String(Number(amountPaidNow) || 0));
             queryParams.set('discount', String(Number(discount) || 0));
+            queryParams.set('khata', String(Number(khataAmountInput) || 0));
             
             const receiptUrl = `/outflow/receipt/${recordId}?${queryParams.toString()}`;
             receiptWindow = window.open(receiptUrl, '_blank');
@@ -207,6 +217,7 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
             try {
                 const batch = writeBatch(firestore);
                 const discountAmount = !isMultiLotWithdrawal ? (Number(discount) || 0) : 0;
+                const khataAmount = !isMultiLotWithdrawal ? (Number(khataAmountInput) || 0) : totalKhataFromRecords;
                 
                 const processedRecordIds = new Set(withdrawalEntries.map(([id]) => id));
                 const recordsToProcess = records.filter(r => processedRecordIds.has(r.id));
@@ -242,6 +253,11 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                         totalRentBilled: (record.totalRentBilled || 0) + rentForThisWithdrawal,
                         outflows: arrayUnion(cleanForFirestore(newOutflow)),
                     };
+
+                    // If user manually edited the khata amount for a single lot outflow, update the record
+                    if (!isMultiLotWithdrawal && khataAmount !== record.khataAmount) {
+                        updateData.khataAmount = khataAmount;
+                    }
 
                     if (newBagsStored <= 0) {
                         updateData.storageEndDate = Timestamp.fromDate(withdrawalDate);
@@ -414,16 +430,23 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                                         <span>Pending Hamali Charges</span>
                                         <span className="font-mono">{formatCurrency(totalPendingHamali)}</span>
                                     </div>
-                                    <div className="flex justify-between items-center text-purple-600">
-                                        <span>Pending Khata (Weighbridge)</span>
-                                        <span className="font-mono">{formatCurrency(totalKhata)}</span>
-                                    </div>
                                 </div>
                             </div>
 
-                            <Separator/>
-
-                            <div className="space-y-4 pt-2">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="khataAmountInput">Khata Amount (Weighbridge)</Label>
+                                    <Input
+                                        id="khataAmountInput"
+                                        name="khataAmountInput"
+                                        type="number"
+                                        placeholder="0.00"
+                                        step="0.01"
+                                        value={khataAmountInput}
+                                        onChange={e => setKhataAmountInput(e.target.value === '' ? '' : Number(e.target.value))}
+                                    />
+                                    <p className="text-xs text-muted-foreground">Pending from record: {formatCurrency(totalKhataFromRecords)}</p>
+                                </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="discount">Discount Amount</Label>
                                     <Input
@@ -437,7 +460,11 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                                         disabled={isMultiLotWithdrawal}
                                     />
                                 </div>
+                            </div>
 
+                            <Separator className="my-4"/>
+
+                            <div className="space-y-4 pt-2">
                                 <div className="flex justify-between items-center font-semibold text-lg">
                                     <span className="text-foreground">Total Payable</span>
                                     <span className="font-mono">{formatCurrency(totalPayable)}</span>

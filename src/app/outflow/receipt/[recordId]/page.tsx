@@ -31,6 +31,7 @@ export default function OutflowReceiptPage() {
   const finalRent = Number(searchParams.get('rent')) || 0;
   const paidNow = Number(searchParams.get('paidNow')) || 0;
   const discount = Number(searchParams.get('discount')) || 0;
+  const khataAmountFromForm = searchParams.get('khata') !== null ? Number(searchParams.get('khata')) : null;
 
   useEffect(() => {
     if (!firestore || !recordId || !appUser?.warehouseId) {
@@ -128,8 +129,10 @@ export default function OutflowReceiptPage() {
 
   const deliveryOrderDate = latestOutflow ? toDate(latestOutflow.date) : new Date();
 
+  // If a khata amount was passed in the URL, we use that for the bill display
   const cleanRecord = {
     ...record,
+    khataAmount: khataAmountFromForm !== null ? khataAmountFromForm : record.khataAmount,
     storageStartDate: toDate(record.storageStartDate),
     storageEndDate: record.storageEndDate ? toDate(record.storageEndDate) : null,
     payments: (record.payments || []).map(p => ({...p, date: toDate(p.date)})),

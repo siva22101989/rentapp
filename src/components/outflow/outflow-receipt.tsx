@@ -111,7 +111,7 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
                       <TableCell></TableCell>
                       <TableCell className="text-right font-mono">{hamaliPending > 0 ? formatCurrency(hamaliPending) : ''}</TableCell>
                   </TableRow>
-                  {record.khataAmount && record.khataAmount > 0 && (
+                  {record.khataAmount !== undefined && record.khataAmount > 0 && (
                       <TableRow>
                           <TableCell>3. Khata (Weighbridge) Charges</TableCell>
                           <TableCell></TableCell>
@@ -162,5 +162,3 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
 })
 
 OutflowReceipt.displayName = 'OutflowReceipt';
-
-    

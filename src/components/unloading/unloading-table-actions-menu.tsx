@@ -20,9 +20,8 @@ type ActionsMenuProps = {
 
 export function UnloadingTableActionsMenu({ record, customers, commodities, lots, storageRecords }: ActionsMenuProps) {
     const appUser = useAppUser();
-    const canEdit = appUser?.role === 'owner' || appUser?.role === 'biller' || appUser?.role === 'supervisor';
+    const canEdit = appUser?.role === 'owner' || appUser?.role === 'biller' || appUser?.role === 'supervisor' || appUser?.role === 'super-admin';
     const canDelete = appUser?.role === 'owner' || appUser?.role === 'super-admin';
-    const isDeletable = (record.bagsSentToDrying || 0) === 0;
     
     const customer = customers.find(c => c.id === record.customerId);
     
@@ -65,11 +64,10 @@ export function UnloadingTableActionsMenu({ record, customers, commodities, lots
                         <DeleteUnloadingRecordDialog recordId={record.id}>
                             <DropdownMenuItem
                                 onSelect={(e) => e.preventDefault()}
-                                disabled={!isDeletable}
                                 className="text-destructive focus:text-destructive focus:bg-destructive/10"
                             >
                                 <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
+                                Delete (Owner Permission)
                             </DropdownMenuItem>
                         </DeleteUnloadingRecordDialog>
                     </>

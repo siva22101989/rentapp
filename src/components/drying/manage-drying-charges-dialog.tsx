@@ -59,7 +59,6 @@ export function EditDryingDialog({ record, unloadingRecord, children }: { record
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const firestore = useFirestore();
-  const isBilled = record.status === 'Billed';
 
   const [dryingStartDate, setDryingStartDate] = useState('');
   const [packingDate, setPackingDate] = useState<string | undefined>('');
@@ -141,10 +140,6 @@ export function EditDryingDialog({ record, unloadingRecord, children }: { record
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
-    if (isBilled) {
-      toast({ title: 'Error', description: 'Cannot update a billed record.', variant: 'destructive' });
-      return;
-    }
     if (!firestore) {
       toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
       return;
@@ -223,7 +218,7 @@ export function EditDryingDialog({ record, unloadingRecord, children }: { record
             <DialogHeader>
               <DialogTitle>Edit Drying Record</DialogTitle>
               <DialogDescription>
-                Update the details for this drying process.
+                Update the details for this drying process. All fields are unlocked.
               </DialogDescription>
             </DialogHeader>
             <div className="py-4 space-y-4 max-h-[70vh] overflow-y-auto pr-4">
@@ -263,7 +258,7 @@ export function EditDryingDialog({ record, unloadingRecord, children }: { record
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="workerHamaliPerBag">Worker Hamali/Bag</Label>
-                        <Input id="workerHamaliPerBag" type="number" step="0.01" value={workerHamaliPerBag === undefined ? '' : workerHamaliPerBag} onChange={(e) => setWorkerHamaliPerBag(e.target.value === '' ? undefined : Number(e.target.value))} placeholder="Re-enter to update" />
+                        <Input id="workerHamaliPerBag" type="number" step="0.01" value={workerHamaliPerBag === undefined ? '' : workerHamaliPerBag} onChange={(e) => setWorkerHamaliPerBag(e.target.value === '' ? undefined : Number(e.target.value))} placeholder="Update Payable" />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="pavHamaliPerBag">Pav Hamali/Bag/Day</Label>
@@ -290,15 +285,13 @@ export function EditDryingDialog({ record, unloadingRecord, children }: { record
             </div>
             <DialogFooter>
               <DialogClose asChild><Button variant="outline" type="button">Cancel</Button></DialogClose>
-              {!isBilled && (
-                <Button type="submit" disabled={isPending}>
-                  {isPending ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
-                  ) : (
-                    <><Save className="mr-2 h-4 w-4" /> Save Changes</>
-                  )}
-                </Button>
-              )}
+              <Button type="submit" disabled={isPending}>
+                {isPending ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
+                ) : (
+                  <><Save className="mr-2 h-4 w-4" /> Save Changes</>
+                )}
+              </Button>
             </DialogFooter>
           </form>
       </DialogContent>

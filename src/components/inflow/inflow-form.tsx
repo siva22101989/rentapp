@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useTransition, useState, useEffect, useMemo } from 'react';
@@ -53,6 +54,11 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
     const [selectedLot, setSelectedLot] = useState('');
     const [lorryTractorNo, setLorryTractorNo] = useState('');
     const [storageStartDate, setStorageStartDate] = useState(new Date().toISOString().split('T')[0]);
+    const [serialNo, setSerialNo] = useState(nextId);
+
+    useEffect(() => {
+        setSerialNo(nextId);
+    }, [nextId]);
 
     const warehouseInfoRef = useMemoFirebase(
       () => (firestore && appUser?.warehouseId ? doc(firestore, 'warehouses', appUser.warehouseId) : null),
@@ -115,12 +121,18 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
         setSelectedLot('');
         setLorryTractorNo('');
         setStorageStartDate(new Date().toISOString().split('T')[0]);
+        setSerialNo(nextId);
     };
     
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (!firestore || !appUser?.warehouseId) {
             toast({ title: 'Error', description: 'Could not create record: user or warehouse context is missing.', variant: 'destructive' });
+            return;
+        }
+
+        if (!serialNo) {
+            toast({ title: 'Error', description: 'Patti/Serial No is required.', variant: 'destructive' });
             return;
         }
 
@@ -139,16 +151,8 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
             return;
         }
 
-        const receiptUrl = `/inflow/receipt/${nextId}`;
+        const receiptUrl = `/inflow/receipt/${serialNo}`;
         const receiptWindow = window.open(receiptUrl, '_blank');
-        if (!receiptWindow) {
-            toast({
-                title: "Popup Blocked",
-                description: "Please allow popups for this site to view receipts.",
-                variant: "destructive",
-            });
-            return;
-        }
 
         startTransition(async () => {
             try {
@@ -198,7 +202,7 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                     rate1Year: commodityDetails.rate1Year,
                 };
 
-                const docRef = doc(firestore, "storageRecords", nextId);
+                const docRef = doc(firestore, "storageRecords", serialNo);
                 await setDoc(docRef, cleanForFirestore(rawRecord));
 
                 if (sendSmsNotification && warehouseInfo?.textbeeApiKey && selectedCustomer?.phone) {
@@ -209,7 +213,7 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                         .replace('{customerName}', selectedCustomer.name)
                         .replace('{bags}', String(bagsStored))
                         .replace('{commodity}', selectedCommodity)
-                        .replace('{billNo}', nextId)
+                        .replace('{billNo}', serialNo)
                         .replace('{date}', format(new Date(storageStartDate), 'dd/MM/yy'))
                         .replace('{hamaliAmount}', formatCurrency(hamaliPayable))
                         .replace('{warehouseName}', warehouseInfo?.name || 'GrainDost');
@@ -242,6 +246,16 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                     <CardTitle>New Storage Record Details</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                     <div className="space-y-2">
+                        <Label htmlFor="serialNo">Patti No / Serial No</Label>
+                        <Input 
+                            id="serialNo" 
+                            type="text" 
+                            placeholder="Manual Entry Allowed" 
+                            value={serialNo} 
+                            onChange={e => setSerialNo(e.target.value)} 
+                        />
+                    </div>
                      <div className="space-y-2">
                         <Label htmlFor="customerId">Customer</Label>
                         <Combobox

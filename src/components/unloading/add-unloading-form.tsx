@@ -34,7 +34,7 @@ const UnloadingRecordSchema = z.object({
   bagsUnloaded: z.coerce.number().int().positive('Number of bags must be positive.'),
   customerHamaliPerBag: z.coerce.number().nonnegative('Customer hamali rate must be non-negative.'),
   workerHamaliPerBag: z.coerce.number().nonnegative('Worker hamali rate must be non-negative.').optional(),
-  billNo: z.string(),
+  billNo: z.string().min(1, 'Bill No is required.'),
 });
 
 type UnloadingFormData = z.infer<typeof UnloadingRecordSchema>;
@@ -132,14 +132,6 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
         
         const receiptUrl = `/unloading/receipt/${data.billNo}`;
         const receiptWindow = window.open(receiptUrl, '_blank');
-        if (!receiptWindow) {
-            toast({
-                title: "Popup Blocked",
-                description: "Please allow popups for this site to view receipts.",
-                variant: "destructive",
-            });
-            return;
-        }
         
         startTransition(async () => {
             try {
@@ -217,7 +209,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Bill No.</FormLabel>
-                                <FormControl><Input readOnly disabled {...field} /></FormControl>
+                                <FormControl><Input placeholder="Manual Entry Allowed" {...field} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}

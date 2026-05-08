@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef } from 'react';
@@ -19,10 +20,12 @@ import { Button } from '../ui/button';
 import { Printer, FileDown, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { DryingHistoryTable } from '@/components/drying/drying-history-table';
+import { LotStockOutflowReport } from './lot-stock-outflow-report';
 
 const reportTypes = [
     { value: 'daily-summary', label: 'Daily Summary Report' },
     { value: 'profit-and-loss', label: 'Profit & Loss Report' },
+    { value: 'lot-stock-outflow', label: 'Lot-wise Stock & Outflow Report' },
     { value: 'customer-statement', label: 'Customer Dues Statement (Detailed)' },
     { value: 'hamali-register', label: 'Hamali Register' },
     { value: 'drying-history', label: 'Drying History Report' },
@@ -127,6 +130,8 @@ export function CustomReportGenerator({
                             borrowings={borrowings}
                             lendings={lendings}
                         />;
+            case 'lot-stock-outflow':
+                return <LotStockOutflowReport records={records} customers={customers} />;
             case 'all-customers':
                 return <CustomersTable customers={customers} />;
             case 'customer-statement':

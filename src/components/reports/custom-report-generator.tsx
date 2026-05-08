@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef } from 'react';
@@ -12,7 +11,6 @@ import { PendingPaymentsTable } from '@/components/payments/pending-payments-tab
 import { HamaliReport } from './hamali-report';
 import { InflowReport } from './inflow-report';
 import { OutflowReport } from './outflow-report';
-import { LotInventoryReport } from './lot-inventory-report';
 import { UnloadingReport } from './unloading-report';
 import { PaymentReport } from './payment-report';
 import { DailySummaryReport } from './daily-summary-report';
@@ -20,7 +18,6 @@ import { ProfitAndLossReport } from './profit-and-loss-report';
 import { Button } from '../ui/button';
 import { Printer, FileDown, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { LotOutflowReport } from './lot-outflow-report';
 import { DryingHistoryTable } from '@/components/drying/drying-history-table';
 import { MasterRegisterTable } from './master-register-table';
 
@@ -35,8 +32,6 @@ const reportTypes = [
     { value: 'outflow-register', label: 'Outflow Register (Date Range)' },
     { value: 'unloading-register', label: 'Unloading Register (Date Range)' },
     { value: 'payment-register', label: 'Payment Register (Date Range)' },
-    { value: 'lot-inventory', label: 'Lot Inventory (Patti mapping)' },
-    { value: 'lot-outflow', label: 'Lot-wise Outflow Report' },
     { value: 'active-inventory', label: 'Active Inventory (Stock)' },
     { value: 'pending-dues', label: 'Pending Dues List' },
     { value: 'all-customers', label: 'All Customers List' },
@@ -167,10 +162,6 @@ export function CustomReportGenerator({
                 return <UnloadingReport unloadingRecords={unloadingRecords} customers={customers} commodities={commodities} />;
             case 'payment-register':
                 return <PaymentReport records={records} unloadingRecords={unloadingRecords} customers={customers} />;
-            case 'lot-inventory':
-                return <LotInventoryReport records={records} customers={customers} />;
-            case 'lot-outflow':
-                return <LotOutflowReport records={records} customers={customers} />;
             default:
                 return (
                     <Card>

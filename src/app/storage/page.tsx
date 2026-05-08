@@ -1,3 +1,4 @@
+
 'use client';
 
 import { AppLayout } from "@/components/layout/app-layout";
@@ -5,7 +6,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowDown, ArrowUp, Warehouse, IndianRupee } from "lucide-react";
 import { calculateFinalRent } from "@/lib/billing";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, toDate } from "@/lib/utils";
 import { useMemo } from "react";
 import type { StorageRecord, Commodity, Customer } from "@/lib/definitions";
 import { useCollection } from "@/firebase/firestore/use-collection";
@@ -57,21 +58,36 @@ export default function StoragePage() {
 
     const today = new Date();
     const estimatedRent = activeRecords.reduce((total, record) => {
-      // Create a merged record object with fallback rates from the commodity definition
-      const commodity = allCommodities.find(c => c.name === record.commodityDescription);
+      // Create a merged record object with fallback rates from the commodity definition (Case-Insensitive)
+      const commodity = allCommodities.find(c => c.name.trim().toLowerCase() === record.commodityDescription.trim().toLowerCase());
       
       const recordWithRates: StorageRecord = {
           ...record,
           billingType: record.billingType || commodity?.billingType || 'slab',
-          monthlyRate: record.monthlyRate ?? commodity?.monthlyRate,
-          minBillingMonths: record.minBillingMonths ?? commodity?.minBillingMonths,
-          insuranceRate: record.insuranceRate ?? commodity?.insuranceRate,
-          rate6Months: record.rate6Months ?? commodity?.rate6Months,
-          rate1Year: record.rate1Year ?? commodity?.rate1Year,
+          monthlyRate: record.monthlyRate ?? commodity?.monthlyRate ?? 0,
+          minBillingMonths: record.minBillingMonths ?? commodity?.minBillingMonths ?? 0,
+          insuranceRate: record.insuranceRate ?? commodity?.insuranceRate ?? 0,
+          rate6Months: record.rate6Months ?? commodity?.rate6Months ?? 0,
+          rate1Year: record.rate1Year ?? commodity?.rate1Year ?? 0,
       };
 
-      const { rent } = calculateFinalRent(recordWithRates, today, record.bagsStored);
-      return total + rent;
+      // Calculate Accrued Rent for all bags currently in stock
+      const { rent: currentAccruedRent } = calculateFinalRent({ ...recordWithRates, storageStartDate: toDate(recordWithRates.storageStartDate) }, today, record.bagsStored);
+      
+      // Calculate how much has already been paid towards rent for this patti
+      const totalRentPaid = (record.payments || [])
+          .filter(p => p.type === 'rent' || p.type === 'other' || !p.type || p.type === 'discount')
+          .reduce((acc, p) => acc + p.amount, 0);
+
+      // Due = (Total Accrued on current bags) - (Proportional Payment)
+      // Since proportional payment is complex, we'll estimate based on record balance
+      // Simplified approach: What is the current outstanding balance of the Patti?
+      const totalAccruedForPatti = calculateFinalRent({ ...recordWithRates, storageStartDate: toDate(recordWithRates.storageStartDate) }, today, record.bagsIn).rent;
+      const pattiRentDue = Math.max(0, totalAccruedForPatti - totalRentPaid);
+
+      // We only return the due proportional to what's still in stock
+      const weight = record.bagsIn > 0 ? (record.bagsStored / record.bagsIn) : 1;
+      return total + (pattiRentDue * weight);
     }, 0);
 
     return { totalInflow, totalOutflow, balanceStock, estimatedRent };
@@ -138,7 +154,7 @@ export default function StoragePage() {
             <CardContent>
                 <div className="text-2xl font-bold text-primary">{formatCurrency(stats.estimatedRent)}</div>
                 <p className="text-xs text-muted-foreground">
-                    Accumulated on active stock
+                    Outstanding on active stock
                 </p>
             </CardContent>
         </Card>

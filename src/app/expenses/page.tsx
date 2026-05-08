@@ -1,3 +1,4 @@
+
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { AddExpenseDialog } from "@/components/expenses/add-expense-dialog";
@@ -375,20 +376,29 @@ export default function ExpensesPage() {
     const activeRecords = allRecords.filter(r => !r.storageEndDate && r.bagsStored > 0);
     const today = new Date();
     const rentEstimate = activeRecords.reduce((total, record) => {
-      const commodity = allCommodities.find(c => c.name === record.commodityDescription);
+      // Robust commodity fallback matching
+      const commodity = allCommodities.find(c => c.name.trim().toLowerCase() === record.commodityDescription.trim().toLowerCase());
       
       const recordWithRates: StorageRecord = {
           ...record,
           billingType: record.billingType || commodity?.billingType || 'slab',
-          monthlyRate: record.monthlyRate ?? commodity?.monthlyRate,
-          minBillingMonths: record.minBillingMonths ?? commodity?.minBillingMonths,
-          insuranceRate: record.insuranceRate ?? commodity?.insuranceRate,
-          rate6Months: record.rate6Months ?? commodity?.rate6Months,
-          rate1Year: record.rate1Year ?? commodity?.rate1Year,
+          monthlyRate: record.monthlyRate ?? commodity?.monthlyRate ?? 0,
+          minBillingMonths: record.minBillingMonths ?? commodity?.minBillingMonths ?? 0,
+          insuranceRate: record.insuranceRate ?? commodity?.insuranceRate ?? 0,
+          rate6Months: record.rate6Months ?? commodity?.rate6Months ?? 0,
+          rate1Year: record.rate1Year ?? commodity?.rate1Year ?? 0,
       };
 
-      const { rent } = calculateFinalRent(recordWithRates, today, record.bagsStored);
-      return total + rent;
+      // Calculate Accrued Rent vs Total Paid
+      const { rent: totalAccruedForPatti } = calculateFinalRent({ ...recordWithRates, storageStartDate: toDate(recordWithRates.storageStartDate) }, today, record.bagsIn);
+      const totalRentPaidForPatti = (record.payments || [])
+          .filter(p => p.type === 'rent' || p.type === 'other' || !p.type || p.type === 'discount')
+          .reduce((acc, p) => acc + p.amount, 0);
+
+      const pattiRentDue = Math.max(0, totalAccruedForPatti - totalRentPaidForPatti);
+      const activeWeight = record.bagsIn > 0 ? (record.bagsStored / record.bagsIn) : 1;
+
+      return total + (pattiRentDue * activeWeight);
     }, 0);
     
     const totalActiveBags = activeRecords.reduce((acc, record) => acc + record.bagsStored, 0);
@@ -490,7 +500,7 @@ export default function ExpensesPage() {
             <CardContent>
                 <div className="text-2xl font-bold text-blue-600">{formatCurrency(estimatedRent)}</div>
                 <p className="text-xs text-muted-foreground">
-                    For {activeBags} active bags as of today.
+                    Outstanding on {activeBags} active bags.
                 </p>
             </CardContent>
         </Card>

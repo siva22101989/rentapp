@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, forwardRef } from 'react';
@@ -58,6 +57,19 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             debit: record.hamaliPayable || 0,
             credit: 0
         });
+        
+        if (record.khataAmount && record.khataAmount > 0) {
+             events.push({
+                date: toDate(record.storageStartDate),
+                description: `Khata (Weighbridge) Charge`,
+                invoiceId: record.id,
+                lotNo: record.location || '',
+                bagsReceived: 0,
+                bagsDelivered: 0,
+                debit: record.khataAmount,
+                credit: 0
+            });
+        }
 
         if (Array.isArray(record.outflows)) {
             record.outflows.forEach((outflow, index) => {
@@ -111,6 +123,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
     let totalCredit = 0;
     let totalHamali = 0;
     let totalRent = 0;
+    let totalKhata = 0;
 
     const lineItems = sortedEvents.map(event => {
         runningBagsBalance += (event.bagsReceived || 0) - (event.bagsDelivered || 0);
@@ -121,12 +134,13 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         totalDebit += event.debit || 0;
         totalCredit += event.credit || 0;
 
-        if (event.description.toLowerCase().includes('hamali') || event.description.toLowerCase().includes('unloading')) {
+        const desc = event.description.toLowerCase();
+        if (desc.includes('hamali') || desc.includes('unloading') || desc.includes('inflow')) {
             totalHamali += event.debit || 0;
-        } else if (event.description.toLowerCase().includes('outflow') || event.description.toLowerCase().includes('rent')) {
+        } else if (desc.includes('outflow') || desc.includes('rent')) {
             totalRent += event.debit || 0;
-        } else if (event.description.toLowerCase().includes('inflow')) {
-            totalHamali += event.debit || 0;
+        } else if (desc.includes('khata')) {
+            totalKhata += event.debit || 0;
         }
 
         return { ...event, balanceBags: runningBagsBalance, balanceAmount: runningAmountBalance };
@@ -138,6 +152,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         balanceStock: runningBagsBalance,
         totalHamali: totalHamali,
         totalRent: totalRent,
+        totalKhata: totalKhata,
         totalDebit: totalDebit,
         totalCredit: totalCredit,
         balanceDue: runningAmountBalance
@@ -190,10 +205,11 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             <div>
                 <h3 className="font-bold text-sm mb-2 underline">FINANCIAL DETAILS</h3>
                 <div className="space-y-1 text-xs">
-                    <div className="flex justify-between"><span className="text-muted-foreground">Total Hamali Charges:</span><span className="font-medium">{formatCurrency(summary.totalHamali)}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Total Godown Rent:</span><span className="font-medium">{formatCurrency(summary.totalRent)}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Total Amount Paid:</span><span className="font-medium">{formatCurrency(summary.totalCredit)}</span></div>
-                    <div className="flex justify-between font-bold"><span className="text-foreground">Balance Amount Due:</span><span className="text-destructive">{formatCurrency(summary.balanceDue)}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Total Hamali:</span><span className="font-medium">{formatCurrency(summary.totalHamali)}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Total Rent:</span><span className="font-medium">{formatCurrency(summary.totalRent)}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Total Khata:</span><span className="font-medium">{formatCurrency(summary.totalKhata)}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Total Paid:</span><span className="font-medium">{formatCurrency(summary.totalCredit)}</span></div>
+                    <div className="flex justify-between font-bold"><span className="text-foreground">Balance Due:</span><span className="text-destructive">{formatCurrency(summary.balanceDue)}</span></div>
                 </div>
             </div>
         </div>
@@ -258,5 +274,3 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
 });
 
 CustomerStatement.displayName = 'CustomerStatement';
-
-    

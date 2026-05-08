@@ -55,6 +55,7 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
     
     const [totalRent, setTotalRent] = useState(0);
     const [totalPendingHamali, setTotalPendingHamali] = useState(0);
+    const [totalKhata, setTotalKhata] = useState(0);
     const [totalBags, setTotalBags] = useState(0);
 
     const warehouseInfoRef = useMemoFirebase(
@@ -81,7 +82,7 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
 
     const isMultiLotWithdrawal = useMemo(() => withdrawalEntries.length > 1, [withdrawalEntries]);
 
-    const totalPayable = totalRent + totalPendingHamali - (Number(discount) || 0);
+    const totalPayable = totalRent + totalPendingHamali + totalKhata - (Number(discount) || 0);
 
     useEffect(() => {
         setWithdrawals({});
@@ -90,8 +91,9 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
     useEffect(() => {
         let runningRent = 0;
         let runningHamali = 0;
+        let runningKhata = 0;
         let runningBags = 0;
-        const hamaliCalculatedRecords = new Set<string>();
+        const processedRecords = new Set<string>();
 
         const currentWithdrawalEntries = Object.entries(withdrawals).filter(([, bags]) => Number(bags) > 0);
 
@@ -111,11 +113,16 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                 const { rent } = calculateFinalRent({ ...recordWithRates, storageStartDate: toDate(recordWithRates.storageStartDate) }, withdrawalDate, bagsToWithdraw);
                 runningRent += rent;
                 
-                if (!hamaliCalculatedRecords.has(recordId)) {
+                if (!processedRecords.has(recordId)) {
                     const hamaliPaid = (record.payments || []).filter(p => p.type === 'hamali').reduce((acc, p) => acc + p.amount, 0);
-                    const pending = (record.hamaliPayable || 0) - hamaliPaid;
-                    runningHamali += pending > 0 ? pending : 0;
-                    hamaliCalculatedRecords.add(recordId);
+                    const pendingHamali = (record.hamaliPayable || 0) - hamaliPaid;
+                    runningHamali += Math.max(0, pendingHamali);
+                    
+                    // Add Khata if it exists and hasn't been paid as 'other'
+                    // For now we assume Khata is added to final bill
+                    runningKhata += (record.khataAmount || 0);
+                    
+                    processedRecords.add(recordId);
                 }
                 runningBags += bagsToWithdraw;
             }
@@ -123,6 +130,7 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
         
         setTotalRent(runningRent);
         setTotalPendingHamali(runningHamali);
+        setTotalKhata(runningKhata);
         setTotalBags(runningBags);
     }, [withdrawals, withdrawalDate, records, commodities]);
 
@@ -398,13 +406,17 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                                         <span className="text-muted-foreground">Total Bags to Withdraw</span>
                                         <span className="font-mono font-bold">{totalBags}</span>
                                     </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-muted-foreground">Calculated Rent Due</span>
+                                    <div className="flex justify-between items-center text-blue-600">
+                                        <span>Calculated Rent Due</span>
                                         <span className="font-mono">{formatCurrency(totalRent)}</span>
                                     </div>
-                                     <div className="flex justify-between items-center">
-                                        <span className="text-muted-foreground">Pending Hamali Charges</span>
+                                     <div className="flex justify-between items-center text-orange-600">
+                                        <span>Pending Hamali Charges</span>
                                         <span className="font-mono">{formatCurrency(totalPendingHamali)}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-purple-600">
+                                        <span>Pending Khata (Weighbridge)</span>
+                                        <span className="font-mono">{formatCurrency(totalKhata)}</span>
                                     </div>
                                 </div>
                             </div>

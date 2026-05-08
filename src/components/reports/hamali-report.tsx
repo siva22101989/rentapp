@@ -48,6 +48,7 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses, w
 
         records.forEach(sr => {
             if (sr.hamaliPayable > 0) {
+                 const workerPayable = sr.workerHamaliPayable ?? sr.hamaliPayable;
                  events.push({
                     date: toDate(sr.storageStartDate),
                     customerId: sr.customerId,
@@ -56,7 +57,7 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses, w
                     amount: sr.hamaliPayable,
                     type: 'charge',
                     bags: sr.bagsIn,
-                    difference: sr.hamaliPayable - (sr.workerHamaliPayable ?? sr.hamaliPayable),
+                    difference: sr.hamaliPayable - workerPayable,
                 });
             }
         });
@@ -66,7 +67,7 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses, w
             if (bagsRemaining > 0) {
                 const remainingHamali = bagsRemaining * ur.hamaliPerBag;
                  if (remainingHamali > 0) {
-                    const workerPayableForRemaining = (ur.workerHamaliPayable && ur.bagsUnloaded > 0) 
+                    const workerPayableForRemaining = (ur.workerHamaliPayable !== undefined && ur.bagsUnloaded > 0) 
                         ? (ur.workerHamaliPayable / ur.bagsUnloaded) * bagsRemaining 
                         : remainingHamali;
                     
@@ -85,11 +86,11 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses, w
         });
 
         records.forEach(sr => {
-            (sr.payments || []).filter(p => p.type === 'hamali').forEach(payment => {
+            (sr.payments || []).filter(p => p.type === 'hamali' || p.type === 'unloading').forEach(payment => {
                 events.push({
                     date: toDate(payment.date),
                     customerId: sr.customerId,
-                    description: 'Payment',
+                    description: payment.type === 'unloading' ? 'Unloading Payment' : 'Hamali Payment',
                     recordId: sr.id,
                     amount: payment.amount,
                     type: 'payment',
@@ -126,22 +127,14 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses, w
             }
         }
 
-        const sortedEvents = filteredEvents.sort((a,b) => b.date.getTime() - a.date.getTime());
-
-        let paymentCounter = 1;
-        return sortedEvents.map(event => {
-            if (event.type === 'payment') {
-                return { ...event, recordId: String(paymentCounter++) };
-            }
-            return event;
-        });
+        return filteredEvents.sort((a,b) => b.date.getTime() - a.date.getTime());
     }, [records, unloadingRecords, selectedCustomerId, dateRange, financialYear]);
 
     const workerAndProfitEvents = useMemo(() => {
         const events: WorkerHamaliEvent[] = [];
 
         records.forEach(sr => {
-            if (sr.hamaliPayable > 0) {
+            if (sr.hamaliPayable > 0 || (sr.workerHamaliPayable && sr.workerHamaliPayable > 0)) {
                 events.push({
                     date: toDate(sr.storageStartDate),
                     description: sr.inflowType === 'Plot' ? 'Plot to Storage Hamali' : 'Direct Inflow Hamali',
@@ -179,7 +172,7 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses, w
         expenses.filter(e => e.category === 'Hamali Paid').forEach(exp => {
             events.push({
                 date: toDate(exp.date),
-                description: "Payment",
+                description: "Worker Payment",
                 recordId: exp.id,
                 payable: 0,
                 paid: exp.amount,
@@ -203,16 +196,7 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses, w
             }
         }
 
-        const sortedEvents = filtered.sort((a,b) => b.date.getTime() - a.date.getTime());
-
-        let paymentCounter = 1;
-        return sortedEvents.map(event => {
-            if (event.paid > 0) {
-                return { ...event, recordId: String(paymentCounter++) };
-            }
-            return event;
-        });
-
+        return filtered.sort((a,b) => b.date.getTime() - a.date.getTime());
     }, [records, unloadingRecords, expenses, selectedCustomerId, dateRange, financialYear]);
 
 
@@ -227,7 +211,7 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses, w
                 viewTitle = 'Worker Ledger';
                 break;
             case 'difference':
-                viewTitle = 'Difference Ledger';
+                viewTitle = 'Difference (Profit/Loss) Ledger';
                 break;
         }
         return `Hamali ${viewTitle} ${customer && reportView === 'customer' ? `for ${customer.name}` : ''}`;
@@ -251,21 +235,21 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses, w
             <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4 print-hide">
                 <div className="flex-1">
                     <CardTitle>Hamali Register</CardTitle>
-                    <CardDescription>View ledgers for customer charges or worker payments.</CardDescription>
+                    <CardDescription>View ledgers for customer charges, worker payments, or your business profit/loss on labor.</CardDescription>
                 </div>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto flex-wrap">
                     <Select onValueChange={(v) => setReportView(v as 'customer' | 'worker' | 'difference')} value={reportView}>
-                        <SelectTrigger className='w-full sm:w-auto'>
+                        <SelectTrigger className='w-full sm:w-[200px]'>
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="customer">Customer Ledger</SelectItem>
                             <SelectItem value="worker">Worker Ledger</SelectItem>
-                            <SelectItem value="difference">Difference Ledger</SelectItem>
+                            <SelectItem value="difference">Difference (Profit/Loss)</SelectItem>
                         </SelectContent>
                     </Select>
                     <Select onValueChange={setSelectedCustomerId} value={selectedCustomerId} disabled={reportView !== 'customer'}>
-                        <SelectTrigger className="w-full sm:w-auto">
+                        <SelectTrigger className="w-full sm:w-[200px]">
                             <SelectValue placeholder="All Customers" />
                         </SelectTrigger>
                         <SelectContent>
@@ -280,7 +264,7 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses, w
                 </div>
             </CardHeader>
             <CardContent>
-                <div>
+                <div className="mt-2">
                    {renderReport()}
                 </div>
             </CardContent>

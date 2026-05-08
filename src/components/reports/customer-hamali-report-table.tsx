@@ -25,12 +25,13 @@ export function CustomerHamaliReportTable({ events, customers, title, warehouseI
 
     const totalCharges = safeEvents.filter(e => e.type === 'charge').reduce((acc, event) => acc + event.amount, 0);
     const totalPayments = safeEvents.filter(e => e.type === 'payment').reduce((acc, event) => acc + event.amount, 0);
+    const totalDifference = safeEvents.filter(e => e.type === 'charge').reduce((acc, event) => acc + (event.difference || 0), 0);
     
     return (
         <div className="bg-white p-4 rounded-lg">
-             <div className="mb-4">
-                <h2 className="text-xl font-bold">GrainDost</h2>
-                <p className="text-muted-foreground">{title}</p>
+             <div className="mb-4 text-center">
+                <h2 className="text-xl font-bold">{warehouseInfo?.name || "GrainDost"}</h2>
+                <p className="text-muted-foreground font-semibold">{title}</p>
                 <p className="text-xs text-muted-foreground">Generated on: {generatedDate}</p>
             </div>
             <Table>
@@ -41,7 +42,8 @@ export function CustomerHamaliReportTable({ events, customers, title, warehouseI
                         <TableHead>Description</TableHead>
                         <TableHead>Reference ID</TableHead>
                         <TableHead className="text-center">Bags</TableHead>
-                        <TableHead className="text-right">Charge</TableHead>
+                        <TableHead className="text-right">Cust. Charge</TableHead>
+                        <TableHead className="text-right">Profit/Loss</TableHead>
                         <TableHead className="text-right">Payment</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -52,9 +54,12 @@ export function CustomerHamaliReportTable({ events, customers, title, warehouseI
                             <TableCell className="font-medium">{getCustomerName(event.customerId)}</TableCell>
                             <TableCell>{event.description}</TableCell>
                             <TableCell>{event.recordId}</TableCell>
-                            <TableCell className="text-center">{event.bags || ''}</TableCell>
+                            <TableCell className="text-center font-mono">{event.bags || ''}</TableCell>
                             <TableCell className="text-right font-mono">
                                 {event.type === 'charge' ? formatCurrency(event.amount) : ''}
+                            </TableCell>
+                            <TableCell className={`text-right font-mono font-semibold ${event.difference && event.difference > 0 ? 'text-green-600' : event.difference && event.difference < 0 ? 'text-destructive' : ''}`}>
+                                {event.type === 'charge' && event.difference !== undefined ? formatCurrency(event.difference) : ''}
                             </TableCell>
                             <TableCell className="text-right font-mono text-green-600">
                                 {event.type === 'payment' ? formatCurrency(event.amount) : ''}
@@ -63,21 +68,22 @@ export function CustomerHamaliReportTable({ events, customers, title, warehouseI
                     ))}
                     {safeEvents.length === 0 && (
                         <TableRow>
-                            <TableCell colSpan={7} className="text-center text-muted-foreground">
+                            <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                                 No hamali transactions found for the selected criteria.
                             </TableCell>
                         </TableRow>
                     )}
                 </TableBody>
                 <TableFooter>
-                    <TableRow>
+                    <TableRow className="bg-secondary/50">
                         <TableCell colSpan={5} className="text-right font-bold">Totals</TableCell>
                         <TableCell className="text-right font-mono font-bold">{formatCurrency(totalCharges)}</TableCell>
+                        <TableCell className="text-right font-mono font-bold text-primary">{formatCurrency(totalDifference)}</TableCell>
                         <TableCell className="text-right font-mono font-bold text-green-600">{formatCurrency(totalPayments)}</TableCell>
                     </TableRow>
                      <TableRow>
-                        <TableCell colSpan={6} className="text-right font-bold">Pending Hamali</TableCell>
-                        <TableCell className="text-right font-mono font-bold text-destructive">{formatCurrency(totalCharges - totalPayments)}</TableCell>
+                        <TableCell colSpan={7} className="text-right font-bold text-lg">Balance Pending from Customers</TableCell>
+                        <TableCell className="text-right font-mono font-bold text-lg text-destructive">{formatCurrency(totalCharges - totalPayments)}</TableCell>
                     </TableRow>
                 </TableFooter>
             </Table>

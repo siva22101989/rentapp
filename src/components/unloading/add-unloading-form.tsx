@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo, useTransition } from 'react';
@@ -31,7 +30,7 @@ const UnloadingRecordSchema = z.object({
   location: z.string().min(1, 'Storage location is required.'),
   lorryTractorNo: z.string().optional(),
   unloadingDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
-  bagsUnloaded: z.coerce.number().int().positive('Number of bags must be positive.'),
+  bagsUnloaded: z.coerce.number().positive('Number of bags must be positive.'),
   customerHamaliPerBag: z.coerce.number().nonnegative('Customer hamali rate must be non-negative.'),
   workerHamaliPerBag: z.coerce.number().nonnegative('Worker hamali rate must be non-negative.').optional(),
   billNo: z.string().min(1, 'Bill No is required.'),
@@ -208,8 +207,8 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                         name="billNo"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Bill No. (Auto)</FormLabel>
-                                <FormControl><Input disabled placeholder="Auto-generated" {...field} /></FormControl>
+                                <FormLabel>Bill No. (Auto-Generated)</FormLabel>
+                                <FormControl><Input disabled={true} className="bg-muted font-mono font-bold" placeholder="Auto-generated" {...field} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -290,7 +289,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                         name="lorryTractorNo"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Lorry / Tractor No. <span className="text-muted-foreground">(Optional)</span></FormLabel>
+                                <FormLabel>Lorry / Tractor No. <span className="text-muted-foreground">(Optional)</span></Label>
                                 <FormControl><Input placeholder="e.g., AP 21 1234" {...field} value={field.value ?? ''} /></FormControl>
                                 <FormMessage />
                             </FormItem>

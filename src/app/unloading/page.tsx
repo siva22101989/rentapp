@@ -1,4 +1,3 @@
-
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
@@ -49,9 +48,10 @@ export default function UnloadingPage() {
   const { data: storageRecords, loading: loadingStorage } = useCollection<StorageRecord>(storageRecordsQuery);
 
   const nextBillNo = useMemo(() => {
-    if (!unloadingRecords) return '1';
+    if (!unloadingRecords || unloadingRecords.length === 0) return '1';
     const maxBillNo = unloadingRecords.reduce((max, record) => {
-      const billNo = parseInt(record.billNo || '0', 10);
+      // Ensure we only treat numerical bill numbers
+      const billNo = parseInt(record.billNo?.replace(/[^0-9]/g, '') || '0', 10);
       return billNo > max ? billNo : max;
     }, 0);
     return (maxBillNo + 1).toString();

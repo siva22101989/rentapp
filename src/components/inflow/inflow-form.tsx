@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useTransition, useState, useEffect, useMemo } from 'react';
@@ -6,7 +5,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import type { Customer, Payment, Commodity, Lot, StorageRecord, WarehouseInfo, SmsInfo } from '@/lib/definitions';
+import type { Customer, Payment, Commodity, Lot, StorageRecord, WarehouseInfo } from '@/lib/definitions';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Separator } from '../ui/separator';
@@ -247,12 +246,12 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                 </CardHeader>
                 <CardContent className="space-y-4">
                      <div className="space-y-2">
-                        <Label htmlFor="serialNo">Patti No / Serial No (Auto)</Label>
+                        <Label htmlFor="serialNo">Patti No / Serial No (Auto-Generated)</Label>
                         <Input 
                             id="serialNo" 
                             type="text" 
-                            disabled
-                            placeholder="Auto-generated" 
+                            disabled={true}
+                            className="bg-muted font-mono font-bold"
                             value={serialNo} 
                         />
                     </div>

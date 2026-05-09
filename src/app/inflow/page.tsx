@@ -1,4 +1,3 @@
-
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
@@ -43,8 +42,9 @@ export default function InflowPage() {
   const { data: lots, loading: loadingLots } = useCollection<Lot>(lotsQuery);
 
   const nextId = useMemo(() => {
-    if (!records) return '1';
+    if (!records || records.length === 0) return '1';
     const maxId = records.reduce((max, r) => {
+        // Extract numerical portion of ID
         const idNum = parseInt(r.id.replace(/[^0-9]/g, ''), 10);
         return isNaN(idNum) ? max : Math.max(max, idNum);
     }, 0);

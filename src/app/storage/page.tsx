@@ -58,7 +58,7 @@ export default function StoragePage() {
 
     const today = new Date();
     const estimatedRent = activeRecords.reduce((total, record) => {
-      // Create a merged record object with fallback rates from the commodity definition (Case-Insensitive)
+      // Robust commodity fallback matching
       const commodity = allCommodities.find(c => c.name.trim().toLowerCase() === record.commodityDescription.trim().toLowerCase());
       
       const recordWithRates: StorageRecord = {
@@ -71,23 +71,15 @@ export default function StoragePage() {
           rate1Year: record.rate1Year ?? commodity?.rate1Year ?? 0,
       };
 
-      // Calculate Accrued Rent for all bags currently in stock
-      const { rent: currentAccruedRent } = calculateFinalRent({ ...recordWithRates, storageStartDate: toDate(recordWithRates.storageStartDate) }, today, record.bagsStored);
-      
-      // Calculate how much has already been paid towards rent for this patti
-      const totalRentPaid = (record.payments || [])
-          .filter(p => p.type === 'rent' || p.type === 'other' || !p.type || p.type === 'discount')
-          .reduce((acc, p) => acc + p.amount, 0);
+      // Accurate Outstanding Balance Calculation:
+      // (Rent on currently held bags) + (Billed Rent on past outflows) + (Hamali + Khata) - (Total Paid)
+      const { rent: currentStockRent } = calculateFinalRent({ ...recordWithRates, storageStartDate: toDate(recordWithRates.storageStartDate) }, today, record.bagsStored);
+      const billedRentOnOutflows = (record.outflows || []).reduce((acc, o) => acc + (o.rentBilled || 0), 0);
+      const totalLiabilities = currentStockRent + billedRentOnOutflows + (record.hamaliPayable || 0) + (record.khataAmount || 0);
+      const totalPaymentsReceived = (record.payments || []).reduce((acc, p) => acc + p.amount, 0);
 
-      // Due = (Total Accrued on current bags) - (Proportional Payment)
-      // Since proportional payment is complex, we'll estimate based on record balance
-      // Simplified approach: What is the current outstanding balance of the Patti?
-      const totalAccruedForPatti = calculateFinalRent({ ...recordWithRates, storageStartDate: toDate(recordWithRates.storageStartDate) }, today, record.bagsIn).rent;
-      const pattiRentDue = Math.max(0, totalAccruedForPatti - totalRentPaid);
-
-      // We only return the due proportional to what's still in stock
-      const weight = record.bagsIn > 0 ? (record.bagsStored / record.bagsIn) : 1;
-      return total + (pattiRentDue * weight);
+      const recordDue = Math.max(0, totalLiabilities - totalPaymentsReceived);
+      return total + recordDue;
     }, 0);
 
     return { totalInflow, totalOutflow, balanceStock, estimatedRent };
@@ -148,13 +140,13 @@ export default function StoragePage() {
         </Card>
         <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Estimated Rent Due</CardTitle>
+                <CardTitle className="text-sm font-medium">Outstanding Balance</CardTitle>
                 <IndianRupee className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
                 <div className="text-2xl font-bold text-primary">{formatCurrency(stats.estimatedRent)}</div>
                 <p className="text-xs text-muted-foreground">
-                    Outstanding on active stock
+                    Money Owed on active stock
                 </p>
             </CardContent>
         </Card>

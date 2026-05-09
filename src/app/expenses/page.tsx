@@ -39,7 +39,7 @@ function IncomesTable({ incomes }: { incomes: OtherIncome[] }) {
                 <TableHead>Ref No</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead>Description</TableHead>
-                <TableHead>Lorry/Tractor</TableHead>
+                <TableHead>Vehicle</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
               </TableRow>
             </TableHeader>
@@ -391,16 +391,15 @@ export default function ExpensesPage() {
           rate1Year: record.rate1Year ?? commodity?.rate1Year ?? 0,
       };
 
-      // Calculate Accrued Rent vs Total Paid
-      const { rent: totalAccruedForPatti } = calculateFinalRent({ ...recordWithRates, storageStartDate: toDate(recordWithRates.storageStartDate) }, today, record.bagsIn);
-      const totalRentPaidForPatti = (record.payments || [])
-          .filter(p => p.type === 'rent' || p.type === 'other' || !p.type || p.type === 'discount')
-          .reduce((acc, p) => acc + p.amount, 0);
+      // Accurate Outstanding Balance Calculation:
+      // (Rent on currently held bags) + (Billed Rent on past outflows) + (Hamali + Khata) - (Total Paid)
+      const { rent: currentStockRent } = calculateFinalRent({ ...recordWithRates, storageStartDate: toDate(recordWithRates.storageStartDate) }, today, record.bagsStored);
+      const billedRentOnOutflows = (record.outflows || []).reduce((acc, o) => acc + (o.rentBilled || 0), 0);
+      const totalLiabilities = currentStockRent + billedRentOnOutflows + (record.hamaliPayable || 0) + (record.khataAmount || 0);
+      const totalPaymentsReceived = (record.payments || []).reduce((acc, p) => acc + p.amount, 0);
 
-      const pattiRentDue = Math.max(0, totalAccruedForPatti - totalRentPaidForPatti);
-      const activeWeight = record.bagsIn > 0 ? (record.bagsStored / record.bagsIn) : 1;
-
-      return total + (pattiRentDue * activeWeight);
+      const recordDue = Math.max(0, totalLiabilities - totalPaymentsReceived);
+      return total + recordDue;
     }, 0);
     
     const totalActiveBags = activeRecords.reduce((acc, record) => acc + record.bagsStored, 0);
@@ -496,13 +495,13 @@ export default function ExpensesPage() {
         </Card>
          <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Estimated Rent Due</CardTitle>
+                <CardTitle className="text-sm font-medium">Outstanding Balance</CardTitle>
                 <IndianRupee className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
                 <div className="text-2xl font-bold text-blue-600">{formatCurrency(estimatedRent)}</div>
                 <p className="text-xs text-muted-foreground">
-                    Outstanding on {activeBags} active bags.
+                    Money Owed on {activeBags} active bags.
                 </p>
             </CardContent>
         </Card>

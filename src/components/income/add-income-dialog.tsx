@@ -57,7 +57,7 @@ export function AddIncomeDialog({ lendings, nextRefNo }: { lendings: Lending[], 
   const [amount, setAmount] = useState<number | ''>('');
   const [refNo, setRefNo] = useState(nextRefNo);
   const [lendingId, setLendingId] = useState<string | undefined>(undefined);
-  const [lorryTractorNo, setLorryTractorNo] = useState('');
+  const [vehicleType, setVehicleType] = useState<'Lorry' | 'Tractor' | ''>('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   
   useEffect(() => {
@@ -74,7 +74,7 @@ export function AddIncomeDialog({ lendings, nextRefNo }: { lendings: Lending[], 
     setAmount('');
     setRefNo(nextRefNo);
     setLendingId(undefined);
-    setLorryTractorNo('');
+    setVehicleType('');
     setErrors({});
   };
   
@@ -86,7 +86,15 @@ export function AddIncomeDialog({ lendings, nextRefNo }: { lendings: Lending[], 
       return;
     }
 
-    const dataToValidate = { refNo, description, amount, date, category, lendingId, lorryTractorNo };
+    const dataToValidate = { 
+      refNo, 
+      description, 
+      amount, 
+      date, 
+      category, 
+      lendingId, 
+      lorryTractorNo: isKhataIncome ? vehicleType : undefined 
+    };
 
     const validationResult = IncomeSchema.safeParse(dataToValidate);
     if(!validationResult.success) {
@@ -112,6 +120,8 @@ export function AddIncomeDialog({ lendings, nextRefNo }: { lendings: Lending[], 
             if (lending) {
                 finalDescription = `Payment from ${lending.borrowerName}: ${data.description}`;
             }
+        } else if (isKhataIncome && vehicleType) {
+            finalDescription = `${vehicleType} Khata: ${data.description}`;
         }
 
         const newIncome = {
@@ -120,7 +130,7 @@ export function AddIncomeDialog({ lendings, nextRefNo }: { lendings: Lending[], 
           amount: data.amount,
           date: new Date(data.date),
           category: data.category,
-          lorryTractorNo: data.lorryTractorNo,
+          lorryTractorNo: isKhataIncome ? vehicleType : undefined,
           warehouseId: appUser.warehouseId,
         };
         const incomeRef = doc(collection(firestore, 'otherIncomes'));
@@ -213,21 +223,22 @@ export function AddIncomeDialog({ lendings, nextRefNo }: { lendings: Lending[], 
                 </div>
               )}
 
-              {(isKhataIncome || true) && (
+              {isKhataIncome && (
                 <div className="space-y-2">
-                  <Label htmlFor="lorryTractorNo">Lorry / Tractor No</Label>
-                  <Input 
-                    id="lorryTractorNo" 
-                    placeholder="e.g. AP 21 1234" 
-                    value={lorryTractorNo} 
-                    onChange={e => setLorryTractorNo(e.target.value)} 
-                  />
+                  <Label htmlFor="vehicleType">Vehicle Type</Label>
+                  <Select onValueChange={(v: any) => setVehicleType(v)} value={vehicleType}>
+                      <SelectTrigger id="vehicleType"><SelectValue placeholder="Select Lorry or Tractor" /></SelectTrigger>
+                      <SelectContent>
+                          <SelectItem value="Lorry">Lorry</SelectItem>
+                          <SelectItem value="Tractor">Tractor</SelectItem>
+                      </SelectContent>
+                  </Select>
                 </div>
               )}
 
               <div className="space-y-2">
                 <Label htmlFor="description">Description</Label>
-                <Textarea id="description" placeholder="e.g., Weighbridge charges for load" value={description} onChange={e => setDescription(e.target.value)} />
+                <Textarea id="description" placeholder="e.g., Weighbridge charges" value={description} onChange={e => setDescription(e.target.value)} />
                 {errors.description && <p className="text-sm font-medium text-destructive">{errors.description}</p>}
               </div>
               <div className="space-y-2">

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useEffect, useMemo } from 'react';
@@ -180,14 +181,13 @@ export function EditUnloadingRecordDialog({
           <DialogHeader>
             <DialogTitle>Edit Unloading Record</DialogTitle>
             <DialogDescription>
-              Adjust details for Bill No. {record.billNo}. All fields are fully editable.
+              Adjust details for Bill No. {record.billNo}. Note: Bill Number is read-only.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4 pr-2">
             <div className="space-y-2">
                 <Label htmlFor="edit-bill-no">Bill No.</Label>
-                <Input id="edit-bill-no" value={billNo} onChange={(e) => setBillNo(e.target.value)} />
-                {errors.billNo && <p className="text-xs text-destructive">{errors.billNo}</p>}
+                <Input id="edit-bill-no" disabled value={billNo} />
             </div>
             <div className="space-y-2">
                 <Label htmlFor="customerId">Customer</Label>

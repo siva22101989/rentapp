@@ -208,8 +208,8 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                         name="billNo"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Bill No.</FormLabel>
-                                <FormControl><Input placeholder="Manual Entry Allowed" {...field} /></FormControl>
+                                <FormLabel>Bill No. (Auto)</FormLabel>
+                                <FormControl><Input disabled placeholder="Auto-generated" {...field} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}

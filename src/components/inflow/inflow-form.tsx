@@ -247,13 +247,13 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                 </CardHeader>
                 <CardContent className="space-y-4">
                      <div className="space-y-2">
-                        <Label htmlFor="serialNo">Patti No / Serial No</Label>
+                        <Label htmlFor="serialNo">Patti No / Serial No (Auto)</Label>
                         <Input 
                             id="serialNo" 
                             type="text" 
-                            placeholder="Manual Entry Allowed" 
+                            disabled
+                            placeholder="Auto-generated" 
                             value={serialNo} 
-                            onChange={e => setSerialNo(e.target.value)} 
                         />
                     </div>
                      <div className="space-y-2">

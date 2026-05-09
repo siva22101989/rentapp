@@ -164,15 +164,14 @@ export function AddIncomeDialog({ lendings, nextRefNo }: { lendings: Lending[], 
             <DialogHeader>
               <DialogTitle>Add Miscellaneous Income</DialogTitle>
               <DialogDescription>
-                Record any income received by the business (Khata, Interest, etc.).
+                Record any income. Reference No is locked to maintain sequence.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-2">
               <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="incRefNo">Reference No</Label>
-                    <Input id="incRefNo" type="number" value={refNo} onChange={e => setRefNo(e.target.value)} />
-                    {errors.refNo && <p className="text-sm font-medium text-destructive">{errors.refNo}</p>}
+                    <Label htmlFor="incRefNo">Ref No (Auto)</Label>
+                    <Input id="incRefNo" disabled value={refNo} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="incDate">Date</Label>

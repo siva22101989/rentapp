@@ -169,15 +169,14 @@ export function AddExpenseDialog({ borrowings, nextRefNo }: { borrowings: Borrow
             <DialogHeader>
               <DialogTitle>Add New Expense</DialogTitle>
               <DialogDescription>
-                Enter the details for the new expense.
+                Enter the details for the new expense. Reference No is locked.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-2">
               <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="refNo">Voucher / Ref No</Label>
-                    <Input id="refNo" type="number" value={refNo} onChange={e => setRefNo(e.target.value)} />
-                    {errors.refNo && <p className="text-sm font-medium text-destructive">{errors.refNo}</p>}
+                    <Label htmlFor="refNo">Ref No (Auto)</Label>
+                    <Input id="refNo" disabled value={refNo} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="date">Date</Label>

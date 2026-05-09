@@ -108,10 +108,14 @@ export function EditExpenseDialog({ expense, children }: { expense: Expense, chi
           <DialogHeader>
             <DialogTitle>Edit Expense</DialogTitle>
             <DialogDescription>
-              Update the details for this expense.
+              Update details for this expense. Reference No is read-only.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="editRefNo">Reference No</Label>
+              <Input id="editRefNo" disabled value={expense.refNo || '-'} />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="date">Date</Label>
               <Input id="date" type="date" value={date} onChange={e => setDate(e.target.value)} />

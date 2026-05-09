@@ -39,6 +39,7 @@ function IncomesTable({ incomes }: { incomes: OtherIncome[] }) {
                 <TableHead>Ref No</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead>Description</TableHead>
+                <TableHead>Lorry/Tractor</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
               </TableRow>
             </TableHeader>
@@ -49,6 +50,7 @@ function IncomesTable({ incomes }: { incomes: OtherIncome[] }) {
                   <TableCell className="font-mono">{income.refNo || income.id.substring(0, 5).replace(/\D/g, '') || '-'}</TableCell>
                   <TableCell>{income.category}</TableCell>
                   <TableCell className="font-medium">{income.description}</TableCell>
+                  <TableCell>{income.lorryTractorNo || '-'}</TableCell>
                   <TableCell className="text-right font-mono text-green-600">{formatCurrency(income.amount)}</TableCell>
                 </TableRow>
               ))}

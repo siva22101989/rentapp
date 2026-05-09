@@ -124,7 +124,7 @@ export type Lending = {
   status?: 'Active' | 'Paid Off';
 };
 
-export const incomeCategories = ["Loan Payment Received", "Other"] as const;
+export const incomeCategories = ["Khata Income", "Loan Payment Received", "Other"] as const;
 export type IncomeCategory = typeof incomeCategories[number];
 
 export type OtherIncome = {
@@ -135,6 +135,7 @@ export type OtherIncome = {
     amount: number;
     category: IncomeCategory;
     date: Date | Timestamp;
+    lorryTractorNo?: string;
 }
 
 export type WarehouseInfo = {

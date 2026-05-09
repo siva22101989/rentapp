@@ -33,6 +33,7 @@ const IncomeSchema = z.object({
   date: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
   category: z.enum(incomeCategories, { required_error: 'Category is required.' }),
   lendingId: z.string().optional(),
+  lorryTractorNo: z.string().optional(),
 }).superRefine((data, ctx) => {
     if (data.category === 'Loan Payment Received' && !data.lendingId) {
         ctx.addIssue({
@@ -56,6 +57,7 @@ export function AddIncomeDialog({ lendings, nextRefNo }: { lendings: Lending[], 
   const [amount, setAmount] = useState<number | ''>('');
   const [refNo, setRefNo] = useState(nextRefNo);
   const [lendingId, setLendingId] = useState<string | undefined>(undefined);
+  const [lorryTractorNo, setLorryTractorNo] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   
   useEffect(() => {
@@ -63,6 +65,7 @@ export function AddIncomeDialog({ lendings, nextRefNo }: { lendings: Lending[], 
   }, [isOpen, nextRefNo]);
 
   const isLoanPayment = category === 'Loan Payment Received';
+  const isKhataIncome = category === 'Khata Income';
 
   const resetForm = () => {
     setDate(new Date().toISOString().split('T')[0]);
@@ -71,6 +74,7 @@ export function AddIncomeDialog({ lendings, nextRefNo }: { lendings: Lending[], 
     setAmount('');
     setRefNo(nextRefNo);
     setLendingId(undefined);
+    setLorryTractorNo('');
     setErrors({});
   };
   
@@ -82,7 +86,7 @@ export function AddIncomeDialog({ lendings, nextRefNo }: { lendings: Lending[], 
       return;
     }
 
-    const dataToValidate = { refNo, description, amount, date, category, lendingId };
+    const dataToValidate = { refNo, description, amount, date, category, lendingId, lorryTractorNo };
 
     const validationResult = IncomeSchema.safeParse(dataToValidate);
     if(!validationResult.success) {
@@ -116,6 +120,7 @@ export function AddIncomeDialog({ lendings, nextRefNo }: { lendings: Lending[], 
           amount: data.amount,
           date: new Date(data.date),
           category: data.category,
+          lorryTractorNo: data.lorryTractorNo,
           warehouseId: appUser.warehouseId,
         };
         const incomeRef = doc(collection(firestore, 'otherIncomes'));
@@ -159,7 +164,7 @@ export function AddIncomeDialog({ lendings, nextRefNo }: { lendings: Lending[], 
             <DialogHeader>
               <DialogTitle>Add Miscellaneous Income</DialogTitle>
               <DialogDescription>
-                Record any income received by the business.
+                Record any income received by the business (Khata, Interest, etc.).
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-2">
@@ -209,9 +214,21 @@ export function AddIncomeDialog({ lendings, nextRefNo }: { lendings: Lending[], 
                 </div>
               )}
 
+              {(isKhataIncome || true) && (
+                <div className="space-y-2">
+                  <Label htmlFor="lorryTractorNo">Lorry / Tractor No</Label>
+                  <Input 
+                    id="lorryTractorNo" 
+                    placeholder="e.g. AP 21 1234" 
+                    value={lorryTractorNo} 
+                    onChange={e => setLorryTractorNo(e.target.value)} 
+                  />
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label htmlFor="description">Description</Label>
-                <Textarea id="description" placeholder="e.g., Interest from John Doe" value={description} onChange={e => setDescription(e.target.value)} />
+                <Textarea id="description" placeholder="e.g., Weighbridge charges for load" value={description} onChange={e => setDescription(e.target.value)} />
                 {errors.description && <p className="text-sm font-medium text-destructive">{errors.description}</p>}
               </div>
               <div className="space-y-2">

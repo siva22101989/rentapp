@@ -1,9 +1,8 @@
-
 'use client';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { format } from "date-fns";
-import type { Customer, StorageRecord, Outflow, WarehouseInfo } from "@/lib/definitions";
+import type { Customer, StorageRecord, Outflow, WarehouseInfo, Commodity, Lot } from "@/lib/definitions";
 import { toDate, formatCurrency } from '@/lib/utils';
 import { useMemo, useState } from "react";
 import { OutflowActionsMenu } from "./outflow-actions-menu";
@@ -27,9 +26,11 @@ type ReportTableProps = {
     customers: Customer[];
     title: string;
     allRecords: StorageRecord[];
+    commodities: Commodity[];
+    lots: Lot[];
 }
 
-export function OutflowReportTable({ events, customers, title, allRecords }: ReportTableProps) {
+export function OutflowReportTable({ events, customers, title, allRecords, commodities, lots }: ReportTableProps) {
     const generatedDate = useMemo(() => format(new Date(), 'dd MMM yyyy, hh:mm a'), []);
     const firestore = useFirestore();
     const appUser = useAppUser();
@@ -103,6 +104,9 @@ export function OutflowReportTable({ events, customers, title, allRecords }: Rep
                                         outflowIndex={outflowIndex}
                                         deliveryOrderNo={deliveryOrderNo}
                                         deliveryOrderDate={event.date}
+                                        commodities={commodities}
+                                        lots={lots}
+                                        allRecords={allRecords}
                                     />
                                 )}
                             </TableCell>

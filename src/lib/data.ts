@@ -1,4 +1,3 @@
-
 import {
   collection,
   doc,
@@ -121,7 +120,17 @@ export const deleteOutflowEvent = async (db: Firestore, recordId: string, outflo
     });
 };
 
-export const editOutflowEvent = async (db: Firestore, recordId: string, outflowIndex: number, newData: { date: Date, bagsWithdrawn: number, rentBilled: number, discount: number, khataAmount?: number }): Promise<void> => {
+export const editOutflowEvent = async (db: Firestore, recordId: string, outflowIndex: number, newData: { 
+    date: Date, 
+    bagsWithdrawn: number, 
+    rentBilled: number, 
+    discount: number, 
+    khataAmount?: number,
+    commodityDescription?: string,
+    location?: string,
+    lorryTractorNo?: string,
+    weight?: number
+}): Promise<void> => {
     const recordRef = doc(db, 'storageRecords', recordId);
     
     await runTransaction(db, async (transaction) => {
@@ -166,9 +175,11 @@ export const editOutflowEvent = async (db: Firestore, recordId: string, outflowI
             totalRentBilled: newTotalRentBilled,
         };
         
-        if (newData.khataAmount !== undefined) {
-            updateData.khataAmount = newData.khataAmount;
-        }
+        if (newData.khataAmount !== undefined) updateData.khataAmount = newData.khataAmount;
+        if (newData.commodityDescription !== undefined) updateData.commodityDescription = newData.commodityDescription;
+        if (newData.location !== undefined) updateData.location = newData.location;
+        if (newData.lorryTractorNo !== undefined) updateData.lorryTractorNo = newData.lorryTractorNo;
+        if (newData.weight !== undefined) updateData.weight = newData.weight;
 
         if (newBagsStored <= 0) {
             updateData.storageEndDate = Timestamp.fromDate(newData.date);

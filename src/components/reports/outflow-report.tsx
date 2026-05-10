@@ -1,8 +1,7 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
-import type { Customer, StorageRecord, Outflow } from "@/lib/definitions";
+import type { Customer, StorageRecord, Outflow, Commodity, Lot } from "@/lib/definitions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { OutflowReportTable, type OutflowEvent } from './outflow-report-table';
@@ -17,9 +16,11 @@ import { useFirestore } from '@/firebase/provider';
 type OutflowReportProps = {
     records: StorageRecord[];
     customers: Customer[];
+    commodities: Commodity[];
+    lots: Lot[];
 }
 
-export function OutflowReport({ records, customers }: OutflowReportProps) {
+export function OutflowReport({ records, customers, commodities, lots }: OutflowReportProps) {
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>('all');
     
     const { dateRange, financialYear } = useDateFilter();
@@ -94,6 +95,8 @@ export function OutflowReport({ records, customers }: OutflowReportProps) {
                         customers={customers}
                         title={title}
                         allRecords={records}
+                        commodities={commodities}
+                        lots={lots}
                     />
                 </div>
             </CardContent>

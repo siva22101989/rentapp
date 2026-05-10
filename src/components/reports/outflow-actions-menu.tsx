@@ -1,10 +1,9 @@
-
 'use client';
 
 import { MoreHorizontal, FileText, Trash2, Pencil } from "lucide-react";
 import { Button } from "../ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu";
-import type { Customer, StorageRecord, Outflow, WarehouseInfo } from "@/lib/definitions";
+import type { Customer, StorageRecord, Outflow, WarehouseInfo, Commodity, Lot } from "@/lib/definitions";
 import { OutflowReceiptDialog } from "./outflow-receipt-dialog";
 import { DeleteOutflowDialog } from "./delete-outflow-dialog";
 import { EditOutflowDialog } from "./edit-outflow-dialog";
@@ -17,9 +16,23 @@ type ActionsMenuProps = {
   outflowIndex: number;
   deliveryOrderNo: string;
   deliveryOrderDate: Date;
+  commodities: Commodity[];
+  lots: Lot[];
+  allRecords: StorageRecord[];
 }
 
-export function OutflowActionsMenu({ record, customer, warehouseInfo, outflow, outflowIndex, deliveryOrderNo, deliveryOrderDate }: ActionsMenuProps) {
+export function OutflowActionsMenu({ 
+    record, 
+    customer, 
+    warehouseInfo, 
+    outflow, 
+    outflowIndex, 
+    deliveryOrderNo, 
+    deliveryOrderDate,
+    commodities,
+    lots,
+    allRecords
+}: ActionsMenuProps) {
 
     return (
         <DropdownMenu>
@@ -44,10 +57,18 @@ export function OutflowActionsMenu({ record, customer, warehouseInfo, outflow, o
                     </DropdownMenuItem>
                 </OutflowReceiptDialog>
 
-                <EditOutflowDialog record={record} outflow={outflow} outflowIndex={outflowIndex}>
+                <EditOutflowDialog 
+                    record={record} 
+                    outflow={outflow} 
+                    outflowIndex={outflowIndex}
+                    commodities={commodities}
+                    lots={lots}
+                    allRecords={allRecords}
+                    deliveryOrderNo={deliveryOrderNo}
+                >
                      <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                         <Pencil className="mr-2 h-4 w-4" />
-                        Edit Date/Discount
+                        Edit Full Bill
                     </DropdownMenuItem>
                 </EditOutflowDialog>
 

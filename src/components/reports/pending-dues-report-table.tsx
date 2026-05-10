@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -37,11 +36,10 @@ export function PendingDuesReportTable({ summaries, title }: ReportTableProps) {
                 <TableHeader>
                     <TableRow>
                         <TableHead>Customer Name</TableHead>
-                        <TableHead className="text-center">Items/Bills</TableHead>
-                        <TableHead className="text-right">Total Billed</TableHead>
-                        <TableHead className="text-right">Amount Paid</TableHead>
                         <TableHead className="text-right">Hamali Pending</TableHead>
                         <TableHead className="text-right">Rent Pending</TableHead>
+                        <TableHead className="text-right">Total Billed</TableHead>
+                        <TableHead className="text-right">Amount Paid</TableHead>
                         <TableHead className="text-right font-bold">Balance Due</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -49,17 +47,16 @@ export function PendingDuesReportTable({ summaries, title }: ReportTableProps) {
                     {summaries.map((summary) => (
                         <TableRow key={summary.customerId}>
                             <TableCell className="font-medium">{summary.customerName}</TableCell>
-                            <TableCell className="text-center">{summary.recordCount}</TableCell>
-                            <TableCell className="text-right font-mono">{formatCurrency(summary.totalBilled)}</TableCell>
-                            <TableCell className="text-right font-mono text-green-600">{formatCurrency(summary.amountPaid)}</TableCell>
                             <TableCell className="text-right font-mono text-orange-600">{formatCurrency(summary.hamaliPending)}</TableCell>
                             <TableCell className="text-right font-mono text-blue-600">{formatCurrency(summary.rentPending)}</TableCell>
+                            <TableCell className="text-right font-mono">{formatCurrency(summary.totalBilled)}</TableCell>
+                            <TableCell className="text-right font-mono text-green-600">{formatCurrency(summary.amountPaid)}</TableCell>
                             <TableCell className="text-right font-mono font-bold text-destructive">{formatCurrency(summary.balanceDue)}</TableCell>
                         </TableRow>
                     ))}
                      {summaries.length === 0 && (
                         <TableRow>
-                            <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                            <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                                 No pending dues found.
                             </TableCell>
                         </TableRow>
@@ -67,11 +64,11 @@ export function PendingDuesReportTable({ summaries, title }: ReportTableProps) {
                 </TableBody>
                 <TableFooter>
                     <TableRow className="bg-secondary/50">
-                        <TableCell colSpan={2} className="text-right font-bold">Total Portfolio Dues</TableCell>
-                        <TableCell className="text-right font-mono font-bold">{formatCurrency(totals.billed)}</TableCell>
-                        <TableCell className="text-right font-mono font-bold text-green-600">{formatCurrency(totals.paid)}</TableCell>
+                        <TableCell className="text-right font-bold">Total Portfolio Dues</TableCell>
                         <TableCell className="text-right font-mono font-bold text-orange-600">{formatCurrency(totals.hamali)}</TableCell>
                         <TableCell className="text-right font-mono font-bold text-blue-600">{formatCurrency(totals.rent)}</TableCell>
+                        <TableCell className="text-right font-mono font-bold">{formatCurrency(totals.billed)}</TableCell>
+                        <TableCell className="text-right font-mono font-bold text-green-600">{formatCurrency(totals.paid)}</TableCell>
                         <TableCell className="text-right font-bold text-destructive font-mono text-lg">{formatCurrency(totals.total)}</TableCell>
                     </TableRow>
                 </TableFooter>

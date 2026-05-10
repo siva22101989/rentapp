@@ -1,89 +1,84 @@
+
 'use client';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { format } from "date-fns";
-import type { Customer, StorageRecord } from "@/lib/definitions";
-import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from '@/lib/utils';
 import { useMemo } from "react";
-
-type PendingRecord = StorageRecord & {
-    totalBilled: number;
-    amountPaid: number;
-    balanceDue: number;
-    hamaliPending: number;
-    rentPending: number;
-};
+import type { CustomerPendingSummary } from "../payments/pending-payments-table";
 
 type ReportTableProps = {
-    records: PendingRecord[];
-    customers: Customer[];
+    summaries: CustomerPendingSummary[];
     title: string;
 };
 
-export function PendingDuesReportTable({ records, customers, title }: ReportTableProps) {
+export function PendingDuesReportTable({ summaries, title }: ReportTableProps) {
     const generatedDate = useMemo(() => format(new Date(), 'dd MMM yyyy, hh:mm a'), []);
 
-    const getCustomerName = (customerId: string) => {
-        return customers.find(c => c.id === customerId)?.name ?? 'Unknown';
-    };
-
-    const totalDue = records.reduce((sum, r) => sum + r.balanceDue, 0);
+    const totals = useMemo(() => {
+        return summaries.reduce((acc, s) => {
+            acc.billed += s.totalBilled;
+            acc.paid += s.amountPaid;
+            acc.hamali += s.hamaliPending;
+            acc.rent += s.rentPending;
+            acc.total += s.balanceDue;
+            return acc;
+        }, { billed: 0, paid: 0, hamali: 0, rent: 0, total: 0 });
+    }, [summaries]);
 
     return (
         <div className="bg-white p-4 rounded-lg">
-            <div className="mb-4">
+            <div className="mb-4 text-center">
                 <h2 className="text-xl font-bold">GrainDost</h2>
-                <p className="text-muted-foreground">{title}</p>
+                <p className="text-muted-foreground font-semibold">{title}</p>
                 <p className="text-xs text-muted-foreground">Generated on: {generatedDate}</p>
             </div>
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead>Record ID</TableHead>
-                        <TableHead>Customer</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Bags In</TableHead>
-                        <TableHead className="text-right">Bags Out</TableHead>
+                        <TableHead>Customer Name</TableHead>
+                        <TableHead className="text-center">Items/Bills</TableHead>
                         <TableHead className="text-right">Total Billed</TableHead>
+                        <TableHead className="text-right">Amount Paid</TableHead>
                         <TableHead className="text-right">Hamali Pending</TableHead>
                         <TableHead className="text-right">Rent Pending</TableHead>
-                        <TableHead className="text-right">Total Due</TableHead>
+                        <TableHead className="text-right font-bold">Balance Due</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {records.map((record) => (
-                        <TableRow key={record.id}>
-                            <TableCell className="font-medium">{record.id}</TableCell>
-                            <TableCell>{getCustomerName(record.customerId)}</TableCell>
-                            <TableCell>
-                                <Badge variant={record.storageEndDate ? "secondary" : "default"} className={record.storageEndDate ? 'bg-zinc-100 text-zinc-800' : 'bg-green-100 text-green-800'}>
-                                    {record.storageEndDate ? 'Completed' : 'Active'}
-                                </Badge>
-                            </TableCell>
-                            <TableCell className="text-right font-mono">{record.bagsIn || 0}</TableCell>
-                            <TableCell className="text-right font-mono">{record.bagsOut || 0}</TableCell>
-                            <TableCell className="text-right font-mono">{formatCurrency(record.totalBilled)}</TableCell>
-                            <TableCell className="text-right font-mono text-orange-600">{formatCurrency(record.hamaliPending)}</TableCell>
-                            <TableCell className="text-right font-mono text-blue-600">{formatCurrency(record.rentPending)}</TableCell>
-                            <TableCell className="text-right font-mono text-destructive">{formatCurrency(record.balanceDue)}</TableCell>
+                    {summaries.map((summary) => (
+                        <TableRow key={summary.customerId}>
+                            <TableCell className="font-medium">{summary.customerName}</TableCell>
+                            <TableCell className="text-center">{summary.recordCount}</TableCell>
+                            <TableCell className="text-right font-mono">{formatCurrency(summary.totalBilled)}</TableCell>
+                            <TableCell className="text-right font-mono text-green-600">{formatCurrency(summary.amountPaid)}</TableCell>
+                            <TableCell className="text-right font-mono text-orange-600">{formatCurrency(summary.hamaliPending)}</TableCell>
+                            <TableCell className="text-right font-mono text-blue-600">{formatCurrency(summary.rentPending)}</TableCell>
+                            <TableCell className="text-right font-mono font-bold text-destructive">{formatCurrency(summary.balanceDue)}</TableCell>
                         </TableRow>
                     ))}
-                     {records.length === 0 && (
+                     {summaries.length === 0 && (
                         <TableRow>
-                            <TableCell colSpan={9} className="text-center text-muted-foreground">
+                            <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                                 No pending dues found.
                             </TableCell>
                         </TableRow>
                     )}
                 </TableBody>
                 <TableFooter>
-                    <TableRow>
-                        <TableCell colSpan={8} className="text-right font-bold">Total Pending Dues</TableCell>
-                        <TableCell className="text-right font-bold text-destructive font-mono">{formatCurrency(totalDue)}</TableCell>
+                    <TableRow className="bg-secondary/50">
+                        <TableCell colSpan={2} className="text-right font-bold">Total Portfolio Dues</TableCell>
+                        <TableCell className="text-right font-mono font-bold">{formatCurrency(totals.billed)}</TableCell>
+                        <TableCell className="text-right font-mono font-bold text-green-600">{formatCurrency(totals.paid)}</TableCell>
+                        <TableCell className="text-right font-mono font-bold text-orange-600">{formatCurrency(totals.hamali)}</TableCell>
+                        <TableCell className="text-right font-mono font-bold text-blue-600">{formatCurrency(totals.rent)}</TableCell>
+                        <TableCell className="text-right font-bold text-destructive font-mono text-lg">{formatCurrency(totals.total)}</TableCell>
                     </TableRow>
                 </TableFooter>
             </Table>
+            <p className="text-[10px] text-muted-foreground mt-4 italic print-hide">
+                * This report consolidates all active storage records and pending unloading bills for each customer.
+            </p>
         </div>
     );
 }

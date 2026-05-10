@@ -1,10 +1,11 @@
+
 'use client';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { format } from "date-fns";
-import type { Customer, StorageRecord, Outflow, WarehouseInfo, Commodity, Lot } from "@/lib/definitions";
+import type { Customer, StorageRecord, Outflow, Commodity, Lot } from "@/lib/definitions";
 import { toDate, formatCurrency } from '@/lib/utils';
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { OutflowActionsMenu } from "./outflow-actions-menu";
 import { useDoc } from "@/firebase/firestore/use-doc";
 import { useFirestore } from "@/firebase/provider";
@@ -39,7 +40,7 @@ export function OutflowReportTable({ events, customers, title, allRecords, commo
         () => (firestore && appUser?.warehouseId ? doc(firestore, 'warehouses', appUser.warehouseId) : null),
         [firestore, appUser]
     );
-    const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
+    const { data: warehouseInfo } = useDoc<any>(warehouseInfoRef);
 
 
     const getCustomerName = (customerId: string) => {

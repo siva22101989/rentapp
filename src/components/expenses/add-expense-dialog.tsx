@@ -22,18 +22,18 @@ import { useFirestore } from '@/firebase/provider';
 import { z } from 'zod';
 import { Label } from '../ui/label';
 import { doc, writeBatch, arrayUnion, collection } from 'firebase/firestore';
-import { cleanForFirestore, formatCurrency } from '@/lib/utils';
+import { cleanForFirestore, formatCurrency, formatManualDate, parseManualDate } from '@/lib/utils';
 import { useAppUser } from '@/firebase/auth/use-user';
 
 const ExpenseSchema = z.object({
-  refNo: z.string().regex(/^\d+$/, 'Reference No must be numerical only.').min(1, 'Reference No is required.'),
+  refNo: z.string().min(1, 'Reference No is required.'),
   description: z.string().min(2, 'Description is required.'),
   amount: z.coerce.number().positive('Amount must be a positive number.'),
-  date: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
+  date: z.string().min(1, "Date is required."),
   category: z.enum(expenseCategories, { required_error: 'Category is required.' }),
   borrowingId: z.string().optional(),
 }).superRefine((data, ctx) => {
-    if (data.category === 'Loan Repayment' && !data.borrowingId) {
+    if ((data.category === 'Interest Paid' || data.category === 'Principal Repayment') && !data.borrowingId) {
         ctx.addIssue({
             code: z.ZodIssueCode.custom,
             message: 'Please select the loan account for this payment.',
@@ -49,7 +49,7 @@ export function AddExpenseDialog({ borrowings, nextRefNo }: { borrowings: Borrow
   const firestore = useFirestore();
   const appUser = useAppUser();
 
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(formatManualDate(new Date()));
   const [category, setCategory] = useState<ExpenseCategory | undefined>(undefined);
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState<number | ''>('');
@@ -61,10 +61,10 @@ export function AddExpenseDialog({ borrowings, nextRefNo }: { borrowings: Borrow
     if (isOpen) setRefNo(nextRefNo);
   }, [isOpen, nextRefNo]);
 
-  const isLoanPayment = category === 'Loan Repayment';
+  const isLoanPayment = category === 'Interest Paid' || category === 'Principal Repayment';
   
   const resetForm = () => {
-    setDate(new Date().toISOString().split('T')[0]);
+    setDate(formatManualDate(new Date()));
     setCategory(undefined);
     setDescription('');
     setAmount('');
@@ -77,8 +77,14 @@ export function AddExpenseDialog({ borrowings, nextRefNo }: { borrowings: Borrow
     e.preventDefault();
     setErrors({});
     if (!firestore || !appUser?.warehouseId) {
-      toast({ title: 'Error', description: 'Could not add expense: user or warehouse context is missing.', variant: 'destructive' });
+      toast({ title: 'Error', description: 'User or warehouse context is missing.', variant: 'destructive' });
       return;
+    }
+
+    const finalDate = parseManualDate(date);
+    if (!finalDate) {
+        setErrors(prev => ({ ...prev, date: 'Invalid format. Use DD-MM-YYYY' }));
+        return;
     }
 
     const dataToValidate = {
@@ -95,13 +101,11 @@ export function AddExpenseDialog({ borrowings, nextRefNo }: { borrowings: Borrow
         const fieldErrors = validationResult.error.flatten().fieldErrors;
         const newErrors: Record<string, string> = {};
         Object.keys(fieldErrors).forEach(key => {
-          const errorKey = key as keyof typeof fieldErrors;
-          if (fieldErrors[errorKey]) {
-            newErrors[key] = fieldErrors[errorKey]![0];
+          if (fieldErrors[key as keyof typeof fieldErrors]) {
+            newErrors[key] = fieldErrors[key as keyof typeof fieldErrors]![0];
           }
         });
         setErrors(newErrors);
-        toast({ title: "Validation Error", description: "Please check your input.", variant: "destructive"});
         return;
     }
     
@@ -115,7 +119,7 @@ export function AddExpenseDialog({ borrowings, nextRefNo }: { borrowings: Borrow
         if (data.borrowingId && isLoanPayment) {
             const borrowing = borrowings.find(b => b.id === data.borrowingId);
             if (borrowing) {
-                finalDescription = `Payment to ${borrowing.lenderName}: ${data.description}`;
+                finalDescription = `${data.category} to ${borrowing.lenderName}: ${data.description}`;
             }
         }
 
@@ -123,7 +127,7 @@ export function AddExpenseDialog({ borrowings, nextRefNo }: { borrowings: Borrow
           refNo: data.refNo,
           description: finalDescription,
           amount: data.amount,
-          date: new Date(data.date),
+          date: finalDate,
           category: data.category,
           warehouseId: appUser.warehouseId,
         };
@@ -134,8 +138,8 @@ export function AddExpenseDialog({ borrowings, nextRefNo }: { borrowings: Borrow
             const borrowingRef = doc(firestore, 'borrowings', data.borrowingId);
             const newPayment: Payment = {
               amount: data.amount,
-              date: new Date(data.date),
-              type: 'repayment',
+              date: finalDate,
+              type: data.category === 'Interest Paid' ? 'interest' : 'principal',
             };
             batch.update(borrowingRef, {
                 payments: arrayUnion(cleanForFirestore(newPayment))
@@ -143,9 +147,7 @@ export function AddExpenseDialog({ borrowings, nextRefNo }: { borrowings: Borrow
         }
 
         await batch.commit();
-        
         toast({ title: 'Success', description: "Expense added successfully." });
-
         setIsOpen(false);
         resetForm();
       } catch (error) {
@@ -168,18 +170,18 @@ export function AddExpenseDialog({ borrowings, nextRefNo }: { borrowings: Borrow
             <DialogHeader>
               <DialogTitle>Add New Expense</DialogTitle>
               <DialogDescription>
-                Enter the details for the new expense. Reference No is locked to maintain sequence.
+                Enter details manually. Reference No is locked. Date format: DD-MM-YYYY.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-2">
               <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="refNo">Ref No (Auto-Generated)</Label>
+                    <Label htmlFor="refNo">Ref No</Label>
                     <Input id="refNo" disabled={true} className="bg-muted font-mono font-bold" value={refNo} />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="date">Date</Label>
-                    <Input type="date" id="date" value={date} onChange={e => setDate(e.target.value)} />
+                    <Label htmlFor="date">Date (DD-MM-YYYY)</Label>
+                    <Input id="date" placeholder="DD-MM-YYYY" value={date} onChange={e => setDate(e.target.value)} />
                     {errors.date && <p className="text-sm font-medium text-destructive">{errors.date}</p>}
                   </div>
               </div>
@@ -202,7 +204,7 @@ export function AddExpenseDialog({ borrowings, nextRefNo }: { borrowings: Borrow
                 <div className="space-y-2">
                   <Label htmlFor="borrowingId">Loan Account (Borrowing)</Label>
                   <Select onValueChange={setBorrowingId} value={borrowingId}>
-                    <SelectTrigger id="borrowingId"><SelectValue placeholder="Select loan to pay against" /></SelectTrigger>
+                    <SelectTrigger id="borrowingId"><SelectValue placeholder="Select loan account" /></SelectTrigger>
                     <SelectContent>
                       {borrowings
                         .filter(b => b.status !== 'Paid Off')

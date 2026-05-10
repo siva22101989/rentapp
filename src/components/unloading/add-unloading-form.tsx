@@ -14,7 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase/provider';
 import type { Customer, Commodity, UnloadingRecord, WarehouseInfo, Lot, StorageRecord } from '@/lib/definitions';
 import { setDoc, doc } from 'firebase/firestore';
-import { formatCurrency, cleanForFirestore } from '@/lib/utils';
+import { formatCurrency, cleanForFirestore, formatManualDate, parseManualDate } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 import { Combobox } from '../ui/combobox';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -29,7 +29,7 @@ const UnloadingRecordSchema = z.object({
   commodityDescription: z.string().min(1, 'Commodity is required.'),
   location: z.string().min(1, 'Storage location is required.'),
   lorryTractorNo: z.string().optional(),
-  unloadingDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
+  unloadingDate: z.string().min(1, "Date is required."),
   bagsUnloaded: z.coerce.number().positive('Number of bags must be positive.'),
   customerHamaliPerBag: z.coerce.number().nonnegative('Customer hamali rate must be non-negative.'),
   workerHamaliPerBag: z.coerce.number().nonnegative('Worker hamali rate must be non-negative.').optional(),
@@ -37,14 +37,6 @@ const UnloadingRecordSchema = z.object({
 });
 
 type UnloadingFormData = z.infer<typeof UnloadingRecordSchema>;
-
-const getLocalDateTimeForInput = () => {
-    const now = new Date();
-    const timezoneOffsetInMs = now.getTimezoneOffset() * 60000;
-    const localDate = new Date(now.getTime() - timezoneOffsetInMs);
-    return localDate.toISOString().slice(0, 16);
-};
-
 
 export function AddUnloadingRecordForm({ customers, commodities, lots, storageRecords, nextBillNo }: { customers: Customer[], commodities: Commodity[], lots: Lot[], storageRecords: StorageRecord[], nextBillNo: string }) {
     const { toast } = useToast();
@@ -67,7 +59,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
           commodityDescription: '',
           location: '',
           lorryTractorNo: '',
-          unloadingDate: getLocalDateTimeForInput(),
+          unloadingDate: formatManualDate(new Date()),
           bagsUnloaded: undefined,
           customerHamaliPerBag: undefined,
           workerHamaliPerBag: undefined,
@@ -128,6 +120,12 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
             toast({ title: 'Error', description: 'Could not add record: user or warehouse context is missing.', variant: 'destructive' });
             return;
         }
+
+        const finalDate = parseManualDate(data.unloadingDate);
+        if (!finalDate) {
+            form.setError('unloadingDate', { message: 'Invalid format. Use DD-MM-YYYY' });
+            return;
+        }
         
         const receiptUrl = `/unloading/receipt/${data.billNo}`;
         const receiptWindow = window.open(receiptUrl, '_blank');
@@ -136,12 +134,12 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
             try {
                 const totalHamali = data.bagsUnloaded * data.customerHamaliPerBag;
                 const workerHamaliPayable = data.bagsUnloaded * (data.workerHamaliPerBag ?? data.customerHamaliPerBag);
-                const unloadingDate = new Date(data.unloadingDate);
+                
                 const rawRecord = {
                     ...data,
                     hamaliPerBag: data.customerHamaliPerBag, 
                     warehouseId: appUser.warehouseId,
-                    unloadingDate,
+                    unloadingDate: finalDate,
                     status: 'Unloading' as const,
                     bagsSentToDrying: 0,
                     totalHamali,
@@ -160,7 +158,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                         .replace('{commodity}', data.commodityDescription)
                         .replace('{location}', data.location)
                         .replace('{billNo}', data.billNo)
-                        .replace('{date}', format(unloadingDate, 'dd/MM/yy'))
+                        .replace('{date}', format(finalDate, 'dd/MM/yy'))
                         .replace('{hamaliAmount}', formatCurrency(totalHamali))
                         .replace('{warehouseName}', warehouseInfo?.name || 'GrainDost');
 
@@ -179,7 +177,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                     commodityDescription: '',
                     location: '',
                     lorryTractorNo: '',
-                    unloadingDate: getLocalDateTimeForInput(),
+                    unloadingDate: formatManualDate(new Date()),
                     bagsUnloaded: undefined,
                     customerHamaliPerBag: undefined,
                     workerHamaliPerBag: undefined,
@@ -199,7 +197,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
             <form onSubmit={form.handleSubmit(onSubmit)}>
                 <CardHeader>
                     <CardTitle>Add New Unloading Record</CardTitle>
-                    <CardDescription>Enter details for a new vehicle unloading.</CardDescription>
+                    <CardDescription>Enter details manually. Date format: DD-MM-YYYY.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <FormField
@@ -300,8 +298,8 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                         name="unloadingDate"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Unloading Date & Time</FormLabel>
-                                <FormControl><Input type="datetime-local" {...field} /></FormControl>
+                                <FormLabel>Unloading Date (DD-MM-YYYY)</FormLabel>
+                                <FormControl><Input placeholder="DD-MM-YYYY" {...field} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -312,7 +310,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Bags Unloaded</FormLabel>
-                                <FormControl><Input type="number" placeholder="0" {...field} value={field.value ?? ''} /></FormControl>
+                                <FormControl><Input type="number" step="0.01" placeholder="0" {...field} value={field.value ?? ''} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}

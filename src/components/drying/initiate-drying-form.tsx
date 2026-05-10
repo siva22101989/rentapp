@@ -11,7 +11,7 @@ import { useFirestore } from '@/firebase/provider';
 import type { Customer, UnloadingRecord, Lot, StorageRecord, HamaliChargeItem, Commodity, WarehouseInfo } from '@/lib/definitions';
 import { doc, writeBatch, increment, collection } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { formatCurrency, cleanForFirestore, toDate } from '@/lib/utils';
+import { formatCurrency, cleanForFirestore, toDate, formatManualDate, parseManualDate } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 import { Combobox } from '../ui/combobox';
 import { differenceInDays, format } from 'date-fns';
@@ -23,22 +23,14 @@ import { z } from 'zod';
 
 const InitiateDryingSchema = z.object({
   unloadingRecordId: z.string().min(1, 'An unloading bill is required.'),
-  dryingStartDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
-  dryingEndDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
+  dryingStartDate: z.string().min(1, "Start date is required."),
+  dryingEndDate: z.string().min(1, "End date is required."),
   customerHamaliPerBag: z.coerce.number().nonnegative('Customer hamali rate must be non-negative.'),
   workerHamaliPerBag: z.coerce.number().nonnegative('Worker hamali rate must be non-negative.'),
   pavHamaliPerBag: z.coerce.number().nonnegative('Pav hamali rate must be non-negative.').optional(),
   cuppaHamaliPerBag: z.coerce.number().nonnegative('Cuppa hamali rate must be non-negative.').optional(),
-  bagsForDrying: z.coerce.number().int().positive('Bags sent to plot for drying must be positive.'),
-  bagsPacked: z.coerce.number().int().positive("Bags packed must be a positive number."),
-})
-.refine(data => new Date(data.dryingEndDate) >= new Date(data.dryingStartDate), {
-    message: "End date must be on or after start date.",
-    path: ["dryingEndDate"],
-})
-.refine(data => data.bagsForDrying >= data.bagsPacked, {
-    message: "Bags packed cannot be more than bags plotted.",
-    path: ["bagsPacked"],
+  bagsForDrying: z.coerce.number().positive('Bags sent to plot for drying must be positive.'),
+  bagsPacked: z.coerce.number().positive("Bags packed must be a positive number."),
 });
 
 interface InitiateDryingFormProps {
@@ -59,8 +51,8 @@ export function InitiateDryingForm({ customers, unloadingRecords, storageRecords
 
     const initialFormData = {
       unloadingRecordId: '',
-      dryingStartDate: new Date().toISOString().split('T')[0],
-      dryingEndDate: new Date().toISOString().split('T')[0],
+      dryingStartDate: formatManualDate(new Date()),
+      dryingEndDate: formatManualDate(new Date()),
       customerHamaliPerBag: 0,
       workerHamaliPerBag: 0,
       pavHamaliPerBag: 0,
@@ -83,7 +75,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, storageRecords
             .sort((a, b) => toDate(a.unloadingDate).getTime() - toDate(b.unloadingDate).getTime())
             .map(ur => ({
                 value: ur.id,
-                label: `Bill #${ur.billNo} - ${customerMap.get(ur.customerId) || 'Unknown'} - ${ur.bagsUnloaded - (ur.bagsSentToDrying || 0)} bags - ${format(toDate(ur.unloadingDate), 'dd/MM, h:mm a')}`
+                label: `Bill #${ur.billNo} - ${customerMap.get(ur.customerId) || 'Unknown'} - ${ur.bagsUnloaded - (ur.bagsSentToDrying || 0)} bags`
             }));
     }, [unloadingRecords, customers]);
 
@@ -94,7 +86,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, storageRecords
     , [unloadingRecords, selectedUnloadingRecordId]);
     
     const selectedCustomer = useMemo(() =>
-        selectedUnloadingRecord ? customers.find(c => c.id === selectedUnloadingRecord.customerId) : null
+        selectedUnloadingRecord ? customers.find(c => c.id === selectedCustomer.id) : null
     , [customers, selectedUnloadingRecord]);
 
     const bagsRemainingOnRecord = selectedUnloadingRecord ? selectedUnloadingRecord.bagsUnloaded - (selectedUnloadingRecord.bagsSentToDrying || 0) : 0;
@@ -103,9 +95,9 @@ export function InitiateDryingForm({ customers, unloadingRecords, storageRecords
         let extraDays = 0;
         let totalDaysCount = 0;
         try {
-            const start = new Date(dryingStartDate);
-            const end = new Date(dryingEndDate);
-            if (!isNaN(start.getTime()) && !isNaN(end.getTime()) && end >= start) {
+            const start = parseManualDate(dryingStartDate);
+            const end = parseManualDate(dryingEndDate);
+            if (start && end && end >= start) {
                 const days = differenceInDays(end, start);
                 extraDays = days > 0 ? days : 0;
                 totalDaysCount = days + 1;
@@ -135,19 +127,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, storageRecords
             cuppaHamali: cuppaH,
             workerHamaliDay1: wHamaliDay1,
         }
-    }, [formData, selectedUnloadingRecord]);
-    
-    const daysUntilDrying = useMemo(() => {
-        if (!selectedUnloadingRecord || !dryingStartDate) return null;
-        try {
-            const unloadDate = toDate(selectedUnloadingRecord.unloadingDate);
-            const dryStartDate = new Date(dryingStartDate);
-             if (!isNaN(unloadDate.getTime()) && !isNaN(dryStartDate.getTime()) && dryStartDate >= unloadDate) {
-                return differenceInDays(dryStartDate, unloadDate);
-            }
-        } catch(e) {/* ignore */}
-        return null;
-    }, [selectedUnloadingRecord, dryingStartDate]);
+    }, [formData, selectedUnloadingRecord, dryingStartDate, dryingEndDate]);
 
     useEffect(() => {
         if (selectedUnloadingRecord) {
@@ -156,24 +136,8 @@ export function InitiateDryingForm({ customers, unloadingRecords, storageRecords
                 bagsForDrying: bagsRemainingOnRecord,
                 bagsPacked: bagsRemainingOnRecord, 
             }));
-        } else {
-            setFormData((prev: any) => ({
-                ...prev,
-                bagsForDrying: 0,
-                bagsPacked: 0,
-            }));
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedUnloadingRecordId]);
-
-    useEffect(() => {
-        const selectedRecordExists = unloadingRecords.some(ur => ur.id === selectedUnloadingRecordId);
-        if (selectedUnloadingRecordId && !selectedRecordExists) {
-            setFormData(initialFormData);
-            toast({ title: "Record List Updated", description: "The selected unloading record was modified. Please select another." });
-        }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [unloadingRecords]);
+    }, [selectedUnloadingRecordId, bagsRemainingOnRecord]);
 
     const nextId = useMemo(() => {
         if (!storageRecords) return '1';
@@ -187,45 +151,30 @@ export function InitiateDryingForm({ customers, unloadingRecords, storageRecords
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setFormData((prev: any) => ({ ...prev, [name]: value }));
-        if (errors[name]) setErrors(prev => ({ ...prev, [name]: undefined }));
     };
 
     const handleValueChange = (name: string, value: any) => {
         setFormData((prev: any) => ({ ...prev, [name]: value }));
-        if (errors[name]) setErrors(prev => ({ ...prev, [name]: undefined }));
     };
 
     const handlePartialSave = async () => {
-        if (!firestore || !appUser?.warehouseId) {
-            toast({ title: 'Error', description: 'Could not save: user or warehouse context is missing.', variant: 'destructive' });
+        if (!firestore || !appUser?.warehouseId) return;
+
+        const start = parseManualDate(formData.dryingStartDate);
+        if (!start) {
+            setErrors(prev => ({...prev, dryingStartDate: 'Invalid format. Use DD-MM-YYYY'}));
             return;
         }
 
         const data = formData;
-        const validationResult = InitiateDryingSchema.partial().safeParse(data);
-        if (!validationResult.success || !data.unloadingRecordId || !data.dryingStartDate || !data.bagsForDrying) {
-            toast({ title: "Missing Information", description: "Please select an unloading bill and specify bags for drying.", variant: "destructive" });
-            return;
-        }
-
         const selectedRecordOnSubmit = unloadingRecords.find(ur => ur.id === data.unloadingRecordId);
-        if (!selectedRecordOnSubmit) {
-            toast({ title: 'Error', description: 'Selected unloading record not found.', variant: 'destructive' });
-            return;
-        }
-
-        const bagsStillAvailable = selectedRecordOnSubmit.bagsUnloaded - (selectedRecordOnSubmit.bagsSentToDrying || 0);
-        if (data.bagsForDrying > bagsStillAvailable) {
-            setErrors(prev => ({...prev, bagsForDrying: `Cannot exceed available bags (${bagsStillAvailable}).`}))
-            return;
-        }
+        if (!selectedRecordOnSubmit || !data.bagsForDrying) return;
 
         setIsPartialSaving(true);
         try {
             const { bagsForDrying, customerHamaliPerBag, workerHamaliPerBag, pavHamaliPerBag, cuppaHamaliPerBag, dryingStartDate, dryingEndDate } = data;
             
             const hamaliDetails: HamaliChargeItem[] = [];
-
             const currentProportionalUnloadingHamali = (selectedRecordOnSubmit.hamaliPerBag || 0) * bagsForDrying;
             if (currentProportionalUnloadingHamali > 0) {
                 hamaliDetails.push({ description: 'Unloading Hamali', bags: bagsForDrying, rate: selectedRecordOnSubmit.hamaliPerBag || 0, amount: currentProportionalUnloadingHamali });
@@ -237,28 +186,17 @@ export function InitiateDryingForm({ customers, unloadingRecords, storageRecords
             }
             
             let extraDaysForSave = 0;
-            try {
-                const start = new Date(dryingStartDate);
-                const end = new Date(dryingEndDate);
-                if (!isNaN(start.getTime()) && !isNaN(end.getTime()) && end >= start) {
-                    const days = differenceInDays(end, start);
-                    extraDaysForSave = days > 0 ? days : 0;
-                }
-            } catch (e) {/* ignore */}
+            const end = parseManualDate(dryingEndDate);
+            if (start && end && end >= start) {
+                extraDaysForSave = differenceInDays(end, start);
+            }
 
             const pavHamaliAmount = bagsForDrying * (pavHamaliPerBag || 0) * extraDaysForSave;
-            if (pavHamaliAmount > 0) {
-                 hamaliDetails.push({ description: `Pav Hamali (${extraDaysForSave} extra day${extraDaysForSave !== 1 ? 's' : ''})`, bags: bagsForDrying, rate: pavHamaliPerBag || 0, amount: pavHamaliAmount });
-            }
             const cuppaHamaliAmount = bagsForDrying * (cuppaHamaliPerBag || 0) * extraDaysForSave;
-            if (cuppaHamaliAmount > 0) {
-                hamaliDetails.push({ description: `Cuppa Hamali (${extraDaysForSave} extra day${extraDaysForSave !== 1 ? 's' : ''})`, bags: bagsForDrying, rate: cuppaHamaliPerBag || 0, amount: cuppaHamaliAmount });
-            }
+            if (pavHamaliAmount > 0) hamaliDetails.push({ description: 'Pav Hamali', bags: bagsForDrying, rate: pavHamaliPerBag || 0, amount: pavHamaliAmount });
+            if (cuppaHamaliAmount > 0) hamaliDetails.push({ description: 'Cuppa Hamali', bags: bagsForDrying, rate: cuppaHamaliPerBag || 0, amount: cuppaHamaliAmount });
 
             const totalCustomerChargeForSave = hamaliDetails.reduce((sum, item) => sum + item.amount, 0);
-
-            const day1DryingWorkerHamali = bagsForDrying * (workerHamaliPerBag || 0);
-            const totalWorkerPayableForSave = currentProportionalUnloadingHamali + day1DryingWorkerHamali + pavHamaliAmount + cuppaHamaliAmount;
 
             const newDryingRecordData = {
                 warehouseId: appUser.warehouseId,
@@ -268,34 +206,25 @@ export function InitiateDryingForm({ customers, unloadingRecords, storageRecords
                 bagsForDrying: data.bagsForDrying,
                 bagsPacked: data.bagsPacked,
                 status: 'Drying' as const,
-                dryingStartDate: new Date(data.dryingStartDate),
-                packingDate: data.dryingEndDate ? new Date(data.dryingEndDate) : null,
+                dryingStartDate: start,
+                packingDate: end,
                 hamaliDetails,
                 totalDryingHamali: totalCustomerChargeForSave,
-                workerHamaliPayable: totalWorkerPayableForSave,
+                workerHamaliPayable: totalWorkerPayable,
             };
 
             const batch = writeBatch(firestore);
             const newDryingRecordRef = doc(collection(firestore, 'dryingRecords'));
             batch.set(newDryingRecordRef, cleanForFirestore(newDryingRecordData));
-            
             const unloadingRecordRef = doc(firestore, 'unloadingRecords', data.unloadingRecordId);
-            batch.update(unloadingRecordRef, {
-                bagsSentToDrying: increment(data.bagsForDrying)
-            });
-            
+            batch.update(unloadingRecordRef, { bagsSentToDrying: increment(data.bagsForDrying) });
             await batch.commit();
 
-            toast({
-                title: "Partial Save Successful",
-                description: `${data.bagsForDrying} bags have been moved to the drying plot. You can manage this process from the history table.`
-            });
-
+            toast({ title: "Partial Save Successful", description: `${data.bagsForDrying} bags moved to plot.` });
             setFormData(initialFormData);
-
         } catch (error) {
             console.error(error);
-            toast({ title: 'Error', description: 'Failed to perform partial save.', variant: 'destructive' });
+            toast({ title: 'Error', description: 'Failed to save.', variant: 'destructive' });
         } finally {
             setIsPartialSaving(false);
         }
@@ -306,76 +235,51 @@ export function InitiateDryingForm({ customers, unloadingRecords, storageRecords
         e.preventDefault();
         setErrors({});
 
-        const validationResult = InitiateDryingSchema.safeParse(formData);
+        const startDate = parseManualDate(formData.dryingStartDate);
+        const endDate = parseManualDate(formData.dryingEndDate);
 
+        if (!startDate || !endDate) {
+            toast({ title: 'Invalid Dates', description: 'Please use DD-MM-YYYY format.', variant: 'destructive' });
+            return;
+        }
+
+        const validationResult = InitiateDryingSchema.safeParse(formData);
         if (!validationResult.success) {
-          const newErrors: Record<string, string> = {};
-          validationResult.error.issues.forEach(issue => {
-              newErrors[issue.path[0].toString()] = issue.message;
-          });
-          setErrors(newErrors);
           toast({ title: 'Validation Error', description: 'Please fix the errors in the form.', variant: 'destructive' });
           return;
         }
 
         const data = validationResult.data;
-
-        if (!firestore || !appUser?.warehouseId) {
-            toast({ title: 'Error', description: 'Could not create record: user or warehouse context is missing.', variant: 'destructive' });
-            return;
-        }
-
         const selectedRecordOnSubmit = unloadingRecords.find(ur => ur.id === data.unloadingRecordId);
-        if (!selectedRecordOnSubmit) {
-            toast({ title: 'Error', description: 'Selected unloading record not found.', variant: 'destructive' });
-            return;
-        }
-        
-        const bagsStillAvailable = selectedRecordOnSubmit.bagsUnloaded - (selectedRecordOnSubmit.bagsSentToDrying || 0);
-        if (data.bagsForDrying > bagsStillAvailable) {
-          setErrors(prev => ({ ...prev, bagsForDrying: `Cannot exceed available bags (${bagsStillAvailable}).`}));
-          return;
-        }
+        if (!selectedRecordOnSubmit || !firestore || !appUser?.warehouseId) return;
 
         const receiptUrl = `/inflow/receipt/${nextId}`;
         const receiptWindow = window.open(receiptUrl, '_blank');
-        if (!receiptWindow) {
-            toast({
-                title: "Popup Blocked",
-                description: "Please allow popups for this site to view receipts.",
-                variant: "destructive",
-            });
-            return;
-        }
 
         startTransition(async () => {
             try {
                 const commodityDetails = commodities.find(c => c.name === selectedRecordOnSubmit.commodityDescription);
                 if (!commodityDetails) {
-                    toast({ title: 'Error', description: `Commodity details for "${selectedRecordOnSubmit.commodityDescription}" not found. Please ensure it is set up in settings.`, variant: 'destructive' });
+                    toast({ title: 'Error', description: `Commodity "${selectedRecordOnSubmit.commodityDescription}" not configured.`, variant: 'destructive' });
                     if (receiptWindow) receiptWindow.close();
                     return;
                 }
                 
-                const finalStorageDate = new Date(data.dryingEndDate);
                 const bagsStored = data.bagsPacked;
-
                 const hamaliDetails: HamaliChargeItem[] = [];
                 const currentProportionalUnloadingHamali = (selectedRecordOnSubmit.hamaliPerBag || 0) * data.bagsForDrying;
                 if (currentProportionalUnloadingHamali > 0) hamaliDetails.push({ description: 'Unloading Hamali', bags: data.bagsForDrying, rate: selectedRecordOnSubmit.hamaliPerBag || 0, amount: currentProportionalUnloadingHamali });
                 const dryingDay1CustomerHamali = data.bagsForDrying * data.customerHamaliPerBag;
                 if (dryingDay1CustomerHamali > 0) hamaliDetails.push({ description: 'Customer Hamali', bags: data.bagsForDrying, rate: data.customerHamaliPerBag, amount: dryingDay1CustomerHamali });
-                const totalDryingDays = differenceInDays(new Date(data.dryingEndDate), new Date(data.dryingStartDate)) + 1;
-                const extraDaysForSubmission = totalDryingDays > 1 ? totalDryingDays - 1 : 0;
-                const pavHamaliAmount = data.bagsForDrying * (data.pavHamaliPerBag || 0) * extraDaysForSubmission;
-                if (pavHamaliAmount > 0) hamaliDetails.push({ description: `Pav Hamali (${extraDaysForSubmission} extra day${extraDaysForSubmission !== 1 ? 's' : ''})`, bags: data.bagsForDrying, rate: data.pavHamaliPerBag || 0, amount: pavHamaliAmount });
-                const cuppaHamaliAmount = data.bagsForDrying * (data.cuppaHamaliPerBag || 0) * extraDaysForSubmission;
-                if (cuppaHamaliAmount > 0) hamaliDetails.push({ description: `Cuppa Hamali (${extraDaysForSubmission} extra day${extraDaysForSubmission !== 1 ? 's' : ''})`, bags: data.bagsForDrying, rate: data.cuppaHamaliPerBag || 0, amount: cuppaHamaliAmount });
+                
+                const totalDryingDays = differenceInDays(endDate, startDate) + 1;
+                const extraDays = totalDryingDays > 1 ? totalDryingDays - 1 : 0;
+                const pavHamaliAmount = data.bagsForDrying * (data.pavHamaliPerBag || 0) * extraDays;
+                if (pavHamaliAmount > 0) hamaliDetails.push({ description: 'Pav Hamali', bags: data.bagsForDrying, rate: data.pavHamaliPerBag || 0, amount: pavHamaliAmount });
+                const cuppaHamaliAmount = data.bagsForDrying * (data.cuppaHamaliPerBag || 0) * extraDays;
+                if (cuppaHamaliAmount > 0) hamaliDetails.push({ description: 'Cuppa Hamali', bags: data.bagsForDrying, rate: data.cuppaHamaliPerBag || 0, amount: cuppaHamaliAmount });
                 
                 const totalHamaliForCustomer = hamaliDetails.reduce((sum, item) => sum + item.amount, 0);
-                const dryingDay1WorkerHamali = data.bagsForDrying * data.workerHamaliPerBag;
-                const totalHamaliForWorker = currentProportionalUnloadingHamali + dryingDay1WorkerHamali + pavHamaliAmount + cuppaHamaliAmount;
-                
                 const batch = writeBatch(firestore);
 
                 const newStorageRecord: Omit<StorageRecord, 'id'> = {
@@ -387,20 +291,20 @@ export function InitiateDryingForm({ customers, unloadingRecords, storageRecords
                     bagsForDrying: data.bagsForDrying,
                     bagsOut: 0,
                     bagsStored: bagsStored,
-                    storageStartDate: finalStorageDate,
+                    storageStartDate: endDate,
                     storageEndDate: null,
                     billingCycle: '6-Month Initial' as const,
                     payments: [],
                     hamaliPayable: totalHamaliForCustomer,
-                    workerHamaliPayable: totalHamaliForWorker,
+                    workerHamaliPayable: totalWorkerPayable,
                     totalRentBilled: 0,
                     lorryTractorNo: selectedRecordOnSubmit?.lorryTractorNo || '',
                     weight: 0,
                     inflowType: 'Plot' as const,
                     dryingRecordId: data.unloadingRecordId,
                     khataAmount: 0,
-                    dryingStartDate: new Date(data.dryingStartDate),
-                    dryingEndDate: new Date(data.dryingEndDate),
+                    dryingStartDate: startDate,
+                    dryingEndDate: endDate,
                     hamaliDetails: hamaliDetails,
                     billingType: commodityDetails.billingType,
                     monthlyRate: commodityDetails.monthlyRate,
@@ -416,32 +320,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, storageRecords
                 batch.update(unloadingRecordRef, { bagsSentToDrying: increment(data.bagsForDrying) });
                 await batch.commit();
                 
-                if (sendSmsNotification && warehouseInfo?.textbeeApiKey && selectedCustomer?.phone) {
-                    const defaultTemplate = 'Dear {customerName}, from your unloading of {unloadingBags} bags (Bill #{unloadingBillNo}), {bagsForDrying} bags were plotted for drying and {bagsPacked} bags of {commodity} have been recorded as inflow on {date}.\nBill No: {newBillNo}.\nHamali: {hamaliAmount}. Location: {location}. Thank you. - {warehouseName},Owk';
-                    const template = warehouseInfo?.smsInflowTemplate || defaultTemplate;
-
-                    const message = template
-                        .replace('{customerName}', selectedCustomer.name)
-                        .replace('{unloadingBags}', String(selectedRecordOnSubmit.bagsUnloaded))
-                        .replace('{unloadingBillNo}', selectedRecordOnSubmit.billNo || 'N/A')
-                        .replace('{bagsForDrying}', String(data.bagsForDrying))
-                        .replace('{bagsPacked}', String(data.bagsPacked))
-                        .replace('{commodity}', selectedRecordOnSubmit.commodityDescription)
-                        .replace('{date}', format(finalStorageDate, 'dd MMM yyyy'))
-                        .replace('{newBillNo}', nextId)
-                        .replace('{hamaliAmount}', formatCurrency(totalHamaliForCustomer))
-                        .replace('{location}', selectedRecordOnSubmit.location || 'N/A')
-                        .replace('{warehouseName}', warehouseInfo?.name || 'GrainDost');
-
-                    sendSms({
-                        apiKey: warehouseInfo.textbeeApiKey,
-                        deviceId: warehouseInfo.textbeeDeviceId,
-                        to: selectedCustomer.phone,
-                        message: message,
-                    }).catch(console.error);
-                }
-                
-                toast({ title: 'Success', description: `Storage record created from plot.` });
+                toast({ title: 'Success', description: `Storage record created.` });
                 setFormData(initialFormData);
                 
             } catch (error) {
@@ -458,183 +337,85 @@ export function InitiateDryingForm({ customers, unloadingRecords, storageRecords
             <CardHeader>
                 <CardTitle>Finalize Drying & Create Storage Record</CardTitle>
                 <CardDescription>
-                    Select an item from the unloading queue. This will create a new storage record.
+                    Manual date entry format: DD-MM-YYYY.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 <div className="flex flex-col space-y-2">
-                    <Label>Unloading Queue (Oldest First)</Label>
+                    <Label>Unloading Queue (Select Record)</Label>
                     <Combobox
                         options={unloadingQueueOptions}
                         value={formData.unloadingRecordId}
                         onChange={(value) => handleValueChange('unloadingRecordId', value)}
                         placeholder="Select an unloading bill..."
                         searchPlaceholder="Search by bill, customer..."
-                        emptyPlaceholder="No items in queue."
                     />
-                    {errors.unloadingRecordId && <p className="text-sm font-medium text-destructive">{errors.unloadingRecordId}</p>}
                 </div>
-                
-                {selectedUnloadingRecord && selectedCustomer && (
-                    <div className="text-sm text-muted-foreground p-3 border rounded-md bg-secondary/50 space-y-1">
-                        <div className="flex justify-between items-center">
-                            <p className="font-bold text-foreground">{selectedCustomer.name}</p>
-                            <p>Bill #{selectedUnloadingRecord.billNo}</p>
-                        </div>
-                        <p><strong>Phone:</strong> {selectedCustomer.phone}</p>
-                        <p><strong>Unloaded:</strong> {format(toDate(selectedUnloadingRecord.unloadingDate), 'dd MMM yyyy, hh:mm a')}</p>
-                        <p><strong>Stored Location:</strong> {selectedUnloadingRecord.location || 'N/A'}</p>
-                    </div>
-                )}
-
-                <Alert variant="destructive" className="bg-secondary/30 border-secondary">
-                    <Info className="h-4 w-4" />
-                    <AlertTitle>Unloading Hamali</AlertTitle>
-                    <AlertDescription>
-                        Unloading hamali was {formatCurrency(selectedUnloadingRecord?.hamaliPerBag || 0)} per bag. This will be pro-rated and added to the total.
-                    </AlertDescription>
-                </Alert>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <Label htmlFor="bagsForDrying">Bags Plotted for Drying</Label>
-                        <Input id="bagsForDrying" name="bagsForDrying" type="number" placeholder="0" value={formData.bagsForDrying} onChange={handleInputChange} disabled={!selectedUnloadingRecord} />
-                        <p className="text-sm text-muted-foreground">Qty for Hamali calc. Remaining: {bagsRemainingOnRecord}</p>
+                        <Input id="bagsForDrying" name="bagsForDrying" type="number" step="0.01" value={formData.bagsForDrying} onChange={handleInputChange} disabled={!selectedUnloadingRecord} />
                         {errors.bagsForDrying && <p className="text-sm font-medium text-destructive">{errors.bagsForDrying}</p>}
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="bagsPacked">Bags Packed (Final)</Label>
-                        <Input id="bagsPacked" name="bagsPacked" type="number" placeholder="0" value={formData.bagsPacked} onChange={handleInputChange} disabled={!selectedUnloadingRecord}/>
-                        <p className="text-sm text-muted-foreground">Final stock quantity to be stored.</p>
+                        <Input id="bagsPacked" name="bagsPacked" type="number" step="0.01" value={formData.bagsPacked} onChange={handleInputChange} disabled={!selectedUnloadingRecord}/>
                         {errors.bagsPacked && <p className="text-sm font-medium text-destructive">{errors.bagsPacked}</p>}
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                        <Label htmlFor="dryingStartDate">Drying Start Date</Label>
-                        <Input id="dryingStartDate" name="dryingStartDate" type="date" value={formData.dryingStartDate} onChange={handleInputChange} disabled={!selectedUnloadingRecord} />
+                        <Label htmlFor="dryingStartDate">Drying Start Date (DD-MM-YYYY)</Label>
+                        <Input id="dryingStartDate" name="dryingStartDate" placeholder="DD-MM-YYYY" value={formData.dryingStartDate} onChange={handleInputChange} disabled={!selectedUnloadingRecord} />
                         {errors.dryingStartDate && <p className="text-sm font-medium text-destructive">{errors.dryingStartDate}</p>}
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="dryingEndDate">Drying End Date (Storage Date)</Label>
-                        <Input id="dryingEndDate" name="dryingEndDate" type="date" value={formData.dryingEndDate} onChange={handleInputChange} disabled={!selectedUnloadingRecord} />
+                        <Label htmlFor="dryingEndDate">Packing/Storage Date (DD-MM-YYYY)</Label>
+                        <Input id="dryingEndDate" name="dryingEndDate" placeholder="DD-MM-YYYY" value={formData.dryingEndDate} onChange={handleInputChange} disabled={!selectedUnloadingRecord} />
                         {errors.dryingEndDate && <p className="text-sm font-medium text-destructive">{errors.dryingEndDate}</p>}
                     </div>
                 </div>
 
-                {(dryingDays !== null || daysUntilDrying !== null) && (
-                    <div className="text-sm text-center text-muted-foreground p-2 bg-secondary rounded-md grid grid-cols-2 divide-x divide-border">
-                       <div className="flex flex-col items-center">
-                            <span className="font-bold text-foreground">{daysUntilDrying ?? '-'} days</span>
-                            <span className="text-xs">Wait before drying</span>
-                       </div>
-                       <div className="flex flex-col items-center">
-                           <span className="font-bold text-foreground">{dryingDays ?? '-'}</span>
-                           <span className="text-xs">Total drying days</span>
-                       </div>
-                    </div>
-                )}
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="space-y-2">
-                        <Label htmlFor="customerHamaliPerBag">Customer Hamali Rate</Label>
-                        <p className="text-xs text-muted-foreground h-8">Charge per bag (Day 1).</p>
-                        <Input id="customerHamaliPerBag" name="customerHamaliPerBag" type="number" step="0.01" placeholder="0.00" value={formData.customerHamaliPerBag} onChange={handleInputChange} disabled={!selectedUnloadingRecord} />
-                        {errors.customerHamaliPerBag && <p className="text-sm font-medium text-destructive">{errors.customerHamaliPerBag}</p>}
+                        <Label htmlFor="customerHamaliPerBag">Cust. Hamali Rate</Label>
+                        <Input id="customerHamaliPerBag" name="customerHamaliPerBag" type="number" step="0.01" value={formData.customerHamaliPerBag} onChange={handleInputChange} disabled={!selectedUnloadingRecord} />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="workerHamaliPerBag">Hamali Drying Rate</Label>
-                        <p className="text-xs text-muted-foreground h-8">Payment per bag (Day 1).</p>
-                        <Input id="workerHamaliPerBag" name="workerHamaliPerBag" type="number" step="0.01" placeholder="0.00" value={formData.workerHamaliPerBag} onChange={handleInputChange} disabled={!selectedUnloadingRecord} />
-                        {errors.workerHamaliPerBag && <p className="text-sm font-medium text-destructive">{errors.workerHamaliPerBag}</p>}
+                        <Label htmlFor="workerHamaliPerBag">Worker Rate</Label>
+                        <Input id="workerHamaliPerBag" name="workerHamaliPerBag" type="number" step="0.01" value={formData.workerHamaliPerBag} onChange={handleInputChange} disabled={!selectedUnloadingRecord} />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="pavHamaliPerBag">Pav Hamali Rate (per day)</Label>
-                        <p className="text-xs text-muted-foreground h-8">Extra charge per bag per day.</p>
-                        <Input id="pavHamaliPerBag" name="pavHamaliPerBag" type="number" step="0.01" placeholder="0.00" value={formData.pavHamaliPerBag} onChange={handleInputChange} disabled={!selectedUnloadingRecord} />
-                        {errors.pavHamaliPerBag && <p className="text-sm font-medium text-destructive">{errors.pavHamaliPerBag}</p>}
+                        <Label htmlFor="pavHamaliPerBag">Pav Rate/Day</Label>
+                        <Input id="pavHamaliPerBag" name="pavHamaliPerBag" type="number" step="0.01" value={formData.pavHamaliPerBag} onChange={handleInputChange} disabled={!selectedUnloadingRecord} />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="cuppaHamaliPerBag">Cuppa Hamali Rate (per day)</Label>
-                        <p className="text-xs text-muted-foreground h-8">Extra charge per bag per day.</p>
-                        <Input id="cuppaHamaliPerBag" name="cuppaHamaliPerBag" type="number" step="0.01" placeholder="0.00" value={formData.cuppaHamaliPerBag} onChange={handleInputChange} disabled={!selectedUnloadingRecord} />
-                        {errors.cuppaHamaliPerBag && <p className="text-sm font-medium text-destructive">{errors.cuppaHamaliPerBag}</p>}
+                        <Label htmlFor="cuppaHamaliPerBag">Cuppa Rate/Day</Label>
+                        <Input id="cuppaHamaliPerBag" name="cuppaHamaliPerBag" type="number" step="0.01" value={formData.cuppaHamaliPerBag} onChange={handleInputChange} disabled={!selectedUnloadingRecord} />
                     </div>
                 </div>
 
                 <Separator />
 
-                <div className="space-y-2">
-                    <h4 className="font-medium">Total Hamali for Customer</h4>
-                    <div className="flex justify-between items-center text-sm">
-                        <span className="text-muted-foreground">Pro-rated Unloading Hamali</span>
-                        <span className="font-mono">{formatCurrency(proportionalUnloadingHamali)}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm">
-                        <span className="text-muted-foreground">Drying Hamali (Day 1)</span>
-                        <span className="font-mono">{formatCurrency(day1DryingHamali)}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm">
-                        <span className="text-muted-foreground">Pav Hamali ({extraDryingDays} extra day{extraDryingDays !== 1 ? 's' : ''})</span>
-                        <span className="font-mono">{formatCurrency(pavHamali)}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm">
-                        <span className="text-muted-foreground">Cuppa Hamali ({extraDryingDays} extra day{extraDryingDays !== 1 ? 's' : ''})</span>
-                        <span className="font-mono">{formatCurrency(cuppaHamali)}</span>
-                    </div>
-                    <Separator />
-                    <div className="flex justify-between items-center font-semibold">
-                        <span>Total Hamali Payable (Customer)</span>
+                <div className="space-y-2 pt-2">
+                    <div className="flex justify-between items-center font-semibold text-lg">
+                        <span>Total Hamali (Customer)</span>
                         <span className="font-mono">{formatCurrency(totalCustomerCharge)}</span>
                     </div>
-                </div>
-                <Separator className="my-4"/>
-                <div className="space-y-2">
-                    <h4 className="font-medium">Total Hamali for Worker</h4>
-                    <div className="flex justify-between items-center text-sm">
-                        <span className="text-muted-foreground">Pro-rated Unloading Hamali</span>
-                        <span className="font-mono">{formatCurrency(proportionalUnloadingHamali)}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm">
-                        <span className="text-muted-foreground">Drying Hamali (Day 1)</span>
-                        <span className="font-mono">{formatCurrency(workerHamaliDay1)}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm">
-                        <span className="text-muted-foreground">Pav Hamali ({extraDryingDays} extra day{extraDryingDays !== 1 ? 's' : ''})</span>
-                        <span className="font-mono">{formatCurrency(pavHamali)}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm">
-                        <span className="text-muted-foreground">Cuppa Hamali ({extraDryingDays} extra day{extraDryingDays !== 1 ? 's' : ''})</span>
-                        <span className="font-mono">{formatCurrency(cuppaHamali)}</span>
-                    </div>
-                    <Separator />
-                    <div className="flex justify-between items-center font-semibold">
-                        <span>Total Hamali Payable (Worker)</span>
+                    <div className="flex justify-between items-center text-sm text-muted-foreground">
+                        <span>Total Hamali (Worker)</span>
                         <span className="font-mono">{formatCurrency(totalWorkerPayable)}</span>
                     </div>
                 </div>
             </CardContent>
             <CardFooter className="flex flex-col sm:flex-row gap-2">
-                <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={handlePartialSave}
-                    disabled={isPending || isPartialSaving || !selectedUnloadingRecord}
-                    className="w-full"
-                >
-                    {isPartialSaving ? (
-                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
-                    ) : (
-                        'Partial Save (Start Drying)'
-                    )}
+                <Button type="button" variant="secondary" onClick={handlePartialSave} disabled={isPending || isPartialSaving || !selectedUnloadingRecord} className="w-full">
+                    {isPartialSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Start Drying (Save)'}
                 </Button>
                 <Button type="submit" disabled={isPending || isPartialSaving || !selectedUnloadingRecord} className="w-full">
-                    {isPending ? (
-                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating Record...</>
-                    ) : (
-                        'Create Storage Record'
-                    )}
+                    {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Create Final Inflow'}
                 </Button>
             </CardFooter>
         </form>

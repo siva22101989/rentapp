@@ -22,19 +22,19 @@ import { useFirestore } from '@/firebase/provider';
 import { z } from 'zod';
 import { Label } from '../ui/label';
 import { doc, writeBatch, arrayUnion, collection } from 'firebase/firestore';
-import { cleanForFirestore, formatCurrency } from '@/lib/utils';
+import { cleanForFirestore, formatCurrency, formatManualDate, parseManualDate } from '@/lib/utils';
 import { useAppUser } from '@/firebase/auth/use-user';
 
 const IncomeSchema = z.object({
-  refNo: z.string().regex(/^\d+$/, 'Reference No must be numerical only.').min(1, 'Reference No is required.'),
+  refNo: z.string().min(1, 'Reference No is required.'),
   description: z.string().min(2, 'Description is required.'),
   amount: z.coerce.number().positive('Amount must be a positive number.'),
-  date: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
+  date: z.string().min(1, "Date is required."),
   category: z.enum(incomeCategories, { required_error: 'Category is required.' }),
   lendingId: z.string().optional(),
   lorryTractorNo: z.string().optional(),
 }).superRefine((data, ctx) => {
-    if (data.category === 'Loan Payment Received' && !data.lendingId) {
+    if ((data.category === 'Interest Received' || data.category === 'Principal Received') && !data.lendingId) {
         ctx.addIssue({
             code: z.ZodIssueCode.custom,
             message: 'Please select the loan account for this payment.',
@@ -50,7 +50,7 @@ export function AddIncomeDialog({ lendings, nextRefNo }: { lendings: Lending[], 
   const firestore = useFirestore();
   const appUser = useAppUser();
 
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(formatManualDate(new Date()));
   const [category, setCategory] = useState<IncomeCategory | undefined>(undefined);
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState<number | ''>('');
@@ -63,11 +63,11 @@ export function AddIncomeDialog({ lendings, nextRefNo }: { lendings: Lending[], 
     if (isOpen) setRefNo(nextRefNo);
   }, [isOpen, nextRefNo]);
 
-  const isLoanPayment = category === 'Loan Payment Received';
+  const isLoanPayment = category === 'Interest Received' || category === 'Principal Received';
   const isKhataIncome = category === 'Khata Income';
 
   const resetForm = () => {
-    setDate(new Date().toISOString().split('T')[0]);
+    setDate(formatManualDate(new Date()));
     setCategory(undefined);
     setDescription('');
     setAmount('');
@@ -81,8 +81,14 @@ export function AddIncomeDialog({ lendings, nextRefNo }: { lendings: Lending[], 
     e.preventDefault();
     setErrors({});
     if (!firestore || !appUser?.warehouseId) {
-      toast({ title: 'Error', description: 'Could not add income: user or warehouse context is missing.', variant: 'destructive' });
+      toast({ title: 'Error', description: 'User or warehouse context is missing.', variant: 'destructive' });
       return;
+    }
+
+    const finalDate = parseManualDate(date);
+    if (!finalDate) {
+        setErrors(prev => ({ ...prev, date: 'Invalid format. Use DD-MM-YYYY' }));
+        return;
     }
 
     const dataToValidate = { 
@@ -103,7 +109,6 @@ export function AddIncomeDialog({ lendings, nextRefNo }: { lendings: Lending[], 
             if (fieldErrors[key as keyof typeof fieldErrors]) newErrors[key] = fieldErrors[key as keyof typeof fieldErrors]![0];
         });
         setErrors(newErrors);
-        toast({ title: "Validation Error", description: "Please check your input.", variant: "destructive"});
         return;
     }
     
@@ -117,7 +122,7 @@ export function AddIncomeDialog({ lendings, nextRefNo }: { lendings: Lending[], 
         if (data.lendingId && isLoanPayment) {
             const lending = lendings.find(l => l.id === data.lendingId);
             if (lending) {
-                finalDescription = `Payment from ${lending.borrowerName}: ${data.description}`;
+                finalDescription = `${data.category} from ${lending.borrowerName}: ${data.description}`;
             }
         } else if (isKhataIncome && vehicleType) {
             finalDescription = `${vehicleType} Khata: ${data.description}`;
@@ -127,7 +132,7 @@ export function AddIncomeDialog({ lendings, nextRefNo }: { lendings: Lending[], 
           refNo: data.refNo,
           description: finalDescription,
           amount: data.amount,
-          date: new Date(data.date),
+          date: finalDate,
           category: data.category,
           lorryTractorNo: isKhataIncome ? vehicleType : undefined,
           warehouseId: appUser.warehouseId,
@@ -139,8 +144,8 @@ export function AddIncomeDialog({ lendings, nextRefNo }: { lendings: Lending[], 
             const lendingRef = doc(firestore, 'lendings', data.lendingId);
             const newPayment: Payment = {
               amount: data.amount,
-              date: new Date(data.date),
-              type: 'repayment',
+              date: finalDate,
+              type: data.category === 'Interest Received' ? 'interest' : 'principal',
             };
             batch.update(lendingRef, {
                 payments: arrayUnion(cleanForFirestore(newPayment))
@@ -148,9 +153,7 @@ export function AddIncomeDialog({ lendings, nextRefNo }: { lendings: Lending[], 
         }
 
         await batch.commit();
-        
         toast({ title: 'Success', description: "Income added successfully." });
-
         setIsOpen(false);
         resetForm();
       } catch (error) {
@@ -173,18 +176,18 @@ export function AddIncomeDialog({ lendings, nextRefNo }: { lendings: Lending[], 
             <DialogHeader>
               <DialogTitle>Add Miscellaneous Income</DialogTitle>
               <DialogDescription>
-                Record any income. Reference No is locked to maintain sequence.
+                Enter details manually. Date format: DD-MM-YYYY.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-2">
               <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="incRefNo">Ref No (Auto-Generated)</Label>
+                    <Label htmlFor="incRefNo">Ref No</Label>
                     <Input id="incRefNo" disabled={true} className="bg-muted font-mono font-bold" value={refNo} />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="incDate">Date</Label>
-                    <Input id="incDate" type="date" value={date} onChange={e => setDate(e.target.value)} />
+                    <Label htmlFor="incDate">Date (DD-MM-YYYY)</Label>
+                    <Input id="incDate" placeholder="DD-MM-YYYY" value={date} onChange={e => setDate(e.target.value)} />
                     {errors.date && <p className="text-sm font-medium text-destructive">{errors.date}</p>}
                   </div>
               </div>
@@ -237,7 +240,7 @@ export function AddIncomeDialog({ lendings, nextRefNo }: { lendings: Lending[], 
 
               <div className="space-y-2">
                 <Label htmlFor="description">Description</Label>
-                <Textarea id="description" placeholder="e.g., Weighbridge charges" value={description} onChange={e => setDescription(target.value)} />
+                <Textarea id="description" placeholder="e.g., Weighbridge charges" value={description} onChange={e => setDescription(e.target.value)} />
                 {errors.description && <p className="text-sm font-medium text-destructive">{errors.description}</p>}
               </div>
               <div className="space-y-2">

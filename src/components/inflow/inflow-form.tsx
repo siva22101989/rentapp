@@ -9,7 +9,7 @@ import type { Customer, Payment, Commodity, Lot, StorageRecord, WarehouseInfo } 
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Separator } from '../ui/separator';
-import { formatCurrency, cleanForFirestore, toDate } from '@/lib/utils';
+import { formatCurrency, cleanForFirestore, toDate, formatManualDate, parseManualDate } from '@/lib/utils';
 import { useFirestore } from '@/firebase/provider';
 import { doc, setDoc } from 'firebase/firestore';
 import { Combobox } from '../ui/combobox';
@@ -52,7 +52,7 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
     const [khataAmount, setKhataAmount] = useState<number | ''>('');
     const [selectedLot, setSelectedLot] = useState('');
     const [lorryTractorNo, setLorryTractorNo] = useState('');
-    const [storageStartDate, setStorageStartDate] = useState(new Date().toISOString().split('T')[0]);
+    const [storageStartDate, setStorageStartDate] = useState(formatManualDate(new Date()));
     const [serialNo, setSerialNo] = useState(nextId);
 
     useEffect(() => {
@@ -119,7 +119,7 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
         setKhataAmount('');
         setSelectedLot('');
         setLorryTractorNo('');
-        setStorageStartDate(new Date().toISOString().split('T')[0]);
+        setStorageStartDate(formatManualDate(new Date()));
         setSerialNo(nextId);
     };
     
@@ -127,6 +127,12 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
         e.preventDefault();
         if (!firestore || !appUser?.warehouseId) {
             toast({ title: 'Error', description: 'Could not create record: user or warehouse context is missing.', variant: 'destructive' });
+            return;
+        }
+
+        const finalDate = parseManualDate(storageStartDate);
+        if (!finalDate) {
+            toast({ title: 'Invalid Date', description: 'Please enter the date in DD-MM-YYYY format.', variant: 'destructive' });
             return;
         }
 
@@ -167,7 +173,7 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                 if (hamaliPaidAmount > 0) {
                     payments.push({
                         amount: hamaliPaidAmount,
-                        date: new Date(storageStartDate),
+                        date: finalDate,
                         type: 'hamali'
                     });
                 }
@@ -180,7 +186,7 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                     bagsIn: bagsStored,
                     bagsOut: 0,
                     bagsStored,
-                    storageStartDate: new Date(storageStartDate),
+                    storageStartDate: finalDate,
                     storageEndDate: null,
                     billingCycle: '6-Month Initial' as const,
                     payments,
@@ -213,7 +219,7 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                         .replace('{bags}', String(bagsStored))
                         .replace('{commodity}', selectedCommodity)
                         .replace('{billNo}', serialNo)
-                        .replace('{date}', format(new Date(storageStartDate), 'dd/MM/yy'))
+                        .replace('{date}', format(finalDate, 'dd/MM/yy'))
                         .replace('{hamaliAmount}', formatCurrency(hamaliPayable))
                         .replace('{warehouseName}', warehouseInfo?.name || 'GrainDost');
 
@@ -268,7 +274,7 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                     </div>
 
                     {selectedCustomer && (
-                        <div className="text-sm text-muted-foreground p-3 border rounded-md bg-secondary/50 space-y-1">
+                        <div className="text-sm text-muted-foreground p-3 border rounded-md bg-secondary/50 space-y-1 -mt-2">
                             <p><strong>Father's Name:</strong> {selectedCustomer.fatherName || 'N/A'}</p>
                             <p><strong>Village:</strong> {selectedCustomer.village || 'N/A'}</p>
                             <p><strong>Phone:</strong> {selectedCustomer.phone}</p>
@@ -305,11 +311,12 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                             <Input id="lorryTractorNo" name="lorryTractorNo" placeholder="e.g., AP 21 1234" value={lorryTractorNo} onChange={e => setLorryTractorNo(e.target.value)} />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="storageStartDate">Date</Label>
+                            <Label htmlFor="storageStartDate">Inflow Date (DD-MM-YYYY)</Label>
                             <Input 
                                 id="storageStartDate" 
                                 name="storageStartDate" 
-                                type="date"
+                                type="text"
+                                placeholder="DD-MM-YYYY"
                                 value={storageStartDate}
                                 onChange={e => setStorageStartDate(e.target.value)}
                                 required 
@@ -323,6 +330,7 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                                 id="bagsStored" 
                                 name="bagsStored" 
                                 type="number" 
+                                step="0.01"
                                 placeholder="0" 
                                 required
                                 value={bags}

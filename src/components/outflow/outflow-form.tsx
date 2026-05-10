@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useTransition, useMemo } from 'react';
@@ -15,7 +14,7 @@ import { Loader2 } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { calculateFinalRent } from '@/lib/billing';
 import { format } from 'date-fns';
-import { toDate, cleanForFirestore, formatCurrency } from '@/lib/utils';
+import { toDate, cleanForFirestore, formatCurrency, formatManualDate, parseManualDate } from '@/lib/utils';
 import { Combobox } from '../ui/combobox';
 import { useRouter } from 'next/navigation';
 import { useDoc } from '@/firebase/firestore/use-doc';
@@ -53,7 +52,7 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
     const [amountPaidNow, setAmountPaidNow] = useState<number | ''>('');
     const [discount, setDiscount] = useState<number | ''>('');
     const [khataAmountInput, setKhataAmountInput] = useState<number | ''>('');
-    const [withdrawalDate, setWithdrawalDate] = useState(new Date());
+    const [withdrawalDateStr, setWithdrawalDateStr] = useState(formatManualDate(new Date()));
     
     const [totalRent, setTotalRent] = useState(0);
     const [totalPendingHamali, setTotalPendingHamali] = useState(0);
@@ -83,8 +82,6 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
     );
 
     const isMultiLotWithdrawal = useMemo(() => withdrawalEntries.length > 1, [withdrawalEntries]);
-
-    // Total Payable: Rent + Pending Hamali + Khata (from input) - Discount
     const totalPayable = totalRent + totalPendingHamali + (Number(khataAmountInput) || 0) - (Number(discount) || 0);
 
     useEffect(() => {
@@ -99,6 +96,7 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
         let runningBags = 0;
         const processedRecords = new Set<string>();
 
+        const wDate = parseManualDate(withdrawalDateStr) || new Date();
         const currentWithdrawalEntries = Object.entries(withdrawals).filter(([, bags]) => Number(bags) > 0);
 
         currentWithdrawalEntries.forEach(([recordId, bags]) => {
@@ -114,16 +112,14 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                     }
                 }
 
-                const { rent } = calculateFinalRent({ ...recordWithRates, storageStartDate: toDate(recordWithRates.storageStartDate) }, withdrawalDate, bagsToWithdraw);
+                const { rent } = calculateFinalRent({ ...recordWithRates, storageStartDate: toDate(recordWithRates.storageStartDate) }, wDate, bagsToWithdraw);
                 runningRent += rent;
                 
                 if (!processedRecords.has(recordId)) {
                     const hamaliPaid = (record.payments || []).filter(p => p.type === 'hamali').reduce((acc, p) => acc + p.amount, 0);
                     const pendingHamali = (record.hamaliPayable || 0) - hamaliPaid;
                     runningHamali += Math.max(0, pendingHamali);
-                    
                     runningKhata += (record.khataAmount || 0);
-                    
                     processedRecords.add(recordId);
                 }
                 runningBags += bagsToWithdraw;
@@ -135,11 +131,10 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
         setTotalKhataFromRecords(runningKhata);
         setTotalBags(runningBags);
         
-        // Initialize khata amount input if it's empty and we have a value from records
         if (khataAmountInput === '' && runningKhata > 0) {
             setKhataAmountInput(runningKhata);
         }
-    }, [withdrawals, withdrawalDate, records, commodities, khataAmountInput]);
+    }, [withdrawals, withdrawalDateStr, records, commodities, khataAmountInput]);
 
     const resetForm = () => {
         setSelectedCustomerId('');
@@ -147,7 +142,7 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
         setAmountPaidNow('');
         setDiscount('');
         setKhataAmountInput('');
-        setWithdrawalDate(new Date());
+        setWithdrawalDateStr(formatManualDate(new Date()));
     }
     
     const handleCustomerChange = (customerId: string) => {
@@ -158,26 +153,24 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
         setKhataAmountInput('');
     }
 
-    const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const dateValue = new Date(e.target.value + 'T00:00:00');
-        setWithdrawalDate(dateValue);
-    }
-    
     const handleWithdrawalChange = (recordId: string, value: string, maxBags: number) => {
         const numValue = value === '' ? '' : Number(value);
         if (numValue === '' || (numValue >= 0 && numValue <= maxBags && !isNaN(numValue))) {
-            setWithdrawals(prev => ({
-                ...prev,
-                [recordId]: numValue,
-            }));
+            setWithdrawals(prev => ({ ...prev, [recordId]: numValue }));
         }
     };
     
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         
+        const finalDate = parseManualDate(withdrawalDateStr);
+        if (!finalDate) {
+            toast({ title: 'Invalid Date', description: 'Use DD-MM-YYYY format.', variant: 'destructive' });
+            return;
+        }
+
         if (!firestore || withdrawalEntries.length === 0) {
-            toast({ title: 'Error', description: 'Please enter a withdrawal amount for at least one record.', variant: 'destructive' });
+            toast({ title: 'Error', description: 'Please enter a withdrawal amount.', variant: 'destructive' });
             return;
         }
 
@@ -196,7 +189,7 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                 }
             }
 
-            const { rent: rentForThisWithdrawal } = calculateFinalRent({ ...recordWithRates, storageStartDate: toDate(recordWithRates.storageStartDate) }, withdrawalDate, bagsToWithdraw);
+            const { rent: rentForThisWithdrawal } = calculateFinalRent({ ...recordWithRates, storageStartDate: toDate(recordWithRates.storageStartDate) }, finalDate, bagsToWithdraw);
             
             queryParams.set('withdrawn', String(bagsToWithdraw));
             queryParams.set('rent', String(rentForThisWithdrawal));
@@ -208,7 +201,7 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
             receiptWindow = window.open(receiptUrl, '_blank');
             
             if (!receiptWindow) {
-                toast({ title: "Popup Blocked", description: "Please allow popups for this site to view receipts.", variant: "destructive" });
+                toast({ title: "Popup Blocked", description: "Please allow popups for this site.", variant: "destructive" });
                 return;
             }
         }
@@ -235,10 +228,10 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                         }
                     }
 
-                    const { rent: rentForThisWithdrawal } = calculateFinalRent({ ...recordWithRates, storageStartDate: toDate(recordWithRates.storageStartDate) }, withdrawalDate, bagsToWithdraw);
+                    const { rent: rentForThisWithdrawal } = calculateFinalRent({ ...recordWithRates, storageStartDate: toDate(recordWithRates.storageStartDate) }, finalDate, bagsToWithdraw);
                     
                     const newOutflow: Partial<Outflow> = {
-                        date: withdrawalDate,
+                        date: finalDate,
                         bagsWithdrawn: bagsToWithdraw,
                         rentBilled: rentForThisWithdrawal,
                         discount: isMultiLotWithdrawal ? 0 : discountAmount,
@@ -254,19 +247,18 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                         outflows: arrayUnion(cleanForFirestore(newOutflow)),
                     };
 
-                    // If user manually edited the khata amount for a single lot outflow, update the record
                     if (!isMultiLotWithdrawal && khataAmount !== record.khataAmount) {
                         updateData.khataAmount = khataAmount;
                     }
 
                     if (newBagsStored <= 0) {
-                        updateData.storageEndDate = Timestamp.fromDate(withdrawalDate);
+                        updateData.storageEndDate = Timestamp.fromDate(finalDate);
                         updateData.billingCycle = 'Completed';
                     }
                     
                     const paidNow = Number(amountPaidNow) || 0;
                     if (!isMultiLotWithdrawal && paidNow > 0) {
-                        const newPayment: Partial<Payment> = { amount: paidNow, date: withdrawalDate, type: 'rent' };
+                        const newPayment: Partial<Payment> = { amount: paidNow, date: finalDate, type: 'rent' };
                         updateData.payments = arrayUnion(cleanForFirestore(newPayment));
                     }
                     
@@ -307,18 +299,12 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                         apiKey: warehouseInfo.textbeeApiKey,
                         deviceId: warehouseInfo.textbeeDeviceId,
                         to: selectedCustomer.phone,
-                        message: message,
+                        message,
                     }).catch(console.error);
                 }
 
-                if (isMultiLotWithdrawal) {
-                    toast({ title: 'Success', description: `${withdrawalEntries.length} records processed. You can make a bulk payment from the Pending Payments page.`, duration: 7000 });
-                    resetForm();
-                    router.push(`/reports?report=customer-statement&customerId=${selectedCustomerId}`);
-                } else {
-                    toast({ title: 'Success', description: 'Withdrawal processed successfully.' });
-                    resetForm();
-                }
+                toast({ title: 'Success', description: 'Withdrawal processed successfully.' });
+                resetForm();
 
             } catch (error) {
                 console.error("Outflow failed:", error);
@@ -334,7 +320,7 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
             <Card>
                 <CardHeader>
                 <CardTitle>Create Withdrawal</CardTitle>
-                <CardDescription>Select a customer, then enter the number of bags to withdraw from one or more records.</CardDescription>
+                <CardDescription>Enter details manually. Date format: DD-MM-YYYY.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="space-y-2">
@@ -350,7 +336,7 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                     </div>
                     
                     {selectedCustomer && (
-                        <div className="text-sm text-muted-foreground p-3 border rounded-md bg-secondary/50 space-y-1">
+                        <div className="text-sm text-muted-foreground p-3 border rounded-md bg-secondary/50 space-y-1 -mt-2">
                             <p><strong>Father's Name:</strong> {selectedCustomer.fatherName || 'N/A'}</p>
                             <p><strong>Village:</strong> {selectedCustomer.village || 'N/A'}</p>
                             <p><strong>Phone:</strong> {selectedCustomer.phone}</p>
@@ -358,15 +344,15 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                     )}
 
                     {selectedCustomerId && (
-                        <div className="border rounded-md">
+                        <div className="border rounded-md overflow-hidden">
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>Bill No</TableHead>
+                                        <TableHead>Patti No</TableHead>
                                         <TableHead>Commodity</TableHead>
                                         <TableHead>Lot</TableHead>
-                                        <TableHead className="text-right">Bags in Stock</TableHead>
-                                        <TableHead className="w-[150px]">Bags to Withdraw</TableHead>
+                                        <TableHead className="text-right">Stock</TableHead>
+                                        <TableHead className="w-[120px]">Withdraw Qty</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -379,12 +365,13 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                                             <TableCell>
                                                 <Input
                                                     type="number"
+                                                    step="0.01"
                                                     placeholder="0"
                                                     min="0"
                                                     max={record.bagsStored}
                                                     value={withdrawals[record.id] || ''}
                                                     onChange={(e) => handleWithdrawalChange(record.id, e.target.value, record.bagsStored)}
-                                                    className="text-right"
+                                                    className="text-right h-8"
                                                 />
                                             </TableCell>
                                         </TableRow>
@@ -404,14 +391,15 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                     {withdrawalEntries.length > 0 && (
                         <>
                             <div className="space-y-2">
-                                <Label htmlFor="withdrawalDate">Withdrawal Date</Label>
+                                <Label htmlFor="withdrawalDate">Withdrawal Date (DD-MM-YYYY)</Label>
                                 <Input 
                                     id="withdrawalDate" 
                                     name="withdrawalDate" 
-                                    type="date"
-                                    value={format(withdrawalDate, 'yyyy-MM-dd')}
+                                    type="text"
+                                    placeholder="DD-MM-YYYY"
+                                    value={withdrawalDateStr}
                                     required
-                                    onChange={handleDateChange}
+                                    onChange={(e) => setWithdrawalDateStr(e.target.value)}
                                     />
                             </div>
                             <Separator />
@@ -484,7 +472,7 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                                         disabled={isMultiLotWithdrawal}
                                     />
                                     <p className="text-xs text-muted-foreground">
-                                        {isMultiLotWithdrawal ? "Payment can only be recorded for single-lot withdrawals. For bulk, use the Pending Payments page after." : "Enter amount paid by customer. Leave blank if unpaid."}
+                                        {isMultiLotWithdrawal ? "Payment can only be recorded for single-lot withdrawals." : "Enter amount paid by customer. Leave blank if unpaid."}
                                     </p>
                                 </div>
                             </div>

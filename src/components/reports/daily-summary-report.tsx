@@ -1,16 +1,15 @@
-
 'use client';
 
 import React, { useState, useMemo } from 'react';
 import type { Customer, StorageRecord, UnloadingRecord, Expense, Payment, OtherIncome } from "@/lib/definitions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from '@/components/ui/button';
-import { Calendar as CalendarIcon, TrendingUp, TrendingDown, Scale, ArrowDownToDot, ArrowUpFromDot } from 'lucide-react';
-import { toDate, formatCurrency } from '@/lib/utils';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { TrendingUp, TrendingDown, Scale, ArrowDownToDot, ArrowUpFromDot, Search } from 'lucide-react';
+import { toDate, formatCurrency, parseManualDate, formatManualDate } from '@/lib/utils';
 import { format, isSameDay } from 'date-fns';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Button } from '@/components/ui/button';
 
 type DailyReportProps = {
     records: StorageRecord[];
@@ -47,8 +46,7 @@ const DailySummaryContent = ({ dailyData, customers, selectedDate }: { dailyData
                 <p className="text-sm text-gray-500">{format(selectedDate, 'EEEE, dd MMMM yyyy')}</p>
             </div>
 
-            {/* Summary Cards */}
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Total Income</CardTitle>
@@ -96,16 +94,15 @@ const DailySummaryContent = ({ dailyData, customers, selectedDate }: { dailyData
                 </Card>
             </div>
 
-            {/* Outflows Table */}
             <div className="space-y-6">
                 {dailyData.outflows.length > 0 && (
                     <section>
-                        <h3 className="font-semibold mb-2">Outflows</h3>
+                        <h3 className="font-semibold mb-2">Outflows Today</h3>
                         <Table>
                             <TableHeader><TableRow><TableHead>Record ID</TableHead><TableHead>Customer</TableHead><TableHead>Commodity</TableHead><TableHead className="text-right">Bags Withdrawn</TableHead></TableRow></TableHeader>
                             <TableBody>
-                                {dailyData.outflows.map(rec => (
-                                    <TableRow key={`out-${rec.id}`}><TableCell>{rec.id}</TableCell><TableCell>{getCustomerName(rec.customerId)}</TableCell><TableCell>{rec.commodityDescription}</TableCell><TableCell className="text-right font-mono">{rec.bagsWithdrawn}</TableCell></TableRow>
+                                {dailyData.outflows.map((rec, idx) => (
+                                    <TableRow key={`out-${rec.id}-${idx}`}><TableCell>{rec.id}</TableCell><TableCell>{getCustomerName(rec.customerId)}</TableCell><TableCell>{rec.commodityDescription}</TableCell><TableCell className="text-right font-mono">{rec.bagsWithdrawn}</TableCell></TableRow>
                                 ))}
                             </TableBody>
                         </Table>
@@ -121,8 +118,16 @@ const DailySummaryContent = ({ dailyData, customers, selectedDate }: { dailyData
 
 
 export function DailySummaryReport({ records, customers, unloadingRecords, expenses, otherIncomes }: DailyReportProps) {
+    const [dateInput, setDateInput] = useState(formatManualDate(new Date()));
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     
+    const handleSearch = () => {
+        const parsed = parseManualDate(dateInput);
+        if (parsed) {
+            setSelectedDate(parsed);
+        }
+    };
+
     const dailyData = useMemo(() => {
         const date = selectedDate;
         const data: DailyData = {
@@ -197,29 +202,24 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
             <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4 print-hide">
                 <div className="flex-1">
                     <CardTitle>Daily Summary Report</CardTitle>
-                    <CardDescription>A summary of all transactions for a selected day.</CardDescription>
+                    <CardDescription>Enter a date manually to view the summary.</CardDescription>
                 </div>
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button
-                            id="date"
-                            variant={"outline"}
-                            className="w-full sm:w-[260px] justify-start text-left font-normal"
-                            >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {selectedDate ? format(selectedDate, "LLL dd, y") : <span>Pick a date</span>}
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="end">
-                            <Calendar
-                            initialFocus
-                            mode="single"
-                            selected={selectedDate}
-                            onSelect={(date) => date && setSelectedDate(date)}
-                            />
-                        </PopoverContent>
-                    </Popover>
+                <div className="flex items-end gap-2 w-full sm:w-auto">
+                    <div className="space-y-1">
+                        <Label htmlFor="daily-date">Select Date (DD-MM-YYYY)</Label>
+                        <Input 
+                            id="daily-date"
+                            placeholder="e.g. 15-05-2024" 
+                            className="w-full sm:w-[180px]"
+                            value={dateInput}
+                            onChange={(e) => setDateInput(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                        />
+                    </div>
+                    <Button onClick={handleSearch}>
+                        <Search className="h-4 w-4 mr-2" />
+                        Show
+                    </Button>
                 </div>
             </CardHeader>
             <CardContent>
@@ -228,5 +228,3 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
         </Card>
     );
 }
-
-    

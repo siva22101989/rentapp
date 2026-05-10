@@ -88,55 +88,97 @@ export const deleteLot = async (db: Firestore, id: string): Promise<void> => {
 
 export const deleteOutflowEvent = async (db: Firestore, recordId: string, outflowIndex: number): Promise<void> => {
     const recordRef = doc(db, 'storageRecords', recordId);
-    const recordSnap = await getDoc(recordRef);
-    if (!recordSnap.exists()) {
-        throw new Error("Storage record not found");
-    }
-    const record = recordSnap.data() as StorageRecord;
-    const outflows = record.outflows || [];
+    
+    await runTransaction(db, async (transaction) => {
+        const recordSnap = await transaction.get(recordRef);
+        if (!recordSnap.exists()) {
+            throw new Error("Storage record not found");
+        }
+        const record = recordSnap.data() as StorageRecord;
+        const outflows = record.outflows || [];
 
-    if (outflowIndex < 0 || outflowIndex >= outflows.length) {
-        throw new Error("Outflow event not found at the specified index.");
-    }
-    const outflowToDelete = outflows[outflowIndex];
+        if (outflowIndex < 0 || outflowIndex >= outflows.length) {
+            throw new Error("Outflow event not found at the specified index.");
+        }
+        const outflowToDelete = outflows[outflowIndex];
 
-    const newOutflows = outflows.filter((_, index) => index !== outflowIndex);
+        const newOutflows = outflows.filter((_, index) => index !== outflowIndex);
 
-    const newBagsOut = (record.bagsOut || 0) - outflowToDelete.bagsWithdrawn;
-    const newBagsStored = (record.bagsIn || 0) - newBagsOut;
-    const newTotalRentBilled = (record.totalRentBilled || 0) - outflowToDelete.rentBilled;
+        const newBagsOut = (record.bagsOut || 0) - outflowToDelete.bagsWithdrawn;
+        const newBagsStored = (record.bagsIn || 0) - newBagsOut;
+        const newTotalRentBilled = (record.totalRentBilled || 0) - outflowToDelete.rentBilled;
 
-    const updateData = {
-        outflows: newOutflows,
-        bagsOut: newBagsOut,
-        bagsStored: newBagsStored,
-        totalRentBilled: newTotalRentBilled,
-        storageEndDate: null,
-        billingCycle: '6-Month Initial' as const,
-    };
+        const updateData: any = {
+            outflows: newOutflows,
+            bagsOut: newBagsOut,
+            bagsStored: newBagsStored,
+            totalRentBilled: newTotalRentBilled,
+            storageEndDate: null,
+            billingCycle: record.billingCycle || '6-Month Initial',
+        };
 
-    await updateDoc(recordRef, cleanForFirestore(updateData));
+        transaction.update(recordRef, cleanForFirestore(updateData));
+    });
 };
 
-export const editOutflowEvent = async (db: Firestore, recordId: string, outflowIndex: number, newData: { date: Date, discount: number }): Promise<void> => {
+export const editOutflowEvent = async (db: Firestore, recordId: string, outflowIndex: number, newData: { date: Date, bagsWithdrawn: number, rentBilled: number, discount: number, khataAmount?: number }): Promise<void> => {
     const recordRef = doc(db, 'storageRecords', recordId);
-    const recordSnap = await getDoc(recordRef);
-    if (!recordSnap.exists()) {
-        throw new Error("Storage record not found");
-    }
-    const record = recordSnap.data() as StorageRecord;
-    const outflows = [...(record.outflows || [])];
+    
+    await runTransaction(db, async (transaction) => {
+        const recordSnap = await transaction.get(recordRef);
+        if (!recordSnap.exists()) {
+            throw new Error("Storage record not found");
+        }
+        const record = recordSnap.data() as StorageRecord;
+        const outflows = [...(record.outflows || [])];
 
-    if (outflowIndex < 0 || outflowIndex >= outflows.length) {
-        throw new Error("Outflow event not found at the specified index.");
-    }
+        if (outflowIndex < 0 || outflowIndex >= outflows.length) {
+            throw new Error("Outflow event not found at the specified index.");
+        }
 
-    const outflowToEdit = outflows[outflowIndex];
-    outflowToEdit.date = newData.date;
-    outflowToEdit.discount = newData.discount;
+        const oldOutflow = outflows[outflowIndex];
+        
+        // Calculate differences for stock and total rent
+        const bagDiff = newData.bagsWithdrawn - oldOutflow.bagsWithdrawn;
+        const rentDiff = newData.rentBilled - oldOutflow.rentBilled;
+        
+        // Update the outflow in the array
+        outflows[outflowIndex] = {
+            ...oldOutflow,
+            date: newData.date,
+            bagsWithdrawn: newData.bagsWithdrawn,
+            rentBilled: newData.rentBilled,
+            discount: newData.discount,
+        };
 
-    await updateDoc(recordRef, {
-        outflows: cleanForFirestore(outflows),
+        const newBagsOut = (record.bagsOut || 0) + bagDiff;
+        const newBagsStored = (record.bagsIn || 0) - newBagsOut;
+        const newTotalRentBilled = (record.totalRentBilled || 0) + rentDiff;
+
+        if (newBagsStored < 0) {
+            throw new Error(`Invalid quantity. Adjusting this withdrawal would exceed the total available bags (${record.bagsIn}) in Patti ${recordId}.`);
+        }
+
+        const updateData: any = {
+            outflows: cleanForFirestore(outflows),
+            bagsOut: newBagsOut,
+            bagsStored: newBagsStored,
+            totalRentBilled: newTotalRentBilled,
+        };
+        
+        if (newData.khataAmount !== undefined) {
+            updateData.khataAmount = newData.khataAmount;
+        }
+
+        if (newBagsStored <= 0) {
+            updateData.storageEndDate = Timestamp.fromDate(newData.date);
+            updateData.billingCycle = 'Completed';
+        } else {
+            updateData.storageEndDate = null;
+            updateData.billingCycle = record.billingCycle || '6-Month Initial';
+        }
+
+        transaction.update(recordRef, updateData);
     });
 };
 

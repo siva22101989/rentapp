@@ -13,6 +13,7 @@ export type CustomerPendingSummary = {
     balanceDue: number;
     hamaliPending: number;
     rentPending: number;
+    lastActivityDate: Date;
 };
 
 export function PendingPaymentsTable({ records, customers, unloadingRecords }: { records: StorageRecord[], customers: Customer[], unloadingRecords: UnloadingRecord[] }) {
@@ -23,7 +24,8 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords }: {
         const summaryMap: Record<string, {
             totalBilled: number,
             amountPaid: number,
-            totalHamaliLiability: number
+            totalHamaliLiability: number,
+            lastDate: number
         }> = {};
         
         const customerMap = new Map(customers.map(c => [c.id, c.name]));
@@ -33,13 +35,14 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords }: {
                 summaryMap[id] = {
                     totalBilled: 0,
                     amountPaid: 0,
-                    totalHamaliLiability: 0
+                    totalHamaliLiability: 0,
+                    lastDate: 0
                 };
             }
             return summaryMap[id];
         };
 
-        // 1. Process Storage Records
+        // 1. Process All Storage Records (even paid ones for lifetime totals)
         records.forEach(r => {
             const s = getSummary(r.customerId);
             const hamali = r.hamaliPayable || 0;
@@ -51,21 +54,31 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords }: {
             s.totalBilled += totalLiabilities;
             s.amountPaid += totalPaid;
             s.totalHamaliLiability += hamali;
+            
+            const rDate = toDate(r.storageStartDate).getTime();
+            if (rDate > s.lastDate) s.lastDate = rDate;
         });
 
-        // 2. Process Unloading Records (Remaining in plot)
+        // 2. Process Unloading Records (Only contribute hamali for share NOT yet in Godown)
         unloadingRecords.forEach(r => {
             const s = getSummary(r.customerId);
             const remainingBags = Math.max(0, (r.bagsUnloaded || 0) - (r.bagsSentToDrying || 0));
             const remainingHamaliLiability = remainingBags * (r.hamaliPerBag || 0);
-            const totalPaid = (r.payments || []).reduce((acc, p) => acc + p.amount, 0);
-
+            
+            // For lifetime total billed on an unloading bill, we only count the 'active' part 
+            // because the 'moved' part is already counted in the Storage Records loop above.
             s.totalBilled += remainingHamaliLiability;
-            s.amountPaid += totalPaid;
+            
+            // Sum payments made specifically to this unloading bill
+            const totalPaidOnUnloading = (r.payments || []).reduce((acc, p) => acc + p.amount, 0);
+            s.amountPaid += totalPaidOnUnloading;
             s.totalHamaliLiability += remainingHamaliLiability;
+
+            const uDate = toDate(r.unloadingDate).getTime();
+            if (uDate > s.lastDate) s.lastDate = uDate;
         });
 
-        // 3. Convert to array and filter
+        // 3. Convert to array and filter for outstanding balances
         return Object.entries(summaryMap).map(([customerId, data]) => {
             const balanceDue = data.totalBilled - data.amountPaid;
             
@@ -80,11 +93,12 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords }: {
                 amountPaid: data.amountPaid,
                 balanceDue,
                 hamaliPending,
-                rentPending
+                rentPending,
+                lastActivityDate: new Date(data.lastDate)
             } as CustomerPendingSummary;
         })
-        .filter(s => s.balanceDue > 0.5) // Only show those with balance
-        .sort((a, b) => b.balanceDue - a.balanceDue);
+        .filter(s => s.balanceDue > 0.5) // Only show those with significant balance
+        .sort((a, b) => b.lastActivityDate.getTime() - a.lastActivityDate.getTime()); // Newest first
 
     }, [records, unloadingRecords, customers]);
 

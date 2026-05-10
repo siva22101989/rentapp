@@ -63,7 +63,7 @@ export function OutflowReport({ records, customers, commodities, lots }: Outflow
 
     return (
         <Card>
-            <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4 print:hidden">
+            <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4 print-hide">
                 <div className="flex-1">
                     <CardTitle>Outflow Register</CardTitle>
                     <CardDescription>A log of all items withdrawn from storage.</CardDescription>

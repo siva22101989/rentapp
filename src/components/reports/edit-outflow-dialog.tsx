@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useEffect, useMemo } from 'react';
@@ -72,7 +73,14 @@ export function EditOutflowDialog({
   const [lorryTractorNo, setLorryTractorNo] = useState('');
   const [weight, setWeight] = useState<number | ''>('');
 
-  const commodityOptions = useMemo(() => (commodities || []).map(c => ({ value: c.name, label: c.name })), [commodities]);
+  const commodityOptions = useMemo(() => {
+    const options = (commodities || []).map(c => ({ value: c.name, label: c.name }));
+    // Safety check: ensure current record value is in list
+    if (record.commodityDescription && !options.find(o => o.value === record.commodityDescription)) {
+        options.push({ value: record.commodityDescription, label: record.commodityDescription });
+    }
+    return options;
+  }, [commodities, record.commodityDescription]);
   
   const lotOccupancy = useMemo(() => {
     const occupancy: { [lotName: string]: number } = {};
@@ -85,7 +93,7 @@ export function EditOutflowDialog({
   }, [allRecords, record.id]);
 
   const lotOptions = useMemo(() => {
-    return (lots || [])
+    const options = (lots || [])
         .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
         .map(lot => {
             const occupied = lotOccupancy[lot.name] || 0;
@@ -94,7 +102,12 @@ export function EditOutflowDialog({
                 label: `${lot.name} (${occupied} bags occupied)`
             })
         });
-  }, [lots, lotOccupancy]);
+    // Safety check: ensure current record value is in list
+    if (record.location && !options.find(o => o.value === record.location)) {
+        options.push({ value: record.location, label: `${record.location} (Current)` });
+    }
+    return options;
+  }, [lots, lotOccupancy, record.location]);
 
   useEffect(() => {
     if (isOpen) {

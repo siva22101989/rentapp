@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import type { Customer, StorageRecord, UnloadingRecord } from "@/lib/definitions";
 import { PendingDuesReportTable } from "../reports/pending-dues-report-table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toDate } from "@/lib/utils";
 
 export type CustomerPendingSummary = {
     customerId: string;
@@ -12,7 +13,6 @@ export type CustomerPendingSummary = {
     balanceDue: number;
     hamaliPending: number;
     rentPending: number;
-    recordCount: number;
 };
 
 export function PendingPaymentsTable({ records, customers, unloadingRecords }: { records: StorageRecord[], customers: Customer[], unloadingRecords: UnloadingRecord[] }) {
@@ -23,27 +23,23 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords }: {
         const summaryMap: Record<string, {
             totalBilled: number,
             amountPaid: number,
-            totalHamaliLiability: number,
-            recordCount: number
+            totalHamaliLiability: number
         }> = {};
         
         const customerMap = new Map(customers.map(c => [c.id, c.name]));
 
-        // Helper to get or initialize a customer summary
         const getSummary = (id: string) => {
             if (!summaryMap[id]) {
                 summaryMap[id] = {
                     totalBilled: 0,
                     amountPaid: 0,
-                    totalHamaliLiability: 0,
-                    recordCount: 0
+                    totalHamaliLiability: 0
                 };
             }
             return summaryMap[id];
         };
 
-        // 1. Process Storage Records (Pattis)
-        // These already contain their own hamali (including moved portion from plot) and rent
+        // 1. Process Storage Records
         records.forEach(r => {
             const s = getSummary(r.customerId);
             const hamali = r.hamaliPayable || 0;
@@ -55,14 +51,11 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords }: {
             s.totalBilled += totalLiabilities;
             s.amountPaid += totalPaid;
             s.totalHamaliLiability += hamali;
-            s.recordCount++;
         });
 
-        // 2. Process Unloading Records
-        // To avoid double-counting, we only calculate hamali for bags NOT yet moved to storage
+        // 2. Process Unloading Records (Remaining in plot)
         unloadingRecords.forEach(r => {
             const s = getSummary(r.customerId);
-            
             const remainingBags = Math.max(0, (r.bagsUnloaded || 0) - (r.bagsSentToDrying || 0));
             const remainingHamaliLiability = remainingBags * (r.hamaliPerBag || 0);
             const totalPaid = (r.payments || []).reduce((acc, p) => acc + p.amount, 0);
@@ -70,21 +63,15 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords }: {
             s.totalBilled += remainingHamaliLiability;
             s.amountPaid += totalPaid;
             s.totalHamaliLiability += remainingHamaliLiability;
-            
-            // Increment record count if there is still something pending or if it's an active unloading record
-            if (remainingBags > 0 || totalPaid > 0) {
-                 s.recordCount++;
-            }
         });
 
-        // 3. Finalize and Filter only customers with a real balance
+        // 3. Convert to array and filter
         return Object.entries(summaryMap).map(([customerId, data]) => {
             const balanceDue = data.totalBilled - data.amountPaid;
             
-            // Financial Allocation Rule: Payments settle Hamali first, then Rent/Khata
+            // Financial Allocation Rule: Payments settle Hamali first
             const hamaliPending = Math.max(0, data.totalHamaliLiability - data.amountPaid);
-            const remainingPaidAfterHamali = Math.max(0, data.amountPaid - data.totalHamaliLiability);
-            const rentPending = Math.max(0, (data.totalBilled - data.totalHamaliLiability) - remainingPaidAfterHamali);
+            const rentPending = Math.max(0, balanceDue - hamaliPending);
 
             return {
                 customerId,
@@ -93,11 +80,10 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords }: {
                 amountPaid: data.amountPaid,
                 balanceDue,
                 hamaliPending,
-                rentPending,
-                recordCount: data.recordCount
+                rentPending
             } as CustomerPendingSummary;
         })
-        .filter(s => s.balanceDue > 0.5) // Ignore negligible or zero balances
+        .filter(s => s.balanceDue > 0.5) // Only show those with balance
         .sort((a, b) => b.balanceDue - a.balanceDue);
 
     }, [records, unloadingRecords, customers]);
@@ -105,7 +91,7 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords }: {
     return (
         <Card>
             <CardHeader className="flex flex-row items-center justify-between print-hide">
-                <CardTitle>Outstanding Balances (By Customer)</CardTitle>
+                <CardTitle>Outstanding Balances (Consolidated)</CardTitle>
             </CardHeader>
             <CardContent>
                 <div className="printable-area">

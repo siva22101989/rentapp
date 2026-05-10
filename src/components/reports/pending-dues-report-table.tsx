@@ -74,7 +74,7 @@ export function PendingDuesReportTable({ summaries, title }: ReportTableProps) {
                 </TableFooter>
             </Table>
             <p className="text-[10px] text-muted-foreground mt-4 italic print-hide">
-                * This report consolidates all active storage records and pending unloading bills for each customer.
+                * This report consolidates all active records for each customer. Lifetime billed vs lifetime paid.
             </p>
         </div>
     );

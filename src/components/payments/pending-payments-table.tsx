@@ -42,54 +42,53 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords }: {
             return summaryMap[customerId];
         };
 
-        // Process Storage Records
+        // Process ALL Storage Records to build a complete picture of the customer's account
         records.forEach(record => {
+            const s = getSummary(record.customerId);
+            
             // Liabilities
             const hamaliLiability = record.hamaliPayable || 0;
             const rentLiability = record.totalRentBilled || 0;
             const khataLiability = record.khataAmount || 0;
             const totalLiabilities = hamaliLiability + rentLiability + khataLiability;
 
-            // All Payments (sum everything regardless of type for total accuracy)
+            // Payments
             const totalPaid = (record.payments || []).reduce((acc, p) => acc + p.amount, 0);
-            
             const balanceDue = totalLiabilities - totalPaid;
 
-            // Only include records with an actual outstanding balance
-            if (balanceDue > 0.5) {
-                const s = getSummary(record.customerId);
-                s.totalBilled += totalLiabilities;
-                s.amountPaid += totalPaid;
-                s.balanceDue += balanceDue;
-                
-                // Determine breakdown (apply payments to hamali first, then rent/khata)
-                const hamaliPending = Math.max(0, hamaliLiability - totalPaid);
-                const remainingPaidAfterHamali = Math.max(0, totalPaid - hamaliLiability);
-                const rentPending = Math.max(0, (rentLiability + khataLiability) - remainingPaidAfterHamali);
-                
-                s.hamaliPending += hamaliPending;
-                s.rentPending += rentPending;
-                s.recordCount++;
-            }
+            s.totalBilled += totalLiabilities;
+            s.amountPaid += totalPaid;
+            s.balanceDue += balanceDue;
+            
+            // Determine breakdown (apply payments to hamali first, then rent/khata)
+            const hamaliPending = Math.max(0, hamaliLiability - totalPaid);
+            const remainingPaidAfterHamali = Math.max(0, totalPaid - hamaliLiability);
+            const rentPending = Math.max(0, (rentLiability + khataLiability) - remainingPaidAfterHamali);
+            
+            s.hamaliPending += hamaliPending;
+            s.rentPending += rentPending;
+            s.recordCount++;
         });
 
-        // Process Unloading Records (which only have hamali liability)
+        // Process ALL Unloading Records
         unloadingRecords.forEach(record => {
+            const s = getSummary(record.customerId);
+            
             const hamaliLiability = record.totalHamali || 0;
             const totalPaid = (record.payments || []).reduce((acc, p) => acc + p.amount, 0);
             const balanceDue = hamaliLiability - totalPaid;
 
-            if (balanceDue > 0.5) {
-                const s = getSummary(record.customerId);
-                s.totalBilled += hamaliLiability;
-                s.amountPaid += totalPaid;
-                s.balanceDue += balanceDue;
-                s.hamaliPending += balanceDue;
-                s.recordCount++;
-            }
+            s.totalBilled += hamaliLiability;
+            s.amountPaid += totalPaid;
+            s.balanceDue += balanceDue;
+            s.hamaliPending += balanceDue;
+            s.recordCount++;
         });
 
-        return Object.values(summaryMap).sort((a, b) => b.balanceDue - a.balanceDue);
+        // Finally, filter only those customers who have an actual balance remaining
+        return Object.values(summaryMap)
+            .filter(summary => summary.balanceDue > 0.5) // Filter out negligible balances
+            .sort((a, b) => b.balanceDue - a.balanceDue);
     }, [records, unloadingRecords, customers]);
 
     return (

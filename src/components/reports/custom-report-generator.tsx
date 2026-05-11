@@ -24,7 +24,7 @@ import { PendingPaymentsTable } from '@/components/payments/pending-payments-tab
 const reportTypes = [
     { value: 'daily-summary', label: 'Daily Summary Report' },
     { value: 'profit-and-loss', label: 'Profit & Loss Report' },
-    { value: 'pending-dues', label: 'Pending Dues List (Consolidated)' },
+    { value: 'pending-dues', label: 'Pending Dues Register (Consolidated)' },
     { value: 'lot-active-stock', label: 'Lot-wise Active Stock Only' },
     { value: 'lot-stock-outflow', label: 'Lot-wise Stock & Outflow History' },
     { value: 'customer-statement', label: 'Customer Dues Statement (Detailed)' },

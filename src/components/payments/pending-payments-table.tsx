@@ -101,13 +101,13 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords }: {
     return (
         <Card>
             <CardHeader className="print-hide">
-                <CardTitle>Consolidated Pending Dues</CardTitle>
+                <CardTitle>Consolidated Pending Dues Register</CardTitle>
             </CardHeader>
             <CardContent>
                 <div className="printable-area">
                     <PendingDuesReportTable
                         summaries={pendingSummaries}
-                        title="Pending Dues List"
+                        title="Pending Dues Register"
                     />
                 </div>
             </CardContent>

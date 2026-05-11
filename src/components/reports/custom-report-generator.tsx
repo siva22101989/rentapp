@@ -18,18 +18,20 @@ import { Printer, FileDown, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { DryingHistoryTable } from '@/components/drying/drying-history-table';
 import { LotStockOutflowReport } from './lot-stock-outflow-report';
+import { LotInventoryReport } from './lot-inventory-report';
 
 const reportTypes = [
     { value: 'daily-summary', label: 'Daily Summary Report' },
     { value: 'profit-and-loss', label: 'Profit & Loss Report' },
-    { value: 'lot-stock-outflow', label: 'Lot-wise Stock & Outflow Report' },
+    { value: 'lot-active-stock', label: 'Lot-wise Active Stock' },
+    { value: 'lot-stock-outflow', label: 'Lot-wise Stock & Outflow History' },
     { value: 'customer-statement', label: 'Customer Dues Statement (Detailed)' },
     { value: 'hamali-register', label: 'Hamali Register' },
     { value: 'drying-history', label: 'Drying History Report' },
     { value: 'inflow-register', label: 'Inflow Register (Date Range)' },
     { value: 'outflow-register', label: 'Outflow Register (Date Range)' },
     { value: 'unloading-register', label: 'Unloading Register (Date Range)' },
-    { value: 'active-inventory', label: 'Active Inventory (Stock)' },
+    { value: 'active-inventory', label: 'Active Inventory (By Customer)' },
     { value: 'all-customers', label: 'All Customers List' },
 ];
 
@@ -125,6 +127,8 @@ export function CustomReportGenerator({
                             borrowings={borrowings}
                             lendings={lendings}
                         />;
+            case 'lot-active-stock':
+                return <LotInventoryReport records={records} customers={customers} />;
             case 'lot-stock-outflow':
                 return <LotStockOutflowReport records={records} customers={customers} />;
             case 'all-customers':

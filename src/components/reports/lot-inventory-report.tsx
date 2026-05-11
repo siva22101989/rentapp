@@ -1,11 +1,10 @@
-
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import type { Customer, StorageRecord } from "@/lib/definitions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { toDate } from '@/lib/utils';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { format } from 'date-fns';
 
 type LotInventoryReportProps = {
@@ -28,16 +27,17 @@ function LotInventoryTable({ groupedLots, customers, title }: { groupedLots: Gro
     }
 
     const lotNames = Object.keys(groupedLots).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    const grandTotalBags = useMemo(() => lotNames.reduce((sum, name) => sum + groupedLots[name].totalBags, 0), [lotNames, groupedLots]);
     
     if (lotNames.length === 0) {
         return (
              <div className="bg-white p-4 rounded-lg">
-                <div className="mb-4">
+                <div className="mb-4 text-center">
                     <h2 className="text-xl font-bold">GrainDost</h2>
-                    <p className="text-muted-foreground">{title}</p>
+                    <p className="text-muted-foreground font-semibold">{title}</p>
                     <p className="text-xs text-muted-foreground">Generated on: {generatedDate}</p>
                 </div>
-                <div className="text-center py-8 text-muted-foreground">
+                <div className="text-center py-16 text-muted-foreground border-2 border-dashed rounded-xl">
                     No active stock found in any lots.
                 </div>
             </div>
@@ -46,43 +46,49 @@ function LotInventoryTable({ groupedLots, customers, title }: { groupedLots: Gro
 
     return (
         <div className="bg-white p-4 rounded-lg">
-            <div className="mb-4">
-                <h2 className="text-xl font-bold">GrainDost</h2>
-                <p className="text-muted-foreground">{title}</p>
+            <div className="mb-6 text-center">
+                <h2 className="text-2xl font-bold">GrainDost</h2>
+                <p className="text-muted-foreground font-semibold uppercase tracking-wider">{title}</p>
                 <p className="text-xs text-muted-foreground">Generated on: {generatedDate}</p>
             </div>
-            <Table>
+            <Table className="text-sm">
                 <TableHeader>
-                    <TableRow>
-                        <TableHead className="w-[150px]">Lot No.</TableHead>
-                        <TableHead>Patti No.</TableHead>
-                        <TableHead>Customer</TableHead>
-                        <TableHead className="hidden md:table-cell">Commodity</TableHead>
-                        <TableHead className="hidden lg:table-cell">Inflow Date</TableHead>
-                        <TableHead className="text-right">Bags</TableHead>
+                    <TableRow className="bg-muted/50 hover:bg-muted/50">
+                        <TableHead className="w-[120px] font-bold">Lot No.</TableHead>
+                        <TableHead className="font-bold">Patti No.</TableHead>
+                        <TableHead className="font-bold">Customer Name</TableHead>
+                        <TableHead className="hidden md:table-cell font-bold">Commodity</TableHead>
+                        <TableHead className="hidden lg:table-cell font-bold">Inflow Date</TableHead>
+                        <TableHead className="text-right font-bold">Bags in Stock</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {lotNames.map(lotName => (
                         <React.Fragment key={lotName}>
-                            <TableRow className="bg-secondary hover:bg-secondary">
-                                <TableCell colSpan={3} className="font-bold md:hidden">{lotName || 'Unassigned'}</TableCell>
-                                <TableCell colSpan={5} className="font-bold hidden md:table-cell">{lotName || 'Unassigned'}</TableCell>
-                                <TableCell className="text-right font-bold font-mono">{groupedLots[lotName].totalBags}</TableCell>
+                            <TableRow className="bg-primary/5 hover:bg-primary/10 border-t-2 border-primary/20">
+                                <TableCell className="font-bold text-primary">{lotName || 'Unassigned'}</TableCell>
+                                <TableCell colSpan={4} className="font-semibold text-muted-foreground italic text-xs">Subtotal for Lot {lotName}</TableCell>
+                                <TableCell className="text-right font-bold font-mono text-primary">{groupedLots[lotName].totalBags}</TableCell>
                             </TableRow>
-                            {groupedLots[lotName].records.map(record => (
-                                <TableRow key={record.id}>
+                            {groupedLots[lotName].records.sort((a,b) => toDate(b.storageStartDate).getTime() - toDate(a.storageStartDate).getTime()).map(record => (
+                                <TableRow key={record.id} className="hover:bg-muted/20">
                                     <TableCell></TableCell>
-                                    <TableCell>{record.id}</TableCell>
-                                    <TableCell>{getCustomerName(record.customerId)}</TableCell>
+                                    <TableCell className="font-mono text-xs">{record.id}</TableCell>
+                                    <TableCell className="font-medium">{getCustomerName(record.customerId)}</TableCell>
                                     <TableCell className="hidden md:table-cell">{record.commodityDescription}</TableCell>
-                                    <TableCell className="hidden lg:table-cell">{format(toDate(record.storageStartDate), 'dd MMM yyyy')}</TableCell>
-                                    <TableCell className="text-right font-mono">{record.bagsStored}</TableCell>
+                                    <TableCell className="hidden lg:table-cell">{format(toDate(record.storageStartDate), 'dd/MM/yyyy')}</TableCell>
+                                    <TableCell className="text-right font-mono font-medium">{record.bagsStored}</TableCell>
                                 </TableRow>
                             ))}
                         </React.Fragment>
                     ))}
                 </TableBody>
+                <TableFooter>
+                    <TableRow className="bg-secondary/50 border-t-2 border-primary">
+                        <TableCell colSpan={5} className="text-right font-bold text-lg">Total Warehouse Active Stock</TableCell>
+                        <TableCell className="text-right font-bold font-mono text-xl text-primary">{grandTotalBags}</TableCell>
+                    </TableRow>
+                </TableFooter>
             </Table>
         </div>
     )
@@ -92,7 +98,8 @@ function LotInventoryTable({ groupedLots, customers, title }: { groupedLots: Gro
 export function LotInventoryReport({ records, customers }: LotInventoryReportProps) {
 
     const groupedLots = useMemo(() => {
-        const activeRecords = records.filter(r => r.storageEndDate === null && r.bagsStored > 0);
+        // Strict filter for active stock only
+        const activeRecords = records.filter(r => !r.storageEndDate && r.bagsStored > 0);
         
         const lots: GroupedLots = activeRecords.reduce((acc, record) => {
             const lotKey = record.location || 'Unassigned';
@@ -104,35 +111,24 @@ export function LotInventoryReport({ records, customers }: LotInventoryReportPro
             return acc;
         }, {} as GroupedLots);
 
-        // Sort records within each lot by date
-        for (const lotKey in lots) {
-            lots[lotKey].records.sort((a, b) => toDate(b.storageStartDate).getTime() - toDate(a.storageStartDate).getTime());
-        }
-
         return lots;
-    }, [records, customers]);
+    }, [records]);
 
-    const title = `Lot-wise Inventory Report`;
+    const title = `Lot-wise Active Stock Report`;
 
     return (
-        <Card>
-            <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4 print-hide">
-                <div className="flex-1">
-                    <CardTitle>Lot Inventory Report</CardTitle>
-                    <CardDescription>A summary of active stock present in each lot.</CardDescription>
-                </div>
+        <Card className="border-primary/20 shadow-md">
+            <CardHeader className="print-hide">
+                <CardTitle>{title}</CardTitle>
+                <CardDescription>A live summary of all inventory currently held in Godown, grouped by location.</CardDescription>
             </CardHeader>
             <CardContent>
-                <div>
-                    <LotInventoryTable 
-                        groupedLots={groupedLots} 
-                        customers={customers}
-                        title={title}
-                    />
-                </div>
+                <LotInventoryTable 
+                    groupedLots={groupedLots} 
+                    customers={customers}
+                    title={title}
+                />
             </CardContent>
         </Card>
     );
 }
-
-    

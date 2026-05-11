@@ -86,21 +86,19 @@ export function InitiateDryingForm({ customers, unloadingRecords, storageRecords
     , [unloadingRecords, selectedUnloadingRecordId]);
     
     const selectedCustomer = useMemo(() =>
-        selectedUnloadingRecord ? customers.find(c => c.id === selectedCustomer.id) : null
+        selectedUnloadingRecord ? customers.find(c => c.id === selectedUnloadingRecord.customerId) : null
     , [customers, selectedUnloadingRecord]);
 
     const bagsRemainingOnRecord = selectedUnloadingRecord ? selectedUnloadingRecord.bagsUnloaded - (selectedUnloadingRecord.bagsSentToDrying || 0) : 0;
     
-    const { totalCustomerCharge, totalWorkerPayable, extraDryingDays, dryingDays, proportionalUnloadingHamali, day1DryingHamali, pavHamali, cuppaHamali, workerHamaliDay1 } = useMemo(() => {
+    const { totalCustomerCharge, totalWorkerPayable, extraDryingDays, proportionalUnloadingHamali } = useMemo(() => {
         let extraDays = 0;
-        let totalDaysCount = 0;
         try {
             const start = parseManualDate(dryingStartDate);
             const end = parseManualDate(dryingEndDate);
             if (start && end && end >= start) {
                 const days = differenceInDays(end, start);
                 extraDays = days > 0 ? days : 0;
-                totalDaysCount = days + 1;
             }
         } catch (e) { /* ignore */ }
 
@@ -120,14 +118,9 @@ export function InitiateDryingForm({ customers, unloadingRecords, storageRecords
             totalCustomerCharge: totalCustCharge,
             totalWorkerPayable: totalWorkerPay,
             extraDryingDays: extraDays,
-            dryingDays: totalDaysCount,
             proportionalUnloadingHamali: pUnloadingHamali,
-            day1DryingHamali: d1DryingHamali,
-            pavHamali: pavH,
-            cuppaHamali: cuppaH,
-            workerHamaliDay1: wHamaliDay1,
         }
-    }, [formData, selectedUnloadingRecord, dryingStartDate, dryingEndDate]);
+    }, [bagsForDrying, customerDay1HamaliRate, pavHamaliPerBag, cuppaHamaliPerBag, dryingStartDate, dryingEndDate, selectedUnloadingRecord, workerHamaliPerBag]);
 
     useEffect(() => {
         if (selectedUnloadingRecord) {
@@ -137,7 +130,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, storageRecords
                 bagsPacked: bagsRemainingOnRecord, 
             }));
         }
-    }, [selectedUnloadingRecordId, bagsRemainingOnRecord]);
+    }, [selectedUnloadingRecordId, bagsRemainingOnRecord, selectedUnloadingRecord]);
 
     const nextId = useMemo(() => {
         if (!storageRecords) return '1';
@@ -172,7 +165,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, storageRecords
 
         setIsPartialSaving(true);
         try {
-            const { bagsForDrying, customerHamaliPerBag, workerHamaliPerBag, pavHamaliPerBag, cuppaHamaliPerBag, dryingStartDate, dryingEndDate } = data;
+            const { bagsForDrying, customerHamaliPerBag, pavHamaliPerBag, cuppaHamaliPerBag, dryingEndDate } = data;
             
             const hamaliDetails: HamaliChargeItem[] = [];
             const currentProportionalUnloadingHamali = (selectedRecordOnSubmit.hamaliPerBag || 0) * bagsForDrying;

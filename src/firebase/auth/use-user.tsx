@@ -45,7 +45,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
         const warehouseId = 'sri-lakshmi-warehouse';
 
         // --- IDENTITY LOCK & FULL ACCESS PROTECTION ---
-        // Ensure this specific user is ALWAYS treated as the owner of the main warehouse.
         if (userEmail === 'sivasandeepreddy01@gmail.com') {
             const ownerIdentity: AppUser = {
                 id: fbUser.uid,
@@ -58,7 +57,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
             setUser(fbUser);
             setLoading(false);
 
-            // Force document sync to ensure permissions are always active
             await setDoc(userDocRef, {
                 email: userEmail,
                 role: 'owner',
@@ -133,5 +131,5 @@ export const useUserContext = () => {
   return context;
 };
 
-export const useAuthUser = () => useUserContext().user;
+export const useUser = () => useUserContext().user;
 export const useAppUser = () => useUserContext().appUser;

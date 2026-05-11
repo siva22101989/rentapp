@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -58,7 +57,7 @@ export function PendingDuesReportTable({ summaries, title }: ReportTableProps) {
                      {summaries.length === 0 && (
                         <TableRow>
                             <TableCell colSpan={6} className="text-center text-muted-foreground py-12">
-                                Great! No pending dues found at this time.
+                                No pending dues found for the selected period.
                             </TableCell>
                         </TableRow>
                     )}
@@ -75,7 +74,7 @@ export function PendingDuesReportTable({ summaries, title }: ReportTableProps) {
                 </TableFooter>
             </Table>
             <div className="mt-6 p-4 bg-muted/20 border border-dashed rounded-md text-[11px] text-muted-foreground italic">
-                <p>* This report provide a consolidated financial summary per customer. Headings sequence: Customer Name, Hamali Pending, Rent Pending, Total Billed, Amount Paid, and Balance Due.</p>
+                <p>* This report provides a consolidated financial summary per customer across all Godown and Plot records. Columns follow the sequence: Name, Hamali Pending, Rent Pending, Total Billed, Amount Paid, and Balance Due.</p>
             </div>
         </div>
     );

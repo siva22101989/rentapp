@@ -16,7 +16,7 @@ export type CustomerPendingSummary = {
     lastActivityDate: Date;
 };
 
-export function PendingPaymentsTable({ records, customers, unloadingRecords, title = "Consolidated Pending Dues Register" }: { records: StorageRecord[], customers: Customer[], unloadingRecords: UnloadingRecord[], title?: string }) {
+export function PendingPaymentsTable({ records, customers, unloadingRecords, title = "Pending Dues Register" }: { records: StorageRecord[], customers: Customer[], unloadingRecords: UnloadingRecord[], title?: string }) {
 
     const pendingSummaries = useMemo(() => {
         if (!records || !unloadingRecords || !customers) return [];
@@ -42,10 +42,10 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, tit
             return summaryMap[id];
         };
 
-        // 1. Process All Storage Records
+        // 1. Process All Storage Records (Godown/Pattis)
         records.forEach(r => {
             const s = getSummary(r.customerId);
-            // Patti hamaliPayable was already calculated on Truck Bags in InitiateDryingForm
+            // hamaliPayable is pre-calculated based on Truck Bags in the inflow form
             const hamali = r.hamaliPayable || 0; 
             const rent = r.totalRentBilled || 0;
             const khata = r.khataAmount || 0;
@@ -60,10 +60,11 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, tit
             if (rDate > s.lastDate) s.lastDate = rDate;
         });
 
-        // 2. Process Unloading Records (Only count bags still in plot)
+        // 2. Process Unloading Records (Bags still in plot)
         unloadingRecords.forEach(r => {
             const s = getSummary(r.customerId);
             const remainingBags = Math.max(0, (r.bagsUnloaded || 0) - (r.bagsSentToDrying || 0));
+            // Billing for the work done on bags still in the plot
             const remainingHamaliLiability = remainingBags * (r.hamaliPerBag || 0);
             const totalPaidOnUnloading = (r.payments || []).reduce((acc, p) => acc + p.amount, 0);
             
@@ -75,11 +76,11 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, tit
             if (uDate > s.lastDate) s.lastDate = uDate;
         });
 
-        // 3. Convert to array and calculate breakdowns
+        // 3. Convert to consolidated customer summaries
         return Object.entries(summaryMap).map(([customerId, data]) => {
             const balanceDue = data.totalBilled - data.amountPaid;
             
-            // Payments clear Hamali first
+            // Standard Logic: Collections clear Hamali dues first
             const hamaliPending = Math.max(0, data.totalHamaliLiability - data.amountPaid);
             const rentPending = Math.max(0, balanceDue - hamaliPending);
 
@@ -94,8 +95,8 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, tit
                 lastActivityDate: new Date(data.lastDate)
             } as CustomerPendingSummary;
         })
-        .filter(s => s.balanceDue > 0.5)
-        .sort((a, b) => b.lastActivityDate.getTime() - a.lastActivityDate.getTime());
+        .filter(s => s.balanceDue > 0.5) // Filter out negligible balances
+        .sort((a, b) => b.lastActivityDate.getTime() - a.lastActivityDate.getTime()); // Newest activity first
 
     }, [records, unloadingRecords, customers]);
 

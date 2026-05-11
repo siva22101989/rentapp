@@ -18,11 +18,10 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
   const { lineItems, summary } = useMemo(() => {
     const events: any[] = [];
     
-    // --- GATHER ALL TRANSACTIONS ---
-    
-    // 1. Process Unloading Records (remaining shares only)
+    // 1. Process Unloading Records (Bags still in plot)
     (unloadingRecords || []).forEach(unloading => {
         const remainingBags = Math.max(0, (unloading.bagsUnloaded || 0) - (unloading.bagsSentToDrying || 0));
+        // Use Truck Bags for calculation
         const remainingHamali = remainingBags * (unloading.hamaliPerBag || 0);
 
         if (remainingHamali > 0) {
@@ -39,7 +38,6 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             });
         }
 
-        // Always include all payments recorded on this bill
         (unloading.payments || []).forEach(payment => {
             events.push({
                 date: toDate(payment.date),
@@ -56,10 +54,10 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
 
     // 2. Process Storage Records (Pattis)
     (records || []).forEach(record => {
+        // IMPORTANT: Handling is always billed on Truck Bags
         const truckBags = record.bagsForDrying || record.bagsIn;
         const godownBags = record.bagsIn;
 
-        // Hamali entry (includes the moved share if from plot)
         events.push({
             date: toDate(record.storageStartDate),
             description: `Handling/Hamali Charges: ${record.commodityDescription} (${truckBags} truck bags)`,
@@ -67,12 +65,12 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             lotNo: record.location || '',
             bagsReceived: godownBags,
             bagsDelivered: 0,
+            // hamaliPayable was pre-calculated using truck bags in the forms
             debit: record.hamaliPayable || 0,
             credit: 0,
             isHandlingCharge: true
         });
         
-        // Khata entry
         if (record.khataAmount && record.khataAmount > 0) {
              events.push({
                 date: toDate(record.storageStartDate),
@@ -86,7 +84,6 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             });
         }
 
-        // Outflows and Rent
         if (Array.isArray(record.outflows)) {
             record.outflows.forEach((outflow, index) => {
                 const deliveryNo = record.outflows && record.outflows.length > 1 ? `${record.id}-${index + 1}` : record.id;
@@ -115,7 +112,6 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             });
         }
 
-        // Payments on this record
         (record.payments || []).forEach(payment => {
             events.push({
                 date: toDate(payment.date),
@@ -130,8 +126,6 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         });
     });
     
-    // --- PROCESS AND SORT ---
-    // Sort descending by date
     const sortedEvents = events.sort((a, b) => b.date.getTime() - a.date.getTime());
 
     let runningBagsBalance = 0;
@@ -141,7 +135,6 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
     let totalDebit = 0;
     let totalCredit = 0;
 
-    // Line items reverse for forward calculation
     const lineItems = [...sortedEvents].reverse().map(event => {
         runningBagsBalance += (event.bagsReceived || 0) - (event.bagsDelivered || 0);
         runningAmountBalance += (event.debit || 0) - (event.credit || 0);
@@ -152,7 +145,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         totalCredit += event.credit || 0;
 
         return { ...event, balanceBags: runningBagsBalance, balanceAmount: runningAmountBalance };
-    }).reverse(); // Reverse back for newest-first display
+    }).reverse();
     
     const summary = {
         totalBagsIn: totalBagsReceived,
@@ -181,7 +174,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
     <div ref={ref} className="bg-white p-4 sm:p-6 printable-area text-foreground font-sans text-sm">
         <header className="text-center mb-4">
             <h1 className="text-xl font-bold text-primary">{warehouseInfo?.name || 'GrainDost'}</h1>
-            <p className="text-xs text-muted-foreground">{warehouseInfo?.addressLine1 || ''}{warehouseInfo?.addressLine1 && warehouseInfo?.addressLine2 ? ', ' : ''}{warehouseInfo?.addressLine2 || ''}</p>
+            <p className="text-xs text-muted-foreground">{warehouseInfo?.addressLine1 || ''}, {warehouseInfo?.addressLine2 || ''}</p>
             <p className="text-xs text-muted-foreground">Phone: {warehouseInfo?.phone}</p>
         </header>
 
@@ -211,7 +204,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             <div>
                 <h3 className="font-bold text-sm mb-2 underline">ACCOUNT SUMMARY</h3>
                 <div className="space-y-1 text-xs">
-                    <div className="flex justify-between"><span className="text-muted-foreground">Total Bill Amount:</span><span className="font-medium">{formatCurrency(summary.totalDebit)}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Total Billed Amount:</span><span className="font-medium">{formatCurrency(summary.totalDebit)}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">Total Payments:</span><span className="font-medium">{formatCurrency(summary.totalCredit)}</span></div>
                     <div className="flex justify-between font-bold border-t pt-1 mt-1"><span className="text-foreground">Net Balance Due:</span><span className="text-destructive">{formatCurrency(summary.balanceDue)}</span></div>
                 </div>
@@ -250,7 +243,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 </TableBody>
                  <TableFooter>
                     <TableRow className="border-t-2 border-foreground font-bold bg-secondary/20">
-                        <TableCell colSpan={3}>CLOSING PORTFOLIO TOTALS:</TableCell>
+                        <TableCell colSpan={3}>CLOSING TOTALS:</TableCell>
                         <TableCell className="text-right font-mono">{summary.totalBagsIn}</TableCell>
                         <TableCell className="text-right font-mono">{summary.totalBagsOut}</TableCell>
                         <TableCell className="text-right font-mono">{summary.balanceStock}</TableCell>
@@ -265,7 +258,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         <div className="flex justify-between items-end mt-12">
             <div className="text-[10px] text-muted-foreground italic">
                 <p>E. & O. E.</p>
-                <p>Note: Handling/Hamali charges are billed based on Truck/Unloading quantity.</p>
+                <p>Note: Handling/Hamali charges are billed based on original Truck/Unloading quantity.</p>
                 <p>Computer generated statement. No signature required.</p>
             </div>
             <div className="text-center w-48">

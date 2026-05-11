@@ -19,10 +19,12 @@ import { useToast } from '@/hooks/use-toast';
 import { DryingHistoryTable } from '@/components/drying/drying-history-table';
 import { LotStockOutflowReport } from './lot-stock-outflow-report';
 import { LotInventoryReport } from './lot-inventory-report';
+import { PendingPaymentsTable } from '@/components/payments/pending-payments-table';
 
 const reportTypes = [
     { value: 'daily-summary', label: 'Daily Summary Report' },
     { value: 'profit-and-loss', label: 'Profit & Loss Report' },
+    { value: 'pending-dues', label: 'Pending Dues List (Consolidated)' },
     { value: 'lot-active-stock', label: 'Lot-wise Active Stock Only' },
     { value: 'lot-stock-outflow', label: 'Lot-wise Stock & Outflow History' },
     { value: 'customer-statement', label: 'Customer Dues Statement (Detailed)' },
@@ -114,6 +116,12 @@ export function CustomReportGenerator({
                             warehouseInfo={warehouseInfo}
                             borrowings={borrowings}
                             lendings={lendings}
+                        />;
+            case 'pending-dues':
+                return <PendingPaymentsTable 
+                            records={records} 
+                            customers={customers} 
+                            unloadingRecords={unloadingRecords}
                         />;
             case 'lot-active-stock':
                 return <LotInventoryReport records={records} customers={customers} />;

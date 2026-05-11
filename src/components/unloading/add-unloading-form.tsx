@@ -73,7 +73,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
     const customerOptions = customers.map(c => ({ value: c.id, label: c.name }));
     const lotOccupancy = useMemo(() => {
         const occupancy: { [lotName: string]: number } = {};
-        storageRecords.forEach(record => {
+        (storageRecords || []).forEach(record => {
             if (record.location && record.bagsStored > 0) {
                 occupancy[record.location] = (occupancy[record.location] || 0) + record.bagsStored;
             }
@@ -92,12 +92,11 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
     const customerHamaliPerBag = form.watch('customerHamaliPerBag');
     const workerHamaliPerBag = form.watch('workerHamaliPerBag');
 
-    const { totalCustomerHamali, totalWorkerHamali } = useMemo(() => {
+    const { totalCustomerHamali } = useMemo(() => {
         const bags = Number(bagsUnloaded) || 0;
         const custRate = Number(customerHamaliPerBag) || 0;
-        const workRate = Number(workerHamaliPerBag) || 0;
-        return { totalCustomerHamali: bags * custRate, totalWorkerHamali: bags * workRate };
-    }, [bagsUnloaded, customerHamaliPerBag, workerHamaliPerBag]);
+        return { totalCustomerHamali: bags * custRate };
+    }, [bagsUnloaded, customerHamaliPerBag]);
 
     const selectedCustomerId = form.watch('customerId');
     const selectedCustomer = useMemo(() => customers.find(c => c.id === selectedCustomerId), [selectedCustomerId, customers]);
@@ -130,7 +129,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                     sendSms({ apiKey: warehouseInfo.textbeeApiKey, deviceId: warehouseInfo.textbeeDeviceId, to: selectedCustomer.phone, message }).catch(console.error);
                 }
                 toast({ title: 'Success', description: 'Unloading record added.' });
-                form.reset({ customerId: '', commodityDescription: '', location: '', lorryTractorNo: '', unloadingDate: formatManualDate(new Date()), bagsUnloaded: undefined, customerHamaliPerBag: undefined, workerHamaliPerBag: undefined, billNo: nextBillNo });
+                form.reset();
             } catch (error) {
                 console.error(error);
                 toast({ title: 'Error', description: 'Failed to add record.', variant: 'destructive' });

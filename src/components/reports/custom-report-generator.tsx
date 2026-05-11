@@ -122,6 +122,7 @@ export function CustomReportGenerator({
                             records={records} 
                             customers={customers} 
                             unloadingRecords={unloadingRecords}
+                            title="Pending Dues Register"
                         />;
             case 'lot-active-stock':
                 return <LotInventoryReport records={records} customers={customers} />;

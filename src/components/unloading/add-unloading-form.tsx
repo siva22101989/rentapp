@@ -90,7 +90,6 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
       
     const bagsUnloaded = form.watch('bagsUnloaded');
     const customerHamaliPerBag = form.watch('customerHamaliPerBag');
-    const workerHamaliPerBag = form.watch('workerHamaliPerBag');
 
     const { totalCustomerHamali } = useMemo(() => {
         const bags = Number(bagsUnloaded) || 0;
@@ -119,7 +118,16 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
             try {
                 const totalHamali = data.bagsUnloaded * data.customerHamaliPerBag;
                 const workerHamaliPayable = data.bagsUnloaded * (data.workerHamaliPerBag ?? data.customerHamaliPerBag);
-                const rawRecord = { ...data, hamaliPerBag: data.customerHamaliPerBag, warehouseId: appUser.warehouseId, unloadingDate: finalDate, status: 'Unloading' as const, bagsSentToDrying: 0, totalHamali, workerHamaliPayable };
+                const rawRecord = { 
+                    ...data, 
+                    hamaliPerBag: data.customerHamaliPerBag, 
+                    warehouseId: appUser.warehouseId, 
+                    unloadingDate: finalDate, 
+                    status: 'Unloading' as const, 
+                    bagsSentToDrying: 0, 
+                    totalHamali, 
+                    workerHamaliPayable 
+                };
                 const docRef = doc(firestore, 'unloadingRecords', data.billNo);
                 await setDoc(docRef, cleanForFirestore(rawRecord));
 
@@ -142,7 +150,10 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
     <Card>
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
-                <CardHeader><CardTitle>Add New Unloading Record</CardTitle><CardDescription>Manual date format: DD-MM-YYYY.</CardDescription></CardHeader>
+                <CardHeader>
+                    <CardTitle>Add New Unloading Record</CardTitle>
+                    <CardDescription>Manual date format: DD-MM-YYYY.</CardDescription>
+                </CardHeader>
                 <CardContent className="space-y-4">
                     <FormField control={form.control} name="billNo" render={({ field }) => (
                         <FormItem><FormLabel>Bill No. (Auto)</FormLabel><FormControl><Input disabled className="bg-muted font-mono" {...field} /></FormControl><FormMessage /></FormItem>

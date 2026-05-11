@@ -28,13 +28,14 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         if (remainingHamali > 0) {
             events.push({
                 date: toDate(unloading.unloadingDate),
-                description: `Unloading Charges (${remainingBags} bags remaining in plot)`,
+                description: `Unloading Charges (${remainingBags} truck bags in plot)`,
                 invoiceId: unloading.billNo || unloading.id.substring(0, 5),
                 lotNo: unloading.location || '',
                 bagsReceived: remainingBags,
                 bagsDelivered: 0,
                 debit: remainingHamali,
-                credit: 0
+                credit: 0,
+                isHandlingCharge: true
             });
         }
 
@@ -55,16 +56,20 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
 
     // 2. Process Storage Records (Pattis)
     (records || []).forEach(record => {
+        const truckBags = record.bagsForDrying || record.bagsIn;
+        const godownBags = record.bagsIn;
+
         // Hamali entry (includes the moved share if from plot)
         events.push({
             date: toDate(record.storageStartDate),
-            description: `Inflow: ${record.commodityDescription}`,
+            description: `Handling/Hamali Charges: ${record.commodityDescription} (${truckBags} truck bags)`,
             invoiceId: record.id,
             lotNo: record.location || '',
-            bagsReceived: record.bagsIn || 0,
+            bagsReceived: godownBags,
             bagsDelivered: 0,
             debit: record.hamaliPayable || 0,
-            credit: 0
+            credit: 0,
+            isHandlingCharge: true
         });
         
         // Khata entry
@@ -136,8 +141,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
     let totalDebit = 0;
     let totalCredit = 0;
 
-    // Use a forward-calculating copy for running totals if needed, 
-    // but here we just process the sorted list to display
+    // Line items reverse for forward calculation
     const lineItems = [...sortedEvents].reverse().map(event => {
         runningBagsBalance += (event.bagsReceived || 0) - (event.bagsDelivered || 0);
         runningAmountBalance += (event.debit || 0) - (event.credit || 0);
@@ -148,7 +152,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         totalCredit += event.credit || 0;
 
         return { ...event, balanceBags: runningBagsBalance, balanceAmount: runningAmountBalance };
-    }).reverse(); // Reverse back for descending display
+    }).reverse(); // Reverse back for newest-first display
     
     const summary = {
         totalBagsIn: totalBagsReceived,
@@ -181,13 +185,14 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             <p className="text-xs text-muted-foreground">Phone: {warehouseInfo?.phone}</p>
         </header>
 
-        <h2 className="text-lg font-semibold mb-4 text-center underline">STATEMENT OF ACCOUNT</h2>
+        <h2 className="text-lg font-semibold mb-4 text-center underline uppercase tracking-tight">STATEMENT OF ACCOUNT</h2>
         
         <div className="flex justify-between items-start mb-4 text-sm">
              <div>
-                <p className="text-muted-foreground">To:</p>
-                <p className="font-bold">{customer.name}</p>
+                <p className="text-muted-foreground text-xs uppercase font-bold">To:</p>
+                <p className="font-bold text-base">{customer.name}</p>
                 <p>{customer.village}</p>
+                {customer.phone && <p>Ph: {customer.phone}</p>}
             </div>
             <div className="text-right">
                  <p><span className="font-semibold">Date:</span> {generatedDate}</p>
@@ -198,9 +203,9 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             <div>
                 <h3 className="font-bold text-sm mb-2 underline">STOCK STATUS</h3>
                 <div className="space-y-1 text-xs">
-                    <div className="flex justify-between"><span className="text-muted-foreground">Bags Received:</span><span className="font-medium">{summary.totalBagsIn}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Bags Received (Godown):</span><span className="font-medium">{summary.totalBagsIn}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">Bags Delivered:</span><span className="font-medium">{summary.totalBagsOut}</span></div>
-                    <div className="flex justify-between font-bold border-t pt-1 mt-1"><span className="text-foreground">Balance in Godown:</span><span>{summary.balanceStock}</span></div>
+                    <div className="flex justify-between font-bold border-t pt-1 mt-1"><span className="text-foreground">Balance in Stock:</span><span>{summary.balanceStock}</span></div>
                 </div>
             </div>
             <div>
@@ -214,24 +219,24 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         </div>
 
         <div>
-            <Table className="w-full text-xs">
+            <Table className="w-full text-[11px]">
                 <TableHeader>
-                    <TableRow className="border-b-2 border-border">
-                        <TableHead className="h-auto p-1.5 font-semibold">Date</TableHead>
-                        <TableHead className="h-auto p-1.5 font-semibold">Particulars</TableHead>
-                        <TableHead className="h-auto p-1.5 font-semibold">Ref No.</TableHead>
-                        <TableHead className="h-auto p-1.5 text-right font-semibold">Bags In</TableHead>
-                        <TableHead className="h-auto p-1.5 text-right font-semibold">Bags Out</TableHead>
-                        <TableHead className="h-auto p-1.5 text-right font-semibold">Stock</TableHead>
-                        <TableHead className="h-auto p-1.5 text-right font-semibold">Debit</TableHead>
-                        <TableHead className="h-auto p-1.5 text-right font-semibold">Credit</TableHead>
-                        <TableHead className="h-auto p-1.5 text-right font-semibold">Balance</TableHead>
+                    <TableRow className="border-b-2 border-border bg-muted/50">
+                        <TableHead className="h-auto p-1.5 font-bold text-foreground">Date</TableHead>
+                        <TableHead className="h-auto p-1.5 font-bold text-foreground">Particulars / Description</TableHead>
+                        <TableHead className="h-auto p-1.5 font-bold text-foreground">Ref No.</TableHead>
+                        <TableHead className="h-auto p-1.5 text-right font-bold text-foreground">Stock In</TableHead>
+                        <TableHead className="h-auto p-1.5 text-right font-bold text-foreground">Stock Out</TableHead>
+                        <TableHead className="h-auto p-1.5 text-right font-bold text-foreground">Balance</TableHead>
+                        <TableHead className="h-auto p-1.5 text-right font-bold text-foreground">Debit (+)</TableHead>
+                        <TableHead className="h-auto p-1.5 text-right font-bold text-foreground">Credit (-)</TableHead>
+                        <TableHead className="h-auto p-1.5 text-right font-bold text-foreground">Balance Due</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {lineItems.map((item, index) => (
-                        <TableRow key={index} className="border-b border-border/50">
-                            <TableCell className="p-1.5">{format(item.date, 'dd/MM/yy')}</TableCell>
+                        <TableRow key={index} className="border-b border-border/50 hover:bg-muted/10">
+                            <TableCell className="p-1.5 whitespace-nowrap">{format(item.date, 'dd/MM/yy')}</TableCell>
                             <TableCell className="p-1.5">{item.description}</TableCell>
                             <TableCell className="p-1.5 font-mono">{item.invoiceId}</TableCell>
                             <TableCell className="p-1.5 text-right font-mono">{item.bagsReceived || ''}</TableCell>
@@ -244,27 +249,28 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                     ))}
                 </TableBody>
                  <TableFooter>
-                    <TableRow className="border-t-2 border-foreground font-bold bg-muted/20">
-                        <TableCell colSpan={3}>CLOSING TOTALS:</TableCell>
+                    <TableRow className="border-t-2 border-foreground font-bold bg-secondary/20">
+                        <TableCell colSpan={3}>CLOSING PORTFOLIO TOTALS:</TableCell>
                         <TableCell className="text-right font-mono">{summary.totalBagsIn}</TableCell>
                         <TableCell className="text-right font-mono">{summary.totalBagsOut}</TableCell>
                         <TableCell className="text-right font-mono">{summary.balanceStock}</TableCell>
                         <TableCell className="text-right font-mono text-destructive">{formatCurrency(summary.totalDebit)}</TableCell>
                         <TableCell className="text-right font-mono text-green-600">{formatCurrency(summary.totalCredit)}</TableCell>
-                        <TableCell className="text-right font-mono text-lg">{formatCurrency(summary.balanceDue)}</TableCell>
+                        <TableCell className="text-right font-mono text-base">{formatCurrency(summary.balanceDue)}</TableCell>
                     </TableRow>
                  </TableFooter>
             </Table>
         </div>
         
         <div className="flex justify-between items-end mt-12">
-            <div className="text-[10px] text-muted-foreground">
+            <div className="text-[10px] text-muted-foreground italic">
                 <p>E. & O. E.</p>
+                <p>Note: Handling/Hamali charges are billed based on Truck/Unloading quantity.</p>
                 <p>Computer generated statement. No signature required.</p>
             </div>
             <div className="text-center w-48">
-                <div className="border-t border-gray-400 pt-1">Authorized Signatory</div>
-                <p className="text-[10px]">For {warehouseInfo?.name || 'GrainDost'}</p>
+                <div className="border-t border-gray-400 pt-1 font-semibold text-xs">Authorized Signatory</div>
+                <p className="text-[10px] uppercase">{warehouseInfo?.name || 'GrainDost'}</p>
             </div>
         </div>
     </div>

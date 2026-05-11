@@ -16,7 +16,7 @@ export type CustomerPendingSummary = {
     lastActivityDate: Date;
 };
 
-export function PendingPaymentsTable({ records, customers, unloadingRecords }: { records: StorageRecord[], customers: Customer[], unloadingRecords: UnloadingRecord[] }) {
+export function PendingPaymentsTable({ records, customers, unloadingRecords, title = "Consolidated Pending Dues Register" }: { records: StorageRecord[], customers: Customer[], unloadingRecords: UnloadingRecord[], title?: string }) {
 
     const pendingSummaries = useMemo(() => {
         if (!records || !unloadingRecords || !customers) return [];
@@ -45,7 +45,8 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords }: {
         // 1. Process All Storage Records
         records.forEach(r => {
             const s = getSummary(r.customerId);
-            const hamali = r.hamaliPayable || 0;
+            // Patti hamaliPayable was already calculated on Truck Bags in InitiateDryingForm
+            const hamali = r.hamaliPayable || 0; 
             const rent = r.totalRentBilled || 0;
             const khata = r.khataAmount || 0;
             const totalLiabilities = hamali + rent + khata;
@@ -101,13 +102,13 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords }: {
     return (
         <Card>
             <CardHeader className="print-hide">
-                <CardTitle>Consolidated Pending Dues Register</CardTitle>
+                <CardTitle>{title}</CardTitle>
             </CardHeader>
             <CardContent>
                 <div className="printable-area">
                     <PendingDuesReportTable
                         summaries={pendingSummaries}
-                        title="Pending Dues Register"
+                        title={title}
                     />
                 </div>
             </CardContent>

@@ -23,7 +23,7 @@ import { LotInventoryReport } from './lot-inventory-report';
 const reportTypes = [
     { value: 'daily-summary', label: 'Daily Summary Report' },
     { value: 'profit-and-loss', label: 'Profit & Loss Report' },
-    { value: 'lot-active-stock', label: 'Lot-wise Active Stock' },
+    { value: 'lot-active-stock', label: 'Lot-wise Active Stock Only' },
     { value: 'lot-stock-outflow', label: 'Lot-wise Stock & Outflow History' },
     { value: 'customer-statement', label: 'Customer Dues Statement (Detailed)' },
     { value: 'hamali-register', label: 'Hamali Register' },
@@ -73,22 +73,12 @@ export function CustomReportGenerator({
     
     const handleDownload = async () => {
         const printableArea = reportRef.current;
-        if (!printableArea) {
-            console.error("Report area not found!");
-            return;
-        }
+        if (!printableArea) return;
 
         setIsDownloading(true);
-        
         try {
             const { default: jsPDF } = await import('jspdf');
-            
-            const pdf = new jsPDF({
-                orientation: 'p',
-                unit: 'mm',
-                format: 'a4',
-            });
-            
+            const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
             await pdf.html(printableArea, {
                 html2canvas: {
                     scale: 2,
@@ -99,12 +89,10 @@ export function CustomReportGenerator({
                 },
                 margin: [10, 10, 10, 10],
                 autoPaging: 'text',
-                width: 190, // A4 width (210mm) - 2*10mm margin
+                width: 190,
                 windowWidth: printableArea.scrollWidth
             });
-
             pdf.save(`${selectedReport}-report.pdf`);
-
         } catch (error) {
             console.error("Error generating PDF:", error);
             toast({ title: "Download Error", description: "Failed to generate PDF.", variant: "destructive"});
@@ -155,14 +143,14 @@ export function CustomReportGenerator({
             case 'inflow-register':
                 return <InflowReport records={records} customers={customers} />;
             case 'outflow-register':
-                return <OutflowReport records={records} customers={customers} />;
+                return <OutflowReport records={records} customers={customers} commodities={commodities} lots={lots} />;
             case 'unloading-register':
                 return <UnloadingReport unloadingRecords={unloadingRecords} customers={customers} commodities={commodities} />;
             default:
                 return (
                     <Card>
                         <CardContent className="p-8 text-center text-muted-foreground">
-                            This report is no longer available.
+                            Please select a report from the dropdown above.
                         </CardContent>
                     </Card>
                 );

@@ -61,7 +61,6 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
   );
   const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
-
   const customerOptions = customers.map(c => ({ value: c.id, label: c.name }));
 
   const form = useForm<PaymentFormData>({
@@ -107,11 +106,7 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
             hamaliDue += Math.max(0, totalHamali - totalPaid);
         });
     
-    return {
-        totalHamaliDue: hamaliDue,
-        totalRentDue: rentDue,
-        totalDue: hamaliDue + rentDue,
-    };
+    return { totalHamaliDue: hamaliDue, totalRentDue: rentDue, totalDue: hamaliDue + rentDue };
   }, [selectedCustomerId, storageRecords, unloadingRecords]);
 
   const totalPayable = totalDue - discountAmount;
@@ -128,29 +123,16 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
       return;
     }
     
-    const finalPayable = totalDue - (data.discount || 0);
-    if (data.paymentAmount > (finalPayable + 0.01)) {
-        form.setError('paymentAmount', { message: `Payment cannot exceed payable amount of ${formatCurrency(finalPayable)}.`});
-        return;
-    }
-
     startTransition(async () => {
       try {
         const batch = writeBatch(firestore);
         let cashToApply = data.paymentAmount;
         let discountToApply = data.discount || 0;
         const paymentDate = finalDate;
-        
-        const settledRecordIds: string[] = [];
-        const partiallyPaidRecordIds = new Set<string>();
 
         const allCustomerRecords = [
-            ...storageRecords
-                .filter(r => r.customerId === data.customerId)
-                .map(r => ({ ...r, recordType: 'storage' as const, date: toDate(r.storageStartDate) })),
-            ...unloadingRecords
-                .filter(r => r.customerId === data.customerId)
-                .map(r => ({ ...r, recordType: 'unloading' as const, date: toDate(r.unloadingDate) }))
+            ...storageRecords.filter(r => r.customerId === data.customerId).map(r => ({ ...r, recordType: 'storage' as const, date: toDate(r.storageStartDate) })),
+            ...unloadingRecords.filter(r => r.customerId === data.customerId).map(r => ({ ...r, recordType: 'unloading' as const, date: toDate(r.unloadingDate) }))
         ];
 
         const sortedRecords = allCustomerRecords.sort((a,b) => a.date.getTime() - b.date.getTime());
@@ -162,89 +144,60 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
 
             if (record.recordType === 'storage') {
                 const sr = record;
-                const hamaliPayable = sr.hamaliPayable || 0;
-                const totalRentBilled = sr.totalRentBilled || 0;
                 const hamaliPaid = (sr.payments || []).filter(p => p.type === 'hamali').reduce((acc, p) => acc + p.amount, 0);
                 const rentPaid = (sr.payments || []).filter(p => p.type === 'rent').reduce((acc, p) => acc + p.amount, 0);
                 const otherPaid = (sr.payments || []).filter(p => p.type === 'other' || !p.type || p.type === 'discount').reduce((acc, p) => acc + p.amount, 0);
                 
-                let hamaliDue = Math.max(0, hamaliPayable - hamaliPaid);
-                let rentDue = Math.max(0, totalRentBilled - rentPaid - otherPaid);
+                let hamaliDue = Math.max(0, (sr.hamaliPayable || 0) - hamaliPaid);
+                let rentDue = Math.max(0, (sr.totalRentBilled || 0) - rentPaid - otherPaid);
 
-                if (hamaliDue <= 0.005 && rentDue <= 0.005) continue;
-
-                const hamaliPaidWithCash = Math.min(cashToApply, hamaliDue);
-                if (hamaliPaidWithCash > 0) { newPayments.push({ amount: hamaliPaidWithCash, date: paymentDate, type: 'hamali' }); cashToApply -= hamaliPaidWithCash; hamaliDue -= hamaliPaidWithCash; }
-                const hamaliPaidWithDiscount = Math.min(discountToApply, hamaliDue);
-                if (hamaliPaidWithDiscount > 0) { newPayments.push({ amount: hamaliPaidWithDiscount, date: paymentDate, type: 'discount' }); discountToApply -= hamaliPaidWithDiscount; hamaliDue -= hamaliPaidWithDiscount; }
-                const rentPaidWithCash = Math.min(cashToApply, rentDue);
-                if (rentPaidWithCash > 0) { newPayments.push({ amount: rentPaidWithCash, date: paymentDate, type: 'rent' }); cashToApply -= rentPaidWithCash; rentDue -= rentPaidWithCash; }
-                const rentPaidWithDiscount = Math.min(discountToApply, rentDue);
-                if (rentPaidWithDiscount > 0) { newPayments.push({ amount: rentPaidWithDiscount, date: paymentDate, type: 'discount' }); discountToApply -= rentPaidWithDiscount; rentDue -= rentPaidWithDiscount; }
-
-                if (newPayments.length > 0) {
-                    partiallyPaidRecordIds.add(sr.id);
-                    const recordRef = doc(firestore, 'storageRecords', sr.id);
-                    batch.update(recordRef, { payments: arrayUnion(...newPayments.map(p => cleanForFirestore(p))) });
-                    if (hamaliDue <= 0.005 && rentDue <= 0.005) { settledRecordIds.push(sr.id); partiallyPaidRecordIds.delete(sr.id); }
+                if (hamaliDue > 0) {
+                    const pay = Math.min(cashToApply, hamaliDue);
+                    if (pay > 0) { newPayments.push({ amount: pay, date: paymentDate, type: 'hamali' }); cashToApply -= pay; hamaliDue -= pay; }
+                    const disc = Math.min(discountToApply, hamaliDue);
+                    if (disc > 0) { newPayments.push({ amount: disc, date: paymentDate, type: 'discount' }); discountToApply -= disc; }
+                }
+                if (rentDue > 0) {
+                    const pay = Math.min(cashToApply, rentDue);
+                    if (pay > 0) { newPayments.push({ amount: pay, date: paymentDate, type: 'rent' }); cashToApply -= pay; rentDue -= pay; }
+                    const disc = Math.min(discountToApply, rentDue);
+                    if (disc > 0) { newPayments.push({ amount: disc, date: paymentDate, type: 'discount' }); discountToApply -= disc; }
                 }
 
-            } else { // unloading record
+                if (newPayments.length > 0) {
+                    const recordRef = doc(firestore, 'storageRecords', sr.id);
+                    batch.update(recordRef, { payments: arrayUnion(...newPayments.map(p => cleanForFirestore(p))) });
+                }
+            } else {
                 const ur = record;
                 let hamaliDue = Math.max(0, (ur.totalHamali || 0) - (ur.payments || []).reduce((acc, p) => acc + p.amount, 0));
-                
-                if (hamaliDue <= 0.005) continue;
-
-                const hamaliPaidWithCash = Math.min(cashToApply, hamaliDue);
-                if (hamaliPaidWithCash > 0) { newPayments.push({ amount: hamaliPaidWithCash, date: paymentDate, type: 'unloading' }); cashToApply -= hamaliPaidWithCash; hamaliDue -= hamaliPaidWithCash; }
-                const hamaliPaidWithDiscount = Math.min(discountToApply, hamaliDue);
-                if (hamaliPaidWithDiscount > 0) { newPayments.push({ amount: hamaliPaidWithDiscount, date: paymentDate, type: 'discount' }); discountToApply -= hamaliPaidWithDiscount; hamaliDue -= hamaliPaidWithDiscount; }
-                
+                if (hamaliDue > 0) {
+                    const pay = Math.min(cashToApply, hamaliDue);
+                    if (pay > 0) { newPayments.push({ amount: pay, date: paymentDate, type: 'unloading' }); cashToApply -= pay; hamaliDue -= pay; }
+                    const disc = Math.min(discountToApply, hamaliDue);
+                    if (disc > 0) { newPayments.push({ amount: disc, date: paymentDate, type: 'discount' }); discountToApply -= disc; }
+                }
                 if (newPayments.length > 0) {
-                    partiallyPaidRecordIds.add(ur.billNo || ur.id);
                     const recordRef = doc(firestore, 'unloadingRecords', ur.id);
                     batch.update(recordRef, { payments: arrayUnion(...newPayments.map(p => cleanForFirestore(p))) });
-                    if (hamaliDue <= 0.005) { settledRecordIds.push(ur.billNo || ur.id); partiallyPaidRecordIds.delete(ur.billNo || ur.id); }
                 }
             }
         }
         
         await batch.commit();
 
-        let description = `${formatCurrency(data.paymentAmount)} paid.`;
-        if (data.discount && data.discount > 0) {
-            description += ` ${formatCurrency(data.discount)} discount applied.`
-        }
-
         if (sendSmsNotification && warehouseInfo?.textbeeApiKey && selectedCustomer?.phone) {
-            const defaultTemplate = `Dear {customerName}, thank you for your payment of {paymentAmount} on {date}. Your account has been updated. - {warehouseName}`;
-            const template = warehouseInfo?.smsPaymentTemplate || defaultTemplate;
-            
-            const message = template
-                .replace('{customerName}', selectedCustomer.name)
-                .replace('{paymentAmount}', formatCurrency(data.paymentAmount))
-                .replace('{date}', format(paymentDate, 'dd/MM/yy'))
-                .replace('{warehouseName}', warehouseInfo?.name || 'GrainDost');
-
-            sendSms({
-                apiKey: warehouseInfo.textbeeApiKey,
-                deviceId: warehouseInfo.textbeeDeviceId,
-                to: selectedCustomer.phone,
-                message,
-            }).catch(console.error);
+            const template = warehouseInfo?.smsPaymentTemplate || 'Dear {customerName}, thank you for your payment of {paymentAmount} on {date}. - {warehouseName}';
+            const msg = template.replace('{customerName}', selectedCustomer.name).replace('{paymentAmount}', formatCurrency(data.paymentAmount)).replace('{date}', format(paymentDate, 'dd/MM/yy')).replace('{warehouseName}', warehouseInfo?.name || 'GrainDost');
+            sendSms({ apiKey: warehouseInfo.textbeeApiKey, deviceId: warehouseInfo.textbeeDeviceId, to: selectedCustomer.phone, message: msg }).catch(console.error);
         }
 
-        toast({ title: 'Payment Recorded', description, duration: 10000 });
+        toast({ title: 'Payment Recorded', description: `${formatCurrency(data.paymentAmount)} collected.` });
         setIsOpen(false);
-        form.reset({
-          customerId: '',
-          paymentDate: formatManualDate(new Date()),
-          paymentAmount: undefined,
-          discount: undefined,
-        });
+        form.reset();
       } catch (error) {
         console.error(error);
-        toast({ title: 'Error', description: `Failed to record payment. ${error}`, variant: 'destructive' });
+        toast({ title: 'Error', description: 'Failed to record payment.', variant: 'destructive' });
       }
     });
   };
@@ -262,9 +215,7 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
             <form onSubmit={form.handleSubmit(onSubmit)}>
             <DialogHeader>
                 <DialogTitle>Bulk Customer Payment</DialogTitle>
-                <DialogDescription>
-                Select a customer and enter a payment amount. Manual date format: DD-MM-YYYY.
-                </DialogDescription>
+                <DialogDescription>Select customer and enter amount. Date format: DD-MM-YYYY.</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
                 <FormField
@@ -273,100 +224,33 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
                     render={({ field }) => (
                         <FormItem className="flex flex-col">
                             <FormLabel>Customer</FormLabel>
-                            <Combobox
-                                options={customerOptions}
-                                value={field.value}
-                                onChange={field.onChange}
-                                placeholder="Select a customer..."
-                                searchPlaceholder="Search customers..."
-                                emptyPlaceholder="No customer found."
-                                modal={true}
-                            />
+                            <Combobox options={customerOptions} value={field.value} onChange={field.onChange} placeholder="Select a customer..." searchPlaceholder="Search customers..." modal={true} />
                             <FormMessage />
                         </FormItem>
                     )}
                 />
-
                 {selectedCustomerId && (
                 <>
                 <Separator />
-                 <div className="p-4 rounded-lg bg-secondary border">
-                    <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Total Hamali Pending</span>
-                        <span className="font-medium">{formatCurrency(totalHamaliDue)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Total Rent Pending</span>
-                        <span className="font-medium">{formatCurrency(totalRentDue)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm font-bold border-t pt-2 mt-2">
-                        <span className="text-foreground">Total Due</span>
-                        <span className="text-destructive">{formatCurrency(totalDue)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Discount</span>
-                        <span className="font-medium text-green-600">- {formatCurrency(discountAmount)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm font-bold border-t pt-2 mt-2">
-                        <span className="text-foreground">Final Payable</span>
-                        <span className="text-destructive">{formatCurrency(totalPayable)}</span>
-                    </div>
+                <div className="p-4 rounded-lg bg-secondary border">
+                    <div className="flex justify-between text-sm"><span>Hamali Pending</span><span>{formatCurrency(totalHamaliDue)}</span></div>
+                    <div className="flex justify-between text-sm"><span>Rent Pending</span><span>{formatCurrency(totalRentDue)}</span></div>
+                    <div className="flex justify-between text-sm font-bold border-t pt-2 mt-2"><span>Total Due</span><span className="text-destructive">{formatCurrency(totalDue)}</span></div>
+                    <div className="flex justify-between text-sm"><span>Discount</span><span className="text-green-600">- {formatCurrency(discountAmount)}</span></div>
+                    <div className="flex justify-between text-sm font-bold border-t pt-1"><span>Final Payable</span><span className="text-destructive">{formatCurrency(totalPayable)}</span></div>
                 </div>
-
-                <FormField
-                    control={form.control}
-                    name="paymentDate"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Payment Date (DD-MM-YYYY)</Label>
-                            <FormControl>
-                                <Input placeholder="DD-MM-YYYY" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-
-                <FormField
-                    control={form.control}
-                    name="discount"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Discount Amount</FormLabel>
-                            <FormControl>
-                                <Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-
-                <FormField
-                    control={form.control}
-                    name="paymentAmount"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Payment Amount</FormLabel>
-                            <FormControl>
-                                <Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                 <div className="flex items-center space-x-2 pt-4">
-                    <Checkbox 
-                        id="sendSmsPayment" 
-                        checked={sendSmsNotification}
-                        onCheckedChange={(checked) => setSendSmsNotification(Boolean(checked))}
-                        disabled={!warehouseInfo?.textbeeApiKey || !selectedCustomer?.phone}
-                    />
-                    <label
-                        htmlFor="sendSmsPayment"
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                        Send SMS Notification to Customer
-                    </label>
+                <FormField control={form.control} name="paymentDate" render={({ field }) => (
+                    <FormItem><FormLabel>Payment Date (DD-MM-YYYY)</FormLabel><FormControl><Input placeholder="DD-MM-YYYY" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="discount" render={({ field }) => (
+                    <FormItem><FormLabel>Discount Amount</FormLabel><FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="paymentAmount" render={({ field }) => (
+                    <FormItem><FormLabel>Payment Amount</FormLabel><FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <div className="flex items-center space-x-2 pt-4">
+                    <Checkbox id="sendSmsPayment" checked={sendSmsNotification} onCheckedChange={(checked) => setSendSmsNotification(Boolean(checked))} disabled={!warehouseInfo?.textbeeApiKey || !selectedCustomer?.phone} />
+                    <label htmlFor="sendSmsPayment" className="text-sm font-medium leading-none">Send SMS Notification</label>
                 </div>
                 </>
                 )}
@@ -374,11 +258,7 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
             <DialogFooter>
                 <DialogClose asChild><Button variant="outline" type="button">Cancel</Button></DialogClose>
                 <Button type="submit" disabled={isPending || !selectedCustomerId}>
-                {isPending ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
-                ) : (
-                    'Record Payment'
-                )}
+                    {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : 'Record Payment'}
                 </Button>
             </DialogFooter>
             </form>

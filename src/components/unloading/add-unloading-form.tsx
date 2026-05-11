@@ -51,7 +51,6 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
     );
     const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
-
     const form = useForm<UnloadingFormData>({
         resolver: zodResolver(UnloadingRecordSchema),
         defaultValues: {
@@ -65,14 +64,13 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
           workerHamaliPerBag: undefined,
           billNo: nextBillNo,
         },
-      });
+    });
 
     useEffect(() => {
         form.setValue('billNo', nextBillNo);
     }, [nextBillNo, form]);
     
     const customerOptions = customers.map(c => ({ value: c.id, label: c.name }));
-
     const lotOccupancy = useMemo(() => {
         const occupancy: { [lotName: string]: number } = {};
         storageRecords.forEach(record => {
@@ -84,16 +82,10 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
     }, [storageRecords]);
 
     const lotOptions = useMemo(() => {
-        return lots
-            .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
-            .map(lot => {
-                const occupied = lotOccupancy[lot.name] || 0;
-                const capacity = lot.capacity ? ` / ${lot.capacity}` : '';
-                return ({
-                    value: lot.name,
-                    label: `${lot.name} (${occupied}${capacity} bags)`
-                })
-            });
+        return lots.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true })).map(lot => ({
+            value: lot.name,
+            label: `${lot.name} (${lotOccupancy[lot.name] || 0}${lot.capacity ? ` / ${lot.capacity}` : ''} bags)`
+        }));
     }, [lots, lotOccupancy]);
       
     const bagsUnloaded = form.watch('bagsUnloaded');
@@ -104,26 +96,20 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
         const bags = Number(bagsUnloaded) || 0;
         const custRate = Number(customerHamaliPerBag) || 0;
         const workRate = Number(workerHamaliPerBag) || 0;
-        return {
-            totalCustomerHamali: bags * custRate,
-            totalWorkerHamali: bags * workRate,
-        }
+        return { totalCustomerHamali: bags * custRate, totalWorkerHamali: bags * workRate };
     }, [bagsUnloaded, customerHamaliPerBag, workerHamaliPerBag]);
 
     const selectedCustomerId = form.watch('customerId');
-    const selectedCustomer = useMemo(() => {
-        return customers.find(c => c.id === selectedCustomerId);
-    }, [selectedCustomerId, customers]);
+    const selectedCustomer = useMemo(() => customers.find(c => c.id === selectedCustomerId), [selectedCustomerId, customers]);
 
     const onSubmit = async (data: UnloadingFormData) => {
         if (!firestore || !appUser?.warehouseId) {
-            toast({ title: 'Error', description: 'Could not add record: user or warehouse context is missing.', variant: 'destructive' });
+            toast({ title: 'Error', description: 'Context missing.', variant: 'destructive' });
             return;
         }
-
         const finalDate = parseManualDate(data.unloadingDate);
         if (!finalDate) {
-            form.setError('unloadingDate', { message: 'Invalid format. Use DD-MM-YYYY' });
+            form.setError('unloadingDate', { message: 'Use DD-MM-YYYY format.' });
             return;
         }
         
@@ -134,58 +120,20 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
             try {
                 const totalHamali = data.bagsUnloaded * data.customerHamaliPerBag;
                 const workerHamaliPayable = data.bagsUnloaded * (data.workerHamaliPerBag ?? data.customerHamaliPerBag);
-                
-                const rawRecord = {
-                    ...data,
-                    hamaliPerBag: data.customerHamaliPerBag, 
-                    warehouseId: appUser.warehouseId,
-                    unloadingDate: finalDate,
-                    status: 'Unloading' as const,
-                    bagsSentToDrying: 0,
-                    totalHamali,
-                    workerHamaliPayable,
-                };
+                const rawRecord = { ...data, hamaliPerBag: data.customerHamaliPerBag, warehouseId: appUser.warehouseId, unloadingDate: finalDate, status: 'Unloading' as const, bagsSentToDrying: 0, totalHamali, workerHamaliPayable };
                 const docRef = doc(firestore, 'unloadingRecords', data.billNo);
                 await setDoc(docRef, cleanForFirestore(rawRecord));
 
                 if (sendSmsNotification && warehouseInfo?.textbeeApiKey && selectedCustomer?.phone) {
-                    const defaultTemplate = `Dear {customerName}, your plot bags are unloaded at {location},\nNo of bags : {bags} , Commodity : {commodity} on {date}.\nBill No: {billNo}.\nHamali: {hamaliAmount}.\nThank you. - {warehouseName},Owk`;
-                    const template = warehouseInfo?.smsUnloadingTemplate || defaultTemplate;
-                    
-                    const message = template
-                        .replace('{customerName}', selectedCustomer.name)
-                        .replace('{bags}', String(data.bagsUnloaded))
-                        .replace('{commodity}', data.commodityDescription)
-                        .replace('{location}', data.location)
-                        .replace('{billNo}', data.billNo)
-                        .replace('{date}', format(finalDate, 'dd/MM/yy'))
-                        .replace('{hamaliAmount}', formatCurrency(totalHamali))
-                        .replace('{warehouseName}', warehouseInfo?.name || 'GrainDost');
-
-                    sendSms({
-                        apiKey: warehouseInfo.textbeeApiKey,
-                        deviceId: warehouseInfo.textbeeDeviceId,
-                        to: selectedCustomer.phone,
-                        message,
-                    }).catch(console.error);
+                    const template = warehouseInfo?.smsUnloadingTemplate || 'Delivery of {bags} bags received on {date}. Bill No: {billNo}. Thank you.';
+                    const message = template.replace('{customerName}', selectedCustomer.name).replace('{bags}', String(data.bagsUnloaded)).replace('{commodity}', data.commodityDescription).replace('{location}', data.location).replace('{billNo}', data.billNo).replace('{date}', format(finalDate, 'dd/MM/yy')).replace('{hamaliAmount}', formatCurrency(totalHamali)).replace('{warehouseName}', warehouseInfo?.name || 'GrainDost');
+                    sendSms({ apiKey: warehouseInfo.textbeeApiKey, deviceId: warehouseInfo.textbeeDeviceId, to: selectedCustomer.phone, message }).catch(console.error);
                 }
-                
                 toast({ title: 'Success', description: 'Unloading record added.' });
-                
-                form.reset({
-                    customerId: '',
-                    commodityDescription: '',
-                    location: '',
-                    lorryTractorNo: '',
-                    unloadingDate: formatManualDate(new Date()),
-                    bagsUnloaded: undefined,
-                    customerHamaliPerBag: undefined,
-                    workerHamaliPerBag: undefined,
-                    billNo: nextBillNo,
-                });
+                form.reset({ customerId: '', commodityDescription: '', location: '', lorryTractorNo: '', unloadingDate: formatManualDate(new Date()), bagsUnloaded: undefined, customerHamaliPerBag: undefined, workerHamaliPerBag: undefined, billNo: nextBillNo });
             } catch (error) {
                 console.error(error);
-                toast({ title: 'Error', description: 'Failed to add unloading record.', variant: 'destructive' });
+                toast({ title: 'Error', description: 'Failed to add record.', variant: 'destructive' });
                 if (receiptWindow) receiptWindow.close();
             }
         });
@@ -195,193 +143,44 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
     <Card>
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
-                <CardHeader>
-                    <CardTitle>Add New Unloading Record</CardTitle>
-                    <CardDescription>Enter details manually. Date format: DD-MM-YYYY.</CardDescription>
-                </CardHeader>
+                <CardHeader><CardTitle>Add New Unloading Record</CardTitle><CardDescription>Manual date format: DD-MM-YYYY.</CardDescription></CardHeader>
                 <CardContent className="space-y-4">
-                    <FormField
-                        control={form.control}
-                        name="billNo"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Bill No. (Auto-Generated)</FormLabel>
-                                <FormControl><Input disabled={true} className="bg-muted font-mono font-bold" placeholder="Auto-generated" {...field} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="customerId"
-                        render={({ field }) => (
-                            <FormItem className="flex flex-col">
-                                <FormLabel>Customer</FormLabel>
-                                <Combobox
-                                    options={customerOptions}
-                                    value={field.value}
-                                    onChange={field.onChange}
-                                    placeholder="Select a customer..."
-                                    searchPlaceholder="Search customers..."
-                                    emptyPlaceholder="No customer found."
-                                />
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-
-                    {selectedCustomer && (
-                        <div className="text-sm text-muted-foreground p-3 border rounded-md bg-secondary/50 space-y-1 -mt-2">
-                            <p><strong>Father's Name:</strong> {selectedCustomer.fatherName || 'N/A'}</p>
-                            <p><strong>Village:</strong> {selectedCustomer.village || 'N/A'}</p>
-                            <p><strong>Phone:</strong> {selectedCustomer.phone}</p>
-                        </div>
-                    )}
-
-                    <FormField
-                        control={form.control}
-                        name="commodityDescription"
-                        render={({ field }) => (
-                             <FormItem>
-                                <FormLabel>Commodity</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select a commodity" />
-                                        </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        {commodities.map(commodity => (
-                                            <SelectItem key={commodity.id} value={commodity.name}>
-                                                {commodity.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-
-                    <FormField
-                        control={form.control}
-                        name="location"
-                        render={({ field }) => (
-                            <FormItem className="flex flex-col">
-                                <FormLabel>Storage Location (Lot No.)</FormLabel>
-                                <Combobox
-                                    options={lotOptions}
-                                    value={field.value}
-                                    onChange={field.onChange}
-                                    placeholder="Select a location..."
-                                    searchPlaceholder="Search locations..."
-                                    emptyPlaceholder="No locations found."
-                                />
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-
-                    <FormField
-                        control={form.control}
-                        name="lorryTractorNo"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Lorry / Tractor No. <span className="text-muted-foreground">(Optional)</span></Label>
-                                <FormControl><Input placeholder="e.g., AP 21 1234" {...field} value={field.value ?? ''} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                     <FormField
-                        control={form.control}
-                        name="unloadingDate"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Unloading Date (DD-MM-YYYY)</FormLabel>
-                                <FormControl><Input placeholder="DD-MM-YYYY" {...field} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="bagsUnloaded"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Bags Unloaded</FormLabel>
-                                <FormControl><Input type="number" step="0.01" placeholder="0" {...field} value={field.value ?? ''} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
-                            control={form.control}
-                            name="customerHamaliPerBag"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Customer Hamali per Bag</FormLabel>
-                                    <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="workerHamaliPerBag"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Worker Hamali per Bag</FormLabel>
-                                    <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+                    <FormField control={form.control} name="billNo" render={({ field }) => (
+                        <FormItem><FormLabel>Bill No. (Auto)</FormLabel><FormControl><Input disabled className="bg-muted font-mono" {...field} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                    <FormField control={form.control} name="customerId" render={({ field }) => (
+                        <FormItem className="flex flex-col"><FormLabel>Customer</FormLabel><Combobox options={customerOptions} value={field.value} onChange={field.onChange} placeholder="Select a customer..." searchPlaceholder="Search customers..." /><FormMessage /></FormItem>
+                    )} />
+                    <FormField control={form.control} name="commodityDescription" render={({ field }) => (
+                        <FormItem><FormLabel>Commodity</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select commodity" /></SelectTrigger></FormControl><SelectContent>{commodities.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                    )} />
+                    <FormField control={form.control} name="location" render={({ field }) => (
+                        <FormItem className="flex flex-col"><FormLabel>Lot No.</FormLabel><Combobox options={lotOptions} value={field.value} onChange={field.onChange} placeholder="Select location..." searchPlaceholder="Search lots..." /><FormMessage /></FormItem>
+                    )} />
+                    <FormField control={form.control} name="unloadingDate" render={({ field }) => (
+                        <FormItem><FormLabel>Date (DD-MM-YYYY)</FormLabel><FormControl><Input placeholder="DD-MM-YYYY" {...field} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                    <FormField control={form.control} name="bagsUnloaded" render={({ field }) => (
+                        <FormItem><FormLabel>Bags Unloaded</FormLabel><FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField control={form.control} name="customerHamaliPerBag" render={({ field }) => (
+                            <FormItem><FormLabel>Cust Rate</FormLabel><FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                        )} />
+                        <FormField control={form.control} name="workerHamaliPerBag" render={({ field }) => (
+                            <FormItem><FormLabel>Worker Rate</FormLabel><FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                        )} />
                     </div>
-                     <Separator />
-                     <div className="space-y-2">
-                        <h4 className="font-medium">Summary</h4>
-                        <div className="flex justify-between items-center text-sm font-semibold">
-                            <span>Total Hamali (Customer)</span>
-                            <span className="font-mono">{formatCurrency(totalCustomerHamali)}</span>
-                        </div>
-                        <div className="flex justify-between items-center text-sm">
-                            <span className="text-muted-foreground">Total Hamali (Worker)</span>
-                            <span className="font-mono">{formatCurrency(totalWorkerHamali)}</span>
-                        </div>
-                         <div className="flex justify-between items-center text-sm">
-                            <span className="text-muted-foreground">Profit/Loss on Hamali</span>
-                            <span className="font-mono">{formatCurrency(totalCustomerHamali - totalWorkerHamali)}</span>
-                        </div>
-                         <p className="text-xs text-muted-foreground pt-2">This amount will be charged to the customer and is payable to the worker.</p>
+                    <Separator />
+                    <div className="space-y-1 text-sm">
+                        <div className="flex justify-between font-semibold"><span>Total Hamali</span><span>{formatCurrency(totalCustomerHamali)}</span></div>
                     </div>
-
-                     <div className="flex items-center space-x-2 pt-4">
-                        <Checkbox 
-                            id="sendSmsUnloading" 
-                            checked={sendSmsNotification}
-                            onCheckedChange={(checked) => setSendSmsNotification(Boolean(checked))}
-                            disabled={!warehouseInfo?.textbeeApiKey || !selectedCustomer?.phone}
-                        />
-                        <label
-                            htmlFor="sendSmsUnloading"
-                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                        >
-                            Send SMS Notification to Customer
-                        </label>
+                    <div className="flex items-center space-x-2 pt-4">
+                        <Checkbox id="sendSmsUnloading" checked={sendSmsNotification} onCheckedChange={(checked) => setSendSmsNotification(Boolean(checked))} disabled={!warehouseInfo?.textbeeApiKey || !selectedCustomer?.phone} />
+                        <label htmlFor="sendSmsUnloading" className="text-sm font-medium">Send SMS</label>
                     </div>
-
                 </CardContent>
-                <CardFooter>
-                    <Button type="submit" disabled={isPending} className="w-full">
-                        {isPending ? (
-                            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
-                        ) : (
-                            'Add Record & Generate Bill'
-                        )}
-                    </Button>
-                </CardFooter>
+                <CardFooter><Button type="submit" disabled={isPending} className="w-full">{isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : 'Add Record & Bill'}</Button></CardFooter>
             </form>
         </Form>
     </Card>

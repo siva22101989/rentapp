@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -22,7 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { expenseCategories, type ExpenseCategory } from '@/lib/definitions';
 import { Textarea } from '../ui/textarea';
 import { format } from 'date-fns';
-import { toDate, cleanForFirestore } from '@/lib/utils';
+import { toDate, cleanForFirestore, formatManualDate, parseManualDate } from '@/lib/utils';
 import { useFirestore } from '@/firebase/provider';
 import { z } from 'zod';
 import { doc, updateDoc } from 'firebase/firestore';
@@ -30,7 +29,7 @@ import { doc, updateDoc } from 'firebase/firestore';
 const ExpenseSchema = z.object({
   description: z.string().min(2, 'Description is required.'),
   amount: z.coerce.number().positive('Amount must be a positive number.'),
-  date: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
+  date: z.string().min(1, 'Date is required.'),
   category: z.enum(expenseCategories, { required_error: 'Category is required.' }),
 });
 
@@ -49,7 +48,7 @@ export function EditExpenseDialog({ expense, children }: { expense: Expense, chi
 
   useEffect(() => {
     if(isOpen) {
-      setDate(format(toDate(expense.date), 'yyyy-MM-dd'));
+      setDate(formatManualDate(expense.date));
       setCategory(expense.category);
       setDescription(expense.description);
       setAmount(expense.amount);
@@ -63,6 +62,12 @@ export function EditExpenseDialog({ expense, children }: { expense: Expense, chi
 
     if (!firestore) {
       toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
+      return;
+    }
+
+    const finalDate = parseManualDate(date);
+    if (!finalDate) {
+      setErrors(prev => ({ ...prev, date: 'Invalid format. Use DD-MM-YYYY' }));
       return;
     }
 
@@ -80,7 +85,6 @@ export function EditExpenseDialog({ expense, children }: { expense: Expense, chi
           if (fieldErrors[key as keyof typeof fieldErrors]) newErrors[key] = fieldErrors[key as keyof typeof fieldErrors]![0];
       });
       setErrors(newErrors);
-      toast({ title: "Validation Error", description: "Please check your input.", variant: "destructive"});
       return;
     }
 
@@ -88,7 +92,7 @@ export function EditExpenseDialog({ expense, children }: { expense: Expense, chi
       try {
         const updatedExpense = {
           ...validationResult.data,
-          date: new Date(validationResult.data.date),
+          date: finalDate,
         };
         await updateDoc(doc(firestore, 'expenses', expense.id), cleanForFirestore(updatedExpense));
         toast({ title: 'Success', description: 'Expense updated successfully.' });
@@ -108,7 +112,7 @@ export function EditExpenseDialog({ expense, children }: { expense: Expense, chi
           <DialogHeader>
             <DialogTitle>Edit Expense</DialogTitle>
             <DialogDescription>
-              Update details for this expense. Reference No is read-only.
+              Update details for this expense. Date format: DD-MM-YYYY.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -117,8 +121,8 @@ export function EditExpenseDialog({ expense, children }: { expense: Expense, chi
               <Input id="editRefNo" disabled value={expense.refNo || '-'} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="date">Date</Label>
-              <Input id="date" type="date" value={date} onChange={e => setDate(e.target.value)} />
+              <Label htmlFor="date">Date (DD-MM-YYYY)</Label>
+              <Input id="date" placeholder="DD-MM-YYYY" value={date} onChange={e => setDate(e.target.value)} />
               {errors.date && <p className="text-sm font-medium text-destructive">{errors.date}</p>}
             </div>
             <div className="space-y-2">

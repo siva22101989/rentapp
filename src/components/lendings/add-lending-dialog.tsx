@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -19,7 +18,7 @@ import { useFirestore } from '@/firebase/provider';
 import { z } from 'zod';
 import { Input } from '../ui/input';
 import { addDoc, collection } from 'firebase/firestore';
-import { cleanForFirestore } from '@/lib/utils';
+import { cleanForFirestore, formatManualDate, parseManualDate } from '@/lib/utils';
 import { useAppUser } from '@/firebase/auth/use-user';
 import { Label } from '../ui/label';
 
@@ -27,7 +26,7 @@ const LendingSchema = z.object({
   borrowerName: z.string().min(2, 'Borrower name is required.'),
   principal: z.coerce.number().positive('Principal amount must be positive.'),
   interestRate: z.coerce.number().nonnegative('Interest rate must be non-negative.'),
-  dateGiven: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date" }),
+  dateGiven: z.string().min(1, 'Date is required.'),
 });
 
 
@@ -41,14 +40,14 @@ export function AddLendingDialog() {
   const [borrowerName, setBorrowerName] = useState('');
   const [principal, setPrincipal] = useState<number | ''>('');
   const [interestRate, setInterestRate] = useState<number | ''>('');
-  const [dateGiven, setDateGiven] = useState(new Date().toISOString().split('T')[0]);
+  const [dateGiven, setDateGiven] = useState(formatManualDate(new Date()));
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const resetForm = () => {
     setBorrowerName('');
     setPrincipal('');
     setInterestRate('');
-    setDateGiven(new Date().toISOString().split('T')[0]);
+    setDateGiven(formatManualDate(new Date()));
     setErrors({});
   };
 
@@ -57,6 +56,12 @@ export function AddLendingDialog() {
     setErrors({});
     if (!firestore || !appUser?.warehouseId) {
       toast({ title: 'Error', description: 'Could not add record: user or warehouse context is missing.', variant: 'destructive' });
+      return;
+    }
+
+    const finalDate = parseManualDate(dateGiven);
+    if (!finalDate) {
+      setErrors(prev => ({ ...prev, dateGiven: 'Invalid format. Use DD-MM-YYYY' }));
       return;
     }
     
@@ -70,7 +75,6 @@ export function AddLendingDialog() {
             if (fieldErrors[key as keyof typeof fieldErrors]) newErrors[key] = fieldErrors[key as keyof typeof fieldErrors]![0];
         });
         setErrors(newErrors);
-        toast({ title: "Validation Error", description: "Please check your input.", variant: "destructive"});
         return;
     }
 
@@ -78,7 +82,7 @@ export function AddLendingDialog() {
       try {
         const newLending = {
           ...validationResult.data,
-          dateGiven: new Date(validationResult.data.dateGiven),
+          dateGiven: finalDate,
           status: 'Active' as const,
           warehouseId: appUser.warehouseId,
         };
@@ -106,7 +110,7 @@ export function AddLendingDialog() {
             <DialogHeader>
               <DialogTitle>Add New Lending</DialogTitle>
               <DialogDescription>
-                Record a new loan you have given out. You can record interest received using the "Add Income" button.
+                Record a new loan you have given out. Manual date format: DD-MM-YYYY.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -116,13 +120,13 @@ export function AddLendingDialog() {
                 {errors.borrowerName && <p className="text-sm font-medium text-destructive">{errors.borrowerName}</p>}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="dateGiven">Date Given</Label>
-                <Input id="dateGiven" type="date" value={dateGiven} onChange={e => setDateGiven(e.target.value)} />
+                <Label htmlFor="dateGiven">Date Given (DD-MM-YYYY)</Label>
+                <Input id="dateGiven" placeholder="DD-MM-YYYY" value={dateGiven} onChange={e => setDateGiven(e.target.value)} />
                 {errors.dateGiven && <p className="text-sm font-medium text-destructive">{errors.dateGiven}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="principal">Principal Amount</Label>
-                <Input id="principal" type="number" placeholder="0.00" value={principal} onChange={e => setPrincipal(e.target.value === '' ? '' : Number(e.target.value))} />
+                <Input id="principal" type="number" step="0.01" placeholder="0.00" value={principal} onChange={e => setPrincipal(e.target.value === '' ? '' : Number(e.target.value))} />
                 {errors.principal && <p className="text-sm font-medium text-destructive">{errors.principal}</p>}
               </div>
               <div className="space-y-2">

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useEffect, useMemo } from 'react';
@@ -21,7 +20,7 @@ import type { Customer, UnloadingRecord, Commodity, Lot, StorageRecord } from '@
 import { useFirestore } from '@/firebase/provider';
 import { z } from 'zod';
 import { updateUnloadingRecord } from '@/lib/data';
-import { toDate, cleanForFirestore } from '@/lib/utils';
+import { toDate, cleanForFirestore, formatManualDate, parseManualDate } from '@/lib/utils';
 import { Combobox } from '../ui/combobox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
@@ -30,7 +29,7 @@ const EditUnloadingSchema = z.object({
   commodityDescription: z.string().min(1, 'Commodity is required.'),
   location: z.string().min(1, 'Storage location is required.'),
   lorryTractorNo: z.string().optional(),
-  unloadingDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date format" }),
+  unloadingDate: z.string().min(1, 'Unloading date is required.'),
   bagsUnloaded: z.coerce.number().int().positive('Number of bags must be positive.'),
   customerHamaliPerBag: z.coerce.number().nonnegative('Customer hamali rate must be non-negative.'),
   workerHamaliPerBag: z.coerce.number().nonnegative('Worker hamali rate must be non-negative.').optional(),
@@ -92,12 +91,6 @@ export function EditUnloadingRecordDialog({
         });
   }, [lots, lotOccupancy]);
 
-  const getLocalDateTimeForInput = (date: Date) => {
-    const timezoneOffsetInMs = date.getTimezoneOffset() * 60000;
-    const localDate = new Date(date.getTime() - timezoneOffsetInMs);
-    return localDate.toISOString().slice(0, 16);
-  };
-  
   useEffect(() => {
     if (isOpen) {
       const workerRate = record.workerHamaliPayable !== undefined && record.bagsUnloaded > 0
@@ -108,7 +101,7 @@ export function EditUnloadingRecordDialog({
       setCommodityDescription(record.commodityDescription || '');
       setLocation(record.location || '');
       setLorryTractorNo(record.lorryTractorNo || '');
-      setUnloadingDate(getLocalDateTimeForInput(toDate(record.unloadingDate)));
+      setUnloadingDate(formatManualDate(record.unloadingDate));
       setBagsUnloaded(record.bagsUnloaded || '');
       setCustomerHamaliPerBag(record.hamaliPerBag || '');
       setWorkerHamaliPerBag(workerRate || '');
@@ -122,6 +115,12 @@ export function EditUnloadingRecordDialog({
     setErrors({});
     if (!firestore) {
       toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
+      return;
+    }
+
+    const finalDate = parseManualDate(unloadingDate);
+    if (!finalDate) {
+      setErrors(prev => ({ ...prev, unloadingDate: 'Invalid format. Use DD-MM-YYYY' }));
       return;
     }
 
@@ -159,7 +158,7 @@ export function EditUnloadingRecordDialog({
         const updateData = {
           ...result.data,
           hamaliPerBag: result.data.customerHamaliPerBag,
-          unloadingDate: new Date(result.data.unloadingDate),
+          unloadingDate: finalDate,
           totalHamali,
           workerHamaliPayable,
         };
@@ -230,8 +229,8 @@ export function EditUnloadingRecordDialog({
               <Input id="lorryTractorNo" value={lorryTractorNo || ''} onChange={(e) => setLorryTractorNo(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="unloadingDate">Unloading Date & Time</Label>
-              <Input id="unloadingDate" type="datetime-local" value={unloadingDate} onChange={e => setUnloadingDate(e.target.value)} />
+              <Label htmlFor="unloadingDate">Unloading Date (DD-MM-YYYY)</Label>
+              <Input id="unloadingDate" placeholder="DD-MM-YYYY" value={unloadingDate} onChange={e => setUnloadingDate(e.target.value)} />
               {errors.unloadingDate && <p className="text-xs text-destructive">{errors.unloadingDate}</p>}
             </div>
             <div className="space-y-4">

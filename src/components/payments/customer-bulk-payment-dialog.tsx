@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useMemo } from 'react';
@@ -17,7 +16,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import type { Payment, StorageRecord, Customer, UnloadingRecord, WarehouseInfo } from '@/lib/definitions';
-import { formatCurrency, cleanForFirestore, toDate } from '@/lib/utils';
+import { formatCurrency, cleanForFirestore, toDate, formatManualDate, parseManualDate } from '@/lib/utils';
 import { useFirestore } from '@/firebase/provider';
 import { doc, writeBatch, arrayUnion } from 'firebase/firestore';
 import { useForm } from 'react-hook-form';
@@ -35,7 +34,7 @@ import { format } from 'date-fns';
 
 const BulkPaymentSchema = z.object({
   customerId: z.string().min(1, 'Please select a customer.'),
-  paymentDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date" }),
+  paymentDate: z.string().min(1, 'Payment date is required.'),
   paymentAmount: z.coerce.number().positive('Payment amount must be a positive number.'),
   discount: z.coerce.number().nonnegative('Discount must be a non-negative number.').optional(),
 });
@@ -69,7 +68,7 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
     resolver: zodResolver(BulkPaymentSchema),
     defaultValues: {
         customerId: '',
-        paymentDate: new Date().toISOString().split('T')[0],
+        paymentDate: formatManualDate(new Date()),
         paymentAmount: undefined,
         discount: undefined,
     },
@@ -122,9 +121,15 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
       toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
       return;
     }
+
+    const finalDate = parseManualDate(data.paymentDate);
+    if (!finalDate) {
+      form.setError('paymentDate', { message: 'Invalid format. Use DD-MM-YYYY' });
+      return;
+    }
     
     const finalPayable = totalDue - (data.discount || 0);
-    if (data.paymentAmount > finalPayable) {
+    if (data.paymentAmount > (finalPayable + 0.01)) {
         form.setError('paymentAmount', { message: `Payment cannot exceed payable amount of ${formatCurrency(finalPayable)}.`});
         return;
     }
@@ -134,7 +139,7 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
         const batch = writeBatch(firestore);
         let cashToApply = data.paymentAmount;
         let discountToApply = data.discount || 0;
-        const paymentDate = new Date(data.paymentDate);
+        const paymentDate = finalDate;
         
         const settledRecordIds: string[] = [];
         const partiallyPaidRecordIds = new Set<string>();
@@ -210,8 +215,6 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
         if (data.discount && data.discount > 0) {
             description += ` ${formatCurrency(data.discount)} discount applied.`
         }
-        if (settledRecordIds.length > 0) { description += ` Settled bills: ${settledRecordIds.join(', ')}.`; }
-        if (partiallyPaidRecordIds.size > 0) { description += ` Partially paid: ${Array.from(partiallyPaidRecordIds).join(', ')}.`; }
 
         if (sendSmsNotification && warehouseInfo?.textbeeApiKey && selectedCustomer?.phone) {
             const defaultTemplate = `Dear {customerName}, thank you for your payment of {paymentAmount} on {date}. Your account has been updated. - {warehouseName}`;
@@ -233,7 +236,12 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
 
         toast({ title: 'Payment Recorded', description, duration: 10000 });
         setIsOpen(false);
-        form.reset();
+        form.reset({
+          customerId: '',
+          paymentDate: formatManualDate(new Date()),
+          paymentAmount: undefined,
+          discount: undefined,
+        });
       } catch (error) {
         console.error(error);
         toast({ title: 'Error', description: `Failed to record payment. ${error}`, variant: 'destructive' });
@@ -255,7 +263,7 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
             <DialogHeader>
                 <DialogTitle>Bulk Customer Payment</DialogTitle>
                 <DialogDescription>
-                Select a customer and enter a payment amount. It will be automatically applied to their oldest outstanding bills, clearing hamali dues first.
+                Select a customer and enter a payment amount. Manual date format: DD-MM-YYYY.
                 </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -310,9 +318,9 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
                     name="paymentDate"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Payment Date</FormLabel>
+                            <FormLabel>Payment Date (DD-MM-YYYY)</Label>
                             <FormControl>
-                                <Input type="date" {...field} />
+                                <Input placeholder="DD-MM-YYYY" {...field} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>

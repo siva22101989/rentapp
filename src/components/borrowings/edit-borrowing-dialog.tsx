@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -21,7 +20,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import type { Borrowing } from '@/lib/definitions';
 import { format } from 'date-fns';
-import { toDate } from '@/lib/utils';
+import { toDate, formatManualDate, parseManualDate, cleanForFirestore } from '@/lib/utils';
 import { updateBorrowing } from '@/lib/data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
@@ -29,7 +28,7 @@ const BorrowingSchema = z.object({
   lenderName: z.string().min(2, 'Lender name is required.'),
   principal: z.coerce.number().positive('Principal amount must be positive.'),
   interestRate: z.coerce.number().nonnegative('Interest rate must be non-negative.'),
-  dateTaken: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date" }),
+  dateTaken: z.string().min(1, 'Date is required.'),
   status: z.enum(['Active', 'Paid Off']).optional(),
 });
 
@@ -53,7 +52,7 @@ export function EditBorrowingDialog({ borrowing, children }: { borrowing: Borrow
       setLenderName(borrowing.lenderName);
       setPrincipal(borrowing.principal);
       setInterestRate(borrowing.interestRate);
-      setDateTaken(format(toDate(borrowing.dateTaken), 'yyyy-MM-dd'));
+      setDateTaken(formatManualDate(borrowing.dateTaken));
       setStatus(borrowing.status || 'Active');
       setErrors({});
     }
@@ -64,6 +63,12 @@ export function EditBorrowingDialog({ borrowing, children }: { borrowing: Borrow
     setErrors({});
     if (!firestore) {
       toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
+      return;
+    }
+
+    const finalDate = parseManualDate(dateTaken);
+    if (!finalDate) {
+      setErrors(prev => ({ ...prev, dateTaken: 'Invalid format. Use DD-MM-YYYY' }));
       return;
     }
     
@@ -84,7 +89,6 @@ export function EditBorrowingDialog({ borrowing, children }: { borrowing: Borrow
         }
       });
       setErrors(newErrors);
-      toast({ title: "Validation Error", description: "Please check your input.", variant: "destructive"});
       return;
     }
 
@@ -92,7 +96,7 @@ export function EditBorrowingDialog({ borrowing, children }: { borrowing: Borrow
       try {
         const updatedData = {
           ...validationResult.data,
-          dateTaken: new Date(validationResult.data.dateTaken),
+          dateTaken: finalDate,
         };
         await updateBorrowing(firestore, borrowing.id, updatedData);
         toast({ title: 'Success', description: 'Borrowing record updated successfully.' });
@@ -122,13 +126,13 @@ export function EditBorrowingDialog({ borrowing, children }: { borrowing: Borrow
               {errors.lenderName && <p className="text-sm font-medium text-destructive">{errors.lenderName}</p>}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="dateTaken">Date Taken</Label>
-              <Input id="dateTaken" type="date" value={dateTaken} onChange={e => setDateTaken(e.target.value)} />
+              <Label htmlFor="dateTaken">Date Taken (DD-MM-YYYY)</Label>
+              <Input id="dateTaken" placeholder="DD-MM-YYYY" value={dateTaken} onChange={e => setDateTaken(e.target.value)} />
               {errors.dateTaken && <p className="text-sm font-medium text-destructive">{errors.dateTaken}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="principal">Principal Amount</Label>
-              <Input id="principal" type="number" value={principal} onChange={e => setPrincipal(e.target.value === '' ? '' : Number(e.target.value))} />
+              <Input id="principal" type="number" step="0.01" value={principal} onChange={e => setPrincipal(e.target.value === '' ? '' : Number(e.target.value))} />
               {errors.principal && <p className="text-sm font-medium text-destructive">{errors.principal}</p>}
             </div>
             <div className="space-y-2">

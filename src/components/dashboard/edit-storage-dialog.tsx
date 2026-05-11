@@ -19,7 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { Customer, StorageRecord, Commodity, Lot, HamaliChargeItem } from '@/lib/definitions';
 import { format, differenceInDays } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { toDate, cleanForFirestore, formatCurrency } from '@/lib/utils';
+import { toDate, cleanForFirestore, formatCurrency, formatManualDate, parseManualDate } from '@/lib/utils';
 import { z } from 'zod';
 import { useFirestore } from '@/firebase/provider';
 import { updateStorageRecord } from '@/lib/data';
@@ -34,7 +34,7 @@ const EditStorageRecordSchema = z.object({
   customerId: z.string().min(1, 'Customer is required.'),
   commodityDescription: z.string().min(1, 'Commodity is required.'),
   location: z.string().optional(),
-  storageStartDate: z.string().refine(val => !isNaN(Date.parse(val))),
+  storageStartDate: z.string().min(1, 'Inflow date is required.'),
   bagsIn: z.coerce.number().int().nonnegative('Must be a non-negative number.'),
   weight: z.coerce.number().nonnegative('Must be a non-negative number.').optional(),
   lorryTractorNo: z.string().optional(),
@@ -55,7 +55,6 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
   const firestore = useFirestore();
   const appUser = useAppUser();
   
-  // State for all form fields
   const [customerId, setCustomerId] = useState('');
   const [commodityDescription, setCommodityDescription] = useState('');
   const [location, setLocation] = useState('');
@@ -71,6 +70,7 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
   const [workerHamaliPerBag, setWorkerHamaliPerBag] = useState<number | ''>('');
   const [pavHamaliPerBag, setPavHamaliPerBag] = useState<number | ''>('');
   const [cuppaHamaliPerBag, setCuppaHamaliPerBag] = useState<number | ''>('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const commoditiesQuery = useMemoFirebase(
     () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'commodities'), where('warehouseId', '==', appUser.warehouseId)) : null),
@@ -104,20 +104,21 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
       setCustomerId(record.customerId || '');
       setCommodityDescription(record.commodityDescription || '');
       setLocation(record.location || '');
-      setStorageStartDate(record.storageStartDate ? format(toDate(record.storageStartDate), 'yyyy-MM-dd') : '');
+      setStorageStartDate(formatManualDate(record.storageStartDate));
       setBagsIn(record.bagsIn ?? record.bagsStored ?? '');
       setWeight(record.weight ?? '');
       setLorryTractorNo(record.lorryTractorNo || '');
       setKhataAmount(record.khataAmount ?? '');
       setHamaliRate(record.hamaliRate ?? '');
       setBagsForDrying(record.bagsForDrying ?? '');
-      setDryingStartDate(record.dryingStartDate ? format(toDate(record.dryingStartDate), 'yyyy-MM-dd') : '');
+      setDryingStartDate(record.dryingStartDate ? formatManualDate(record.dryingStartDate) : '');
       setCustomerHamaliPerBag(getRate('Customer Hamali') ?? '');
       setPavHamaliPerBag(getRate('Pav Hamali') ?? '');
       setCuppaHamaliPerBag(getRate('Cuppa Hamali') ?? '');
       setWorkerHamaliPerBag(record.workerHamaliPayable !== undefined && (record.bagsIn || record.bagsForDrying || 1) > 0 
         ? record.workerHamaliPayable / (record.bagsIn || record.bagsForDrying || 1) 
         : '');
+      setErrors({});
     }
   }, [isOpen, record]);
   
@@ -129,13 +130,11 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
     const day1CustomerHamali = currentBags * (Number(customerHamaliPerBag) || 0);
 
     let extraDryingDays = 0;
-    if (dryingStartDate && storageStartDate) {
-        const start = new Date(dryingStartDate);
-        const end = new Date(storageStartDate);
-        if (end >= start) {
-            const days = differenceInDays(end, start) + 1;
-            extraDryingDays = days > 1 ? days - 1 : 0;
-        }
+    const start = parseManualDate(dryingStartDate);
+    const end = parseManualDate(storageStartDate);
+    if (start && end && end >= start) {
+        const days = differenceInDays(end, start) + 1;
+        extraDryingDays = days > 1 ? days - 1 : 0;
     }
     
     const pavHamali = currentBags * (Number(pavHamaliPerBag) || 0) * extraDryingDays;
@@ -160,10 +159,19 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setErrors({});
     if (!firestore) {
       toast({ variant: 'destructive', title: 'Error', description: 'Firestore not available' });
       return;
     }
+
+    const finalStorageDate = parseManualDate(storageStartDate);
+    if (!finalStorageDate) {
+      setErrors(prev => ({ ...prev, storageStartDate: 'Invalid format. Use DD-MM-YYYY' }));
+      return;
+    }
+
+    const finalDryingDate = dryingStartDate ? parseManualDate(dryingStartDate) : null;
     
     const dataToValidate = {
       customerId,
@@ -186,8 +194,12 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
     const result = EditStorageRecordSchema.safeParse(dataToValidate);
 
     if (!result.success) {
-      const firstError = Object.values(result.error.flatten().fieldErrors)[0]?.[0];
-      toast({ title: "Validation Error", description: firstError || "Please check your input.", variant: "destructive" });
+      const fieldErrors = result.error.flatten().fieldErrors;
+      const newErrors: Record<string, string> = {};
+      Object.keys(fieldErrors).forEach(key => {
+        if (fieldErrors[key]) newErrors[key] = fieldErrors[key]![0];
+      });
+      setErrors(newErrors);
       return;
     }
     
@@ -201,7 +213,7 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
             customerId: data.customerId,
             commodityDescription: data.commodityDescription,
             location: data.location,
-            storageStartDate: new Date(data.storageStartDate),
+            storageStartDate: finalStorageDate,
             bagsIn: data.bagsIn,
             bagsStored,
             weight: data.weight || 0,
@@ -217,8 +229,8 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
             updateData.workerHamaliPayable = hamaliPayable;
         } else {
             updateData.bagsForDrying = data.bagsForDrying;
-            updateData.dryingStartDate = data.dryingStartDate ? new Date(data.dryingStartDate) : null;
-            updateData.dryingEndDate = new Date(data.storageStartDate); 
+            updateData.dryingStartDate = finalDryingDate;
+            updateData.dryingEndDate = finalStorageDate; 
             
             const hamaliDetails: HamaliChargeItem[] = [];
             const unloadingHamaliDetail = record.hamaliDetails?.find(d => d.description === 'Unloading Hamali');
@@ -252,7 +264,7 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
           <DialogHeader>
             <DialogTitle>Edit Storage Record</DialogTitle>
             <DialogDescription>
-              Adjust any details for record {record.id}. Everything is editable.
+              Adjust any details for record {record.id}. Manual date format: DD-MM-YYYY.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4 pr-2">
@@ -280,7 +292,11 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
               </div>
               
               <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2"><Label htmlFor="edit-start-date">Date</Label><Input id="edit-start-date" type="date" value={storageStartDate} onChange={e => setStorageStartDate(e.target.value)} /></div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-start-date">Date (DD-MM-YYYY)</Label>
+                    <Input id="edit-start-date" placeholder="DD-MM-YYYY" value={storageStartDate} onChange={e => setStorageStartDate(e.target.value)} />
+                    {errors.storageStartDate && <p className="text-xs text-destructive">{errors.storageStartDate}</p>}
+                  </div>
                   <div className="space-y-2"><Label htmlFor="edit-lorry-no">Lorry/Tractor No.</Label><Input id="edit-lorry-no" placeholder="AP 12 3456" value={lorryTractorNo} onChange={e => setLorryTractorNo(e.target.value)} /></div>
               </div>
 
@@ -309,7 +325,10 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
 
               {record.inflowType === 'Plot' && (
                 <div className="grid grid-cols-2 gap-4 p-4 border rounded-lg bg-secondary/10">
-                    <div className="space-y-2"><Label htmlFor="edit-drying-start">Drying Start Date</Label><Input id="edit-drying-start" type="date" value={dryingStartDate} onChange={(e) => setDryingStartDate(e.target.value)} /></div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-drying-start">Drying Start Date (DD-MM-YYYY)</Label>
+                      <Input id="edit-drying-start" placeholder="DD-MM-YYYY" value={dryingStartDate} onChange={(e) => setDryingStartDate(e.target.value)} />
+                    </div>
                     <div className="space-y-2"><Label htmlFor="edit-bags-drying">Bags Plotted</Label><Input id="edit-bags-drying" type="number" value={bagsForDrying} onChange={(e) => setBagsForDrying(e.target.value === '' ? '' : Number(e.target.value))} /></div>
                     
                     <div className="space-y-2"><Label htmlFor="edit-work-hamali">Worker Rate</Label><Input id="edit-work-hamali" type="number" step="0.01" value={workerHamaliPerBag} onChange={(e) => setWorkerHamaliPerBag(e.target.value === '' ? '' : Number(e.target.value))} /></div>

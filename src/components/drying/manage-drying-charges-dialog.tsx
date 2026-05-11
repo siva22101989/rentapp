@@ -18,14 +18,14 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import type { DryingRecord, UnloadingRecord, HamaliChargeItem } from '@/lib/definitions';
 import { format, differenceInDays } from 'date-fns';
-import { toDate, cleanForFirestore, formatCurrency } from '@/lib/utils';
+import { toDate, cleanForFirestore, formatCurrency, formatManualDate, parseManualDate } from '@/lib/utils';
 import { useFirestore } from '@/firebase/provider';
 import { updateDryingRecord } from '@/lib/data';
 import { Separator } from '../ui/separator';
 import { Label } from '../ui/label';
 
 const EditDryingSchema = z.object({
-  dryingStartDate: z.string().refine(val => !isNaN(Date.parse(val))),
+  dryingStartDate: z.string().min(1, 'Start date is required.'),
   packingDate: z.string().optional(),
   bagsForDrying: z.coerce.number().int().nonnegative(),
   bagsPacked: z.coerce.number().int().nonnegative().optional(),
@@ -56,8 +56,8 @@ export function EditDryingDialog({ record, unloadingRecord, children }: { record
     if (isOpen) {
       const getRate = (desc: string) => record.hamaliDetails?.find(d => d.description.toLowerCase().includes(desc.toLowerCase()))?.rate;
       
-      setDryingStartDate(record.dryingStartDate ? format(toDate(record.dryingStartDate), 'yyyy-MM-dd') : '');
-      setPackingDate(record.packingDate ? format(toDate(record.packingDate), 'yyyy-MM-dd') : '');
+      setDryingStartDate(record.dryingStartDate ? formatManualDate(record.dryingStartDate) : '');
+      setPackingDate(record.packingDate ? formatManualDate(record.packingDate) : '');
       setBagsForDrying(record.bagsForDrying ?? '');
       setBagsPacked(record.bagsPacked ?? '');
       setCustomerHamaliPerBag(getRate('customer') ?? '');
@@ -78,13 +78,11 @@ export function EditDryingDialog({ record, unloadingRecord, children }: { record
     const day1CustomerHamali = bags * (Number(customerHamaliPerBag) || 0);
 
     let extraDryingDays = 0;
-    if (dryingStartDate && packingDate) {
-        const start = new Date(dryingStartDate);
-        const end = new Date(packingDate);
-        if (end >= start) {
-            const days = differenceInDays(end, start);
-            extraDryingDays = days > 0 ? days : 0;
-        }
+    const start = parseManualDate(dryingStartDate);
+    const end = parseManualDate(packingDate);
+    if (start && end && end >= start) {
+        const days = differenceInDays(end, start);
+        extraDryingDays = days > 0 ? days : 0;
     }
     
     const pavHamali = bags * (Number(pavHamaliPerBag) || 0) * extraDryingDays;
@@ -113,6 +111,14 @@ export function EditDryingDialog({ record, unloadingRecord, children }: { record
       toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
       return;
     }
+
+    const finalStartDate = parseManualDate(dryingStartDate);
+    if (!finalStartDate) {
+      setErrors(prev => ({ ...prev, dryingStartDate: 'Invalid format. Use DD-MM-YYYY' }));
+      return;
+    }
+
+    const finalPackingDate = packingDate ? parseManualDate(packingDate) : null;
     
     const dataToValidate = {
       dryingStartDate,
@@ -144,11 +150,11 @@ export function EditDryingDialog({ record, unloadingRecord, children }: { record
         if(calculatedHamali.cuppaHamali > 0) hamaliDetails.push({ description: `Cuppa Hamali (${calculatedHamali.extraDryingDays} extra day${calculatedHamali.extraDryingDays !== 1 ? 's' : ''})`, bags: data.bagsForDrying, rate: data.cuppaHamaliPerBag || 0, amount: calculatedHamali.cuppaHamali });
         
         const updateData: Partial<DryingRecord> = {
-          dryingStartDate: new Date(data.dryingStartDate),
-          packingDate: data.packingDate ? new Date(data.packingDate) : null,
+          dryingStartDate: finalStartDate,
+          packingDate: finalPackingDate,
           bagsForDrying: data.bagsForDrying,
           bagsPacked: data.bagsPacked,
-          status: data.packingDate ? 'Packing' : 'Drying',
+          status: packingDate ? 'Packing' : 'Drying',
           hamaliDetails,
           totalDryingHamali: calculatedHamali.totalCustomerCharge,
         };
@@ -176,18 +182,19 @@ export function EditDryingDialog({ record, unloadingRecord, children }: { record
             <DialogHeader>
               <DialogTitle>Edit Drying Record</DialogTitle>
               <DialogDescription>
-                Adjust any detail for this process. All fields are unlocked.
+                Adjust any detail for this process. Date format: DD-MM-YYYY.
               </DialogDescription>
             </DialogHeader>
             <div className="py-4 space-y-4 pr-2">
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                        <Label htmlFor="dryingStartDate">Drying Start Date</Label>
-                        <Input id="dryingStartDate" type="date" value={dryingStartDate} onChange={(e) => setDryingStartDate(e.target.value)} />
+                        <Label htmlFor="dryingStartDate">Drying Start Date (DD-MM-YYYY)</Label>
+                        <Input id="dryingStartDate" placeholder="DD-MM-YYYY" value={dryingStartDate} onChange={(e) => setDryingStartDate(e.target.value)} />
+                        {errors.dryingStartDate && <p className="text-xs text-destructive">{errors.dryingStartDate}</p>}
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="packingDate">Packing Date (Optional)</Label>
-                        <Input id="packingDate" type="date" value={packingDate} onChange={(e) => setPackingDate(e.target.value)} />
+                        <Label htmlFor="packingDate">Packing Date (DD-MM-YYYY)</Label>
+                        <Input id="packingDate" placeholder="DD-MM-YYYY" value={packingDate} onChange={(e) => setPackingDate(e.target.value)} />
                     </div>
                 </div>
 

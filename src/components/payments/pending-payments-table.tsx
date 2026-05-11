@@ -59,14 +59,14 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords }: {
             if (rDate > s.lastDate) s.lastDate = rDate;
         });
 
-        // 2. Process Unloading Records (Only count bags still in plot to avoid double counting)
+        // 2. Process Unloading Records (Only count bags still in plot)
         unloadingRecords.forEach(r => {
             const s = getSummary(r.customerId);
             const remainingBags = Math.max(0, (r.bagsUnloaded || 0) - (r.bagsSentToDrying || 0));
             const remainingHamaliLiability = remainingBags * (r.hamaliPerBag || 0);
+            const totalPaidOnUnloading = (r.payments || []).reduce((acc, p) => acc + p.amount, 0);
             
             s.totalBilled += remainingHamaliLiability;
-            const totalPaidOnUnloading = (r.payments || []).reduce((acc, p) => acc + p.amount, 0);
             s.amountPaid += totalPaidOnUnloading;
             s.totalHamaliLiability += remainingHamaliLiability;
 
@@ -74,7 +74,7 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords }: {
             if (uDate > s.lastDate) s.lastDate = uDate;
         });
 
-        // 3. Convert to array, calculate pending breakdowns, and filter
+        // 3. Convert to array and calculate breakdowns
         return Object.entries(summaryMap).map(([customerId, data]) => {
             const balanceDue = data.totalBilled - data.amountPaid;
             
@@ -93,8 +93,8 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords }: {
                 lastActivityDate: new Date(data.lastDate)
             } as CustomerPendingSummary;
         })
-        .filter(s => s.balanceDue > 0.5) // Only show significant dues
-        .sort((a, b) => b.lastActivityDate.getTime() - a.lastActivityDate.getTime()); // Newest activity first
+        .filter(s => s.balanceDue > 0.5)
+        .sort((a, b) => b.lastActivityDate.getTime() - a.lastActivityDate.getTime());
 
     }, [records, unloadingRecords, customers]);
 

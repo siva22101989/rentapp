@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -21,7 +20,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import type { Lending } from '@/lib/definitions';
 import { format } from 'date-fns';
-import { toDate } from '@/lib/utils';
+import { toDate, formatManualDate, parseManualDate, cleanForFirestore } from '@/lib/utils';
 import { updateLending } from '@/lib/data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
@@ -29,7 +28,7 @@ const LendingSchema = z.object({
   borrowerName: z.string().min(2, 'Borrower name is required.'),
   principal: z.coerce.number().positive('Principal amount must be positive.'),
   interestRate: z.coerce.number().nonnegative('Interest rate must be non-negative.'),
-  dateGiven: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date" }),
+  dateGiven: z.string().min(1, 'Date is required.'),
   status: z.enum(['Active', 'Paid Off']).optional(),
 });
 
@@ -51,7 +50,7 @@ export function EditLendingDialog({ lending, children }: { lending: Lending; chi
       setBorrowerName(lending.borrowerName);
       setPrincipal(lending.principal);
       setInterestRate(lending.interestRate);
-      setDateGiven(format(toDate(lending.dateGiven), 'yyyy-MM-dd'));
+      setDateGiven(formatManualDate(lending.dateGiven));
       setStatus(lending.status || 'Active');
       setErrors({});
     }
@@ -63,6 +62,12 @@ export function EditLendingDialog({ lending, children }: { lending: Lending; chi
 
     if (!firestore) {
       toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
+      return;
+    }
+
+    const finalDate = parseManualDate(dateGiven);
+    if (!finalDate) {
+      setErrors(prev => ({ ...prev, dateGiven: 'Invalid format. Use DD-MM-YYYY' }));
       return;
     }
 
@@ -81,7 +86,6 @@ export function EditLendingDialog({ lending, children }: { lending: Lending; chi
             if (fieldErrors[key as keyof typeof fieldErrors]) newErrors[key] = fieldErrors[key as keyof typeof fieldErrors]![0];
         });
         setErrors(newErrors);
-        toast({ title: "Validation Error", description: "Please check your input.", variant: "destructive"});
         return;
     }
 
@@ -89,7 +93,7 @@ export function EditLendingDialog({ lending, children }: { lending: Lending; chi
       try {
         const updatedData = {
           ...validationResult.data,
-          dateGiven: new Date(validationResult.data.dateGiven),
+          dateGiven: finalDate,
         };
         await updateLending(firestore, lending.id, updatedData);
         toast({ title: 'Success', description: 'Lending record updated successfully.' });
@@ -109,7 +113,7 @@ export function EditLendingDialog({ lending, children }: { lending: Lending; chi
             <DialogHeader>
               <DialogTitle>Edit Lending</DialogTitle>
               <DialogDescription>
-                Update details for the loan to {lending.borrowerName}.
+                Update details for the loan to {lending.borrowerName}. Date format: DD-MM-YYYY.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -119,13 +123,13 @@ export function EditLendingDialog({ lending, children }: { lending: Lending; chi
                     {errors.borrowerName && <p className="text-sm font-medium text-destructive">{errors.borrowerName}</p>}
                 </div>
                 <div className="space-y-2">
-                    <Label htmlFor="dateGiven">Date Given</Label>
-                    <Input id="dateGiven" type="date" value={dateGiven} onChange={(e) => setDateGiven(e.target.value)} />
+                    <Label htmlFor="dateGiven">Date Given (DD-MM-YYYY)</Label>
+                    <Input id="dateGiven" placeholder="DD-MM-YYYY" value={dateGiven} onChange={(e) => setDateGiven(e.target.value)} />
                     {errors.dateGiven && <p className="text-sm font-medium text-destructive">{errors.dateGiven}</p>}
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="principal">Principal Amount</Label>
-                    <Input id="principal" type="number" value={principal} onChange={(e) => setPrincipal(e.target.value === '' ? '' : Number(e.target.value))} />
+                    <Input id="principal" type="number" step="0.01" value={principal} onChange={(e) => setPrincipal(e.target.value === '' ? '' : Number(e.target.value))} />
                     {errors.principal && <p className="text-sm font-medium text-destructive">{errors.principal}</p>}
                 </div>
                 <div className="space-y-2">

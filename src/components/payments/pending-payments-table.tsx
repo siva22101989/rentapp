@@ -42,7 +42,7 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords }: {
             return summaryMap[id];
         };
 
-        // 1. Process All Storage Records (even paid ones for lifetime totals)
+        // 1. Process All Storage Records
         records.forEach(r => {
             const s = getSummary(r.customerId);
             const hamali = r.hamaliPayable || 0;
@@ -59,17 +59,13 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords }: {
             if (rDate > s.lastDate) s.lastDate = rDate;
         });
 
-        // 2. Process Unloading Records (Only contribute hamali for share NOT yet in Godown)
+        // 2. Process Unloading Records (Only count bags still in plot to avoid double counting)
         unloadingRecords.forEach(r => {
             const s = getSummary(r.customerId);
             const remainingBags = Math.max(0, (r.bagsUnloaded || 0) - (r.bagsSentToDrying || 0));
             const remainingHamaliLiability = remainingBags * (r.hamaliPerBag || 0);
             
-            // For lifetime total billed on an unloading bill, we only count the 'active' part 
-            // because the 'moved' part is already counted in the Storage Records loop above.
             s.totalBilled += remainingHamaliLiability;
-            
-            // Sum payments made specifically to this unloading bill
             const totalPaidOnUnloading = (r.payments || []).reduce((acc, p) => acc + p.amount, 0);
             s.amountPaid += totalPaidOnUnloading;
             s.totalHamaliLiability += remainingHamaliLiability;
@@ -78,11 +74,11 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords }: {
             if (uDate > s.lastDate) s.lastDate = uDate;
         });
 
-        // 3. Convert to array and filter for outstanding balances
+        // 3. Convert to array, calculate pending breakdowns, and filter
         return Object.entries(summaryMap).map(([customerId, data]) => {
             const balanceDue = data.totalBilled - data.amountPaid;
             
-            // Financial Allocation Rule: Payments settle Hamali first
+            // Payments clear Hamali first
             const hamaliPending = Math.max(0, data.totalHamaliLiability - data.amountPaid);
             const rentPending = Math.max(0, balanceDue - hamaliPending);
 
@@ -97,21 +93,21 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords }: {
                 lastActivityDate: new Date(data.lastDate)
             } as CustomerPendingSummary;
         })
-        .filter(s => s.balanceDue > 0.5) // Only show those with significant balance
-        .sort((a, b) => b.lastActivityDate.getTime() - a.lastActivityDate.getTime()); // Newest first
+        .filter(s => s.balanceDue > 0.5) // Only show significant dues
+        .sort((a, b) => b.lastActivityDate.getTime() - a.lastActivityDate.getTime()); // Newest activity first
 
     }, [records, unloadingRecords, customers]);
 
     return (
         <Card>
-            <CardHeader className="flex flex-row items-center justify-between print-hide">
-                <CardTitle>Outstanding Balances (Consolidated)</CardTitle>
+            <CardHeader className="print-hide">
+                <CardTitle>Consolidated Pending Dues</CardTitle>
             </CardHeader>
             <CardContent>
                 <div className="printable-area">
                     <PendingDuesReportTable
                         summaries={pendingSummaries}
-                        title="Customer-wise Pending Dues Report"
+                        title="Pending Dues List"
                     />
                 </div>
             </CardContent>

@@ -27,26 +27,26 @@ export function PendingDuesReportTable({ summaries, title }: ReportTableProps) {
 
     return (
         <div className="bg-white p-4 rounded-lg">
-            <div className="mb-4 text-center">
-                <h2 className="text-xl font-bold">GrainDost</h2>
-                <p className="text-muted-foreground font-semibold">{title}</p>
+            <div className="mb-6 text-center">
+                <h2 className="text-2xl font-bold">GrainDost</h2>
+                <p className="text-muted-foreground font-semibold text-lg">{title}</p>
                 <p className="text-xs text-muted-foreground">Generated on: {generatedDate}</p>
             </div>
             <Table>
                 <TableHeader>
-                    <TableRow>
-                        <TableHead>Customer Name</TableHead>
-                        <TableHead className="text-right">Hamali Pending</TableHead>
-                        <TableHead className="text-right">Rent Pending</TableHead>
-                        <TableHead className="text-right">Total Billed</TableHead>
-                        <TableHead className="text-right">Amount Paid</TableHead>
+                    <TableRow className="bg-muted/50">
+                        <TableHead className="font-bold">Customer Name</TableHead>
+                        <TableHead className="text-right font-bold">Hamali Pending</TableHead>
+                        <TableHead className="text-right font-bold">Rent Pending</TableHead>
+                        <TableHead className="text-right font-bold">Total Billed</TableHead>
+                        <TableHead className="text-right font-bold">Amount Paid</TableHead>
                         <TableHead className="text-right font-bold">Balance Due</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {summaries.map((summary) => (
-                        <TableRow key={summary.customerId}>
-                            <TableCell className="font-medium">{summary.customerName}</TableCell>
+                        <TableRow key={summary.customerId} className="hover:bg-muted/30">
+                            <TableCell className="font-semibold">{summary.customerName}</TableCell>
                             <TableCell className="text-right font-mono text-orange-600">{formatCurrency(summary.hamaliPending)}</TableCell>
                             <TableCell className="text-right font-mono text-blue-600">{formatCurrency(summary.rentPending)}</TableCell>
                             <TableCell className="text-right font-mono">{formatCurrency(summary.totalBilled)}</TableCell>
@@ -56,26 +56,26 @@ export function PendingDuesReportTable({ summaries, title }: ReportTableProps) {
                     ))}
                      {summaries.length === 0 && (
                         <TableRow>
-                            <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                                No pending dues found.
+                            <TableCell colSpan={6} className="text-center text-muted-foreground py-12">
+                                Great! No pending dues found at this time.
                             </TableCell>
                         </TableRow>
                     )}
                 </TableBody>
                 <TableFooter>
-                    <TableRow className="bg-secondary/50">
-                        <TableCell className="text-right font-bold">Total Portfolio Dues</TableCell>
+                    <TableRow className="bg-secondary/50 border-t-2 border-primary/20">
+                        <TableCell className="font-bold text-base">Grand Total Portfolio</TableCell>
                         <TableCell className="text-right font-mono font-bold text-orange-600">{formatCurrency(totals.hamali)}</TableCell>
                         <TableCell className="text-right font-mono font-bold text-blue-600">{formatCurrency(totals.rent)}</TableCell>
                         <TableCell className="text-right font-mono font-bold">{formatCurrency(totals.billed)}</TableCell>
                         <TableCell className="text-right font-mono font-bold text-green-600">{formatCurrency(totals.paid)}</TableCell>
-                        <TableCell className="text-right font-bold text-destructive font-mono text-lg">{formatCurrency(totals.total)}</TableCell>
+                        <TableCell className="text-right font-bold text-destructive font-mono text-xl">{formatCurrency(totals.total)}</TableCell>
                     </TableRow>
                 </TableFooter>
             </Table>
-            <p className="text-[10px] text-muted-foreground mt-4 italic print-hide">
-                * This report consolidates lifetime history for each customer. Total Billed vs Total Paid.
-            </p>
+            <div className="mt-6 p-4 bg-muted/20 border border-dashed rounded-md text-[11px] text-muted-foreground italic">
+                <p>* This report provides a consolidated lifetime financial summary for each customer. Total Billed includes all storage rent, hamali, and weighbridge charges. Payments are automatically allocated to Hamali dues first, then to Rent/Other charges.</p>
+            </div>
         </div>
     );
 }

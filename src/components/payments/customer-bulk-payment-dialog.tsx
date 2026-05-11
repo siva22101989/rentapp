@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useMemo } from 'react';
@@ -90,12 +91,13 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
         .forEach(rec => {
             const hamaliPayable = rec.hamaliPayable || 0;
             const totalRentBilled = rec.totalRentBilled || 0;
-            const hamaliPaid = (rec.payments || []).filter(p => p.type === 'hamali').reduce((acc, p) => acc + p.amount, 0);
+            const khataAmount = rec.khataAmount || 0;
+            const hamaliPaid = (rec.payments || []).filter(p => p.type === 'hamali' || p.type === 'unloading').reduce((acc, p) => acc + p.amount, 0);
             const rentPaid = (rec.payments || []).filter(p => p.type === 'rent').reduce((acc, p) => acc + p.amount, 0);
             const otherPaid = (rec.payments || []).filter(p => p.type === 'other' || !p.type || p.type === 'discount').reduce((acc, p) => acc + p.amount, 0);
             
             hamaliDue += Math.max(0, hamaliPayable - hamaliPaid);
-            rentDue += Math.max(0, totalRentBilled - rentPaid - otherPaid);
+            rentDue += Math.max(0, (totalRentBilled + khataAmount) - rentPaid - otherPaid);
         });
 
     unloadingRecords
@@ -112,8 +114,8 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
   const totalPayable = totalDue - discountAmount;
 
   const onSubmit = (data: PaymentFormData) => {
-    if (!firestore) {
-      toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
+    if (!firestore || !appUser?.warehouseId) {
+      toast({ title: 'Error', description: 'Context not available.', variant: 'destructive' });
       return;
     }
 
@@ -144,12 +146,12 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
 
             if (record.recordType === 'storage') {
                 const sr = record;
-                const hamaliPaid = (sr.payments || []).filter(p => p.type === 'hamali').reduce((acc, p) => acc + p.amount, 0);
+                const hamaliPaid = (sr.payments || []).filter(p => p.type === 'hamali' || p.type === 'unloading').reduce((acc, p) => acc + p.amount, 0);
                 const rentPaid = (sr.payments || []).filter(p => p.type === 'rent').reduce((acc, p) => acc + p.amount, 0);
                 const otherPaid = (sr.payments || []).filter(p => p.type === 'other' || !p.type || p.type === 'discount').reduce((acc, p) => acc + p.amount, 0);
                 
                 let hamaliDue = Math.max(0, (sr.hamaliPayable || 0) - hamaliPaid);
-                let rentDue = Math.max(0, (sr.totalRentBilled || 0) - rentPaid - otherPaid);
+                let rentDue = Math.max(0, ((sr.totalRentBilled || 0) + (sr.khataAmount || 0)) - rentPaid - otherPaid);
 
                 if (hamaliDue > 0) {
                     const pay = Math.min(cashToApply, hamaliDue);

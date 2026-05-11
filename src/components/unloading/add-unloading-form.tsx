@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo, useTransition } from 'react';
@@ -159,13 +160,13 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                         <FormItem><FormLabel>Bill No. (Auto)</FormLabel><FormControl><Input disabled className="bg-muted font-mono" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
                     <FormField control={form.control} name="customerId" render={({ field }) => (
-                        <FormItem className="flex flex-col"><FormLabel>Customer</FormLabel><Combobox options={customerOptions} value={field.value} onChange={field.onChange} placeholder="Select a customer..." searchPlaceholder="Search customers..." /><FormMessage /></FormItem>
+                        <FormItem className="flex flex-col"><FormLabel>Customer</FormLabel><Combobox options={customerOptions} value={field.value} onChange={field.onChange} placeholder="Select a customer..." searchPlaceholder="Search customers..." modal={true} /><FormMessage /></FormItem>
                     )} />
                     <FormField control={form.control} name="commodityDescription" render={({ field }) => (
                         <FormItem><FormLabel>Commodity</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select commodity" /></SelectTrigger></FormControl><SelectContent>{commodities.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
                     )} />
                     <FormField control={form.control} name="location" render={({ field }) => (
-                        <FormItem className="flex flex-col"><FormLabel>Lot No.</FormLabel><Combobox options={lotOptions} value={field.value} onChange={field.onChange} placeholder="Select location..." searchPlaceholder="Search lots..." /><FormMessage /></FormItem>
+                        <FormItem className="flex flex-col"><FormLabel>Lot No.</FormLabel><Combobox options={lotOptions} value={field.value} onChange={field.onChange} placeholder="Select location..." searchPlaceholder="Search lots..." modal={true} /><FormMessage /></FormItem>
                     )} />
                     <FormField control={form.control} name="unloadingDate" render={({ field }) => (
                         <FormItem><FormLabel>Date (DD-MM-YYYY)</FormLabel><FormControl><Input placeholder="DD-MM-YYYY" {...field} /></FormControl><FormMessage /></FormItem>

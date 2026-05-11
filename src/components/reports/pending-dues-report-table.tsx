@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -74,7 +75,7 @@ export function PendingDuesReportTable({ summaries, title }: ReportTableProps) {
                 </TableFooter>
             </Table>
             <div className="mt-6 p-4 bg-muted/20 border border-dashed rounded-md text-[11px] text-muted-foreground italic">
-                <p>* This report provides a consolidated lifetime financial summary for each customer. Total Billed includes all storage rent, hamali, and weighbridge charges. Payments are automatically allocated to Hamali dues first, then to Rent/Other charges.</p>
+                <p>* This report provide a consolidated financial summary per customer. Headings sequence: Customer Name, Hamali Pending, Rent Pending, Total Billed, Amount Paid, and Balance Due.</p>
             </div>
         </div>
     );

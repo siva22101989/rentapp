@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef } from 'react';
@@ -8,7 +7,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CustomersTable } from '@/components/customers/customers-table';
 import { ReportClient } from '@/components/reports/report-client';
 import { StorageTable } from '@/components/dashboard/storage-table';
-import { PendingPaymentsTable } from '@/components/payments/pending-payments-table';
 import { HamaliReport } from './hamali-report';
 import { InflowReport } from './inflow-report';
 import { OutflowReport } from './outflow-report';
@@ -34,7 +32,6 @@ const reportTypes = [
     { value: 'unloading-register', label: 'Unloading Register (Date Range)' },
     { value: 'payment-register', label: 'Payment Register (Date Range)' },
     { value: 'active-inventory', label: 'Active Inventory (Stock)' },
-    { value: 'pending-dues', label: 'Pending Dues List' },
     { value: 'all-customers', label: 'All Customers List' },
 ];
 
@@ -143,8 +140,6 @@ export function CustomReportGenerator({
                         />;
             case 'active-inventory':
                 return <Card><CardHeader className="print-hide"><CardTitle>Active Inventory Summary</CardTitle></CardHeader><CardContent><StorageTable /></CardContent></Card>;
-            case 'pending-dues':
-                return <PendingPaymentsTable records={records} customers={customers} unloadingRecords={unloadingRecords} />;
             case 'hamali-register':
                 return <HamaliReport records={records} customers={customers} unloadingRecords={unloadingRecords} expenses={expenses} warehouseInfo={warehouseInfo} />;
             case 'drying-history':

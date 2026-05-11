@@ -11,7 +11,6 @@ import { HamaliReport } from './hamali-report';
 import { InflowReport } from './inflow-report';
 import { OutflowReport } from './outflow-report';
 import { UnloadingReport } from './unloading-report';
-import { PaymentReport } from './payment-report';
 import { DailySummaryReport } from './daily-summary-report';
 import { ProfitAndLossReport } from './profit-and-loss-report';
 import { Button } from '../ui/button';
@@ -30,7 +29,6 @@ const reportTypes = [
     { value: 'inflow-register', label: 'Inflow Register (Date Range)' },
     { value: 'outflow-register', label: 'Outflow Register (Date Range)' },
     { value: 'unloading-register', label: 'Unloading Register (Date Range)' },
-    { value: 'payment-register', label: 'Payment Register (Date Range)' },
     { value: 'active-inventory', label: 'Active Inventory (Stock)' },
     { value: 'all-customers', label: 'All Customers List' },
 ];
@@ -156,8 +154,6 @@ export function CustomReportGenerator({
                 return <OutflowReport records={records} customers={customers} />;
             case 'unloading-register':
                 return <UnloadingReport unloadingRecords={unloadingRecords} customers={customers} commodities={commodities} />;
-            case 'payment-register':
-                return <PaymentReport records={records} unloadingRecords={unloadingRecords} customers={customers} />;
             default:
                 return (
                     <Card>

@@ -45,7 +45,7 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, tit
         // 1. Process All Storage Records (Godown/Pattis)
         records.forEach(r => {
             const s = getSummary(r.customerId);
-            // hamaliPayable is pre-calculated based on Truck Bags in the inflow form
+            // hamaliPayable is pre-calculated based on Truck Bags (e.g. 2191) in the forms
             const hamali = r.hamaliPayable || 0; 
             const rent = r.totalRentBilled || 0;
             const khata = r.khataAmount || 0;

@@ -196,7 +196,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                         </div>
                         <div className="flex items-center space-x-2 pt-4">
                             <Checkbox id="sendSmsUnloading" checked={sendSmsNotification} onCheckedChange={(checked) => setSendSmsNotification(Boolean(checked))} disabled={!warehouseInfo?.textbeeApiKey || !selectedCustomer?.phone} />
-                            <label htmlFor="sendSmsUnloading" className="text-sm font-medium">Send SMS</label>
+                            <label htmlFor="sendSmsUnloading" className="text-sm font-medium leading-none">Send SMS</label>
                         </div>
                     </CardContent>
                     <CardFooter><Button type="submit" disabled={isPending} className="w-full">{isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : 'Add Record & Bill'}</Button></CardFooter>

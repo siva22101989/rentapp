@@ -110,7 +110,7 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
     return { totalHamaliDue: hamaliDue, totalRentDue: rentDue, totalDue: hamaliDue + rentDue };
   }, [selectedCustomerId, storageRecords, unloadingRecords]);
 
-  const totalPayable = totalDue - discountAmount;
+  const totalPayable = Math.max(0, totalDue - discountAmount);
 
   const onSubmit = (data: PaymentFormData) => {
     if (!firestore || !appUser?.warehouseId) {

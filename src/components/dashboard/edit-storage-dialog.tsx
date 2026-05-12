@@ -1,8 +1,7 @@
-
 'use client';
 
 import { useEffect, useState, useTransition, useMemo } from 'react';
-import { Loader2, Save } from 'lucide-react';
+import { Loader2, Save, Calculator } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -131,6 +130,7 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
     const unloadingHamaliDetail = record.hamaliDetails?.find(d => d.description === 'Unloading Hamali');
     const proportionalUnloadingHamali = unloadingHamaliDetail?.amount || 0;
 
+    // Use bagsForDrying (truck bags) as priority for handling calculations
     const currentBags = Number(bagsForDrying) || Number(bagsIn) || 0;
     const day1CustomerHamali = currentBags * (Number(customerHamaliPerBag) || 0);
 
@@ -304,7 +304,10 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
               </div>
 
               <Separator className="my-2" />
-              <h4 className="text-sm font-semibold text-muted-foreground">Hamali & Billing Details</h4>
+              <h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                <Calculator className="h-4 w-4" />
+                Handling & Billing Details
+              </h4>
 
               {record.inflowType === 'Plot' ? (
                 <div className="grid grid-cols-2 gap-4 p-4 border rounded-lg bg-secondary/10">
@@ -319,6 +322,12 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
                     <div className="space-y-2"><Label>Pav Rate</Label><Input type="number" step="0.01" value={pavHamaliPerBag} onChange={(e) => setPavHamaliPerBag(e.target.value === '' ? '' : Number(e.target.value))} /></div>
                     <div className="space-y-2"><Label>Cuppa Rate</Label><Input type="number" step="0.01" value={cuppaHamaliPerBag} onChange={(e) => setCuppaHamaliPerBag(e.target.value === '' ? '' : Number(e.target.value))} /></div>
                     <div className="space-y-2"><Label>Khata Amount</Label><Input type="number" step="0.01" value={khataAmount} onChange={e => setKhataAmount(e.target.value === '' ? '' : Number(e.target.value))}/></div>
+                    
+                    <Separator className="col-span-2 my-2" />
+                    <div className="col-span-2 flex justify-between font-bold text-primary">
+                        <span>New Calculated Total:</span>
+                        <span>{formatCurrency(calculatedHamali.totalCustomerCharge)}</span>
+                    </div>
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-4">

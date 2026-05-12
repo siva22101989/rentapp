@@ -1,7 +1,7 @@
 'use client';
 
 import { useTransition, useState, useEffect, useMemo } from 'react';
-import { Loader2, Info } from 'lucide-react';
+import { Loader2, Calculator } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,6 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase/provider';
 import type { Customer, UnloadingRecord, Lot, StorageRecord, HamaliChargeItem, Commodity, WarehouseInfo } from '@/lib/definitions';
 import { doc, writeBatch, increment, collection } from 'firebase/firestore';
-import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { formatCurrency, cleanForFirestore, toDate, formatManualDate, parseManualDate } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 import { Combobox } from '../ui/combobox';
@@ -91,7 +90,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, storageRecords
 
     const bagsRemainingOnRecord = selectedUnloadingRecord ? selectedUnloadingRecord.bagsUnloaded - (selectedUnloadingRecord.bagsSentToDrying || 0) : 0;
     
-    const { totalCustomerCharge, totalWorkerPayable, extraDryingDays, proportionalUnloadingHamali } = useMemo(() => {
+    const { totalCustomerCharge, totalWorkerPayable, extraDryingDays, proportionalUnloadingHamali, unloadingRate } = useMemo(() => {
         let extraDays = 0;
         try {
             const start = parseManualDate(dryingStartDate);
@@ -102,16 +101,16 @@ export function InitiateDryingForm({ customers, unloadingRecords, storageRecords
             }
         } catch (e) { /* ignore */ }
 
-        const pavH = (Number(bagsForDrying) || 0) * (Number(pavHamaliPerBag) || 0) * extraDays;
-        const cuppaH = (Number(bagsForDrying) || 0) * (Number(cuppaHamaliPerBag) || 0) * extraDays;
-        const d1DryingHamali = (Number(bagsForDrying) || 0) * (Number(customerDay1HamaliRate) || 0);
+        const bags = Number(bagsForDrying) || 0;
+        const pavH = bags * (Number(pavHamaliPerBag) || 0) * extraDays;
+        const cuppaH = bags * (Number(cuppaHamaliPerBag) || 0) * extraDays;
+        const d1DryingHamali = bags * (Number(customerDay1HamaliRate) || 0);
 
-        const pUnloadingHamali = selectedUnloadingRecord 
-            ? ((selectedUnloadingRecord.hamaliPerBag || 0) * (Number(bagsForDrying) || 0))
-            : 0;
+        const uRate = selectedUnloadingRecord?.hamaliPerBag || 0;
+        const pUnloadingHamali = uRate * bags;
 
         const totalCustCharge = pUnloadingHamali + d1DryingHamali + pavH + cuppaH;
-        const wHamaliDay1 = (Number(bagsForDrying) || 0) * (Number(workerHamaliPerBag) || 0);
+        const wHamaliDay1 = bags * (Number(workerHamaliPerBag) || 0);
         const totalWorkerPay = pUnloadingHamali + wHamaliDay1 + pavH + cuppaH;
         
         return {
@@ -119,6 +118,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, storageRecords
             totalWorkerPayable: totalWorkerPay,
             extraDryingDays: extraDays,
             proportionalUnloadingHamali: pUnloadingHamali,
+            unloadingRate: uRate
         }
     }, [bagsForDrying, customerDay1HamaliRate, pavHamaliPerBag, cuppaHamaliPerBag, dryingStartDate, dryingEndDate, selectedUnloadingRecord, workerHamaliPerBag]);
 
@@ -281,7 +281,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, storageRecords
                     commodityDescription: selectedRecordOnSubmit.commodityDescription,
                     location: selectedRecordOnSubmit.location || '',
                     bagsIn: bagsStored,
-                    bagsForDrying: data.bagsForDrying,
+                    bagsForDrying: data.bagsForDrying, // This is the 2191 Truck Bags
                     bagsOut: 0,
                     bagsStored: bagsStored,
                     storageStartDate: endDate,
@@ -330,7 +330,7 @@ export function InitiateDryingForm({ customers, unloadingRecords, storageRecords
             <CardHeader>
                 <CardTitle>Finalize Drying & Create Storage Record</CardTitle>
                 <CardDescription>
-                    Manual date entry format: DD-MM-YYYY.
+                    Manual date entry format: DD-MM-YYYY. Calculations are based on Truck/Plot Bags.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -347,12 +347,12 @@ export function InitiateDryingForm({ customers, unloadingRecords, storageRecords
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                        <Label htmlFor="bagsForDrying">Bags Plotted for Drying</Label>
+                        <Label htmlFor="bagsForDrying">Bags Plotted for Drying (Truck Count)</Label>
                         <Input id="bagsForDrying" name="bagsForDrying" type="number" step="0.01" value={formData.bagsForDrying} onChange={handleInputChange} disabled={!selectedUnloadingRecord} />
                         {errors.bagsForDrying && <p className="text-sm font-medium text-destructive">{errors.bagsForDrying}</p>}
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="bagsPacked">Bags Packed (Final)</Label>
+                        <Label htmlFor="bagsPacked">Bags Packed (Godown Final)</Label>
                         <Input id="bagsPacked" name="bagsPacked" type="number" step="0.01" value={formData.bagsPacked} onChange={handleInputChange} disabled={!selectedUnloadingRecord}/>
                         {errors.bagsPacked && <p className="text-sm font-medium text-destructive">{errors.bagsPacked}</p>}
                     </div>
@@ -371,9 +371,9 @@ export function InitiateDryingForm({ customers, unloadingRecords, storageRecords
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 border rounded-lg bg-muted/20">
                     <div className="space-y-2">
-                        <Label htmlFor="customerHamaliPerBag">Cust. Hamali Rate</Label>
+                        <Label htmlFor="customerHamaliPerBag">Drying Rate</Label>
                         <Input id="customerHamaliPerBag" name="customerHamaliPerBag" type="number" step="0.01" value={formData.customerHamaliPerBag} onChange={handleInputChange} disabled={!selectedUnloadingRecord} />
                     </div>
                     <div className="space-y-2">
@@ -381,34 +381,40 @@ export function InitiateDryingForm({ customers, unloadingRecords, storageRecords
                         <Input id="workerHamaliPerBag" name="workerHamaliPerBag" type="number" step="0.01" value={formData.workerHamaliPerBag} onChange={handleInputChange} disabled={!selectedUnloadingRecord} />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="pavHamaliPerBag">Pav Rate/Day</Label>
+                        <Label htmlFor="pavHamaliPerBag">Pav Rate</Label>
                         <Input id="pavHamaliPerBag" name="pavHamaliPerBag" type="number" step="0.01" value={formData.pavHamaliPerBag} onChange={handleInputChange} disabled={!selectedUnloadingRecord} />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="cuppaHamaliPerBag">Cuppa Rate/Day</Label>
+                        <Label htmlFor="cuppaHamaliPerBag">Cuppa Rate</Label>
                         <Input id="cuppaHamaliPerBag" name="cuppaHamaliPerBag" type="number" step="0.01" value={formData.cuppaHamaliPerBag} onChange={handleInputChange} disabled={!selectedUnloadingRecord} />
                     </div>
                 </div>
 
                 <Separator />
 
-                <div className="space-y-2 pt-2">
-                    <div className="flex justify-between items-center font-semibold text-lg">
-                        <span>Total Hamali (Customer)</span>
-                        <span className="font-mono">{formatCurrency(totalCustomerCharge)}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm text-muted-foreground">
-                        <span>Total Hamali (Worker)</span>
-                        <span className="font-mono">{formatCurrency(totalWorkerPayable)}</span>
+                <div className="space-y-3 pt-2">
+                    <h4 className="text-sm font-bold flex items-center gap-2"><Calculator className="h-4 w-4" /> Calculation Summary (Based on {bagsForDrying} bags)</h4>
+                    <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm">
+                        <div className="flex justify-between"><span>Unloading @ {unloadingRate}:</span><span className="font-mono">{formatCurrency(proportionalUnloadingHamali)}</span></div>
+                        <div className="flex justify-between"><span>Drying (Day 1) @ {customerDay1HamaliRate}:</span><span className="font-mono">{formatCurrency((Number(bagsForDrying) || 0) * (Number(customerDay1HamaliRate) || 0))}</span></div>
+                        <div className="flex justify-between"><span>Pav ({extraDryingDays} extra days):</span><span className="font-mono">{formatCurrency((Number(bagsForDrying) || 0) * (Number(pavHamaliPerBag) || 0) * extraDryingDays)}</span></div>
+                        <div className="flex justify-between"><span>Cuppa ({extraDryingDays} extra days):</span><span className="font-mono">{formatCurrency((Number(bagsForDrying) || 0) * (Number(cuppaHamaliPerBag) || 0) * extraDryingDays)}</span></div>
+                        
+                        <Separator className="col-span-2 my-2" />
+                        
+                        <div className="col-span-2 flex justify-between items-center font-bold text-lg text-primary">
+                            <span>TOTAL BILLABLE HAMALI</span>
+                            <span className="font-mono">{formatCurrency(totalCustomerCharge)}</span>
+                        </div>
                     </div>
                 </div>
             </CardContent>
             <CardFooter className="flex flex-col sm:flex-row gap-2">
                 <Button type="button" variant="secondary" onClick={handlePartialSave} disabled={isPending || isPartialSaving || !selectedUnloadingRecord} className="w-full">
-                    {isPartialSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Start Drying (Save)'}
+                    {isPartialSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Start Drying (Save Status)'}
                 </Button>
                 <Button type="submit" disabled={isPending || isPartialSaving || !selectedUnloadingRecord} className="w-full">
-                    {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Create Final Inflow'}
+                    {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Create Final Inflow & Bill'}
                 </Button>
             </CardFooter>
         </form>

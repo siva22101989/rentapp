@@ -94,7 +94,6 @@ function LotInventoryTable({ groupedLots, customers, title }: { groupedLots: Gro
     )
 }
 
-
 export function LotInventoryReport({ records, customers }: LotInventoryReportProps) {
 
     const groupedLots = useMemo(() => {

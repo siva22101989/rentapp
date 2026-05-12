@@ -158,7 +158,6 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
 
         startTransition(async () => {
             try {
-                // Check if patti no already exists
                 const existingRef = doc(firestore, 'storageRecords', serialNo);
                 const existingSnap = await getDoc(existingRef);
                 if (existingSnap.exists()) {

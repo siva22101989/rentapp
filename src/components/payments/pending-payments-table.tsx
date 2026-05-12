@@ -45,7 +45,7 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, tit
         // 1. Process All Storage Records (Godown/Pattis)
         records.forEach(r => {
             const s = getSummary(r.customerId);
-            // hamaliPayable is pre-calculated based on Truck Bags (e.g. 2191) in the forms
+            // hamaliPayable is pre-calculated based on Truck Bags (e.g. 2191)
             const hamali = r.hamaliPayable || 0; 
             const rent = r.totalRentBilled || 0;
             const khata = r.khataAmount || 0;
@@ -80,7 +80,7 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, tit
         return Object.entries(summaryMap).map(([customerId, data]) => {
             const balanceDue = data.totalBilled - data.amountPaid;
             
-            // Standard Logic: Collections clear Hamali dues first
+            // Logic: Collections clear Hamali dues first
             const hamaliPending = Math.max(0, data.totalHamaliLiability - data.amountPaid);
             const rentPending = Math.max(0, balanceDue - hamaliPending);
 
@@ -95,8 +95,8 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, tit
                 lastActivityDate: new Date(data.lastDate)
             } as CustomerPendingSummary;
         })
-        .filter(s => s.balanceDue > 0.5) // Filter out negligible balances
-        .sort((a, b) => b.lastActivityDate.getTime() - a.lastActivityDate.getTime()); // Newest activity first
+        .filter(s => s.balanceDue > 0.5)
+        .sort((a, b) => b.lastActivityDate.getTime() - a.lastActivityDate.getTime());
 
     }, [records, unloadingRecords, customers]);
 

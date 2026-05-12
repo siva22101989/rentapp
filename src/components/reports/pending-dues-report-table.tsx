@@ -28,7 +28,7 @@ export function PendingDuesReportTable({ summaries, title }: ReportTableProps) {
     return (
         <div className="bg-white p-4 rounded-lg">
             <div className="mb-6 text-center">
-                <h2 className="text-2xl font-bold">GrainDost</h2>
+                <h2 className="text-2xl font-bold text-primary">GrainDost</h2>
                 <p className="text-muted-foreground font-semibold text-lg">{title}</p>
                 <p className="text-xs text-muted-foreground">Generated on: {generatedDate}</p>
             </div>
@@ -73,8 +73,8 @@ export function PendingDuesReportTable({ summaries, title }: ReportTableProps) {
                     </TableRow>
                 </TableFooter>
             </Table>
-            <div className="mt-6 p-4 bg-muted/20 border border-dashed rounded-md text-[11px] text-muted-foreground italic">
-                <p>* This report provides a consolidated financial summary per customer across all Godown and Plot records. Columns follow the sequence: Name, Hamali Pending, Rent Pending, Total Billed, Amount Paid, and Balance Due.</p>
+            <div className="mt-6 p-4 bg-muted/20 border border-dashed rounded-md text-[10px] text-muted-foreground italic">
+                <p>* This report represents consolidated outstanding balances per customer. Hamali is billed on original truck/handling quantity. Payments are applied to older records first, clearing labor dues before rent.</p>
             </div>
         </div>
     );

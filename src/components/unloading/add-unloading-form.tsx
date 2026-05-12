@@ -1,3 +1,4 @@
+'use server';
 'use client';
 
 import { useState, useEffect, useMemo, useTransition } from 'react';
@@ -113,7 +114,6 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
 
         startTransition(async () => {
             try {
-                // Check if bill no exists
                 const existingRef = doc(firestore, 'unloadingRecords', data.billNo);
                 const existingSnap = await getDoc(existingRef);
                 if (existingSnap.exists()) {

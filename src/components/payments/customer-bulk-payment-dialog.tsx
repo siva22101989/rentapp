@@ -144,10 +144,10 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
             const newPayments: Payment[] = [];
 
             if (record.recordType === 'storage') {
-                const sr = record as StorageRecord;
-                const hamaliPaid = (sr.payments || []).filter(p => p.type === 'hamali' || p.type === 'unloading').reduce((acc, p) => acc + p.amount, 0);
-                const rentPaid = (sr.payments || []).filter(p => p.type === 'rent').reduce((acc, p) => acc + p.amount, 0);
-                const otherPaid = (sr.payments || []).filter(p => p.type === 'other' || !p.type || p.type === 'discount').reduce((acc, p) => acc + p.amount, 0);
+                const sr = record as any;
+                const hamaliPaid = (sr.payments || []).filter((p: any) => p.type === 'hamali' || p.type === 'unloading').reduce((acc: number, p: any) => acc + p.amount, 0);
+                const rentPaid = (sr.payments || []).filter((p: any) => p.type === 'rent').reduce((acc: number, p: any) => acc + p.amount, 0);
+                const otherPaid = (sr.payments || []).filter((p: any) => p.type === 'other' || !p.type || p.type === 'discount').reduce((acc: number, p: any) => acc + p.amount, 0);
                 
                 let hamaliDue = Math.max(0, (sr.hamaliPayable || 0) - hamaliPaid);
                 let rentDue = Math.max(0, ((sr.totalRentBilled || 0) + (sr.khataAmount || 0)) - rentPaid - otherPaid);
@@ -170,8 +170,8 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
                     batch.update(recordRef, { payments: arrayUnion(...newPayments.map(p => cleanForFirestore(p))) });
                 }
             } else {
-                const ur = record as UnloadingRecord;
-                let hamaliDue = Math.max(0, (ur.totalHamali || 0) - (ur.payments || []).reduce((acc, p) => acc + p.amount, 0));
+                const ur = record as any;
+                let hamaliDue = Math.max(0, (ur.totalHamali || 0) - (ur.payments || []).reduce((acc: number, p: any) => acc + p.amount, 0));
                 if (hamaliDue > 0) {
                     const pay = Math.min(cashToApply, hamaliDue);
                     if (pay > 0) { newPayments.push({ amount: pay, date: paymentDate, type: 'unloading' }); cashToApply -= pay; hamaliDue -= pay; }

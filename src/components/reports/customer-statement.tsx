@@ -21,7 +21,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
     // 1. Process Unloading Records (Bags still in plot)
     (unloadingRecords || []).forEach(unloading => {
         const remainingBags = Math.max(0, (unloading.bagsUnloaded || 0) - (unloading.bagsSentToDrying || 0));
-        // Use Truck Bags for calculation
+        // IMPORTANT: Handling is billed on Truck Bags
         const remainingHamali = remainingBags * (unloading.hamaliPerBag || 0);
 
         if (remainingHamali > 0) {
@@ -54,7 +54,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
 
     // 2. Process Storage Records (Pattis)
     (records || []).forEach(record => {
-        // IMPORTANT: Handling is always billed on Truck Bags
+        // IMPORTANT: Handling is always billed on Truck/Original Bags (bagsForDrying or bagsIn)
         const truckBags = record.bagsForDrying || record.bagsIn;
         const godownBags = record.bagsIn;
 
@@ -65,7 +65,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             lotNo: record.location || '',
             bagsReceived: godownBags,
             bagsDelivered: 0,
-            // hamaliPayable was pre-calculated using truck bags in the forms
+            // hamaliPayable is calculated using truck bags during inflow/drying creation
             debit: record.hamaliPayable || 0,
             credit: 0,
             isHandlingCharge: true

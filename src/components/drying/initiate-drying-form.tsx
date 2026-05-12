@@ -102,14 +102,16 @@ export function InitiateDryingForm({ customers, unloadingRecords, storageRecords
         } catch (e) { /* ignore */ }
 
         const bags = Number(bagsForDrying) || 0;
+        const uRate = selectedUnloadingRecord?.hamaliPerBag || 0;
+        
+        // IMPORTANT: All handling is billed on truck bags
+        const pUnloadingHamali = uRate * bags;
+        const d1DryingHamali = bags * (Number(customerDay1HamaliRate) || 0);
         const pavH = bags * (Number(pavHamaliPerBag) || 0) * extraDays;
         const cuppaH = bags * (Number(cuppaHamaliPerBag) || 0) * extraDays;
-        const d1DryingHamali = bags * (Number(customerDay1HamaliRate) || 0);
-
-        const uRate = selectedUnloadingRecord?.hamaliPerBag || 0;
-        const pUnloadingHamali = uRate * bags;
 
         const totalCustCharge = pUnloadingHamali + d1DryingHamali + pavH + cuppaH;
+        
         const wHamaliDay1 = bags * (Number(workerHamaliPerBag) || 0);
         const totalWorkerPay = pUnloadingHamali + wHamaliDay1 + pavH + cuppaH;
         
@@ -260,15 +262,23 @@ export function InitiateDryingForm({ customers, unloadingRecords, storageRecords
                 
                 const bagsStored = data.bagsPacked;
                 const hamaliDetails: HamaliChargeItem[] = [];
+                
                 const currentProportionalUnloadingHamali = (selectedRecordOnSubmit.hamaliPerBag || 0) * data.bagsForDrying;
-                if (currentProportionalUnloadingHamali > 0) hamaliDetails.push({ description: 'Unloading Hamali', bags: data.bagsForDrying, rate: selectedRecordOnSubmit.hamaliPerBag || 0, amount: currentProportionalUnloadingHamali });
+                if (currentProportionalUnloadingHamali > 0) {
+                    hamaliDetails.push({ description: 'Unloading Hamali', bags: data.bagsForDrying, rate: selectedRecordOnSubmit.hamaliPerBag || 0, amount: currentProportionalUnloadingHamali });
+                }
+                
                 const dryingDay1CustomerHamali = data.bagsForDrying * data.customerHamaliPerBag;
-                if (dryingDay1CustomerHamali > 0) hamaliDetails.push({ description: 'Customer Hamali', bags: data.bagsForDrying, rate: data.customerHamaliPerBag, amount: dryingDay1CustomerHamali });
+                if (dryingDay1CustomerHamali > 0) {
+                    hamaliDetails.push({ description: 'Customer Hamali', bags: data.bagsForDrying, rate: data.customerHamaliPerBag, amount: dryingDay1CustomerHamali });
+                }
                 
                 const totalDryingDays = differenceInDays(endDate, startDate) + 1;
                 const extraDays = totalDryingDays > 1 ? totalDryingDays - 1 : 0;
+                
                 const pavHamaliAmount = data.bagsForDrying * (data.pavHamaliPerBag || 0) * extraDays;
                 if (pavHamaliAmount > 0) hamaliDetails.push({ description: 'Pav Hamali', bags: data.bagsForDrying, rate: data.pavHamaliPerBag || 0, amount: pavHamaliAmount });
+                
                 const cuppaHamaliAmount = data.bagsForDrying * (data.cuppaHamaliPerBag || 0) * extraDays;
                 if (cuppaHamaliAmount > 0) hamaliDetails.push({ description: 'Cuppa Hamali', bags: data.bagsForDrying, rate: data.cuppaHamaliPerBag || 0, amount: cuppaHamaliAmount });
                 
@@ -281,14 +291,14 @@ export function InitiateDryingForm({ customers, unloadingRecords, storageRecords
                     commodityDescription: selectedRecordOnSubmit.commodityDescription,
                     location: selectedRecordOnSubmit.location || '',
                     bagsIn: bagsStored,
-                    bagsForDrying: data.bagsForDrying, // This is the 2191 Truck Bags
+                    bagsForDrying: data.bagsForDrying, // Truck Count (e.g. 2191)
                     bagsOut: 0,
                     bagsStored: bagsStored,
                     storageStartDate: endDate,
                     storageEndDate: null,
                     billingCycle: '6-Month Initial' as const,
                     payments: [],
-                    hamaliPayable: totalHamaliForCustomer,
+                    hamaliPayable: totalHamaliForCustomer, // Based on truck bags
                     workerHamaliPayable: totalWorkerPayable,
                     totalRentBilled: 0,
                     lorryTractorNo: selectedRecordOnSubmit?.lorryTractorNo || '',

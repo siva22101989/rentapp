@@ -128,11 +128,12 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
   
   const calculatedHamali = useMemo(() => {
     const unloadingHamaliDetail = record.hamaliDetails?.find(d => d.description === 'Unloading Hamali');
-    const proportionalUnloadingHamali = unloadingHamaliDetail?.amount || 0;
+    const unloadingRate = unloadingHamaliDetail?.rate || 0;
 
-    // Use bagsForDrying (truck bags) as priority for handling calculations
-    const currentBags = Number(bagsForDrying) || Number(bagsIn) || 0;
-    const day1CustomerHamali = currentBags * (Number(customerHamaliPerBag) || 0);
+    // IMPORTANT: Handling is always calculated on bagsForDrying (truck count)
+    const bagsToBill = Number(bagsForDrying) || Number(bagsIn) || 0;
+    const proportionalUnloadingHamali = bagsToBill * unloadingRate;
+    const day1CustomerHamali = bagsToBill * (Number(customerHamaliPerBag) || 0);
 
     let extraDryingDays = 0;
     const start = parseManualDate(dryingStartDate);
@@ -142,11 +143,11 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
         extraDryingDays = days > 0 ? days : 0;
     }
     
-    const pavHamali = currentBags * (Number(pavHamaliPerBag) || 0) * extraDryingDays;
-    const cuppaHamali = currentBags * (Number(cuppaHamaliPerBag) || 0) * extraDryingDays;
+    const pavHamali = bagsToBill * (Number(pavHamaliPerBag) || 0) * extraDryingDays;
+    const cuppaHamali = bagsToBill * (Number(cuppaHamaliPerBag) || 0) * extraDryingDays;
     const totalCustomerCharge = proportionalUnloadingHamali + day1CustomerHamali + pavHamali + cuppaHamali;
     
-    const day1WorkerHamali = currentBags * (Number(workerHamaliPerBag) || 0);
+    const day1WorkerHamali = bagsToBill * (Number(workerHamaliPerBag) || 0);
     const totalWorkerPayable = proportionalUnloadingHamali + day1WorkerHamali + pavHamali + cuppaHamali;
 
     return {
@@ -239,17 +240,21 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
             
             const hamaliDetails: HamaliChargeItem[] = [];
             const unloadingHamaliDetail = record.hamaliDetails?.find(d => d.description === 'Unloading Hamali');
+            const unloadingRate = unloadingHamaliDetail?.rate || 0;
+            const bagsToBill = data.bagsForDrying || data.bagsIn;
+
             if(unloadingHamaliDetail) {
                 hamaliDetails.push({
-                    ...unloadingHamaliDetail,
-                    bags: data.bagsForDrying || data.bagsIn,
-                    amount: (data.bagsForDrying || data.bagsIn) * unloadingHamaliDetail.rate
+                    description: 'Unloading Hamali',
+                    bags: bagsToBill,
+                    rate: unloadingRate,
+                    amount: bagsToBill * unloadingRate
                 });
             }
             
-            if(calculatedHamali.day1CustomerHamali > 0) hamaliDetails.push({ description: 'Customer Hamali', bags: data.bagsForDrying || data.bagsIn, rate: data.customerHamaliPerBag || 0, amount: calculatedHamali.day1CustomerHamali });
-            if(calculatedHamali.pavHamali > 0) hamaliDetails.push({ description: `Pav Hamali`, bags: data.bagsForDrying || data.bagsIn, rate: data.pavHamaliPerBag || 0, amount: calculatedHamali.pavHamali });
-            if(calculatedHamali.cuppaHamali > 0) hamaliDetails.push({ description: `Cuppa Hamali`, bags: data.bagsForDrying || data.bagsIn, rate: data.cuppaHamaliPerBag || 0, amount: calculatedHamali.cuppaHamali });
+            if(calculatedHamali.day1CustomerHamali > 0) hamaliDetails.push({ description: 'Customer Hamali', bags: bagsToBill, rate: data.customerHamaliPerBag || 0, amount: calculatedHamali.day1CustomerHamali });
+            if(calculatedHamali.pavHamali > 0) hamaliDetails.push({ description: `Pav Hamali`, bags: bagsToBill, rate: data.pavHamaliPerBag || 0, amount: calculatedHamali.pavHamali });
+            if(calculatedHamali.cuppaHamali > 0) hamaliDetails.push({ description: `Cuppa Hamali`, bags: bagsToBill, rate: data.cuppaHamaliPerBag || 0, amount: calculatedHamali.cuppaHamali });
 
             updateData.hamaliDetails = hamaliDetails;
             updateData.hamaliPayable = calculatedHamali.totalCustomerCharge;

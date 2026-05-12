@@ -144,7 +144,7 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
             const newPayments: Payment[] = [];
 
             if (record.recordType === 'storage') {
-                const sr = record;
+                const sr = record as StorageRecord;
                 const hamaliPaid = (sr.payments || []).filter(p => p.type === 'hamali' || p.type === 'unloading').reduce((acc, p) => acc + p.amount, 0);
                 const rentPaid = (sr.payments || []).filter(p => p.type === 'rent').reduce((acc, p) => acc + p.amount, 0);
                 const otherPaid = (sr.payments || []).filter(p => p.type === 'other' || !p.type || p.type === 'discount').reduce((acc, p) => acc + p.amount, 0);
@@ -170,7 +170,7 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
                     batch.update(recordRef, { payments: arrayUnion(...newPayments.map(p => cleanForFirestore(p))) });
                 }
             } else {
-                const ur = record;
+                const ur = record as UnloadingRecord;
                 let hamaliDue = Math.max(0, (ur.totalHamali || 0) - (ur.payments || []).reduce((acc, p) => acc + p.amount, 0));
                 if (hamaliDue > 0) {
                     const pay = Math.min(cashToApply, hamaliDue);

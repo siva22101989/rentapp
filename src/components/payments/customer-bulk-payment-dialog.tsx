@@ -175,7 +175,7 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
         }
         await batch.commit();
         if (sendSmsNotification && warehouseInfo?.textbeeApiKey && selectedCustomer?.phone) {
-            const template = warehouseInfo?.smsPaymentTemplate || 'Dear {customerName}, thank you for your payment of {paymentAmount} on {date}.';
+            const template = warehouseInfo?.smsPaymentTemplate || 'Dear {customerName}, thank you for your payment of {paymentAmount} on {date}. Your account has been updated. - {warehouseName}';
             const msg = template.replace('{customerName}', selectedCustomer.name).replace('{paymentAmount}', formatCurrency(data.paymentAmount)).replace('{date}', format(paymentDate, 'dd/MM/yy')).replace('{warehouseName}', warehouseInfo?.name || 'GrainDost');
             sendSms({ apiKey: warehouseInfo.textbeeApiKey, deviceId: warehouseInfo.textbeeDeviceId, to: selectedCustomer.phone, message: msg }).catch(console.error);
         }

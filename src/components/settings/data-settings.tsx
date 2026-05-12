@@ -76,7 +76,7 @@ export function DataSettings() {
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(custSnap.docs.map(d => ({ 
             "Customer ID": String(d.id), 
             "Name": d.data().name,
-            "Phone": d.data().phone,
+            "Phone": String(d.data().phone || ''),
             "Village": d.data().village || '',
             "Father Name": d.data().fatherName || '',
             "Address": d.data().address || ''
@@ -88,7 +88,7 @@ export function DataSettings() {
             const data = d.data();
             return {
                 "Storage ID": String(d.id),
-                "Customer ID": String(data.customerId),
+                "Customer ID": String(data.customerId || ''),
                 "Commodity": data.commodityDescription,
                 "Lot No": data.location || '',
                 "Bags Received": data.bagsIn,
@@ -122,7 +122,7 @@ export function DataSettings() {
             const data = d.data();
             return { 
                 "Bill No": String(data.billNo || d.id), 
-                "Customer ID": String(data.customerId), 
+                "Customer ID": String(data.customerId || ''), 
                 "Commodity": data.commodityDescription, 
                 "Bags Unloaded": data.bagsUnloaded, 
                 "Unloading Date": toDate(data.unloadingDate).toISOString().split('T')[0], 
@@ -135,12 +135,26 @@ export function DataSettings() {
         const allPayments: any[] = [];
         storageSnap.docs.forEach(d => {
             (d.data().payments || []).forEach((p: any) => {
-                allPayments.push({ "Type": 'Storage', "Storage ID": String(d.id), "Customer ID": String(d.data().customerId), "Amount": p.amount, "Date": toDate(p.date).toISOString().split('T')[0], "Category": p.type || 'rent' });
+                allPayments.push({ 
+                    "Type": 'Storage', 
+                    "Storage ID": String(d.id), 
+                    "Customer ID": String(d.data().customerId || ''), 
+                    "Amount": p.amount, 
+                    "Date": toDate(p.date).toISOString().split('T')[0], 
+                    "Category": p.type || 'rent' 
+                });
             });
         });
         unloadingSnap.docs.forEach(d => {
             (d.data().payments || []).forEach((p: any) => {
-                allPayments.push({ "Type": 'Unloading', "Bill No": String(d.data().billNo || d.id), "Customer ID": String(d.data().customerId), "Amount": p.amount, "Date": toDate(p.date).toISOString().split('T')[0], "Category": 'unloading' });
+                allPayments.push({ 
+                    "Type": 'Unloading', 
+                    "Bill No": String(d.data().billNo || d.id), 
+                    "Customer ID": String(d.data().customerId || ''), 
+                    "Amount": p.amount, 
+                    "Date": toDate(p.date).toISOString().split('T')[0], 
+                    "Category": 'unloading' 
+                });
             });
         });
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(allPayments), 'payments');
@@ -233,7 +247,7 @@ export function DataSettings() {
             // 2. Restore Customers
             if (data.customers && Array.isArray(data.customers)) {
                 data.customers.forEach((c: any) => {
-                    const id = String(c["Customer ID"] || c.id || '');
+                    const id = String(c["Customer ID"] || c.id || '').trim();
                     if (id) {
                         const { "Customer ID": _id, id: _id2, warehouseId: _wh, ...rest } = c;
                         batch.set(doc(firestore, 'customers', id), cleanForFirestore({ ...rest, warehouseId }));
@@ -245,11 +259,11 @@ export function DataSettings() {
             const storageRecordsMap: Record<string, any> = {};
             if (data.inflow && Array.isArray(data.inflow)) {
                 data.inflow.forEach((r: any) => {
-                    const id = String(r["Storage ID"] || r.id || '');
+                    const id = String(r["Storage ID"] || r.id || '').trim();
                     if (id) {
                         storageRecordsMap[id] = {
                             warehouseId,
-                            customerId: String(r["Customer ID"] || ''),
+                            customerId: String(r["Customer ID"] || '').trim(),
                             commodityDescription: String(r["Commodity"] || ''),
                             location: String(r["Lot No"] || ''),
                             bagsIn: Number(r["Bags Received"] || 0),
@@ -271,7 +285,7 @@ export function DataSettings() {
             // 4. Restore Outflows (Withdrawals)
             if (data.outflow && Array.isArray(data.outflow)) {
                 data.outflow.forEach((o: any) => {
-                    const id = String(o["Storage ID"] || o.id || '');
+                    const id = String(o["Storage ID"] || o.id || '').trim();
                     if (storageRecordsMap[id]) {
                         const bagsWithdrawn = Number(o["Bags Withdrawn"] || 0);
                         const rentBilled = Number(o["Rent Billed"] || 0);
@@ -304,7 +318,7 @@ export function DataSettings() {
                     const type = String(p["Category"] || 'rent');
 
                     if (p["Type"] === 'Storage' && p["Storage ID"]) {
-                        const id = String(p["Storage ID"]);
+                        const id = String(p["Storage ID"]).trim();
                         if (storageRecordsMap[id]) {
                             storageRecordsMap[id].payments.push({ amount, date, type });
                         }
@@ -320,13 +334,13 @@ export function DataSettings() {
             // 6. Restore Unloading Records
             if (data.unloading && Array.isArray(data.unloading)) {
                 data.unloading.forEach((u: any) => {
-                    const id = String(u["Bill No"] || u.id || '');
+                    const id = String(u["Bill No"] || u.id || '').trim();
                     const bags = Number(u["Bags Unloaded"] || 0);
                     const totalH = Number(u["Total Hamali"] || 0);
                     const record = {
                         warehouseId,
                         billNo: id,
-                        customerId: String(u["Customer ID"] || ''),
+                        customerId: String(u["Customer ID"] || '').trim(),
                         commodityDescription: String(u["Commodity"] || ''),
                         bagsUnloaded: bags,
                         unloadingDate: toDate(u["Unloading Date"]),
@@ -484,7 +498,7 @@ export function DataSettings() {
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                    <AlertDialogCancel onClick={() => setPendingImportData(null)}>Cancel</AlertDialogCancel>
+                    <AlertDialogCancel onClick={() => { setPendingImportData(null); setIsImportAlertOpen(false); }}>Cancel</AlertDialogCancel>
                     <AlertDialogAction onClick={executeDeepRestore}>Execute Deep Restore</AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>

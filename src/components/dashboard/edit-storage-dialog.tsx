@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useTransition, useMemo } from 'react';
@@ -290,7 +289,7 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
           </DialogHeader>
           <div className="grid gap-4 py-4 pr-2">
              <div className="space-y-2">
-                <Label htmlFor="edit-storage-id">Storage ID (Master Reference)</Label>
+                <Label htmlFor="edit-storage-id">Storage ID</Label>
                 <Input id="edit-storage-id" className="font-mono font-bold" value={storageId} onChange={e => setStorageId(e.target.value)} />
               </div>
              <div className="space-y-2">

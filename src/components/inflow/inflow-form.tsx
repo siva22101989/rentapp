@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useTransition, useState, useEffect, useMemo } from 'react';
@@ -259,7 +258,7 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                 </CardHeader>
                 <CardContent className="space-y-4">
                      <div className="space-y-2">
-                        <Label htmlFor="storageId">Storage ID (Master Reference)</Label>
+                        <Label htmlFor="storageId">Storage ID</Label>
                         <Input 
                             id="storageId" 
                             type="text" 
@@ -312,7 +311,7 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                     </div>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label htmlFor="lorryTractorNo">Lorry / Tractor No. <span className="text-muted-foreground text-xs">(Optional)</span></Label>
+                            <Label htmlFor="lorryTractorNo">Lorry / Tractor No.</Label>
                             <Input id="lorryTractorNo" name="lorryTractorNo" placeholder="e.g., AP 21 1234" value={lorryTractorNo} onChange={e => setLorryTractorNo(e.target.value)} />
                         </div>
                         <div className="space-y-2">
@@ -343,7 +342,7 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                             />
                         </div>
                          <div className="space-y-2">
-                            <Label htmlFor="weight">Weight <span className="text-muted-foreground text-xs">(Optional)</span></Label>
+                            <Label htmlFor="weight">Weight (Kgs)</Label>
                             <Input 
                                 id="weight" 
                                 name="weight" 
@@ -371,7 +370,7 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                             <Input id="hamaliPaid" name="hamaliPaid" type="number" placeholder="0.00" step="0.01" value={hamaliPaid} onChange={e => setHamaliPaid(e.target.value === '' ? '' : Number(e.target.value))}/>
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="khataAmount">Khata Amount (Weighbridge)</Label>
+                            <Label htmlFor="khataAmount">Khata Amount</Label>
                             <Input id="khataAmount" name="khataAmount" type="number" placeholder="0.00" step="0.01" value={khataAmount} onChange={e => setKhataAmount(e.target.value === '' ? '' : Number(e.target.value))} />
                         </div>
                     </div>

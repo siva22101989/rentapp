@@ -42,10 +42,9 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, tit
             return summaryMap[id];
         };
 
-        // 1. Process All Storage Records (Godown/Pattis)
+        // 1. Process All Storage Records
         records.forEach(r => {
             const s = getSummary(r.customerId);
-            // hamaliPayable is pre-calculated based on Truck Bags (e.g. 2191)
             const hamali = r.hamaliPayable || 0; 
             const rent = r.totalRentBilled || 0;
             const khata = r.khataAmount || 0;
@@ -60,11 +59,10 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, tit
             if (rDate > s.lastDate) s.lastDate = rDate;
         });
 
-        // 2. Process Unloading Records (Bags still in plot)
+        // 2. Process Unloading Records
         unloadingRecords.forEach(r => {
             const s = getSummary(r.customerId);
             const remainingBags = Math.max(0, (r.bagsUnloaded || 0) - (r.bagsSentToDrying || 0));
-            // Billing for the work done on bags still in the plot
             const remainingHamaliLiability = remainingBags * (r.hamaliPerBag || 0);
             const totalPaidOnUnloading = (r.payments || []).reduce((acc, p) => acc + p.amount, 0);
             
@@ -76,11 +74,8 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, tit
             if (uDate > s.lastDate) s.lastDate = uDate;
         });
 
-        // 3. Convert to consolidated customer summaries
         return Object.entries(summaryMap).map(([customerId, data]) => {
             const balanceDue = data.totalBilled - data.amountPaid;
-            
-            // Logic: Collections clear Hamali dues first
             const hamaliPending = Math.max(0, data.totalHamaliLiability - data.amountPaid);
             const rentPending = Math.max(0, balanceDue - hamaliPending);
 
@@ -101,18 +96,13 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, tit
     }, [records, unloadingRecords, customers]);
 
     return (
-        <Card>
-            <CardHeader className="print-hide">
-                <CardTitle>{title}</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <div className="printable-area">
-                    <PendingDuesReportTable
-                        summaries={pendingSummaries}
-                        title={title}
-                    />
-                </div>
-            </CardContent>
-        </Card>
+        <div className="space-y-4">
+            <div className="printable-area">
+                <PendingDuesReportTable
+                    summaries={pendingSummaries}
+                    title={title}
+                />
+            </div>
+        </div>
   );
 }

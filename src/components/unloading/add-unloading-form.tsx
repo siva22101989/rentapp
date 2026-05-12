@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo, useTransition } from 'react';
@@ -123,9 +122,6 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                     return;
                 }
 
-                const receiptUrl = `/unloading/receipt/${data.billNo}`;
-                const receiptWindow = window.open(receiptUrl, '_blank');
-
                 const totalHamali = data.bagsUnloaded * data.customerHamaliPerBag;
                 const workerHamaliPayable = data.bagsUnloaded * (data.workerHamaliPerBag ?? data.customerHamaliPerBag);
                 
@@ -140,8 +136,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                     workerHamaliPayable 
                 };
                 
-                const docRef = doc(firestore, 'unloadingRecords', data.billNo);
-                await setDoc(docRef, cleanForFirestore(rawRecord));
+                await setDoc(doc(firestore, 'unloadingRecords', data.billNo), cleanForFirestore(rawRecord));
 
                 if (sendSmsNotification && warehouseInfo?.textbeeApiKey && selectedCustomer?.phone) {
                     const template = warehouseInfo?.smsUnloadingTemplate || 'Dear {customerName}, delivery of {bags} bags received on {date}. Bill No: {billNo}. Thank you.';
@@ -157,12 +152,13 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                     
                     sendSms({ apiKey: warehouseInfo.textbeeApiKey, deviceId: warehouseInfo.textbeeDeviceId, to: selectedCustomer.phone, message }).catch(console.error);
                 }
+                
                 toast({ title: 'Success', description: 'Unloading record added.' });
                 form.reset();
+                window.open(`/unloading/receipt/${data.billNo}`, '_blank');
             } catch (error) {
                 console.error(error);
                 toast({ title: 'Error', description: 'Failed to add record.', variant: 'destructive' });
-                if (receiptWindow) receiptWindow.close();
             }
         });
     };

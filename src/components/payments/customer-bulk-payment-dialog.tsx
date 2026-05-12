@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useMemo } from 'react';
@@ -89,15 +88,12 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
     storageRecords
         .filter(r => r.customerId === selectedCustomerId)
         .forEach(rec => {
-            const hamaliPayable = rec.hamaliPayable || 0;
-            const totalRentBilled = rec.totalRentBilled || 0;
-            const khataAmount = rec.khataAmount || 0;
             const hamaliPaid = (rec.payments || []).filter(p => p.type === 'hamali' || p.type === 'unloading').reduce((acc, p) => acc + p.amount, 0);
             const rentPaid = (rec.payments || []).filter(p => p.type === 'rent').reduce((acc, p) => acc + p.amount, 0);
             const otherPaid = (rec.payments || []).filter(p => p.type === 'other' || !p.type || p.type === 'discount').reduce((acc, p) => acc + p.amount, 0);
             
-            hamaliDue += Math.max(0, hamaliPayable - hamaliPaid);
-            rentDue += Math.max(0, (totalRentBilled + khataAmount) - rentPaid - otherPaid);
+            hamaliDue += Math.max(0, (rec.hamaliPayable || 0) - hamaliPaid);
+            rentDue += Math.max(0, ((rec.totalRentBilled || 0) + (rec.khataAmount || 0)) - rentPaid - otherPaid);
         });
 
     unloadingRecords
@@ -141,7 +137,6 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
 
         for (const record of sortedRecords) {
             if (cashToApply <= 0.005 && discountToApply <= 0.005) break; 
-            
             const newPayments: Payment[] = [];
 
             if (record.recordType === 'storage') {
@@ -165,11 +160,7 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
                     const disc = Math.min(discountToApply, rentDue);
                     if (disc > 0) { newPayments.push({ amount: disc, date: paymentDate, type: 'discount' }); discountToApply -= disc; }
                 }
-
-                if (newPayments.length > 0) {
-                    const recordRef = doc(firestore, 'storageRecords', sr.id);
-                    batch.update(recordRef, { payments: arrayUnion(...newPayments.map(p => cleanForFirestore(p))) });
-                }
+                if (newPayments.length > 0) batch.update(doc(firestore, 'storageRecords', sr.id), { payments: arrayUnion(...newPayments.map(p => cleanForFirestore(p))) });
             } else {
                 const ur = record as any;
                 let hamaliDue = Math.max(0, (ur.totalHamali || 0) - (ur.payments || []).reduce((acc: number, p: any) => acc + p.amount, 0));
@@ -179,21 +170,15 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
                     const disc = Math.min(discountToApply, hamaliDue);
                     if (disc > 0) { newPayments.push({ amount: disc, date: paymentDate, type: 'discount' }); discountToApply -= disc; }
                 }
-                if (newPayments.length > 0) {
-                    const recordRef = doc(firestore, 'unloadingRecords', ur.id);
-                    batch.update(recordRef, { payments: arrayUnion(...newPayments.map(p => cleanForFirestore(p))) });
-                }
+                if (newPayments.length > 0) batch.update(doc(firestore, 'unloadingRecords', ur.id), { payments: arrayUnion(...newPayments.map(p => cleanForFirestore(p))) });
             }
         }
-        
         await batch.commit();
-
         if (sendSmsNotification && warehouseInfo?.textbeeApiKey && selectedCustomer?.phone) {
-            const template = warehouseInfo?.smsPaymentTemplate || 'Dear {customerName}, thank you for your payment of {paymentAmount} on {date}. - {warehouseName}';
+            const template = warehouseInfo?.smsPaymentTemplate || 'Dear {customerName}, thank you for your payment of {paymentAmount} on {date}.';
             const msg = template.replace('{customerName}', selectedCustomer.name).replace('{paymentAmount}', formatCurrency(data.paymentAmount)).replace('{date}', format(paymentDate, 'dd/MM/yy')).replace('{warehouseName}', warehouseInfo?.name || 'GrainDost');
             sendSms({ apiKey: warehouseInfo.textbeeApiKey, deviceId: warehouseInfo.textbeeDeviceId, to: selectedCustomer.phone, message: msg }).catch(console.error);
         }
-
         toast({ title: 'Payment Recorded', description: `${formatCurrency(data.paymentAmount)} collected.` });
         setIsOpen(false);
         form.reset();
@@ -207,33 +192,25 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-         <Button>
-            <UserPlus className="mr-2" />
-            Bulk Customer Payment
-        </Button>
+         <Button><UserPlus className="mr-2" />Bulk Customer Payment</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-sm max-h-[80vh] overflow-y-auto">
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
             <DialogHeader>
                 <DialogTitle>Bulk Customer Payment</DialogTitle>
-                <DialogDescription>Select customer and enter amount. Date format: DD-MM-YYYY.</DialogDescription>
+                <DialogDescription>Manual date format: DD-MM-YYYY.</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-                <FormField
-                    control={form.control}
-                    name="customerId"
-                    render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                            <FormLabel>Customer</FormLabel>
-                            <Combobox options={customerOptions} value={field.value} onChange={field.onChange} placeholder="Select a customer..." searchPlaceholder="Search customers..." modal={true} />
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
+                <FormField control={form.control} name="customerId" render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                        <FormLabel>Customer</FormLabel>
+                        <Combobox options={customerOptions} value={field.value} onChange={field.onChange} placeholder="Select customer..." modal={true} />
+                        <FormMessage />
+                    </FormItem>
+                )} />
                 {selectedCustomerId && (
                 <>
-                <Separator />
                 <div className="p-4 rounded-lg bg-secondary border">
                     <div className="flex justify-between text-sm"><span>Hamali Pending</span><span>{formatCurrency(totalHamaliDue)}</span></div>
                     <div className="flex justify-between text-sm"><span>Rent Pending</span><span>{formatCurrency(totalRentDue)}</span></div>
@@ -242,26 +219,24 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
                     <div className="flex justify-between text-sm font-bold border-t pt-1"><span>Final Payable</span><span className="text-destructive">{formatCurrency(totalPayable)}</span></div>
                 </div>
                 <FormField control={form.control} name="paymentDate" render={({ field }) => (
-                    <FormItem><FormLabel>Payment Date (DD-MM-YYYY)</FormLabel><FormControl><Input placeholder="DD-MM-YYYY" {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Date (DD-MM-YYYY)</FormLabel><FormControl><Input placeholder="DD-MM-YYYY" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
                 <FormField control={form.control} name="discount" render={({ field }) => (
-                    <FormItem><FormLabel>Discount Amount</FormLabel><FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Discount</FormLabel><FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                 )} />
                 <FormField control={form.control} name="paymentAmount" render={({ field }) => (
-                    <FormItem><FormLabel>Payment Amount</FormLabel><FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Amount Paid</FormLabel><FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                 )} />
                 <div className="flex items-center space-x-2 pt-4">
-                    <Checkbox id="sendSmsPayment" checked={sendSmsNotification} onCheckedChange={(checked) => setSendSmsNotification(Boolean(checked))} disabled={!warehouseInfo?.textbeeApiKey || !selectedCustomer?.phone} />
-                    <label htmlFor="sendSmsPayment" className="text-sm font-medium leading-none">Send SMS Notification</label>
+                    <Checkbox id="sendSmsBulk" checked={sendSmsNotification} onCheckedChange={(checked) => setSendSmsNotification(Boolean(checked))} disabled={!warehouseInfo?.textbeeApiKey || !selectedCustomer?.phone} />
+                    <label htmlFor="sendSmsBulk" className="text-sm font-medium leading-none">Send SMS</label>
                 </div>
                 </>
                 )}
             </div>
             <DialogFooter>
                 <DialogClose asChild><Button variant="outline" type="button">Cancel</Button></DialogClose>
-                <Button type="submit" disabled={isPending || !selectedCustomerId}>
-                    {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : 'Record Payment'}
-                </Button>
+                <Button type="submit" disabled={isPending || !selectedCustomerId}>Record Payment</Button>
             </DialogFooter>
             </form>
         </Form>

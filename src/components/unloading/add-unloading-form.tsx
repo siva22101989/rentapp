@@ -67,7 +67,9 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
     });
 
     useEffect(() => {
-        form.setValue('billNo', nextBillNo);
+        if (nextBillNo) {
+            form.setValue('billNo', nextBillNo);
+        }
     }, [nextBillNo, form]);
     
     const customerOptions = customers.map(c => ({ value: c.id, label: c.name }));
@@ -91,10 +93,10 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
     const bagsUnloaded = form.watch('bagsUnloaded');
     const customerHamaliPerBag = form.watch('customerHamaliPerBag');
 
-    const { totalCustomerHamali } = useMemo(() => {
+    const totalCustomerHamali = useMemo(() => {
         const bags = Number(bagsUnloaded) || 0;
         const custRate = Number(customerHamaliPerBag) || 0;
-        return { totalCustomerHamali: bags * custRate };
+        return bags * custRate;
     }, [bagsUnloaded, customerHamaliPerBag]);
 
     const selectedCustomerId = form.watch('customerId');
@@ -159,6 +161,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
             } catch (error) {
                 console.error(error);
                 toast({ title: 'Error', description: 'Failed to add record.', variant: 'destructive' });
+                if (receiptWindow) receiptWindow.close();
             }
         });
     };

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useFirestore, useAppUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { collection, writeBatch, getDocs, doc, query, where } from 'firebase/firestore';
+import { collection, writeBatch, getDocs, doc, query, where, setDoc } from 'firebase/firestore';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,6 +16,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { cleanForFirestore, toDate } from '@/lib/utils';
 import { Separator } from '../ui/separator';
@@ -57,7 +58,7 @@ export function DataSettings() {
         link.click();
         document.body.removeChild(link);
         
-        toast({ title: 'JSON Export Successful', description: 'Your data has been saved.' });
+        toast({ title: 'JSON Export Successful', description: 'Technical data dump saved.' });
       } catch (error: any) {
         toast({ title: 'Export Error', description: error.message, variant: 'destructive' });
       }
@@ -81,7 +82,7 @@ export function DataSettings() {
             "Address": d.data().address || ''
         }))), 'customers');
 
-        // 2. Inflow
+        // 2. Inflow (Godown Inventory)
         const storageSnap = await getDocs(query(collection(firestore, 'storageRecords'), where('warehouseId', '==', appUser.warehouseId)));
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(storageSnap.docs.map(d => {
             const data = d.data();
@@ -92,13 +93,14 @@ export function DataSettings() {
                 "Lot No": data.location || '',
                 "Bags Received": data.bagsIn,
                 "Inflow Date": toDate(data.storageStartDate).toISOString().split('T')[0],
-                "Handling Charge Total": data.hamaliPayable || 0,
+                "Handling Rate": data.hamaliRate || 0,
+                "Total Handling Billed": data.hamaliPayable || 0,
                 "Khata Amount": data.khataAmount || 0,
                 "Status": data.billingCycle
             };
         })), 'inflow');
 
-        // 3. Outflow
+        // 3. Outflow (Withdrawal History)
         const outflows: any[] = [];
         storageSnap.docs.forEach(d => {
             const data = d.data();
@@ -115,7 +117,7 @@ export function DataSettings() {
         });
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(outflows), 'outflow');
 
-        // 4. Unloading
+        // 4. Unloading (Truck Register)
         const unloadingSnap = await getDocs(query(collection(firestore, 'unloadingRecords'), where('warehouseId', '==', appUser.warehouseId)));
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(unloadingSnap.docs.map(d => {
             const data = d.data();
@@ -125,6 +127,7 @@ export function DataSettings() {
                 "Commodity": data.commodityDescription, 
                 "Bags Unloaded": data.bagsUnloaded, 
                 "Unloading Date": toDate(data.unloadingDate).toISOString().split('T')[0], 
+                "Customer Rate": data.hamaliPerBag || 0,
                 "Total Hamali": data.totalHamali 
             };
         })), 'unloading');
@@ -167,12 +170,12 @@ export function DataSettings() {
   const handleDownloadTemplate = () => {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ "Customer ID": 'CUST-01', "Name": 'Customer Name', "Phone": '9876543210', "Village": 'Village', "Father Name": 'Father', "Address": 'Address' }]), 'customers');
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ "Storage ID": '1001', "Customer ID": 'CUST-01', "Commodity": 'Paddy', "Lot No": 'A1', "Bags Received": 2191, "Inflow Date": '2024-05-01', "Handling Charge Total": 109550, "Khata Amount": 100, "Status": "6-Month Initial" }]), 'inflow');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ "Storage ID": '1001', "Customer ID": 'CUST-01', "Commodity": 'Paddy', "Lot No": 'A1', "Bags Received": 2191, "Inflow Date": '2024-05-01', "Handling Rate": 50, "Total Handling Billed": 109550, "Khata Amount": 100, "Status": "6-Month Initial" }]), 'inflow');
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ "Storage ID": '1001', "Customer ID": 'CUST-01', "Withdrawal Date": '2024-06-01', "Bags Withdrawn": 1000, "Rent Billed": 5000, "Discount": 0 }]), 'outflow');
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ "Bill No": 'U-01', "Customer ID": 'CUST-01', "Commodity": 'Paddy', "Bags Unloaded": 2191, "Unloading Date": '2024-05-01', "Total Hamali": 13146 }]), 'unloading');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ "Bill No": 'U-01', "Customer ID": 'CUST-01', "Commodity": 'Paddy', "Bags Unloaded": 2191, "Unloading Date": '2024-05-01', "Customer Rate": 6, "Total Hamali": 13146 }]), 'unloading');
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ "Type": 'Storage', "Storage ID": '1001', "Customer ID": 'CUST-01', "Amount": 50000, "Date": '2024-05-15', "Category": 'hamali' }]), 'payments');
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ "Ref No": 'E-01', "Category": 'Petrol', "Description": 'Fuel', "Amount": 1500, "Date": '2024-05-10' }]), 'expenses');
-    XLSX.writeFile(wb, 'GrainDost-Excel-Restore-Template.xlsx');
+    XLSX.writeFile(wb, 'GrainDost-Restore-Template.xlsx');
   };
 
   const handleJsonFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -228,7 +231,7 @@ export function DataSettings() {
                 snap.docs.forEach(d => batch.delete(d.ref));
             }
 
-            // 2. Customers
+            // 2. Restore Customers
             if (data.customers && Array.isArray(data.customers)) {
                 data.customers.forEach((c: any) => {
                     const id = String(c["Customer ID"] || c.id || '');
@@ -239,7 +242,7 @@ export function DataSettings() {
                 });
             }
 
-            // 3. Storage Records Map
+            // 3. Prepare Storage Records Map
             const storageRecordsMap: Record<string, any> = {};
             if (data.inflow && Array.isArray(data.inflow)) {
                 data.inflow.forEach((r: any) => {
@@ -254,7 +257,8 @@ export function DataSettings() {
                             bagsOut: 0,
                             bagsStored: Number(r["Bags Received"] || 0),
                             storageStartDate: toDate(r["Inflow Date"]),
-                            hamaliPayable: Number(r["Handling Charge Total"] || 0),
+                            hamaliRate: Number(r["Handling Rate"] || 0),
+                            hamaliPayable: Number(r["Total Handling Billed"] || 0),
                             khataAmount: Number(r["Khata Amount"] || 0),
                             billingCycle: String(r["Status"] || '6-Month Initial'),
                             payments: [],
@@ -265,7 +269,7 @@ export function DataSettings() {
                 });
             }
 
-            // 4. Outflows
+            // 4. Restore Outflows (Withdrawals)
             if (data.outflow && Array.isArray(data.outflow)) {
                 data.outflow.forEach((o: any) => {
                     const id = String(o["Storage ID"] || o.id || '');
@@ -293,7 +297,7 @@ export function DataSettings() {
                 });
             }
 
-            // 5. Payments
+            // 5. Restore Payments
             if (data.payments && Array.isArray(data.payments)) {
                 data.payments.forEach((p: any) => {
                     const amount = Number(p["Amount"] || 0);
@@ -309,12 +313,12 @@ export function DataSettings() {
                 });
             }
 
-            // Commit Storage Records
+            // Write all reconstructed Storage Records
             Object.entries(storageRecordsMap).forEach(([id, r]) => {
                 batch.set(doc(firestore, 'storageRecords', id), cleanForFirestore(r));
             });
 
-            // 6. Unloading
+            // 6. Restore Unloading Records
             if (data.unloading && Array.isArray(data.unloading)) {
                 data.unloading.forEach((u: any) => {
                     const id = String(u["Bill No"] || u.id || '');
@@ -330,14 +334,14 @@ export function DataSettings() {
                         totalHamali: totalH,
                         status: 'Billed',
                         bagsSentToDrying: bags,
-                        hamaliPerBag: bags > 0 ? totalH / bags : 0,
+                        hamaliPerBag: Number(u["Customer Rate"]) || (bags > 0 ? totalH / bags : 0),
                         payments: []
                     };
                     batch.set(doc(firestore, 'unloadingRecords', id), cleanForFirestore(record));
                 });
             }
 
-            // 7. Expenses
+            // 7. Restore Expenses
             if (data.expenses && Array.isArray(data.expenses)) {
                 data.expenses.forEach((e: any) => {
                     const expense = {
@@ -353,7 +357,7 @@ export function DataSettings() {
             }
             
             await batch.commit();
-            toast({ title: 'Deep Restore Successful' });
+            toast({ title: 'Data Reconstruction Successful', description: 'Your warehouse history has been rebuilt.' });
             setIsImportAlertOpen(false);
             setPendingImportData(null);
         } catch (err: any) {

@@ -81,7 +81,7 @@ export function LotStockOutflowReport({ records, customers }: ReportProps) {
                             <Table className="text-xs">
                                 <TableHeader className="bg-muted/30">
                                     <TableRow>
-                                        <TableHead className="w-[80px] h-auto py-2">Patti No</TableHead>
+                                        <TableHead className="w-[100px] h-auto py-2">Storage ID</TableHead>
                                         <TableHead className="min-w-[150px] h-auto py-2">Customer Name</TableHead>
                                         <TableHead className="h-auto py-2">Commodity</TableHead>
                                         <TableHead className="h-auto py-2">Inflow Date</TableHead>

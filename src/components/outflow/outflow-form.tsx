@@ -348,7 +348,7 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>Patti No</TableHead>
+                                        <TableHead>Storage ID</TableHead>
                                         <TableHead>Commodity</TableHead>
                                         <TableHead>Lot</TableHead>
                                         <TableHead className="text-right">Stock</TableHead>

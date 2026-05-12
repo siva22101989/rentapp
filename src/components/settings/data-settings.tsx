@@ -71,7 +71,7 @@ export function DataSettings() {
       try {
         const wb = XLSX.utils.book_new();
 
-        // 1. Customers
+        // 1. Customers - CLEAN: NO Storage ID
         const custSnap = await getDocs(query(collection(firestore, 'customers'), where('warehouseId', '==', appUser.warehouseId)));
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(custSnap.docs.map(d => ({ 
             "Customer ID": String(d.id), 
@@ -100,7 +100,7 @@ export function DataSettings() {
             };
         })), 'inflow');
 
-        // 3. Outflow (Withdrawal History)
+        // 3. Outflow (Withdrawal History) - CLEAN: NO Customer ID
         const outflows: any[] = [];
         storageSnap.docs.forEach(d => {
             const data = d.data();
@@ -182,12 +182,25 @@ export function DataSettings() {
 
   const handleDownloadTemplate = () => {
     const wb = XLSX.utils.book_new();
+    
+    // Customers template - NO Storage ID
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ "Customer ID": 'CUST-01', "Name": 'Customer Name', "Phone": '9876543210', "Village": 'Village', "Father Name": 'Father', "Address": 'Address' }]), 'customers');
+    
+    // Inflow template
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ "Storage ID": '1001', "Customer ID": 'CUST-01', "Commodity": 'Paddy', "Lot No": 'A1', "Bags Received": 2191, "Inflow Date": '2024-05-01', "Handling Rate": 50, "Total Handling Billed": 109550, "Khata Amount": 100, "Status": "6-Month Initial" }]), 'inflow');
+    
+    // Outflow template - NO Customer ID
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ "Storage ID": '1001', "Withdrawal Date": '2024-06-01', "Bags Withdrawn": 1000, "Rent Billed": 5000, "Discount": 0 }]), 'outflow');
+    
+    // Unloading template
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ "Bill No": 'U-01', "Customer ID": 'CUST-01', "Commodity": 'Paddy', "Bags Unloaded": 2191, "Unloading Date": '2024-05-01', "Customer Rate": 6, "Total Hamali": 13146 }]), 'unloading');
+    
+    // Payments template
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ "Type": 'Storage', "Storage ID": '1001', "Customer ID": 'CUST-01', "Amount": 50000, "Date": '2024-05-15', "Category": 'hamali' }]), 'payments');
+    
+    // Expenses template
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ "Ref No": 'E-01', "Category": 'Petrol', "Description": 'Fuel', "Amount": 1500, "Date": '2024-05-10' }]), 'expenses');
+    
     XLSX.writeFile(wb, 'GrainDost-Restore-Template.xlsx');
   };
 
@@ -249,8 +262,15 @@ export function DataSettings() {
                 data.customers.forEach((c: any) => {
                     const id = String(c["Customer ID"] || c.id || '').trim();
                     if (id) {
-                        const { "Customer ID": _id, id: _id2, warehouseId: _wh, ...rest } = c;
-                        batch.set(doc(firestore, 'customers', id), cleanForFirestore({ ...rest, warehouseId }));
+                        const customerData = {
+                            warehouseId,
+                            name: String(c["Name"] || ''),
+                            phone: String(c["Phone"] || ''),
+                            village: String(c["Village"] || ''),
+                            fatherName: String(c["Father Name"] || ''),
+                            address: String(c["Address"] || ''),
+                        };
+                        batch.set(doc(firestore, 'customers', id), cleanForFirestore(customerData));
                     }
                 });
             }

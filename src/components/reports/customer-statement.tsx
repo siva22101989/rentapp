@@ -21,7 +21,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
     // 1. Process Unloading Records (Bags still in plot)
     (unloadingRecords || []).forEach(unloading => {
         const remainingBags = Math.max(0, (unloading.bagsUnloaded || 0) - (unloading.bagsSentToDrying || 0));
-        // IMPORTANT: Handling is billed on Truck Bags
+        // Handling is billed on Truck Bags
         const remainingHamali = remainingBags * (unloading.hamaliPerBag || 0);
 
         if (remainingHamali > 0) {
@@ -54,7 +54,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
 
     // 2. Process Storage Records (Pattis)
     (records || []).forEach(record => {
-        // IMPORTANT: Handling is always billed on Truck/Original Bags (bagsForDrying or bagsIn)
+        // Handling is always billed on Truck/Original Bags (bagsForDrying or bagsIn)
         const truckBags = record.bagsForDrying || record.bagsIn;
         const godownBags = record.bagsIn;
 
@@ -115,7 +115,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         (record.payments || []).forEach(payment => {
             events.push({
                 date: toDate(payment.date),
-                description: `Payment Received (Patti #${record.id})`,
+                description: `Payment Received (Storage ID #${record.id})`,
                 invoiceId: record.id,
                 lotNo: record.location || '',
                 bagsReceived: 0,

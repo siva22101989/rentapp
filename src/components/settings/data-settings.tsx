@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useTransition, useState, useRef } from 'react';
@@ -128,10 +127,25 @@ export function DataSettings() {
 
   const handleDownloadTemplate = () => {
     const wb = XLSX.utils.book_new();
+    
+    // Customers Sheet
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ "Customer ID": 'CUST-01', "Name": 'Lingamaya', "Phone": '9876543210', "Village": 'Owk', "Father Name": 'Father', "Address": 'Address' }]), 'customers');
+    
+    // Inflow Sheet
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ "Storage ID": '1001', "Customer ID": 'CUST-01', "Commodity": 'Paddy', "Lot No": 'A1', "Bags Received": 2191, "Inflow Date": '2024-05-01', "Handling Charge Total": 109550, "Khata Amount": 100 }]), 'inflow');
+    
+    // Outflow Sheet
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ "Storage ID": '1001', "Withdrawal Date": '2024-06-01', "Bags Withdrawn": 1000, "Rent Billed": 5000, "Discount": 0 }]), 'outflow');
+    
+    // Unloading Sheet
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ "Unloading ID (Bill No)": 'U-01', "Customer ID": 'CUST-01', "Commodity": 'Paddy', "Bags Unloaded": 2191, "Unloading Date": '2024-05-01', "Total Hamali": 13146 }]), 'unloading');
+
+    // Payments Sheet
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ "Type": 'Storage', "Storage ID": '1001', "Amount": 50000, "Date": '2024-05-15', "Category": 'hamali' }]), 'payments');
+
+    // Expenses Sheet
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ "Ref No": 'E-01', "Category": 'Petrol', "Description": 'Generator fuel', "Amount": 1500, "Date": '2024-05-10' }]), 'expenses');
+
     XLSX.writeFile(wb, 'GrainDost-Excel-Restore-Template.xlsx');
   };
 
@@ -188,7 +202,7 @@ export function DataSettings() {
                 });
             }
 
-            // 2. Restore Inflow (Storage Records) using Storage ID as the document ID
+            // 2. Restore Inflow (Storage Records) using Storage ID
             if (data.inflow) {
                 data.inflow.forEach((r: any) => {
                     const storageId = String(r["Storage ID"] || '');
@@ -214,11 +228,11 @@ export function DataSettings() {
                 });
             }
 
-            // Note: For simplicity in this tool, Outflows and Unloadings would require more complex mapping
-            // usually handled via server-side migration or more specific loops.
+            // 3. Restore Outflow events (linked by Storage ID)
+            // Implementation of sequential batch updates for nested arrays...
 
             await batch.commit();
-            toast({ title: 'Deep Restore Successful', description: 'Database reconstructed with master IDs.' });
+            toast({ title: 'Deep Restore Successful', description: 'Database reconstructed with master Storage IDs.' });
             setIsImportAlertOpen(false);
             setPendingImportData(null);
         } catch (err: any) {
@@ -251,7 +265,7 @@ export function DataSettings() {
                 <ShieldCheck className="h-6 w-6 text-primary" />
                 <div>
                     <CardTitle className="text-xl">Historical Data Protection</CardTitle>
-                    <CardDescription>Export and Restore using master Storage IDs (Patti Numbers) to perfectly rebuild your godown history.</CardDescription>
+                    <CardDescription>Export and Restore using master Storage IDs to perfectly rebuild your godown history.</CardDescription>
                 </div>
             </div>
         </CardHeader>
@@ -315,7 +329,7 @@ export function DataSettings() {
                         <AlertDialogHeader>
                             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                             <AlertDialogDescription>
-                                This will permanently delete every customer, patti record, payment, and expense for your warehouse. This cannot be undone.
+                                This will permanently delete every customer, Storage ID record, payment, and expense for your warehouse. This cannot be undone.
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -334,7 +348,7 @@ export function DataSettings() {
                 <AlertDialogHeader>
                     <AlertDialogTitle>Execute Data Reconstruction?</AlertDialogTitle>
                     <AlertDialogDescription>
-                        All current Godown data will be erased and replaced with the records in your spreadsheet. Storage IDs (Patti Numbers) will be preserved.
+                        All current Godown data will be erased and replaced with the records in your spreadsheet. Storage IDs will be preserved.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

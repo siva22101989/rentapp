@@ -55,7 +55,7 @@ function LotInventoryTable({ groupedLots, customers, title }: { groupedLots: Gro
                 <TableHeader>
                     <TableRow className="bg-muted/50 hover:bg-muted/50">
                         <TableHead className="w-[120px] font-bold">Lot No.</TableHead>
-                        <TableHead className="font-bold">Patti No.</TableHead>
+                        <TableHead className="font-bold">Storage ID</TableHead>
                         <TableHead className="font-bold">Customer Name</TableHead>
                         <TableHead className="hidden md:table-cell font-bold">Commodity</TableHead>
                         <TableHead className="hidden lg:table-cell font-bold">Inflow Date</TableHead>

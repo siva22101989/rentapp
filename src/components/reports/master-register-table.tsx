@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo } from "react";
@@ -58,7 +57,7 @@ export function MasterRegisterTable({ records, customers, title }: MasterRegiste
                 <TableHeader>
                     <TableRow className="bg-muted/50">
                         <TableHead>Date</TableHead>
-                        <TableHead>Patti No</TableHead>
+                        <TableHead>Storage ID</TableHead>
                         <TableHead className="min-w-[150px]">Customer</TableHead>
                         <TableHead>Commodity</TableHead>
                         <TableHead>Lot No</TableHead>

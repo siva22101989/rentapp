@@ -20,10 +20,12 @@ import { DryingHistoryTable } from '@/components/drying/drying-history-table';
 import { LotStockOutflowReport } from './lot-stock-outflow-report';
 import { LotInventoryReport } from './lot-inventory-report';
 import { PendingPaymentsTable } from '@/components/payments/pending-payments-table';
+import { PaymentReport } from './payment-report';
 
 const reportTypes = [
     { value: 'daily-summary', label: 'Daily Summary Report' },
     { value: 'profit-and-loss', label: 'Profit & Loss Report' },
+    { value: 'payment-register', label: 'Payment Register' },
     { value: 'pending-dues', label: 'Pending Dues Register (Consolidated)' },
     { value: 'lot-active-stock', label: 'Lot-wise Active Stock Only' },
     { value: 'lot-stock-outflow', label: 'Lot-wise Stock & Outflow History' },
@@ -117,6 +119,8 @@ export function CustomReportGenerator({
                             borrowings={borrowings}
                             lendings={lendings}
                         />;
+            case 'payment-register':
+                return <PaymentReport records={records} unloadingRecords={unloadingRecords} customers={customers} />;
             case 'pending-dues':
                 return <PendingPaymentsTable 
                             records={records} 

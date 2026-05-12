@@ -11,7 +11,7 @@ import { Loader2 } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { formatCurrency, cleanForFirestore, toDate, formatManualDate, parseManualDate } from '@/lib/utils';
 import { useFirestore } from '@/firebase/provider';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { Combobox } from '../ui/combobox';
 import { useAppUser } from '@/firebase/auth/use-user';
 import { useDoc } from '@/firebase/firestore/use-doc';
@@ -156,11 +156,19 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
             return;
         }
 
-        const receiptUrl = `/inflow/receipt/${serialNo}`;
-        const receiptWindow = window.open(receiptUrl, '_blank');
-
         startTransition(async () => {
             try {
+                // Check if patti no already exists
+                const existingRef = doc(firestore, 'storageRecords', serialNo);
+                const existingSnap = await getDoc(existingRef);
+                if (existingSnap.exists()) {
+                    toast({ title: 'Duplicate Patti', description: `A record with Patti No #${serialNo} already exists. Please use a unique number.`, variant: 'destructive' });
+                    return;
+                }
+
+                const receiptUrl = `/inflow/receipt/${serialNo}`;
+                const receiptWindow = window.open(receiptUrl, '_blank');
+
                 const weightValue = Number(weight) || 0;
                 const customerHamaliRate = Number(customerRate) || 0;
                 const workerHamaliRate = Number(workerRate) || customerHamaliRate;
@@ -232,13 +240,11 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                 }
                 
                 toast({ title: 'Success', description: 'Inflow record created successfully.' });
-                
                 resetForm();
                 
             } catch (error) {
                 console.error(error);
                 toast({ title: 'Error', description: 'Failed to create inflow record.', variant: 'destructive' });
-                if (receiptWindow) receiptWindow.close();
             }
         });
     }
@@ -252,13 +258,14 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                 </CardHeader>
                 <CardContent className="space-y-4">
                      <div className="space-y-2">
-                        <Label htmlFor="serialNo">Patti No / Serial No (Auto-Generated)</Label>
+                        <Label htmlFor="serialNo">Patti No / Serial No</Label>
                         <Input 
                             id="serialNo" 
                             type="text" 
-                            disabled={true}
-                            className="bg-muted font-mono font-bold"
+                            placeholder="e.g., 1001"
+                            className="font-mono font-bold"
                             value={serialNo} 
+                            onChange={(e) => setSerialNo(e.target.value)}
                         />
                     </div>
                      <div className="space-y-2">

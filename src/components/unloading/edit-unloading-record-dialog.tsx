@@ -20,7 +20,7 @@ import type { Customer, UnloadingRecord, Commodity, Lot, StorageRecord } from '@
 import { useFirestore } from '@/firebase/provider';
 import { z } from 'zod';
 import { updateUnloadingRecord } from '@/lib/data';
-import { toDate, cleanForFirestore, formatManualDate, parseManualDate } from '@/lib/utils';
+import { cleanForFirestore, formatManualDate, parseManualDate } from '@/lib/utils';
 import { Combobox } from '../ui/combobox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
@@ -162,7 +162,7 @@ export function EditUnloadingRecordDialog({
           totalHamali,
           workerHamaliPayable,
         };
-        await updateUnloadingRecord(firestore, record.id, updateData);
+        await updateUnloadingRecord(firestore, record.id, result.data.billNo, updateData);
         toast({ title: 'Success', description: 'Unloading record updated.' });
         setIsOpen(false);
       } catch (error) {
@@ -180,13 +180,13 @@ export function EditUnloadingRecordDialog({
           <DialogHeader>
             <DialogTitle>Edit Unloading Record</DialogTitle>
             <DialogDescription>
-              Adjust details for Bill No. {record.billNo}. Note: Bill Number is read-only.
+              Adjust details for Bill No. {record.billNo}.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4 pr-2">
             <div className="space-y-2">
                 <Label htmlFor="edit-bill-no">Bill No.</Label>
-                <Input id="edit-bill-no" disabled value={billNo} />
+                <Input id="edit-bill-no" className="font-mono font-bold" value={billNo} onChange={e => setBillNo(e.target.value)} />
             </div>
             <div className="space-y-2">
                 <Label htmlFor="customerId">Customer</Label>

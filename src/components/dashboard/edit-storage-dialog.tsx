@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import type { Customer, StorageRecord, Commodity, Lot, HamaliChargeItem } from '@/lib/definitions';
-import { format, differenceInDays } from 'date-fns';
+import { differenceInDays } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { toDate, cleanForFirestore, formatCurrency, formatManualDate, parseManualDate } from '@/lib/utils';
 import { z } from 'zod';
@@ -31,6 +31,7 @@ import { useAppUser } from '@/firebase/auth/use-user';
 import { Combobox } from '../ui/combobox';
 
 const EditStorageRecordSchema = z.object({
+  pattiNo: z.string().min(1, 'Patti No is required.'),
   customerId: z.string().min(1, 'Customer is required.'),
   commodityDescription: z.string().min(1, 'Commodity is required.'),
   location: z.string().optional(),
@@ -55,6 +56,7 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
   const firestore = useFirestore();
   const appUser = useAppUser();
   
+  const [pattiNo, setPattiNo] = useState('');
   const [customerId, setCustomerId] = useState('');
   const [commodityDescription, setCommodityDescription] = useState('');
   const [location, setLocation] = useState('');
@@ -101,6 +103,7 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
     if (isOpen) {
       const getRate = (desc: string) => record.hamaliDetails?.find(d => d.description.toLowerCase().includes(desc.toLowerCase()))?.rate;
 
+      setPattiNo(record.id);
       setCustomerId(record.customerId || '');
       setCommodityDescription(record.commodityDescription || '');
       setLocation(record.location || '');
@@ -130,7 +133,6 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
     const unloadingHamaliDetail = record.hamaliDetails?.find(d => d.description === 'Unloading Hamali');
     const unloadingRate = unloadingHamaliDetail?.rate || 0;
 
-    // IMPORTANT: Handling is always calculated on bagsForDrying (truck count)
     const bagsToBill = Number(bagsForDrying) || Number(bagsIn) || 0;
     const proportionalUnloadingHamali = bagsToBill * unloadingRate;
     const day1CustomerHamali = bagsToBill * (Number(customerHamaliPerBag) || 0);
@@ -180,6 +182,7 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
     const finalDryingDate = dryingStartDate ? parseManualDate(dryingStartDate) : null;
     
     const dataToValidate = {
+      pattiNo,
       customerId,
       commodityDescription,
       location,
@@ -263,7 +266,8 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
             }
         }
 
-        await updateStorageRecord(firestore, record.id, updateData);
+        // Use the smart update to handle Patti No changes
+        await updateStorageRecord(firestore, record.id, data.pattiNo, updateData);
         toast({ title: 'Success', description: 'Record updated.' });
         setIsOpen(false);
       } catch (error) {
@@ -285,6 +289,10 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4 pr-2">
+             <div className="space-y-2">
+                <Label htmlFor="edit-patti-no">Patti No / Serial No</Label>
+                <Input id="edit-patti-no" className="font-mono font-bold" value={pattiNo} onChange={e => setPattiNo(e.target.value)} />
+              </div>
              <div className="space-y-2">
                 <Label>Customer</Label>
                 <Combobox options={customerOptions} value={customerId} onChange={setCustomerId} placeholder="Select customer..." modal={true} />

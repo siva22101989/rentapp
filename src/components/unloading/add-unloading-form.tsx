@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase/provider';
 import type { Customer, Commodity, UnloadingRecord, WarehouseInfo, Lot, StorageRecord } from '@/lib/definitions';
-import { setDoc, doc } from 'firebase/firestore';
+import { setDoc, doc, getDoc } from 'firebase/firestore';
 import { formatCurrency, cleanForFirestore, formatManualDate, parseManualDate } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 import { Combobox } from '../ui/combobox';
@@ -110,12 +110,20 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
             form.setError('unloadingDate', { message: 'Use DD-MM-YYYY format.' });
             return;
         }
-        
-        const receiptUrl = `/unloading/receipt/${data.billNo}`;
-        const receiptWindow = window.open(receiptUrl, '_blank');
-        
+
         startTransition(async () => {
             try {
+                // Check if bill no exists
+                const existingRef = doc(firestore, 'unloadingRecords', data.billNo);
+                const existingSnap = await getDoc(existingRef);
+                if (existingSnap.exists()) {
+                    toast({ title: 'Duplicate Bill No', description: `An unloading record with Bill No #${data.billNo} already exists.`, variant: 'destructive' });
+                    return;
+                }
+
+                const receiptUrl = `/unloading/receipt/${data.billNo}`;
+                const receiptWindow = window.open(receiptUrl, '_blank');
+
                 const totalHamali = data.bagsUnloaded * data.customerHamaliPerBag;
                 const workerHamaliPayable = data.bagsUnloaded * (data.workerHamaliPerBag ?? data.customerHamaliPerBag);
                 const rawRecord = { 
@@ -150,7 +158,6 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
             } catch (error) {
                 console.error(error);
                 toast({ title: 'Error', description: 'Failed to add record.', variant: 'destructive' });
-                if (receiptWindow) receiptWindow.close();
             }
         });
     };
@@ -165,13 +172,13 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <FormField control={form.control} name="billNo" render={({ field }) => (
-                            <FormItem><FormLabel>Bill No. (Auto)</FormLabel><FormControl><Input disabled className="bg-muted font-mono" {...field} /></FormControl><FormMessage /></FormItem>
+                            <FormItem><FormLabel>Bill No.</FormLabel><FormControl><Input className="font-mono font-bold" {...field} /></FormControl><FormMessage /></FormItem>
                         )} />
                         <FormField control={form.control} name="customerId" render={({ field }) => (
                             <FormItem className="flex flex-col"><FormLabel>Customer</FormLabel><Combobox options={customerOptions} value={field.value} onChange={field.onChange} placeholder="Select a customer..." searchPlaceholder="Search customers..." modal={true} /><FormMessage /></FormItem>
                         )} />
                         <FormField control={form.control} name="commodityDescription" render={({ field }) => (
-                            <FormItem><FormLabel>Commodity</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select commodity" /></SelectTrigger></FormControl><SelectContent>{commodities.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                            <FormItem><FormLabel>Commodity</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select commodity" /></SelectTrigger></FormControl><SelectContent>{commodities.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</Select><FormMessage /></FormItem>
                         )} />
                         <FormField control={form.control} name="location" render={({ field }) => (
                             <FormItem className="flex flex-col"><FormLabel>Lot No.</FormLabel><Combobox options={lotOptions} value={field.value} onChange={field.onChange} placeholder="Select location..." searchPlaceholder="Search lots..." modal={true} /><FormMessage /></FormItem>

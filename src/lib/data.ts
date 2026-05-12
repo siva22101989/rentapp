@@ -34,9 +34,37 @@ export const deleteCustomer = async (db: Firestore, id: string): Promise<void> =
     await deleteDoc(doc(db, 'customers', id));
 };
 
-export const updateStorageRecord = async (db: Firestore, id: string, data: Partial<StorageRecord>): Promise<void> => {
-    const recordRef = doc(db, 'storageRecords', id);
-    await updateDoc(recordRef, cleanForFirestore(data));
+/**
+ * Updates a storage record, handling a potential Patti No (Serial No / Document ID) change.
+ */
+export const updateStorageRecord = async (db: Firestore, oldId: string, newId: string, data: Partial<StorageRecord>): Promise<void> => {
+    const batch = writeBatch(db);
+    
+    if (oldId !== newId) {
+        // Patti No changed. Clone document to new ID and delete old one.
+        const oldRef = doc(db, 'storageRecords', oldId);
+        const newRef = doc(db, 'storageRecords', newId);
+        
+        // Ensure new ID is unique
+        const existingSnap = await getDoc(newRef);
+        if (existingSnap.exists()) {
+            throw new Error(`Cannot change to Patti No #${newId} as it already exists.`);
+        }
+
+        const oldSnap = await getDoc(oldRef);
+        if (oldSnap.exists()) {
+            const currentData = oldSnap.data();
+            batch.set(newRef, cleanForFirestore({ ...currentData, ...data }));
+            batch.delete(oldRef);
+        } else {
+            throw new Error("Original record not found.");
+        }
+    } else {
+        const recordRef = doc(db, 'storageRecords', oldId);
+        batch.update(recordRef, cleanForFirestore(data));
+    }
+    
+    await batch.commit();
 };
 
 export const deleteStorageRecord = async (db: Firestore, id: string): Promise<void> => {
@@ -193,9 +221,35 @@ export const editOutflowEvent = async (db: Firestore, recordId: string, outflowI
     });
 };
 
-export const updateUnloadingRecord = async (db: Firestore, id: string, data: Partial<UnloadingRecord>): Promise<void> => {
-    const recordRef = doc(db, 'unloadingRecords', id);
-    await updateDoc(recordRef, cleanForFirestore(data));
+/**
+ * Updates an unloading record, handling a potential Bill No (ID) change.
+ */
+export const updateUnloadingRecord = async (db: Firestore, oldId: string, newId: string, data: Partial<UnloadingRecord>): Promise<void> => {
+    const batch = writeBatch(db);
+    
+    if (oldId !== newId) {
+        const oldRef = doc(db, 'unloadingRecords', oldId);
+        const newRef = doc(db, 'unloadingRecords', newId);
+        
+        const existingSnap = await getDoc(newRef);
+        if (existingSnap.exists()) {
+            throw new Error(`Cannot change to Bill No #${newId} as it already exists.`);
+        }
+
+        const oldSnap = await getDoc(oldRef);
+        if (oldSnap.exists()) {
+            const currentData = oldSnap.data();
+            batch.set(newRef, cleanForFirestore({ ...currentData, ...data, billNo: newId }));
+            batch.delete(oldRef);
+        } else {
+            throw new Error("Original unloading record not found.");
+        }
+    } else {
+        const recordRef = doc(db, 'unloadingRecords', oldId);
+        batch.update(recordRef, cleanForFirestore(data));
+    }
+    
+    await batch.commit();
 };
 
 export const deleteUnloadingRecord = async (db: Firestore, id: string): Promise<void> => {

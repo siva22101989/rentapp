@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useTransition, useState, useEffect, useMemo } from 'react';
@@ -53,10 +54,10 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
     const [selectedLot, setSelectedLot] = useState('');
     const [lorryTractorNo, setLorryTractorNo] = useState('');
     const [storageStartDate, setStorageStartDate] = useState(formatManualDate(new Date()));
-    const [serialNo, setSerialNo] = useState(nextId);
+    const [storageId, setStorageId] = useState(nextId);
 
     useEffect(() => {
-        setSerialNo(nextId);
+        setStorageId(nextId);
     }, [nextId]);
 
     const warehouseInfoRef = useMemoFirebase(
@@ -100,7 +101,7 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
     const { customerHamali, workerHamali } = useMemo(() => {
         const bagsValue = Number(bags) || 0;
         const custRateValue = Number(customerRate) || 0;
-        const workRateValue = Number(workerRate) || 0;
+        const workRateValue = Number(workerRate) || custRateValue;
         
         return {
             customerHamali: bagsValue * custRateValue,
@@ -120,7 +121,7 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
         setSelectedLot('');
         setLorryTractorNo('');
         setStorageStartDate(formatManualDate(new Date()));
-        setSerialNo(nextId);
+        setStorageId(nextId);
     };
     
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -136,8 +137,8 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
             return;
         }
 
-        if (!serialNo) {
-            toast({ title: 'Error', description: 'Patti/Serial No is required.', variant: 'destructive' });
+        if (!storageId) {
+            toast({ title: 'Error', description: 'Storage ID is required.', variant: 'destructive' });
             return;
         }
 
@@ -158,14 +159,14 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
 
         startTransition(async () => {
             try {
-                const existingRef = doc(firestore, 'storageRecords', serialNo);
+                const existingRef = doc(firestore, 'storageRecords', storageId);
                 const existingSnap = await getDoc(existingRef);
                 if (existingSnap.exists()) {
-                    toast({ title: 'Duplicate Patti', description: `A record with Patti No #${serialNo} already exists. Please use a unique number.`, variant: 'destructive' });
+                    toast({ title: 'Duplicate ID', description: `A record with Storage ID #${storageId} already exists.`, variant: 'destructive' });
                     return;
                 }
 
-                const receiptUrl = `/inflow/receipt/${serialNo}`;
+                const receiptUrl = `/inflow/receipt/${storageId}`;
                 const receiptWindow = window.open(receiptUrl, '_blank');
 
                 const weightValue = Number(weight) || 0;
@@ -214,18 +215,18 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                     rate1Year: commodityDetails.rate1Year,
                 };
 
-                const docRef = doc(firestore, "storageRecords", serialNo);
+                const docRef = doc(firestore, "storageRecords", storageId);
                 await setDoc(docRef, cleanForFirestore(rawRecord));
 
                 if (sendSmsNotification && warehouseInfo?.textbeeApiKey && selectedCustomer?.phone) {
-                    const defaultTemplate = `Dear {customerName}, your inflow of {bags} bags of {commodity} has been recorded on {date}. Bill No: {billNo}. Hamali: {hamaliAmount}. Thank you. - {warehouseName}`;
+                    const defaultTemplate = `Dear {customerName}, your inflow of {bags} bags of {commodity} has been recorded on {date}. ID: {billNo}. Hamali: {hamaliAmount}. Thank you. - {warehouseName}`;
                     const template = warehouseInfo?.smsInflowTemplate || defaultTemplate;
 
                     const message = template
                         .replace('{customerName}', selectedCustomer.name)
                         .replace('{bags}', String(bagsStored))
                         .replace('{commodity}', selectedCommodity)
-                        .replace('{billNo}', serialNo)
+                        .replace('{billNo}', storageId)
                         .replace('{date}', format(finalDate, 'dd/MM/yy'))
                         .replace('{hamaliAmount}', formatCurrency(hamaliPayable))
                         .replace('{warehouseName}', warehouseInfo?.name || 'GrainDost');
@@ -238,7 +239,7 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                     }).catch(console.error);
                 }
                 
-                toast({ title: 'Success', description: 'Inflow record created successfully.' });
+                toast({ title: 'Success', description: 'Storage record created successfully.' });
                 resetForm();
                 
             } catch (error) {
@@ -254,17 +255,18 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
             <Card>
                 <CardHeader>
                     <CardTitle>New Storage Record Details</CardTitle>
+                    <CardDescription>Manually set or correct the Storage ID below. Format: DD-MM-YYYY.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                      <div className="space-y-2">
-                        <Label htmlFor="serialNo">Patti No / Serial No</Label>
+                        <Label htmlFor="storageId">Storage ID (Master Reference)</Label>
                         <Input 
-                            id="serialNo" 
+                            id="storageId" 
                             type="text" 
                             placeholder="e.g., 1001"
-                            className="font-mono font-bold"
-                            value={serialNo} 
-                            onChange={(e) => setSerialNo(e.target.value)}
+                            className="font-mono font-bold text-lg"
+                            value={storageId} 
+                            onChange={(e) => setStorageId(e.target.value)}
                         />
                     </div>
                      <div className="space-y-2">
@@ -275,7 +277,6 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                             onChange={setSelectedCustomerId}
                             placeholder="Select a customer..."
                             searchPlaceholder="Search customers..."
-                            emptyPlaceholder="No customer found."
                         />
                     </div>
 
@@ -296,7 +297,6 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                                 onChange={setSelectedCommodity}
                                 placeholder="Select a product..."
                                 searchPlaceholder="Search products..."
-                                emptyPlaceholder="No products found."
                             />
                         </div>
                          <div className="space-y-2">
@@ -307,7 +307,6 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                                 onChange={setSelectedLot}
                                 placeholder="Select a lot..."
                                 searchPlaceholder="Search lots..."
-                                emptyPlaceholder="No lots found."
                             />
                         </div>
                     </div>
@@ -331,7 +330,7 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                     </div>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label htmlFor="bagsStored">No. of Bags</Label>
+                            <Label htmlFor="bagsStored">No. of Bags (Packed)</Label>
                             <Input 
                                 id="bagsStored" 
                                 name="bagsStored" 
@@ -358,11 +357,11 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label htmlFor="customerHamaliRate">Customer Hamali Rate (per bag)</Label>
+                            <Label htmlFor="customerHamaliRate">Cust Hamali Rate</Label>
                             <Input id="customerHamaliRate" name="customerHamaliRate" type="number" placeholder="0.00" step="0.01" value={customerRate} onChange={e => setCustomerRate(e.target.value === '' ? '' : Number(e.target.value))}/>
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="workerHamaliRate">Worker Hamali Rate (per bag)</Label>
+                            <Label htmlFor="workerHamaliRate">Worker Hamali Rate</Label>
                             <Input id="workerHamaliRate" name="workerHamaliRate" type="number" placeholder="0.00" step="0.01" value={workerRate} onChange={e => setWorkerRate(e.target.value === '' ? '' : Number(e.target.value))}/>
                         </div>
                     </div>
@@ -381,25 +380,18 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                         <h4 className="font-medium">Billing Summary</h4>
                         <div className="space-y-2 text-sm">
                             <div className="flex justify-between items-center font-semibold">
-                                <span className="text-foreground">Total Hamali Payable (Customer)</span>
+                                <span className="text-foreground">Total Hamali (Customer)</span>
                                 <span className="font-mono">{formatCurrency(customerHamali)}</span>
                             </div>
                              <div className="flex justify-between items-center text-sm">
-                                <span className="text-muted-foreground">Total Hamali Payable (Worker)</span>
+                                <span className="text-muted-foreground">Total Hamali (Worker)</span>
                                 <span className="font-mono">{formatCurrency(workerHamali)}</span>
-                            </div>
-                             <div className="flex justify-between items-center text-sm">
-                                <span className="text-muted-foreground">Profit/Loss on Hamali</span>
-                                <span className="font-mono">{formatCurrency(customerHamali - workerHamali)}</span>
                             </div>
                             <Separator />
                             <div className="flex justify-between items-center font-semibold">
                                 <span className="text-destructive">Hamali Pending</span>
                                 <span className="font-mono text-destructive">{formatCurrency(customerHamali - (Number(hamaliPaid) || 0))}</span>
                             </div>
-                            <p className="text-xs text-muted-foreground pt-2">
-                                Rent will be calculated at the time of withdrawal.
-                            </p>
                         </div>
                     </div>
                      <div className="flex items-center space-x-2 pt-4">
@@ -411,7 +403,7 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                         />
                         <label
                             htmlFor="sendSms"
-                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                            className="text-sm font-medium leading-none"
                         >
                             Send SMS Notification to Customer
                         </label>

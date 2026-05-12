@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useTransition, useMemo } from 'react';
@@ -31,7 +32,7 @@ import { useAppUser } from '@/firebase/auth/use-user';
 import { Combobox } from '../ui/combobox';
 
 const EditStorageRecordSchema = z.object({
-  pattiNo: z.string().min(1, 'Patti No is required.'),
+  storageId: z.string().min(1, 'Storage ID is required.'),
   customerId: z.string().min(1, 'Customer is required.'),
   commodityDescription: z.string().min(1, 'Commodity is required.'),
   location: z.string().optional(),
@@ -56,7 +57,7 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
   const firestore = useFirestore();
   const appUser = useAppUser();
   
-  const [pattiNo, setPattiNo] = useState('');
+  const [storageId, setStorageId] = useState('');
   const [customerId, setCustomerId] = useState('');
   const [commodityDescription, setCommodityDescription] = useState('');
   const [location, setLocation] = useState('');
@@ -103,7 +104,7 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
     if (isOpen) {
       const getRate = (desc: string) => record.hamaliDetails?.find(d => d.description.toLowerCase().includes(desc.toLowerCase()))?.rate;
 
-      setPattiNo(record.id);
+      setStorageId(record.id);
       setCustomerId(record.customerId || '');
       setCommodityDescription(record.commodityDescription || '');
       setLocation(record.location || '');
@@ -182,7 +183,7 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
     const finalDryingDate = dryingStartDate ? parseManualDate(dryingStartDate) : null;
     
     const dataToValidate = {
-      pattiNo,
+      storageId,
       customerId,
       commodityDescription,
       location,
@@ -266,9 +267,8 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
             }
         }
 
-        // Use the smart update to handle Patti No changes
-        await updateStorageRecord(firestore, record.id, data.pattiNo, updateData);
-        toast({ title: 'Success', description: 'Record updated.' });
+        await updateStorageRecord(firestore, record.id, data.storageId, updateData);
+        toast({ title: 'Success', description: 'Record updated successfully.' });
         setIsOpen(false);
       } catch (error) {
         console.error(error);
@@ -285,13 +285,13 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
           <DialogHeader>
             <DialogTitle>Edit Storage Record</DialogTitle>
             <DialogDescription>
-              Adjust details. Handling charges are calculated on "Bags Plotted" or "Bags In". Format: DD-MM-YYYY.
+              Adjust details for this Godown record. Manual date entry format: DD-MM-YYYY.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4 pr-2">
              <div className="space-y-2">
-                <Label htmlFor="edit-patti-no">Patti No / Serial No</Label>
-                <Input id="edit-patti-no" className="font-mono font-bold" value={pattiNo} onChange={e => setPattiNo(e.target.value)} />
+                <Label htmlFor="edit-storage-id">Storage ID (Master Reference)</Label>
+                <Input id="edit-storage-id" className="font-mono font-bold" value={storageId} onChange={e => setStorageId(e.target.value)} />
               </div>
              <div className="space-y-2">
                 <Label>Customer</Label>
@@ -304,7 +304,7 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
               
               <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Date (DD-MM-YYYY)</Label>
+                    <Label>Inflow Date (DD-MM-YYYY)</Label>
                     <Input placeholder="DD-MM-YYYY" value={storageStartDate} onChange={e => setStorageStartDate(e.target.value)} />
                     {errors.storageStartDate && <p className="text-xs text-destructive">{errors.storageStartDate}</p>}
                   </div>
@@ -312,7 +312,7 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2"><Label>Bags (Packed/Godown)</Label><Input type="number" step="0.01" value={bagsIn} onChange={(e) => setBagsIn(e.target.value === '' ? '' : Number(e.target.value))} /></div>
+                  <div className="space-y-2"><Label>Bags (Packed Stock)</Label><Input type="number" step="0.01" value={bagsIn} onChange={(e) => setBagsIn(e.target.value === '' ? '' : Number(e.target.value))} /></div>
                   <div className="space-y-2"><Label>Weight (Kgs)</Label><Input type="number" step="0.01" value={weight} onChange={e => setWeight(e.target.value === '' ? '' : Number(e.target.value))} /></div>
               </div>
 
@@ -356,7 +356,7 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
               )}
 
                <div className="space-y-2 pt-2">
-                 <Label>Location (Lot No.)</Label>
+                 <Label>Lot No. (Storage Location)</Label>
                  <Select onValueChange={setLocation} value={location}>
                      <SelectTrigger><SelectValue placeholder="Select a lot..."/></SelectTrigger>
                      <SelectContent>

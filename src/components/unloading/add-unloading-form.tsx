@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo, useTransition } from 'react';
@@ -206,7 +207,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                         )} />
                         <FormField control={form.control} name="location" render={({ field }) => (
                             <FormItem className="flex flex-col">
-                                <FormLabel>Lot No.</FormLabel>
+                                <FormLabel>Lot No. (Storage Location)</FormLabel>
                                 <Combobox options={lotOptions} value={field.value} onChange={field.onChange} placeholder="Select location..." searchPlaceholder="Search lots..." modal={true} />
                                 <FormMessage />
                             </FormItem>
@@ -267,7 +268,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                         </Button>
                     </CardFooter>
                 </form>
-            </Form>
+            </+Form>
         </Card>
     );
 }

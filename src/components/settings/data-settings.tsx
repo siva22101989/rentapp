@@ -1,12 +1,12 @@
 'use client';
 
 import { useTransition, useState, useRef } from 'react';
-import { Loader2, Download, Upload, FileSpreadsheet, ShieldCheck, FileJson, AlertCircle, Database, Banknote } from 'lucide-react';
+import { Loader2, Download, Upload, FileSpreadsheet, ShieldCheck, FileJson, AlertCircle, Banknote, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useFirestore, useAppUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { collection, writeBatch, getDocs, doc, query, where, arrayUnion } from 'firebase/firestore';
+import { collection, writeBatch, getDocs, doc, query, where, updateDoc } from 'firebase/firestore';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -132,7 +132,7 @@ export function DataSettings() {
             };
         })), 'unloading');
 
-        // 5. Payments (CLEAN FORMAT: NO CUSTOMER ID)
+        // 5. Payments
         const allPayments: any[] = [];
         storageSnap.docs.forEach(d => {
             (d.data().payments || []).forEach((p: any) => {
@@ -157,19 +157,6 @@ export function DataSettings() {
             });
         });
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(allPayments), 'payments');
-
-        // 6. Expenses
-        const expSnap = await getDocs(query(collection(firestore, 'expenses'), where('warehouseId', '==', appUser.warehouseId)));
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(expSnap.docs.map(d => {
-            const data = d.data();
-            return {
-                "Ref No": String(data.refNo || ''),
-                "Category": data.category,
-                "Description": data.description,
-                "Amount": data.amount,
-                "Date": toDate(data.date).toISOString().split('T')[0]
-            };
-        })), 'expenses');
 
         XLSX.writeFile(wb, `GrainDost-Backup-${new Date().toISOString().split('T')[0]}.xlsx`);
         toast({ title: 'Excel Export Successful' });
@@ -233,114 +220,134 @@ export function DataSettings() {
                     const snap = await getDocs(query(collection(firestore, colName), where('warehouseId', '==', warehouseId)));
                     snap.docs.forEach(d => batch.delete(d.ref));
                 }
-            }
 
-            // Restore logic (Storage ID based)
-            const storageRecordsMap: Record<string, any> = {};
-            if (data.inflow && Array.isArray(data.inflow)) {
-                data.inflow.forEach((r: any) => {
-                    const id = String(r["Storage ID"] || r.id || '').trim();
-                    if (id) {
-                        storageRecordsMap[id] = {
-                            warehouseId,
-                            customerId: String(r["Customer ID"] || '').trim(),
-                            commodityDescription: String(r["Commodity"] || ''),
-                            location: String(r["Lot No"] || ''),
-                            bagsIn: Number(r["Bags Received"] || 0),
-                            bagsOut: 0,
-                            bagsStored: Number(r["Bags Received"] || 0),
-                            storageStartDate: toDate(r["Inflow Date"]),
-                            hamaliRate: Number(r["Handling Rate"] || 0),
-                            hamaliPayable: Number(r["Total Handling Billed"] || 0),
-                            khataAmount: Number(r["Khata Amount"] || 0),
-                            billingCycle: String(r["Status"] || '6-Month Initial'),
-                            payments: [],
-                            outflows: [],
-                            totalRentBilled: 0,
-                        };
-                    }
-                });
-            }
-
-            if (data.outflow && Array.isArray(data.outflow)) {
-                data.outflow.forEach((o: any) => {
-                    const id = String(o["Storage ID"] || o.id || '').trim();
-                    if (storageRecordsMap[id]) {
-                        const bagsWithdrawn = Number(o["Bags Withdrawn"] || 0);
-                        const rentBilled = Number(o["Rent Billed"] || 0);
-                        const outflowDate = toDate(o["Withdrawal Date"]);
-                        storageRecordsMap[id].outflows.push({ date: outflowDate, bagsWithdrawn, rentBilled, discount: Number(o["Discount"] || 0) });
-                        storageRecordsMap[id].bagsOut += bagsWithdrawn;
-                        storageRecordsMap[id].bagsStored -= bagsWithdrawn;
-                        storageRecordsMap[id].totalRentBilled += rentBilled;
-                        if (storageRecordsMap[id].bagsStored <= 0) {
-                            storageRecordsMap[id].storageEndDate = outflowDate;
-                            storageRecordsMap[id].billingCycle = 'Completed';
+                const storageRecordsMap: Record<string, any> = {};
+                if (data.inflow) {
+                    data.inflow.forEach((r: any) => {
+                        const id = String(r["Storage ID"] || r.id || '').trim();
+                        if (id) {
+                            storageRecordsMap[id] = {
+                                warehouseId,
+                                customerId: String(r["Customer ID"] || '').trim(),
+                                commodityDescription: String(r["Commodity"] || ''),
+                                location: String(r["Lot No"] || ''),
+                                bagsIn: Number(r["Bags Received"] || 0),
+                                bagsOut: 0,
+                                bagsStored: Number(r["Bags Received"] || 0),
+                                storageStartDate: toDate(r["Inflow Date"]),
+                                hamaliRate: Number(r["Handling Rate"] || 0),
+                                hamaliPayable: Number(r["Total Handling Billed"] || 0),
+                                khataAmount: Number(r["Khata Amount"] || 0),
+                                billingCycle: String(r["Status"] || '6-Month Initial'),
+                                payments: [],
+                                outflows: [],
+                                totalRentBilled: 0,
+                            };
                         }
-                    }
-                });
-            }
+                    });
+                }
 
-            const unloadingRecordsMap: Record<string, any> = {};
-            if (data.unloading && Array.isArray(data.unloading)) {
-                data.unloading.forEach((u: any) => {
-                    const id = String(u["Bill No"] || u.id || u["Storage ID"] || '').trim();
-                    const bags = Number(u["Bags Unloaded"] || 0);
-                    const totalH = Number(u["Total Hamali"] || 0);
-                    unloadingRecordsMap[id] = {
-                        warehouseId,
-                        billNo: id,
-                        customerId: String(u["Customer ID"] || '').trim(),
-                        commodityDescription: String(u["Commodity"] || ''),
-                        bagsUnloaded: bags,
-                        unloadingDate: toDate(u["Unloading Date"]),
-                        totalHamali: totalH,
-                        status: 'Billed',
-                        bagsSentToDrying: bags,
-                        hamaliPerBag: Number(u["Customer Rate"]) || (bags > 0 ? totalH / bags : 0),
-                        payments: []
-                    };
-                });
-            }
+                if (data.outflow) {
+                    data.outflow.forEach((o: any) => {
+                        const id = String(o["Storage ID"] || o.id || '').trim();
+                        if (storageRecordsMap[id]) {
+                            const bagsWithdrawn = Number(o["Bags Withdrawn"] || 0);
+                            const rentBilled = Number(o["Rent Billed"] || 0);
+                            const outflowDate = toDate(o["Withdrawal Date"]);
+                            storageRecordsMap[id].outflows.push({ date: outflowDate, bagsWithdrawn, rentBilled, discount: Number(o["Discount"] || 0) });
+                            storageRecordsMap[id].bagsOut += bagsWithdrawn;
+                            storageRecordsMap[id].bagsStored -= bagsWithdrawn;
+                            storageRecordsMap[id].totalRentBilled += rentBilled;
+                            if (storageRecordsMap[id].bagsStored <= 0) {
+                                storageRecordsMap[id].storageEndDate = outflowDate;
+                                storageRecordsMap[id].billingCycle = 'Completed';
+                            }
+                        }
+                    });
+                }
 
-            // Payments (CLEAN LINKING)
-            if (data.payments && Array.isArray(data.payments)) {
-                data.payments.forEach((p: any) => {
-                    const amount = Number(p["Amount"] || 0);
-                    const date = toDate(p["Date"]);
-                    const type = String(p["Category"] || 'rent');
-                    const id = String(p["Storage ID"] || p["Bill No"] || '').trim();
+                const unloadingRecordsMap: Record<string, any> = {};
+                if (data.unloading) {
+                    data.unloading.forEach((u: any) => {
+                        const id = String(u["Bill No"] || u.id || u["Storage ID"] || '').trim();
+                        const bags = Number(u["Bags Unloaded"] || 0);
+                        const totalH = Number(u["Total Hamali"] || 0);
+                        unloadingRecordsMap[id] = {
+                            warehouseId,
+                            billNo: id,
+                            customerId: String(u["Customer ID"] || '').trim(),
+                            commodityDescription: String(u["Commodity"] || ''),
+                            bagsUnloaded: bags,
+                            unloadingDate: toDate(u["Unloading Date"]),
+                            totalHamali: totalH,
+                            status: 'Billed',
+                            bagsSentToDrying: bags,
+                            hamaliPerBag: Number(u["Customer Rate"]) || (bags > 0 ? totalH / bags : 0),
+                            payments: []
+                        };
+                    });
+                }
 
-                    if (p["Type"] === 'Storage' && storageRecordsMap[id]) {
-                        storageRecordsMap[id].payments.push({ amount, date, type });
-                    } else if (p["Type"] === 'Unloading' && unloadingRecordsMap[id]) {
-                        unloadingRecordsMap[id].payments.push({ amount, date, type: 'unloading' });
-                    }
-                });
-            }
+                if (data.payments) {
+                    data.payments.forEach((p: any) => {
+                        const amount = Number(p["Amount"] || 0);
+                        const date = toDate(p["Date"]);
+                        const type = String(p["Category"] || 'rent');
+                        const id = String(p["Storage ID"] || p["Bill No"] || '').trim();
+                        if (p["Type"] === 'Storage' && storageRecordsMap[id]) {
+                            storageRecordsMap[id].payments.push({ amount, date, type });
+                        } else if (p["Type"] === 'Unloading' && unloadingRecordsMap[id]) {
+                            unloadingRecordsMap[id].payments.push({ amount, date, type: 'unloading' });
+                        }
+                    });
+                }
 
-            // Write back to Firestore
-            Object.entries(storageRecordsMap).forEach(([id, r]) => batch.set(doc(firestore, 'storageRecords', id), cleanForFirestore(r)));
-            Object.entries(unloadingRecordsMap).forEach(([id, r]) => batch.set(doc(firestore, 'unloadingRecords', id), cleanForFirestore(r)));
+                Object.entries(storageRecordsMap).forEach(([id, r]) => batch.set(doc(firestore, 'storageRecords', id), cleanForFirestore(r)));
+                Object.entries(unloadingRecordsMap).forEach(([id, r]) => batch.set(doc(firestore, 'unloadingRecords', id), cleanForFirestore(r)));
 
-            if (data.customers && Array.isArray(data.customers) && importMode === 'full') {
-                data.customers.forEach((c: any) => {
-                    const id = String(c["Customer ID"] || c.id || '').trim();
-                    if (id) batch.set(doc(firestore, 'customers', id), cleanForFirestore({ warehouseId, name: String(c["Name"] || ''), phone: String(c["Phone"] || ''), village: String(c["Village"] || ''), fatherName: String(c["Father Name"] || ''), address: String(c["Address"] || '') }));
-                });
-            }
+                if (data.customers) {
+                    data.customers.forEach((c: any) => {
+                        const id = String(c["Customer ID"] || c.id || '').trim();
+                        if (id) batch.set(doc(firestore, 'customers', id), cleanForFirestore({ warehouseId, name: String(c["Name"] || ''), phone: String(c["Phone"] || ''), village: String(c["Village"] || ''), fatherName: String(c["Father Name"] || ''), address: String(c["Address"] || '') }));
+                    });
+                }
 
-            if (data.expenses && Array.isArray(data.expenses) && importMode === 'full') {
-                data.expenses.forEach((e: any) => batch.set(doc(collection(firestore, 'expenses')), cleanForFirestore({ warehouseId, refNo: String(e["Ref No"] || ''), category: String(e["Category"] || 'Other'), description: String(e["Description"] || ''), amount: Number(e["Amount"] || 0), date: toDate(e["Date"]) })));
+                if (data.expenses) {
+                    data.expenses.forEach((e: any) => batch.set(doc(collection(firestore, 'expenses')), cleanForFirestore({ warehouseId, refNo: String(e["Ref No"] || ''), category: String(e["Category"] || 'Other'), description: String(e["Description"] || ''), amount: Number(e["Amount"] || 0), date: toDate(e["Date"]) })));
+                }
+            } else if (importMode === 'payments') {
+                const storageSnap = await getDocs(query(collection(firestore, 'storageRecords'), where('warehouseId', '==', warehouseId)));
+                const unloadingSnap = await getDocs(query(collection(firestore, 'unloadingRecords'), where('warehouseId', '==', warehouseId)));
+                
+                const sMap: any = {}; storageSnap.docs.forEach(d => sMap[d.id] = { ref: d.ref, payments: [] });
+                const uMap: any = {}; unloadingSnap.docs.forEach(d => uMap[d.data().billNo || d.id] = { ref: d.ref, payments: [] });
+
+                if (data.payments) {
+                    data.payments.forEach((p: any) => {
+                        const id = String(p["Storage ID"] || '').trim();
+                        const amount = Number(p["Amount"] || 0);
+                        const date = toDate(p["Date"]);
+                        const type = String(p["Category"] || 'rent');
+
+                        if (p["Type"] === 'Storage' && sMap[id]) {
+                            sMap[id].payments.push({ amount, date, type });
+                        } else if (p["Type"] === 'Unloading' && uMap[id]) {
+                            uMap[id].payments.push({ amount, date, type: 'unloading' });
+                        }
+                    });
+                }
+
+                Object.values(sMap).forEach((v: any) => batch.update(v.ref, { payments: cleanForFirestore(v.payments) }));
+                Object.values(uMap).forEach((v: any) => batch.update(v.ref, { payments: cleanForFirestore(v.payments) }));
             }
             
             await batch.commit();
-            toast({ title: 'Data Restored Successfully' });
+            toast({ title: 'Operation Successful' });
             setIsImportAlertOpen(false);
             setPendingImportData(null);
         } catch (err: any) {
             console.error("Restore Error:", err);
-            toast({ title: 'Restore Failed', description: err.message, variant: 'destructive' });
+            toast({ title: 'Operation Failed', description: err.message, variant: 'destructive' });
         }
     });
   };
@@ -382,8 +389,8 @@ export function DataSettings() {
                 <Button onClick={handleDownloadTemplate} variant="outline" className="w-full h-auto py-4 px-6 justify-start border-dashed">
                     <div className="bg-slate-100 p-2 rounded-lg mr-4"><Download className="h-5 w-5 text-slate-600" /></div>
                     <div className="text-left">
-                        <p className="font-bold text-sm">Download Restore Template</p>
-                        <p className="text-xs text-muted-foreground">Required Excel format for Step 3</p>
+                        <p className="font-bold text-sm">Download Master Template</p>
+                        <p className="text-xs text-muted-foreground">Required Excel format for full restoration</p>
                     </div>
                 </Button>
             </div>
@@ -406,8 +413,8 @@ export function DataSettings() {
                     <input type="file" ref={excelInputRef} onChange={(e) => handleFileChange(e, 'full')} className="hidden" accept=".xlsx,.xls" />
 
                     <Button onClick={() => paymentsOnlyInputRef.current?.click()} disabled={isImporting} variant="secondary" className="w-full h-12 text-sm font-bold">
-                         <Banknote className="mr-2 h-4 w-4" />
-                        Restore Payments Only
+                         <History className="mr-2 h-4 w-4" />
+                        Update Payments Only
                     </Button>
                     <input type="file" ref={paymentsOnlyInputRef} onChange={(e) => handleFileChange(e, 'payments')} className="hidden" accept=".xlsx,.xls" />
                 </div>
@@ -447,11 +454,11 @@ export function DataSettings() {
         <AlertDialog open={isImportAlertOpen} onOpenChange={setIsImportAlertOpen}>
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>{importMode === 'full' ? 'Execute Full Data Reconstruction?' : 'Restore Payments History?'}</AlertDialogTitle>
+                    <AlertDialogTitle>{importMode === 'full' ? 'Execute Full Data Reconstruction?' : 'Update Payments History?'}</AlertDialogTitle>
                     <AlertDialogDescription>
                         {importMode === 'full' 
                             ? 'All current data will be replaced with the records in your file. Storage IDs will be preserved.' 
-                            : 'This will update payment history for existing Storage IDs found in your Excel file.'}
+                            : 'This will update payment history for existing Storage IDs found in your Excel file. Other data remains unchanged.'}
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

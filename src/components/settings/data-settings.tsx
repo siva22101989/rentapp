@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useFirestore, useAppUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { collection, writeBatch, getDocs, doc, query, where, updateDoc } from 'firebase/firestore';
+import { collection, writeBatch, getDocs, doc, query, where } from 'firebase/firestore';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -174,7 +174,29 @@ export function DataSettings() {
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ "Bill No": 'U-01', "Customer ID": 'CUST-01', "Commodity": 'Paddy', "Bags Unloaded": 2191, "Unloading Date": '2024-05-01', "Customer Rate": 6, "Total Hamali": 13146 }]), 'unloading');
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ "Type": 'Storage', "Storage ID": '1001', "Amount": 50000, "Date": '2024-05-15', "Category": 'hamali' }]), 'payments');
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ "Ref No": 'E-01', "Category": 'Petrol', "Description": 'Fuel', "Amount": 1500, "Date": '2024-05-10' }]), 'expenses');
-    XLSX.writeFile(wb, 'GrainDost-Restore-Template.xlsx');
+    XLSX.writeFile(wb, 'GrainDost-Master-Restore-Template.xlsx');
+  };
+
+  const handleDownloadPaymentsTemplate = () => {
+    const wb = XLSX.utils.book_new();
+    const paymentsData = [
+      {
+        "Type": "Storage",
+        "Storage ID": "1001",
+        "Amount": 500.00,
+        "Date": "2024-05-15",
+        "Category": "rent"
+      },
+      {
+        "Type": "Unloading",
+        "Storage ID": "U-101",
+        "Amount": 120.00,
+        "Date": "2024-05-15",
+        "Category": "unloading"
+      }
+    ];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(paymentsData), 'payments');
+    XLSX.writeFile(wb, 'GrainDost-Payments-Only-Template.xlsx');
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, mode: 'full' | 'payments' | 'json') => {
@@ -320,7 +342,10 @@ export function DataSettings() {
                 const unloadingSnap = await getDocs(query(collection(firestore, 'unloadingRecords'), where('warehouseId', '==', warehouseId)));
                 
                 const sMap: any = {}; storageSnap.docs.forEach(d => sMap[d.id] = { ref: d.ref, payments: [] });
-                const uMap: any = {}; unloadingSnap.docs.forEach(d => uMap[d.data().billNo || d.id] = { ref: d.ref, payments: [] });
+                const uMap: any = {}; unloadingSnap.docs.forEach(d => {
+                    const billNo = String(d.data().billNo || d.id).trim();
+                    uMap[billNo] = { ref: d.ref, payments: [] };
+                });
 
                 if (data.payments) {
                     data.payments.forEach((p: any) => {
@@ -385,14 +410,23 @@ export function DataSettings() {
             </div>
 
             <div className="space-y-4">
-                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Step 2: Security</h4>
-                <Button onClick={handleDownloadTemplate} variant="outline" className="w-full h-auto py-4 px-6 justify-start border-dashed">
-                    <div className="bg-slate-100 p-2 rounded-lg mr-4"><Download className="h-5 w-5 text-slate-600" /></div>
-                    <div className="text-left">
-                        <p className="font-bold text-sm">Download Master Template</p>
-                        <p className="text-xs text-muted-foreground">Required Excel format for full restoration</p>
-                    </div>
-                </Button>
+                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Step 2: Security Templates</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Button onClick={handleDownloadTemplate} variant="outline" className="h-auto py-4 px-6 justify-start border-dashed">
+                        <div className="bg-slate-100 p-2 rounded-lg mr-4"><Download className="h-5 w-5 text-slate-600" /></div>
+                        <div className="text-left">
+                            <p className="font-bold text-sm">Master Template</p>
+                            <p className="text-xs text-muted-foreground">Full warehouse history</p>
+                        </div>
+                    </Button>
+                    <Button onClick={handleDownloadPaymentsTemplate} variant="outline" className="h-auto py-4 px-6 justify-start border-dashed">
+                        <div className="bg-slate-100 p-2 rounded-lg mr-4"><Download className="h-5 w-5 text-slate-600" /></div>
+                        <div className="text-left">
+                            <p className="font-bold text-sm">Payments Template</p>
+                            <p className="text-xs text-muted-foreground">Cash history only</p>
+                        </div>
+                    </Button>
+                </div>
             </div>
 
             <div className="space-y-4 pt-4">

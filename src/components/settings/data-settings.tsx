@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useTransition, useState, useRef } from 'react';
@@ -238,11 +239,13 @@ export function DataSettings() {
             const warehouseId = appUser.warehouseId;
 
             if (importMode === 'full') {
+                // Clear existing data first
                 for (const colName of TRANSACTIONAL_COLLECTIONS) {
                     const snap = await getDocs(query(collection(firestore, colName), where('warehouseId', '==', warehouseId)));
                     snap.docs.forEach(d => batch.delete(d.ref));
                 }
 
+                // 1. Process Inflow Records (anchored by Storage ID)
                 const storageRecordsMap: Record<string, any> = {};
                 if (data.inflow) {
                     data.inflow.forEach((r: any) => {
@@ -269,6 +272,7 @@ export function DataSettings() {
                     });
                 }
 
+                // 2. Map Outflows
                 if (data.outflow) {
                     data.outflow.forEach((o: any) => {
                         const id = String(o["Storage ID"] || o.id || '').trim();
@@ -288,6 +292,7 @@ export function DataSettings() {
                     });
                 }
 
+                // 3. Unloading Records
                 const unloadingRecordsMap: Record<string, any> = {};
                 if (data.unloading) {
                     data.unloading.forEach((u: any) => {
@@ -310,6 +315,7 @@ export function DataSettings() {
                     });
                 }
 
+                // 4. Map Payments
                 if (data.payments) {
                     data.payments.forEach((p: any) => {
                         const amount = Number(p["Amount"] || 0);
@@ -324,9 +330,11 @@ export function DataSettings() {
                     });
                 }
 
+                // Commit Storage and Unloading
                 Object.entries(storageRecordsMap).forEach(([id, r]) => batch.set(doc(firestore, 'storageRecords', id), cleanForFirestore(r)));
                 Object.entries(unloadingRecordsMap).forEach(([id, r]) => batch.set(doc(firestore, 'unloadingRecords', id), cleanForFirestore(r)));
 
+                // 5. Customers
                 if (data.customers) {
                     data.customers.forEach((c: any) => {
                         const id = String(c["Customer ID"] || c.id || '').trim();
@@ -334,10 +342,12 @@ export function DataSettings() {
                     });
                 }
 
+                // 6. Expenses
                 if (data.expenses) {
                     data.expenses.forEach((e: any) => batch.set(doc(collection(firestore, 'expenses')), cleanForFirestore({ warehouseId, refNo: String(e["Ref No"] || ''), category: String(e["Category"] || 'Other'), description: String(e["Description"] || ''), amount: Number(e["Amount"] || 0), date: toDate(e["Date"]) })));
                 }
             } else if (importMode === 'payments') {
+                // Payments Only Restore Logic
                 const storageSnap = await getDocs(query(collection(firestore, 'storageRecords'), where('warehouseId', '==', warehouseId)));
                 const unloadingSnap = await getDocs(query(collection(firestore, 'unloadingRecords'), where('warehouseId', '==', warehouseId)));
                 
@@ -367,7 +377,7 @@ export function DataSettings() {
             }
             
             await batch.commit();
-            toast({ title: 'Operation Successful' });
+            toast({ title: 'Operation Successful', description: 'Data has been synchronized.' });
             setIsImportAlertOpen(false);
             setPendingImportData(null);
         } catch (err: any) {
@@ -389,66 +399,85 @@ export function DataSettings() {
             </div>
         </CardHeader>
         <CardContent className="space-y-8 pt-6">
+            {/* Step 1: Backup */}
             <div className="space-y-4">
-                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Step 1: Backup</h4>
+                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Step 1: Backup Current Records</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Button onClick={handleExportExcel} disabled={isExporting} variant="outline" className="h-auto py-4 px-6 justify-start">
                          <div className="bg-green-100 p-2 rounded-lg mr-4"><FileSpreadsheet className="h-5 w-5 text-green-600" /></div>
                         <div className="text-left">
-                            <p className="font-bold text-sm">Export Excel</p>
-                            <p className="text-xs text-muted-foreground">All worksheets</p>
+                            <p className="font-bold text-sm">Export All to Excel</p>
+                            <p className="text-xs text-muted-foreground">Inflow, Outflow, Payments & More</p>
                         </div>
                     </Button>
                     <Button onClick={handleExportJson} disabled={isExporting} variant="outline" className="h-auto py-4 px-6 justify-start">
                          <div className="bg-blue-100 p-2 rounded-lg mr-4"><FileJson className="h-5 w-5 text-blue-600" /></div>
                         <div className="text-left">
-                            <p className="font-bold text-sm">Export JSON</p>
-                            <p className="text-xs text-muted-foreground">Technical data dump</p>
+                            <p className="font-bold text-sm">Technical JSON Backup</p>
+                            <p className="text-xs text-muted-foreground">Complete raw data dump</p>
                         </div>
                     </Button>
                 </div>
             </div>
 
+            {/* Step 2: Templates */}
             <div className="space-y-4">
-                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Step 2: Security Templates</h4>
+                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Step 2: Restore Templates</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Button onClick={handleDownloadTemplate} variant="outline" className="h-auto py-4 px-6 justify-start border-dashed">
                         <div className="bg-slate-100 p-2 rounded-lg mr-4"><Download className="h-5 w-5 text-slate-600" /></div>
                         <div className="text-left">
-                            <p className="font-bold text-sm">Master Template</p>
-                            <p className="text-xs text-muted-foreground">Full warehouse history</p>
+                            <p className="font-bold text-sm">Master Excel Template</p>
+                            <p className="text-xs text-muted-foreground">For full history reconstruction</p>
                         </div>
                     </Button>
                     <Button onClick={handleDownloadPaymentsTemplate} variant="outline" className="h-auto py-4 px-6 justify-start border-dashed">
                         <div className="bg-slate-100 p-2 rounded-lg mr-4"><Download className="h-5 w-5 text-slate-600" /></div>
                         <div className="text-left">
-                            <p className="font-bold text-sm">Payments Template</p>
-                            <p className="text-xs text-muted-foreground">Cash history only</p>
+                            <p className="font-bold text-sm">Payments Only Template</p>
+                            <p className="text-xs text-muted-foreground">For simple cash history updates</p>
                         </div>
                     </Button>
                 </div>
             </div>
 
+            {/* Step 3: Deep Restore */}
             <div className="space-y-4 pt-4">
-                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Step 3: Deep Restore</h4>
+                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Step 3: Deep Restore Actions</h4>
                 <Alert className="bg-muted/40 border-dashed">
                     <AlertCircle className="h-4 w-4" />
-                    <AlertTitle className="text-xs font-bold">Warning:</AlertTitle>
+                    <AlertTitle className="text-xs font-bold">Important Notification:</AlertTitle>
                     <AlertDescription className="text-xs text-muted-foreground">
-                        Full Restore will erase current data and reconstruct your history using the IDs in your file.
+                        Full Excel/JSON restore will clear existing transactional records and rebuild your history using the IDs provided in your file.
                     </AlertDescription>
                 </Alert>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <Button onClick={() => excelInputRef.current?.click()} disabled={isImporting} className="w-full h-12 text-sm font-bold">
-                        {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                        Full Excel Restore
-                    </Button>
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button disabled={isImporting} className="w-full h-12 text-sm font-bold">
+                                {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                                Full History Reconstruction
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Select Backup File Format</AlertDialogTitle>
+                                <AlertDialogDescription>Choose your source file to begin full restoration.</AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <div className="grid grid-cols-2 gap-2">
+                                <Button variant="outline" onClick={() => excelInputRef.current?.click()}>Excel (.xlsx)</Button>
+                                <Button variant="outline" onClick={() => jsonInputRef.current?.click()}>JSON (.json)</Button>
+                            </div>
+                            <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel></AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                     <input type="file" ref={excelInputRef} onChange={(e) => handleFileChange(e, 'full')} className="hidden" accept=".xlsx,.xls" />
+                    <input type="file" ref={jsonInputRef} onChange={(e) => handleFileChange(e, 'json')} className="hidden" accept=".json" />
 
                     <Button onClick={() => paymentsOnlyInputRef.current?.click()} disabled={isImporting} variant="secondary" className="w-full h-12 text-sm font-bold">
                          <History className="mr-2 h-4 w-4" />
-                        Update Payments Only
+                        Restore Payments Only
                     </Button>
                     <input type="file" ref={paymentsOnlyInputRef} onChange={(e) => handleFileChange(e, 'payments')} className="hidden" accept=".xlsx,.xls" />
                 </div>
@@ -463,7 +492,7 @@ export function DataSettings() {
                     <AlertDialogContent>
                         <AlertDialogHeader>
                             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                            <AlertDialogDescription>Permanently delete every record. This cannot be undone.</AlertDialogDescription>
+                            <AlertDialogDescription>Permanently delete every record for this warehouse. This action is irreversible.</AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -488,16 +517,16 @@ export function DataSettings() {
         <AlertDialog open={isImportAlertOpen} onOpenChange={setIsImportAlertOpen}>
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>{importMode === 'full' ? 'Execute Full Data Reconstruction?' : 'Update Payments History?'}</AlertDialogTitle>
+                    <AlertDialogTitle>{importMode === 'full' ? 'Execute History Reconstruction?' : 'Update Payments History?'}</AlertDialogTitle>
                     <AlertDialogDescription>
                         {importMode === 'full' 
-                            ? 'All current data will be replaced with the records in your file. Storage IDs will be preserved.' 
+                            ? 'All current warehouse transactions will be replaced with the records in your file. Storage IDs will be preserved.' 
                             : 'This will update payment history for existing Storage IDs found in your Excel file. Other data remains unchanged.'}
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                     <AlertDialogCancel onClick={() => { setPendingImportData(null); setIsImportAlertOpen(false); }}>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={executeDeepRestore}>Execute Restore</AlertDialogAction>
+                    <AlertDialogAction onClick={executeDeepRestore}>Execute Operation</AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>

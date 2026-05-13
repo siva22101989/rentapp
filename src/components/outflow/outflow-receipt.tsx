@@ -76,7 +76,7 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
           <div className="border-y-2 border-black py-2 mb-4">
               <h2 className="font-bold text-center mb-2 text-base">PARTICULARS OF WITHDRAWAL</h2>
               <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-base">
-                  <p><span className="font-bold">1. Warehouse Receipt No.:</span> {record.id}</p>
+                  <p><span className="font-bold">1. Storage ID:</span> {record.id}</p>
                   <p><span className="font-bold">Date:</span> {formattedStartDate}</p>
                   <p><span className="font-bold">Delivery Order No.:</span> {deliveryOrderNo}</p>
                   <p><span className="font-bold">Date:</span> {formattedEndDate}</p>
@@ -153,7 +153,7 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
                   <div className="mt-12 border-t border-gray-400 mx-4 pt-1">Depositor Signature</div>
               </div>
               <div className="w-1/2">
-                  <div className="mt-12 border-t border-gray-400 mx-4 pt-1">Warehouse Manager</div>
+                  <div className="mt-12 border-t border-gray-400 mx-4 pt-1">Authorized Manager Signature</div>
                   <p className="text-xs mt-1">For {warehouseInfo?.name || 'GrainDost'}</p>
               </div>
           </div>

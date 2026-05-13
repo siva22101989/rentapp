@@ -84,14 +84,15 @@ export function PendingDuesReportTable({ summaries, title }: ReportTableProps) {
                 <div className="space-y-4 p-4 rounded-lg bg-slate-50 border border-slate-100">
                     <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Accounting Notes</h4>
                     <ul className="text-[10px] text-slate-500 space-y-2 list-disc pl-4 italic leading-relaxed">
-                        <li>This report represents consolidated outstanding balances per customer across all active and completed Storage IDs.</li>
-                        <li>Handling/Hamali charges are calculated based on original truck/handling quantity to ensure billing accuracy regardless of weight loss.</li>
+                        <li>This report represents consolidated outstanding balances per customer across all active and completed Storage records.</li>
+                        <li>Handling/Hamali charges are calculated based on original truck/handling quantity to ensure billing accuracy.</li>
                         <li>Payments are applied using "First-In, First-Out" logic, clearing older records first.</li>
                         <li>Labor (Hamali) dues are prioritized for settlement before Rent allocations in bulk payments.</li>
                     </ul>
                 </div>
                 <div className="flex flex-col justify-end items-center text-center">
-                    <div className="w-48 border-t border-slate-300 pt-2 font-bold text-xs text-slate-700 uppercase">Authorized Auditor Signature</div>
+                    <div className="w-48 border-t border-slate-300 pt-2 font-bold text-xs text-slate-700 uppercase">Authorized Manager Signature</div>
+                    <p className="text-[10px] font-bold text-primary uppercase mt-1">GrainDost Warehouse</p>
                     <p className="text-[9px] text-slate-400 mt-1">Report validity verified on {generatedDate}</p>
                 </div>
             </div>

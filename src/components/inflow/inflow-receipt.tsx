@@ -65,7 +65,7 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
                 <div className="border-y-2 border-black py-2 mb-4">
                     <h2 className="font-bold text-center mb-2 text-base">PARTICULARS OF DEPOSIT (FROM PLOT)</h2>
                     <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-base">
-                        <p><span className="font-bold">1. Warehouse Receipt No.:</span> {record.id}</p>
+                        <p><span className="font-bold">1. Storage ID:</span> {record.id}</p>
                         <p><span className="font-bold">Storage Date:</span> {formattedDate}</p>
                         <p><span className="font-bold">Unloading Bill No.:</span> {unloadingRecord?.billNo || 'N/A'}</p>
                         <p><span className="font-bold">Unloading Date:</span> {unloadingRecord ? format(toDate(unloadingRecord.unloadingDate), 'dd/MM/yy') : 'N/A'}</p>
@@ -125,7 +125,7 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
                         <div className="mt-12 border-t border-gray-400 mx-4 pt-1">Depositor Signature</div>
                     </div>
                     <div className="w-1/2">
-                        <div className="mt-12 border-t border-gray-400 mx-4 pt-1">Warehouse Manager</div>
+                        <div className="mt-12 border-t border-gray-400 mx-4 pt-1">Authorized Manager Signature</div>
                         <p className="text-xs mt-1">For {warehouseInfo?.name || 'GrainDost'}</p>
                     </div>
                 </div>
@@ -146,7 +146,7 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
             {/* Customer Details */}
             <div className="grid grid-cols-2 gap-x-4 mb-4 text-base">
                 <div>
-                    <p><span className="font-bold">Bill No.:</span> {record.id}</p>
+                    <p><span className="font-bold">Storage ID:</span> {record.id}</p>
                     <p><span className="font-bold">Depositor Name:</span> {customer.name}</p>
                     <p><span className="font-bold">Address:</span> {customer.village || 'N/A'}</p>
                     <p><span className="font-bold">Phone:</span> {customer.phone || 'N/A'}</p>
@@ -160,7 +160,7 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
             <div className="border-y-2 border-black py-2 mb-4">
                 <h2 className="font-bold text-center mb-2 text-base">PARTICULARS OF DEPOSIT</h2>
                 <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-base">
-                    <p><span className="font-bold">1. Warehouse Receipt No.:</span> {record.id}</p>
+                    <p><span className="font-bold">1. Storage ID:</span> {record.id}</p>
                     <p><span className="font-bold">Date:</span> {formattedDate}</p>
                     <p><span className="font-bold">2. Commodity:</span> {record.commodityDescription}</p>
                     <p><span className="font-bold">Quantity:</span> {record.weight ? `${record.weight} Kgs` : 'N/A'}</p>
@@ -211,7 +211,7 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
                     <div className="mt-12 border-t border-gray-400 mx-4 pt-1">Depositor Signature</div>
                 </div>
                 <div className="w-1/2">
-                    <div className="mt-12 border-t border-gray-400 mx-4 pt-1">Warehouse Manager</div>
+                    <div className="mt-12 border-t border-gray-400 mx-4 pt-1">Authorized Manager Signature</div>
                     <p className="text-xs mt-1">For {warehouseInfo?.name || 'GrainDost'}</p>
                 </div>
             </div>
@@ -219,5 +219,3 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
     );
 });
 InflowReceipt.displayName = 'InflowReceipt';
-
-    

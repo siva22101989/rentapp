@@ -1,12 +1,12 @@
 'use client';
 
 import { useTransition, useState, useRef } from 'react';
-import { Loader2, Download, Upload, FileSpreadsheet, ShieldCheck, FileJson, AlertCircle, Database } from 'lucide-react';
+import { Loader2, Download, Upload, FileSpreadsheet, ShieldCheck, FileJson, AlertCircle, Database, Banknote } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useFirestore, useAppUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { collection, writeBatch, getDocs, doc, query, where } from 'firebase/firestore';
+import { collection, writeBatch, getDocs, doc, query, where, arrayUnion } from 'firebase/firestore';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,8 +31,11 @@ export function DataSettings() {
   const [isClearing, startClearingTransition] = useTransition();
 
   const [isImportAlertOpen, setIsImportAlertOpen] = useState(false);
+  const [importMode, setImportAlertMode] = useState<'full' | 'payments'>('full');
   const [pendingImportData, setPendingImportData] = useState<any>(null);
+  
   const excelInputRef = useRef<HTMLInputElement>(null);
+  const paymentsOnlyInputRef = useRef<HTMLInputElement>(null);
   const jsonInputRef = useRef<HTMLInputElement>(null);
 
   const firestore = useFirestore();
@@ -48,7 +51,6 @@ export function DataSettings() {
             const snap = await getDocs(query(collection(firestore, colName), where('warehouseId', '==', appUser.warehouseId)));
             fullBackup[colName] = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         }
-
         const blob = new Blob([JSON.stringify(fullBackup, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -57,8 +59,7 @@ export function DataSettings() {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        
-        toast({ title: 'JSON Export Successful', description: 'Technical data dump saved.' });
+        toast({ title: 'JSON Export Successful' });
       } catch (error: any) {
         toast({ title: 'Export Error', description: error.message, variant: 'destructive' });
       }
@@ -131,14 +132,13 @@ export function DataSettings() {
             };
         })), 'unloading');
 
-        // 5. Payments
+        // 5. Payments (CLEAN FORMAT: NO CUSTOMER ID)
         const allPayments: any[] = [];
         storageSnap.docs.forEach(d => {
             (d.data().payments || []).forEach((p: any) => {
                 allPayments.push({ 
                     "Type": 'Storage', 
                     "Storage ID": String(d.id), 
-                    "Customer ID": String(d.data().customerId || ''), 
                     "Amount": p.amount, 
                     "Date": toDate(p.date).toISOString().split('T')[0], 
                     "Category": p.type || 'rent' 
@@ -149,8 +149,7 @@ export function DataSettings() {
             (d.data().payments || []).forEach((p: any) => {
                 allPayments.push({ 
                     "Type": 'Unloading', 
-                    "Bill No": String(d.data().billNo || d.id), 
-                    "Customer ID": String(d.data().customerId || ''), 
+                    "Storage ID": String(d.data().billNo || d.id), 
                     "Amount": p.amount, 
                     "Date": toDate(p.date).toISOString().split('T')[0], 
                     "Category": 'unloading' 
@@ -182,53 +181,42 @@ export function DataSettings() {
 
   const handleDownloadTemplate = () => {
     const wb = XLSX.utils.book_new();
-    
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ "Customer ID": 'CUST-01', "Name": 'Customer Name', "Phone": '9876543210', "Village": 'Village', "Father Name": 'Father', "Address": 'Address' }]), 'customers');
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ "Storage ID": '1001', "Customer ID": 'CUST-01', "Commodity": 'Paddy', "Lot No": 'A1', "Bags Received": 2191, "Inflow Date": '2024-05-01', "Handling Rate": 50, "Total Handling Billed": 109550, "Khata Amount": 100, "Status": "6-Month Initial" }]), 'inflow');
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ "Storage ID": '1001', "Withdrawal Date": '2024-06-01', "Bags Withdrawn": 1000, "Rent Billed": 5000, "Discount": 0 }]), 'outflow');
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ "Bill No": 'U-01', "Customer ID": 'CUST-01', "Commodity": 'Paddy', "Bags Unloaded": 2191, "Unloading Date": '2024-05-01', "Customer Rate": 6, "Total Hamali": 13146 }]), 'unloading');
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ "Type": 'Storage', "Storage ID": '1001', "Customer ID": 'CUST-01', "Amount": 50000, "Date": '2024-05-15', "Category": 'hamali' }]), 'payments');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ "Type": 'Storage', "Storage ID": '1001', "Amount": 50000, "Date": '2024-05-15', "Category": 'hamali' }]), 'payments');
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ "Ref No": 'E-01', "Category": 'Petrol', "Description": 'Fuel', "Amount": 1500, "Date": '2024-05-10' }]), 'expenses');
-    
     XLSX.writeFile(wb, 'GrainDost-Restore-Template.xlsx');
   };
 
-  const handleJsonFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, mode: 'full' | 'payments' | 'json') => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (event) => {
         try {
-            const data = JSON.parse(event.target?.result as string);
-            setPendingImportData(data);
+            if (mode === 'json') {
+                const data = JSON.parse(event.target?.result as string);
+                setPendingImportData(data);
+                setImportAlertMode('full');
+            } else {
+                const data = new Uint8Array(event.target?.result as ArrayBuffer);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const importData: any = {};
+                workbook.SheetNames.forEach(name => {
+                    importData[name.toLowerCase()] = XLSX.utils.sheet_to_json(workbook.Sheets[name]);
+                });
+                setPendingImportData(importData);
+                setImportAlertMode(mode);
+            }
             setIsImportAlertOpen(true);
         } catch (err: any) {
-            toast({ title: 'Read Error', description: 'Invalid JSON file format.', variant: 'destructive' });
+            toast({ title: 'Read Error', description: 'Invalid file format.', variant: 'destructive' });
         }
     };
-    reader.readAsText(file);
-    e.target.value = '';
-  };
-
-  const handleExcelFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-        try {
-            const data = new Uint8Array(event.target?.result as ArrayBuffer);
-            const workbook = XLSX.read(data, { type: 'array' });
-            const importData: any = {};
-            workbook.SheetNames.forEach(name => {
-                importData[name.toLowerCase()] = XLSX.utils.sheet_to_json(workbook.Sheets[name]);
-            });
-            setPendingImportData(importData);
-            setIsImportAlertOpen(true);
-        } catch (err: any) {
-            toast({ title: 'Read Error', description: 'Invalid Excel file format.', variant: 'destructive' });
-        }
-    };
-    reader.readAsArrayBuffer(file);
+    if (mode === 'json') reader.readAsText(file);
+    else reader.readAsArrayBuffer(file);
     e.target.value = '';
   };
 
@@ -240,28 +228,14 @@ export function DataSettings() {
             const data = pendingImportData;
             const warehouseId = appUser.warehouseId;
 
-            for (const colName of TRANSACTIONAL_COLLECTIONS) {
-                const snap = await getDocs(query(collection(firestore, colName), where('warehouseId', '==', warehouseId)));
-                snap.docs.forEach(d => batch.delete(d.ref));
+            if (importMode === 'full') {
+                for (const colName of TRANSACTIONAL_COLLECTIONS) {
+                    const snap = await getDocs(query(collection(firestore, colName), where('warehouseId', '==', warehouseId)));
+                    snap.docs.forEach(d => batch.delete(d.ref));
+                }
             }
 
-            if (data.customers && Array.isArray(data.customers)) {
-                data.customers.forEach((c: any) => {
-                    const id = String(c["Customer ID"] || c.id || '').trim();
-                    if (id) {
-                        const customerData = {
-                            warehouseId,
-                            name: String(c["Name"] || ''),
-                            phone: String(c["Phone"] || ''),
-                            village: String(c["Village"] || ''),
-                            fatherName: String(c["Father Name"] || ''),
-                            address: String(c["Address"] || ''),
-                        };
-                        batch.set(doc(firestore, 'customers', id), cleanForFirestore(customerData));
-                    }
-                });
-            }
-
+            // Restore logic (Storage ID based)
             const storageRecordsMap: Record<string, any> = {};
             if (data.inflow && Array.isArray(data.inflow)) {
                 data.inflow.forEach((r: any) => {
@@ -295,18 +269,10 @@ export function DataSettings() {
                         const bagsWithdrawn = Number(o["Bags Withdrawn"] || 0);
                         const rentBilled = Number(o["Rent Billed"] || 0);
                         const outflowDate = toDate(o["Withdrawal Date"]);
-                        
-                        storageRecordsMap[id].outflows.push({
-                            date: outflowDate,
-                            bagsWithdrawn: bagsWithdrawn,
-                            rentBilled: rentBilled,
-                            discount: Number(o["Discount"] || 0)
-                        });
-                        
+                        storageRecordsMap[id].outflows.push({ date: outflowDate, bagsWithdrawn, rentBilled, discount: Number(o["Discount"] || 0) });
                         storageRecordsMap[id].bagsOut += bagsWithdrawn;
                         storageRecordsMap[id].bagsStored -= bagsWithdrawn;
                         storageRecordsMap[id].totalRentBilled += rentBilled;
-
                         if (storageRecordsMap[id].bagsStored <= 0) {
                             storageRecordsMap[id].storageEndDate = outflowDate;
                             storageRecordsMap[id].billingCycle = 'Completed';
@@ -318,7 +284,7 @@ export function DataSettings() {
             const unloadingRecordsMap: Record<string, any> = {};
             if (data.unloading && Array.isArray(data.unloading)) {
                 data.unloading.forEach((u: any) => {
-                    const id = String(u["Bill No"] || u.id || '').trim();
+                    const id = String(u["Bill No"] || u.id || u["Storage ID"] || '').trim();
                     const bags = Number(u["Bags Unloaded"] || 0);
                     const totalH = Number(u["Total Hamali"] || 0);
                     unloadingRecordsMap[id] = {
@@ -337,49 +303,39 @@ export function DataSettings() {
                 });
             }
 
+            // Payments (CLEAN LINKING)
             if (data.payments && Array.isArray(data.payments)) {
                 data.payments.forEach((p: any) => {
                     const amount = Number(p["Amount"] || 0);
                     const date = toDate(p["Date"]);
                     const type = String(p["Category"] || 'rent');
+                    const id = String(p["Storage ID"] || p["Bill No"] || '').trim();
 
-                    if (p["Type"] === 'Storage' && p["Storage ID"]) {
-                        const id = String(p["Storage ID"]).trim();
-                        if (storageRecordsMap[id]) {
-                            storageRecordsMap[id].payments.push({ amount, date, type });
-                        }
-                    } else if (p["Type"] === 'Unloading' && (p["Bill No"] || p["Storage ID"])) {
-                        const id = String(p["Bill No"] || p["Storage ID"]).trim();
-                        if (unloadingRecordsMap[id]) {
-                            unloadingRecordsMap[id].payments.push({ amount, date, type: 'unloading' });
-                        }
+                    if (p["Type"] === 'Storage' && storageRecordsMap[id]) {
+                        storageRecordsMap[id].payments.push({ amount, date, type });
+                    } else if (p["Type"] === 'Unloading' && unloadingRecordsMap[id]) {
+                        unloadingRecordsMap[id].payments.push({ amount, date, type: 'unloading' });
                     }
                 });
             }
 
-            Object.entries(storageRecordsMap).forEach(([id, r]) => {
-                batch.set(doc(firestore, 'storageRecords', id), cleanForFirestore(r));
-            });
-            Object.entries(unloadingRecordsMap).forEach(([id, r]) => {
-                batch.set(doc(firestore, 'unloadingRecords', id), cleanForFirestore(r));
-            });
+            // Write back to Firestore
+            Object.entries(storageRecordsMap).forEach(([id, r]) => batch.set(doc(firestore, 'storageRecords', id), cleanForFirestore(r)));
+            Object.entries(unloadingRecordsMap).forEach(([id, r]) => batch.set(doc(firestore, 'unloadingRecords', id), cleanForFirestore(r)));
 
-            if (data.expenses && Array.isArray(data.expenses)) {
-                data.expenses.forEach((e: any) => {
-                    const expense = {
-                        warehouseId,
-                        refNo: String(e["Ref No"] || ''),
-                        category: String(e["Category"] || 'Other'),
-                        description: String(e["Description"] || ''),
-                        amount: Number(e["Amount"] || 0),
-                        date: toDate(e["Date"]),
-                    };
-                    batch.set(doc(collection(firestore, 'expenses')), cleanForFirestore(expense));
+            if (data.customers && Array.isArray(data.customers) && importMode === 'full') {
+                data.customers.forEach((c: any) => {
+                    const id = String(c["Customer ID"] || c.id || '').trim();
+                    if (id) batch.set(doc(firestore, 'customers', id), cleanForFirestore({ warehouseId, name: String(c["Name"] || ''), phone: String(c["Phone"] || ''), village: String(c["Village"] || ''), fatherName: String(c["Father Name"] || ''), address: String(c["Address"] || '') }));
                 });
+            }
+
+            if (data.expenses && Array.isArray(data.expenses) && importMode === 'full') {
+                data.expenses.forEach((e: any) => batch.set(doc(collection(firestore, 'expenses')), cleanForFirestore({ warehouseId, refNo: String(e["Ref No"] || ''), category: String(e["Category"] || 'Other'), description: String(e["Description"] || ''), amount: Number(e["Amount"] || 0), date: toDate(e["Date"]) })));
             }
             
             await batch.commit();
-            toast({ title: 'Data Reconstruction Successful', description: 'Your warehouse history has been rebuilt.' });
+            toast({ title: 'Data Restored Successfully' });
             setIsImportAlertOpen(false);
             setPendingImportData(null);
         } catch (err: any) {
@@ -405,18 +361,14 @@ export function DataSettings() {
                 <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Step 1: Backup</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Button onClick={handleExportExcel} disabled={isExporting} variant="outline" className="h-auto py-4 px-6 justify-start">
-                         <div className="bg-green-100 p-2 rounded-lg mr-4">
-                            <FileSpreadsheet className="h-5 w-5 text-green-600" />
-                        </div>
+                         <div className="bg-green-100 p-2 rounded-lg mr-4"><FileSpreadsheet className="h-5 w-5 text-green-600" /></div>
                         <div className="text-left">
                             <p className="font-bold text-sm">Export Excel</p>
-                            <p className="text-xs text-muted-foreground">Organized worksheets</p>
+                            <p className="text-xs text-muted-foreground">All worksheets</p>
                         </div>
                     </Button>
                     <Button onClick={handleExportJson} disabled={isExporting} variant="outline" className="h-auto py-4 px-6 justify-start">
-                         <div className="bg-blue-100 p-2 rounded-lg mr-4">
-                            <FileJson className="h-5 w-5 text-blue-600" />
-                        </div>
+                         <div className="bg-blue-100 p-2 rounded-lg mr-4"><FileJson className="h-5 w-5 text-blue-600" /></div>
                         <div className="text-left">
                             <p className="font-bold text-sm">Export JSON</p>
                             <p className="text-xs text-muted-foreground">Technical data dump</p>
@@ -428,12 +380,10 @@ export function DataSettings() {
             <div className="space-y-4">
                 <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Step 2: Security</h4>
                 <Button onClick={handleDownloadTemplate} variant="outline" className="w-full h-auto py-4 px-6 justify-start border-dashed">
-                    <div className="bg-slate-100 p-2 rounded-lg mr-4">
-                        <Download className="h-5 w-5 text-slate-600" />
-                    </div>
+                    <div className="bg-slate-100 p-2 rounded-lg mr-4"><Download className="h-5 w-5 text-slate-600" /></div>
                     <div className="text-left">
-                        <p className="font-bold text-sm">Download Excel Restore Template</p>
-                        <p className="text-xs text-muted-foreground">Required format for Step 3</p>
+                        <p className="font-bold text-sm">Download Restore Template</p>
+                        <p className="text-xs text-muted-foreground">Required Excel format for Step 3</p>
                     </div>
                 </Button>
             </div>
@@ -444,22 +394,22 @@ export function DataSettings() {
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle className="text-xs font-bold">Warning:</AlertTitle>
                     <AlertDescription className="text-xs text-muted-foreground">
-                        Deep Restore will delete all existing transactional data and reconstruct it using the IDs and worksheets from your file.
+                        Full Restore will erase current data and reconstruct your history using the IDs in your file.
                     </AlertDescription>
                 </Alert>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <Button onClick={() => excelInputRef.current?.click()} disabled={isImporting} className="w-full h-12 text-sm font-bold">
                         {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                        Restore from Excel
+                        Full Excel Restore
                     </Button>
-                    <input type="file" ref={excelInputRef} onChange={handleExcelFileChange} className="hidden" accept=".xlsx,.xls" />
+                    <input type="file" ref={excelInputRef} onChange={(e) => handleFileChange(e, 'full')} className="hidden" accept=".xlsx,.xls" />
 
-                    <Button onClick={() => jsonInputRef.current?.click()} disabled={isImporting} variant="secondary" className="w-full h-12 text-sm font-bold">
-                         <Database className="mr-2 h-4 w-4" />
-                        Restore from JSON
+                    <Button onClick={() => paymentsOnlyInputRef.current?.click()} disabled={isImporting} variant="secondary" className="w-full h-12 text-sm font-bold">
+                         <Banknote className="mr-2 h-4 w-4" />
+                        Restore Payments Only
                     </Button>
-                    <input type="file" ref={jsonInputRef} onChange={handleJsonFileChange} className="hidden" accept=".json" />
+                    <input type="file" ref={paymentsOnlyInputRef} onChange={(e) => handleFileChange(e, 'payments')} className="hidden" accept=".xlsx,.xls" />
                 </div>
             </div>
 
@@ -467,16 +417,12 @@ export function DataSettings() {
             <div className="flex justify-center pt-2">
                 <AlertDialog>
                     <AlertDialogTrigger asChild>
-                        <Button variant="link" className="text-destructive text-xs hover:no-underline">
-                            Factory Reset (Wipe All Data)
-                        </Button>
+                        <Button variant="link" className="text-destructive text-xs hover:no-underline">Factory Reset (Wipe All Data)</Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                         <AlertDialogHeader>
                             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                This will permanently delete every record for your warehouse. This cannot be undone.
-                            </AlertDialogDescription>
+                            <AlertDialogDescription>Permanently delete every record. This cannot be undone.</AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -501,14 +447,16 @@ export function DataSettings() {
         <AlertDialog open={isImportAlertOpen} onOpenChange={setIsImportAlertOpen}>
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Execute Data Reconstruction?</AlertDialogTitle>
+                    <AlertDialogTitle>{importMode === 'full' ? 'Execute Full Data Reconstruction?' : 'Restore Payments History?'}</AlertDialogTitle>
                     <AlertDialogDescription>
-                        All current transactional data will be erased and replaced with the records in your file. Storage IDs will be preserved.
+                        {importMode === 'full' 
+                            ? 'All current data will be replaced with the records in your file. Storage IDs will be preserved.' 
+                            : 'This will update payment history for existing Storage IDs found in your Excel file.'}
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                     <AlertDialogCancel onClick={() => { setPendingImportData(null); setIsImportAlertOpen(false); }}>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={executeDeepRestore}>Execute Deep Restore</AlertDialogAction>
+                    <AlertDialogAction onClick={executeDeepRestore}>Execute Restore</AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>

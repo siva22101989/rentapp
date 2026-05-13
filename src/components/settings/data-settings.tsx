@@ -71,7 +71,7 @@ export function DataSettings() {
       try {
         const wb = XLSX.utils.book_new();
 
-        // 1. Customers - CLEAN: NO Storage ID
+        // 1. Customers
         const custSnap = await getDocs(query(collection(firestore, 'customers'), where('warehouseId', '==', appUser.warehouseId)));
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(custSnap.docs.map(d => ({ 
             "Customer ID": String(d.id), 
@@ -82,7 +82,7 @@ export function DataSettings() {
             "Address": d.data().address || ''
         }))), 'customers');
 
-        // 2. Inflow (Godown Inventory)
+        // 2. Inflow
         const storageSnap = await getDocs(query(collection(firestore, 'storageRecords'), where('warehouseId', '==', appUser.warehouseId)));
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(storageSnap.docs.map(d => {
             const data = d.data();
@@ -100,7 +100,7 @@ export function DataSettings() {
             };
         })), 'inflow');
 
-        // 3. Outflow (Withdrawal History) - CLEAN: NO Customer ID
+        // 3. Outflow
         const outflows: any[] = [];
         storageSnap.docs.forEach(d => {
             const data = d.data();
@@ -116,7 +116,7 @@ export function DataSettings() {
         });
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(outflows), 'outflow');
 
-        // 4. Unloading (Truck Register)
+        // 4. Unloading
         const unloadingSnap = await getDocs(query(collection(firestore, 'unloadingRecords'), where('warehouseId', '==', appUser.warehouseId)));
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(unloadingSnap.docs.map(d => {
             const data = d.data();
@@ -183,22 +183,11 @@ export function DataSettings() {
   const handleDownloadTemplate = () => {
     const wb = XLSX.utils.book_new();
     
-    // Customers template - NO Storage ID
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ "Customer ID": 'CUST-01', "Name": 'Customer Name', "Phone": '9876543210', "Village": 'Village', "Father Name": 'Father', "Address": 'Address' }]), 'customers');
-    
-    // Inflow template
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ "Storage ID": '1001', "Customer ID": 'CUST-01', "Commodity": 'Paddy', "Lot No": 'A1', "Bags Received": 2191, "Inflow Date": '2024-05-01', "Handling Rate": 50, "Total Handling Billed": 109550, "Khata Amount": 100, "Status": "6-Month Initial" }]), 'inflow');
-    
-    // Outflow template - NO Customer ID
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ "Storage ID": '1001', "Withdrawal Date": '2024-06-01', "Bags Withdrawn": 1000, "Rent Billed": 5000, "Discount": 0 }]), 'outflow');
-    
-    // Unloading template
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ "Bill No": 'U-01', "Customer ID": 'CUST-01', "Commodity": 'Paddy', "Bags Unloaded": 2191, "Unloading Date": '2024-05-01', "Customer Rate": 6, "Total Hamali": 13146 }]), 'unloading');
-    
-    // Payments template
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ "Type": 'Storage', "Storage ID": '1001', "Customer ID": 'CUST-01', "Amount": 50000, "Date": '2024-05-15', "Category": 'hamali' }]), 'payments');
-    
-    // Expenses template
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ "Ref No": 'E-01', "Category": 'Petrol', "Description": 'Fuel', "Amount": 1500, "Date": '2024-05-10' }]), 'expenses');
     
     XLSX.writeFile(wb, 'GrainDost-Restore-Template.xlsx');
@@ -251,13 +240,11 @@ export function DataSettings() {
             const data = pendingImportData;
             const warehouseId = appUser.warehouseId;
 
-            // 1. Wipe current transactional data
             for (const colName of TRANSACTIONAL_COLLECTIONS) {
                 const snap = await getDocs(query(collection(firestore, colName), where('warehouseId', '==', warehouseId)));
                 snap.docs.forEach(d => batch.delete(d.ref));
             }
 
-            // 2. Restore Customers
             if (data.customers && Array.isArray(data.customers)) {
                 data.customers.forEach((c: any) => {
                     const id = String(c["Customer ID"] || c.id || '').trim();
@@ -275,7 +262,6 @@ export function DataSettings() {
                 });
             }
 
-            // 3. Prepare Storage Records Map
             const storageRecordsMap: Record<string, any> = {};
             if (data.inflow && Array.isArray(data.inflow)) {
                 data.inflow.forEach((r: any) => {
@@ -302,7 +288,6 @@ export function DataSettings() {
                 });
             }
 
-            // 4. Restore Outflows (Withdrawals)
             if (data.outflow && Array.isArray(data.outflow)) {
                 data.outflow.forEach((o: any) => {
                     const id = String(o["Storage ID"] || o.id || '').trim();
@@ -330,34 +315,13 @@ export function DataSettings() {
                 });
             }
 
-            // 5. Restore Payments
-            if (data.payments && Array.isArray(data.payments)) {
-                data.payments.forEach((p: any) => {
-                    const amount = Number(p["Amount"] || 0);
-                    const date = toDate(p["Date"]);
-                    const type = String(p["Category"] || 'rent');
-
-                    if (p["Type"] === 'Storage' && p["Storage ID"]) {
-                        const id = String(p["Storage ID"]).trim();
-                        if (storageRecordsMap[id]) {
-                            storageRecordsMap[id].payments.push({ amount, date, type });
-                        }
-                    }
-                });
-            }
-
-            // Write all reconstructed Storage Records
-            Object.entries(storageRecordsMap).forEach(([id, r]) => {
-                batch.set(doc(firestore, 'storageRecords', id), cleanForFirestore(r));
-            });
-
-            // 6. Restore Unloading Records
+            const unloadingRecordsMap: Record<string, any> = {};
             if (data.unloading && Array.isArray(data.unloading)) {
                 data.unloading.forEach((u: any) => {
                     const id = String(u["Bill No"] || u.id || '').trim();
                     const bags = Number(u["Bags Unloaded"] || 0);
                     const totalH = Number(u["Total Hamali"] || 0);
-                    const record = {
+                    unloadingRecordsMap[id] = {
                         warehouseId,
                         billNo: id,
                         customerId: String(u["Customer ID"] || '').trim(),
@@ -370,11 +334,36 @@ export function DataSettings() {
                         hamaliPerBag: Number(u["Customer Rate"]) || (bags > 0 ? totalH / bags : 0),
                         payments: []
                     };
-                    batch.set(doc(firestore, 'unloadingRecords', id), cleanForFirestore(record));
                 });
             }
 
-            // 7. Restore Expenses
+            if (data.payments && Array.isArray(data.payments)) {
+                data.payments.forEach((p: any) => {
+                    const amount = Number(p["Amount"] || 0);
+                    const date = toDate(p["Date"]);
+                    const type = String(p["Category"] || 'rent');
+
+                    if (p["Type"] === 'Storage' && p["Storage ID"]) {
+                        const id = String(p["Storage ID"]).trim();
+                        if (storageRecordsMap[id]) {
+                            storageRecordsMap[id].payments.push({ amount, date, type });
+                        }
+                    } else if (p["Type"] === 'Unloading' && (p["Bill No"] || p["Storage ID"])) {
+                        const id = String(p["Bill No"] || p["Storage ID"]).trim();
+                        if (unloadingRecordsMap[id]) {
+                            unloadingRecordsMap[id].payments.push({ amount, date, type: 'unloading' });
+                        }
+                    }
+                });
+            }
+
+            Object.entries(storageRecordsMap).forEach(([id, r]) => {
+                batch.set(doc(firestore, 'storageRecords', id), cleanForFirestore(r));
+            });
+            Object.entries(unloadingRecordsMap).forEach(([id, r]) => {
+                batch.set(doc(firestore, 'unloadingRecords', id), cleanForFirestore(r));
+            });
+
             if (data.expenses && Array.isArray(data.expenses)) {
                 data.expenses.forEach((e: any) => {
                     const expense = {

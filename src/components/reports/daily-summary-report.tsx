@@ -1,7 +1,8 @@
+
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import type { Customer, StorageRecord, UnloadingRecord, Expense, Payment, OtherIncome } from "@/lib/definitions";
+import type { Customer, StorageRecord, UnloadingRecord, Expense, Payment, OtherIncome, WarehouseInfo } from "@/lib/definitions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -37,11 +38,12 @@ type DailyData = {
 
 const DailySummaryContent = ({ dailyData, customers, selectedDate }: { dailyData: DailyData, customers: Customer[], selectedDate: Date }) => {
     const getCustomerName = (customerId: string) => customers.find(c => c.id === customerId)?.name ?? 'Unknown';
+    const generatedDate = useMemo(() => format(new Date(), 'dd MMM yyyy, hh:mm a'), []);
 
     return (
         <div className="p-4 space-y-6">
             <div className="mb-6 text-center">
-                <h2 className="text-xl font-bold">GrainDost</h2>
+                <h2 className="text-xl font-bold">GrainDost Warehouse</h2>
                 <h3 className="font-semibold">Daily Summary Report</h3>
                 <p className="text-sm text-gray-500">{format(selectedDate, 'EEEE, dd MMMM yyyy')}</p>
             </div>
@@ -99,7 +101,7 @@ const DailySummaryContent = ({ dailyData, customers, selectedDate }: { dailyData
                     <section>
                         <h3 className="font-semibold mb-2">Outflows Today</h3>
                         <Table>
-                            <TableHeader><TableRow><TableHead>Record ID</TableHead><TableHead>Customer</TableHead><TableHead>Commodity</TableHead><TableHead className="text-right">Bags Withdrawn</TableHead></TableRow></TableHeader>
+                            <TableHeader><TableRow><TableHead>Storage ID</TableHead><TableHead>Customer</TableHead><TableHead>Commodity</TableHead><TableHead className="text-right">Bags Withdrawn</TableHead></TableRow></TableHeader>
                             <TableBody>
                                 {dailyData.outflows.map((rec, idx) => (
                                     <TableRow key={`out-${rec.id}-${idx}`}><TableCell>{rec.id}</TableCell><TableCell>{getCustomerName(rec.customerId)}</TableCell><TableCell>{rec.commodityDescription}</TableCell><TableCell className="text-right font-mono">{rec.bagsWithdrawn}</TableCell></TableRow>
@@ -111,6 +113,14 @@ const DailySummaryContent = ({ dailyData, customers, selectedDate }: { dailyData
                  {(dailyData.inflows.length + dailyData.outflows.length + dailyData.payments.length + dailyData.expenses.length) === 0 && (
                     <div className="text-center py-16 text-gray-500">No transactions recorded for this day.</div>
                 )}
+            </div>
+
+            <div className="mt-10 flex flex-col items-center text-center space-y-2">
+                <div className="w-64 border-t border-slate-300 pt-4">
+                    <p className="text-[#1e293b] font-bold text-sm uppercase tracking-wider">Authorized Manager Signature</p>
+                    <p className="text-primary font-bold text-xs uppercase mt-1">GrainDost Warehouse</p>
+                    <p className="text-[10px] text-slate-400 mt-2">Report validity verified on {generatedDate}</p>
+                </div>
             </div>
         </div>
     );

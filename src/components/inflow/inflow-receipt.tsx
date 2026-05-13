@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import type { Customer, StorageRecord, WarehouseInfo, UnloadingRecord } from '@/lib/definitions';
 import { format, differenceInDays } from 'date-fns';
 import { toDate, formatCurrency } from '@/lib/utils';
@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, Table
 export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageRecord, customer: Customer, warehouseInfo: WarehouseInfo | null, unloadingRecord?: UnloadingRecord }>(({ record, customer, warehouseInfo, unloadingRecord }, ref) => {
     const [formattedDate, setFormattedDate] = useState('');
     const [dryingDays, setDryingDays] = useState<number | null>(null);
+    const generatedDate = useMemo(() => format(new Date(), 'dd MMM yyyy, hh:mm a'), []);
     
     useEffect(() => {
         if (record && record.storageStartDate) {
@@ -37,12 +38,25 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
     
     const hamaliRate = record.hamaliRate ?? (record.bagsIn > 0 ? record.hamaliPayable / record.bagsIn : 0);
 
+    const commonFooter = (
+        <div className="mt-16 pt-8 flex flex-col items-center text-center space-y-2">
+            <div className="flex justify-between w-full mb-8">
+                <div className="w-48 border-t border-gray-400 pt-1 text-xs">Depositor Signature</div>
+                <div className="w-64 border-t border-slate-300 pt-4">
+                    <p className="text-[#1e293b] font-bold text-sm uppercase tracking-wider">Authorized Manager Signature</p>
+                    <p className="text-primary font-bold text-xs uppercase mt-1">{warehouseInfo?.name || 'GrainDost Warehouse'}</p>
+                </div>
+            </div>
+            <p className="text-[10px] text-slate-400">Report validity verified on {generatedDate}</p>
+        </div>
+    );
+
     if (record.inflowType === 'Plot') {
         return (
             <div ref={ref} className="bg-white p-4 sm:p-6 border-2 border-black font-sans text-lg text-black">
                 {/* Header */}
                 <div className="text-center mb-4">
-                    <h1 className="text-2xl font-bold tracking-wider">{warehouseInfo?.name || 'GrainDost'}</h1>
+                    <h1 className="text-2xl font-bold tracking-wider">{warehouseInfo?.name || 'GrainDost Warehouse'}</h1>
                     <p className="text-sm">{warehouseInfo?.addressLine1 || 'Survey No. 165,237/2, Owk - Koilakuntla Road, OWK - 518 122,'}</p>
                     <p className="text-sm">{warehouseInfo?.addressLine2 || 'Owk (M), Kurnool (Dt.), A.P.'} Cell: {warehouseInfo?.phone || '9703503423, 9160606633'}</p>
                     <h2 className="font-bold underline text-center mt-4 text-base">INFLOW BILL (FROM PLOT)</h2>
@@ -119,16 +133,7 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
                     </TableFooter>
                 </Table>
 
-                {/* Signatures */}
-                <div className="mt-16 pt-8 flex justify-between text-center">
-                    <div className="w-1/2">
-                        <div className="mt-12 border-t border-gray-400 mx-4 pt-1">Depositor Signature</div>
-                    </div>
-                    <div className="w-1/2">
-                        <div className="mt-12 border-t border-gray-400 mx-4 pt-1">Authorized Manager Signature</div>
-                        <p className="text-xs mt-1">For {warehouseInfo?.name || 'GrainDost'}</p>
-                    </div>
-                </div>
+                {commonFooter}
             </div>
         );
     }
@@ -137,7 +142,7 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
         <div ref={ref} className="bg-white p-4 sm:p-6 border-2 border-black font-sans text-lg text-black">
             {/* Header */}
             <div className="text-center mb-4">
-                <h1 className="text-2xl font-bold tracking-wider">{warehouseInfo?.name || 'GrainDost'}</h1>
+                <h1 className="text-2xl font-bold tracking-wider">{warehouseInfo?.name || 'GrainDost Warehouse'}</h1>
                 <p className="text-sm">{warehouseInfo?.addressLine1 || 'Survey No. 165,237/2, Owk - Koilakuntla Road, OWK - 518 122,'}</p>
                 <p className="text-sm">{warehouseInfo?.addressLine2 || 'Owk (M), Kurnool (Dt.), A.P.'} Cell: {warehouseInfo?.phone || '9703503423, 9160606633'}</p>
                  <h2 className="font-bold underline text-center mt-4 text-lg">INFLOW BILL</h2>
@@ -205,16 +210,7 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
                 </TableFooter>
             </Table>
             
-            {/* Signatures */}
-            <div className="mt-16 pt-8 flex justify-between text-center">
-                <div className="w-1/2">
-                    <div className="mt-12 border-t border-gray-400 mx-4 pt-1">Depositor Signature</div>
-                </div>
-                <div className="w-1/2">
-                    <div className="mt-12 border-t border-gray-400 mx-4 pt-1">Authorized Manager Signature</div>
-                    <p className="text-xs mt-1">For {warehouseInfo?.name || 'GrainDost'}</p>
-                </div>
-            </div>
+            {commonFooter}
         </div>
     );
 });

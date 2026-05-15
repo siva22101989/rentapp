@@ -24,6 +24,7 @@ import { format } from 'date-fns';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 import { useAppUser } from '@/firebase/auth/use-user';
+import { DateInput } from '../shared/date-input';
 
 const UnloadingRecordSchema = z.object({
   customerId: z.string().min(1, 'Customer is required.'),
@@ -169,35 +170,35 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)}>
                     <CardHeader>
-                        <CardTitle>Add New Unloading Record</CardTitle>
-                        <CardDescription>The Bill No. is auto-generated. Format: DD-MM-YYYY.</CardDescription>
+                        <CardTitle className="text-lg">Add New Unloading Record</CardTitle>
+                        <CardDescription className="text-xs">The Bill No. is auto-generated. Format: DD-MM-YYYY.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <FormField control={form.control} name="billNo" render={({ field }) => (
                             <FormItem>
-                                <FormLabel className="flex items-center gap-2">
+                                <FormLabel className="flex items-center gap-2 text-xs">
                                     Bill No. (Auto)
-                                    <Badge variant="outline" className="text-[10px] uppercase font-bold py-0 h-4 bg-primary/5 text-primary border-primary/20">
+                                    <Badge variant="outline" className="text-[9px] uppercase font-bold py-0 h-4 bg-primary/5 text-primary border-primary/20">
                                         <Sparkles className="h-2 w-2 mr-1" />
                                         Auto-Generated
                                     </Badge>
                                 </FormLabel>
                                 <FormControl>
-                                    <Input className="font-mono font-bold bg-muted/50 cursor-not-allowed" {...field} readOnly />
+                                    <Input className="font-mono font-bold bg-muted/50 cursor-not-allowed text-base" {...field} readOnly />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
                         )} />
                         <FormField control={form.control} name="customerId" render={({ field }) => (
                             <FormItem className="flex flex-col">
-                                <FormLabel>Customer</FormLabel>
+                                <FormLabel className="text-xs">Customer</FormLabel>
                                 <Combobox options={customerOptions} value={field.value} onChange={field.onChange} placeholder="Select a customer..." searchPlaceholder="Search customers..." modal={true} />
                                 <FormMessage />
                             </FormItem>
                         )} />
                         <FormField control={form.control} name="commodityDescription" render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Commodity</FormLabel>
+                                <FormLabel className="text-xs">Commodity</FormLabel>
                                 <Select onValueChange={field.onChange} value={field.value}>
                                     <FormControl>
                                         <SelectTrigger>
@@ -213,23 +214,23 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                         )} />
                         <FormField control={form.control} name="location" render={({ field }) => (
                             <FormItem className="flex flex-col">
-                                <FormLabel>Lot No. (Storage Location)</FormLabel>
+                                <FormLabel className="text-xs">Storage Location (Lot No.)</FormLabel>
                                 <Combobox options={lotOptions} value={field.value} onChange={field.onChange} placeholder="Select location..." searchPlaceholder="Search lots..." modal={true} />
                                 <FormMessage />
                             </FormItem>
                         )} />
                         <FormField control={form.control} name="unloadingDate" render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Date (DD-MM-YYYY)</FormLabel>
+                                <FormLabel className="text-xs">Date (DD-MM-YYYY)</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="DD-MM-YYYY" {...field} />
+                                    <DateInput placeholder="DD-MM-YYYY" {...field} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
                         )} />
                         <FormField control={form.control} name="bagsUnloaded" render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Bags Unloaded</FormLabel>
+                                <FormLabel className="text-xs">Bags Unloaded</FormLabel>
                                 <FormControl>
                                     <Input type="number" step="0.01" {...field} value={field.value ?? ''} />
                                 </FormControl>
@@ -239,7 +240,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                         <div className="grid grid-cols-2 gap-4">
                             <FormField control={form.control} name="customerHamaliPerBag" render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Cust Rate</FormLabel>
+                                    <FormLabel className="text-xs">Cust Rate</FormLabel>
                                     <FormControl>
                                         <Input type="number" step="0.01" {...field} value={field.value ?? ''} />
                                     </FormControl>
@@ -248,7 +249,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                             )} />
                             <FormField control={form.control} name="workerHamaliPerBag" render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Worker Rate</FormLabel>
+                                    <FormLabel className="text-xs">Worker Rate</FormLabel>
                                     <FormControl>
                                         <Input type="number" step="0.01" {...field} value={field.value ?? ''} />
                                     </FormControl>
@@ -257,15 +258,15 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                             )} />
                         </div>
                         <Separator />
-                        <div className="space-y-1 text-sm">
+                        <div className="space-y-1 text-xs">
                             <div className="flex justify-between font-semibold text-primary">
                                 <span>Total Customer Hamali</span>
                                 <span>{formatCurrency(totalCustomerHamali)}</span>
                             </div>
                         </div>
-                        <div className="flex items-center space-x-2 pt-4">
+                        <div className="flex items-center space-x-2 pt-2">
                             <Checkbox id="sendSmsUnloading" checked={sendSmsNotification} onCheckedChange={(checked) => setSendSmsNotification(Boolean(checked))} disabled={!warehouseInfo?.textbeeApiKey || !selectedCustomer?.phone} />
-                            <label htmlFor="sendSmsUnloading" className="text-sm font-medium leading-none">Send SMS Notification</label>
+                            <label htmlFor="sendSmsUnloading" className="text-xs font-medium leading-none">Send SMS Notification</label>
                         </div>
                     </CardContent>
                     <CardFooter>

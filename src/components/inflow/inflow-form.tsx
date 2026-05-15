@@ -20,6 +20,7 @@ import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 import { Checkbox } from '@/components/ui/checkbox';
 import { sendSms } from '@/lib/sms';
 import { format } from 'date-fns';
+import { DateInput } from '../shared/date-input';
 
 function SubmitButton({ isPending }: { isPending: boolean }) {
     return (
@@ -65,7 +66,6 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
       [firestore, appUser]
     );
     const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
-
 
     const customerOptions = customers.map(c => ({ value: c.id, label: c.name }));
     const commodityOptions = commodities.map(c => ({ value: c.name, label: c.name }));
@@ -254,14 +254,14 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
         <form onSubmit={handleSubmit} className="w-full max-w-lg">
             <Card>
                 <CardHeader>
-                    <CardTitle>New Storage Record Details</CardTitle>
-                    <CardDescription>The Storage ID is automatically generated. Format: DD-MM-YYYY.</CardDescription>
+                    <CardTitle className="text-lg">New Storage Record Details</CardTitle>
+                    <CardDescription className="text-xs">The Storage ID is automatically generated. Format: DD-MM-YYYY.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                     <div className="space-y-2">
+                     <div className="space-y-1.5">
                         <Label htmlFor="storageId" className="flex items-center gap-2">
                             Storage ID
-                            <Badge variant="outline" className="text-[10px] uppercase font-bold py-0 h-4 bg-primary/5 text-primary border-primary/20">
+                            <Badge variant="outline" className="text-[9px] uppercase font-bold py-0 h-4 bg-primary/5 text-primary border-primary/20">
                                 <Sparkles className="h-2 w-2 mr-1" />
                                 Auto-Generated
                             </Badge>
@@ -269,12 +269,12 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                         <Input 
                             id="storageId" 
                             type="text" 
-                            className="font-mono font-bold text-lg bg-muted/50 cursor-not-allowed"
+                            className="font-mono font-bold text-base bg-muted/50 cursor-not-allowed"
                             value={storageId} 
                             readOnly
                         />
                     </div>
-                     <div className="space-y-2">
+                     <div className="space-y-1.5">
                         <Label htmlFor="customerId">Customer</Label>
                         <Combobox
                             options={customerOptions}
@@ -286,7 +286,7 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                     </div>
 
                     {selectedCustomer && (
-                        <div className="text-sm text-muted-foreground p-3 border rounded-md bg-secondary/50 space-y-1 -mt-2">
+                        <div className="text-[11px] text-muted-foreground p-3 border rounded-md bg-secondary/50 space-y-0.5 -mt-2">
                             <p><strong>Father's Name:</strong> {selectedCustomer.fatherName || 'N/A'}</p>
                             <p><strong>Village:</strong> {selectedCustomer.village || 'N/A'}</p>
                             <p><strong>Phone:</strong> {selectedCustomer.phone}</p>
@@ -294,7 +294,7 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                     )}
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
+                        <div className="space-y-1.5">
                             <Label htmlFor="commodityDescription">Product</Label>
                              <Combobox
                                 options={commodityOptions}
@@ -304,7 +304,7 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                                 searchPlaceholder="Search products..."
                             />
                         </div>
-                         <div className="space-y-2">
+                         <div className="space-y-1.5">
                             <Label htmlFor="location">Lot No.</Label>
                              <Combobox
                                 options={lotOptions}
@@ -316,16 +316,15 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                         </div>
                     </div>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
+                        <div className="space-y-1.5">
                             <Label htmlFor="lorryTractorNo">Lorry / Tractor No.</Label>
                             <Input id="lorryTractorNo" name="lorryTractorNo" placeholder="e.g., AP 21 1234" value={lorryTractorNo} onChange={e => setLorryTractorNo(e.target.value)} />
                         </div>
-                        <div className="space-y-2">
+                        <div className="space-y-1.5">
                             <Label htmlFor="storageStartDate">Inflow Date (DD-MM-YYYY)</Label>
-                            <Input 
+                            <DateInput 
                                 id="storageStartDate" 
                                 name="storageStartDate" 
-                                type="text"
                                 placeholder="DD-MM-YYYY"
                                 value={storageStartDate}
                                 onChange={e => setStorageStartDate(e.target.value)}
@@ -334,7 +333,7 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                         </div>
                     </div>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
+                        <div className="space-y-1.5">
                             <Label htmlFor="bagsStored">No. of Bags (Packed)</Label>
                             <Input 
                                 id="bagsStored" 
@@ -347,7 +346,7 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                                 onChange={(e) => setBags(e.target.value === '' ? '' : Number(e.target.value))}
                             />
                         </div>
-                         <div className="space-y-2">
+                         <div className="space-y-1.5">
                             <Label htmlFor="weight">Weight (Kgs)</Label>
                             <Input 
                                 id="weight" 
@@ -361,45 +360,45 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                         </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
+                        <div className="space-y-1.5">
                             <Label htmlFor="customerHamaliRate">Cust Hamali Rate</Label>
                             <Input id="customerHamaliRate" name="customerHamaliRate" type="number" placeholder="0.00" step="0.01" value={customerRate} onChange={e => setCustomerRate(e.target.value === '' ? '' : Number(e.target.value))}/>
                         </div>
-                        <div className="space-y-2">
+                        <div className="space-y-1.5">
                             <Label htmlFor="workerHamaliRate">Worker Hamali Rate</Label>
                             <Input id="workerHamaliRate" name="workerHamaliRate" type="number" placeholder="0.00" step="0.01" value={workerRate} onChange={e => setWorkerRate(e.target.value === '' ? '' : Number(e.target.value))}/>
                         </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
+                        <div className="space-y-1.5">
                             <Label htmlFor="hamaliPaid">Hamali Paid Now</Label>
                             <Input id="hamaliPaid" name="hamaliPaid" type="number" placeholder="0.00" step="0.01" value={hamaliPaid} onChange={e => setHamaliPaid(e.target.value === '' ? '' : Number(e.target.value))}/>
                         </div>
-                        <div className="space-y-2">
+                        <div className="space-y-1.5">
                             <Label htmlFor="khataAmount">Khata Amount</Label>
                             <Input id="khataAmount" name="khataAmount" type="number" placeholder="0.00" step="0.01" value={khataAmount} onChange={e => setKhataAmount(e.target.value === '' ? '' : Number(e.target.value))} />
                         </div>
                     </div>
                      <Separator />
-                     <div className="space-y-4">
-                        <h4 className="font-medium">Billing Summary</h4>
-                        <div className="space-y-2 text-sm">
+                     <div className="space-y-3">
+                        <h4 className="text-sm font-bold uppercase tracking-tight">Billing Summary</h4>
+                        <div className="space-y-1.5 text-xs">
                             <div className="flex justify-between items-center font-semibold">
                                 <span className="text-foreground">Total Hamali (Customer)</span>
                                 <span className="font-mono">{formatCurrency(customerHamali)}</span>
                             </div>
-                             <div className="flex justify-between items-center text-sm">
-                                <span className="text-muted-foreground">Total Hamali (Worker)</span>
+                             <div className="flex justify-between items-center text-muted-foreground">
+                                <span>Total Hamali (Worker)</span>
                                 <span className="font-mono">{formatCurrency(workerHamali)}</span>
                             </div>
                             <Separator />
-                            <div className="flex justify-between items-center font-semibold">
-                                <span className="text-destructive">Hamali Pending</span>
+                            <div className="flex justify-between items-center font-bold text-sm">
+                                <span className="text-destructive uppercase">Hamali Pending</span>
                                 <span className="font-mono text-destructive">{formatCurrency(customerHamali - (Number(hamaliPaid) || 0))}</span>
                             </div>
                         </div>
                     </div>
-                     <div className="flex items-center space-x-2 pt-4">
+                     <div className="flex items-center space-x-2 pt-2">
                         <Checkbox 
                             id="sendSms" 
                             checked={sendSmsNotification}
@@ -408,7 +407,7 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                         />
                         <label
                             htmlFor="sendSms"
-                            className="text-sm font-medium leading-none"
+                            className="text-xs font-medium leading-none"
                         >
                             Send SMS Notification to Customer
                         </label>

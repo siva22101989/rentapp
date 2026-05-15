@@ -57,15 +57,15 @@ function NavCard({ href, label, icon: Icon, description }: Omit<NavItem, 'roles'
         <Card className="flex flex-col h-full hover:bg-muted/50 transition-colors hover:border-primary/50">
             <CardHeader>
                 <div className="flex justify-between items-start">
-                    <CardTitle>{label}</CardTitle>
-                    <Icon className="h-6 w-6 text-muted-foreground" />
+                    <CardTitle className="text-base">{label}</CardTitle>
+                    <Icon className="h-5 w-5 text-muted-foreground" />
                 </div>
             </CardHeader>
             <CardContent className="flex-grow">
-                <p className="text-sm text-muted-foreground">{description}</p>
+                <p className="text-xs text-muted-foreground">{description}</p>
             </CardContent>
             <CardFooter>
-                <Button asChild className="w-full">
+                <Button asChild size="sm" className="w-full">
                     <Link href={href}>
                         Go to {label}
                         <ArrowRight className="ml-2 h-4 w-4" />
@@ -96,30 +96,30 @@ function DashboardHeader({ activeRecordsCount, occupancy, warehouseInfo, appUser
                             {warehouseInfo?.name || 'Sri Lakshmi Warehouse'}
                         </p>
                         {appUser?.role && (
-                            <Badge variant="outline" className="capitalize">{appUser.role}</Badge>
+                            <Badge variant="outline" className="capitalize text-[10px] h-5">{appUser.role}</Badge>
                         )}
                     </div>
-                    <h2 className="text-2xl font-bold mt-2">{greeting}</h2>
-                    <p className="text-muted-foreground mt-2 max-w-md">
+                    <h2 className="text-xl md:text-2xl font-bold mt-2">{greeting}</h2>
+                    <p className="text-sm text-muted-foreground mt-1 max-w-md">
                         Here's what's happening in your warehouse today. You have {activeRecordsCount} active records and
                         your storage is {occupancy.toFixed(1)}% full.
                     </p>
                 </div>
                 <div className="grid w-full grid-cols-2 items-center gap-4 md:w-auto">
-                    <Card className="p-4 bg-background/50">
-                        <div className="flex flex-row items-center gap-2 text-muted-foreground text-sm font-medium">
-                            <TrendingUp size={16} />
+                    <Card className="p-3 bg-background/50">
+                        <div className="flex flex-row items-center gap-2 text-muted-foreground text-[10px] font-bold uppercase tracking-wider">
+                            <TrendingUp size={12} />
                             Active Records
                         </div>
-                        <p className="text-3xl font-bold mt-2">{activeRecordsCount}</p>
+                        <p className="text-2xl font-bold mt-1">{activeRecordsCount}</p>
                     </Card>
-                    <Card className="p-4 bg-background/50">
-                        <div className="flex flex-row items-center gap-2 text-muted-foreground text-sm font-medium">
-                            <Warehouse size={16} />
+                    <Card className="p-3 bg-background/50">
+                        <div className="flex flex-row items-center gap-2 text-muted-foreground text-[10px] font-bold uppercase tracking-wider">
+                            <Warehouse size={12} />
                             Occupancy
                         </div>
-                        <p className="text-3xl font-bold mt-2">{occupancy.toFixed(1)}%</p>
-                        <Progress value={occupancy} className="h-1.5 mt-2" />
+                        <p className="text-2xl font-bold mt-1">{occupancy.toFixed(1)}%</p>
+                        <Progress value={occupancy} className="h-1 mt-2" />
                     </Card>
                 </div>
             </CardContent>
@@ -137,8 +137,8 @@ function DashboardHeaderSkeleton() {
                     <Skeleton className="h-5 w-full max-w-md" />
                 </div>
                 <div className="flex items-center gap-4">
-                    <Skeleton className="h-[98px] w-[150px]" />
-                    <Skeleton className="h-[98px] w-[150px]" />
+                    <Skeleton className="h-[80px] w-[130px]" />
+                    <Skeleton className="h-[80px] w-[130px]" />
                 </div>
             </CardContent>
         </Card>

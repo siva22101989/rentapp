@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import type { Customer, StorageRecord, WarehouseInfo } from '@/lib/definitions';
+import type { Customer, StorageRecord, WarehouseInfo, Outflow } from '@/lib/definitions';
 import { format, differenceInMonths } from 'date-fns';
-import { formatCurrency, toDate } from '@/lib/utils';
+import { toDate, formatCurrency } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '../ui/table';
 
 type OutflowReceiptProps = {

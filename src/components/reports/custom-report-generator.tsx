@@ -15,7 +15,6 @@ import { ProfitAndLossReport } from './profit-and-loss-report';
 import { Button } from '../ui/button';
 import { Printer, FileDown, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { DryingHistoryTable } from '@/components/drying/drying-history-table';
 import { LotInventoryReport } from './lot-inventory-report';
 import { PendingPaymentsTable } from '@/components/payments/pending-payments-table';
 import { PaymentReport } from './payment-report';
@@ -28,7 +27,6 @@ const reportTypes = [
     { value: 'lot-active-stock', label: 'Lot-wise Active Stock Only' },
     { value: 'customer-statement', label: 'Customer Statement of Account' },
     { value: 'hamali-register', label: 'Hamali Register' },
-    { value: 'drying-history', label: 'Drying History Report' },
     { value: 'inflow-register', label: 'Inflow Register' },
     { value: 'outflow-register', label: 'Outflow Register' },
     { value: 'unloading-register', label: 'Unloading Register' },
@@ -63,7 +61,6 @@ export function CustomReportGenerator({
     commodities,
     initialReport, 
     initialCustomerId,
-    dryingRecords,
     lots
 }: ReportGeneratorProps) {
     const [selectedReport, setSelectedReport] = useState<string>(initialReport || 'daily-summary');
@@ -137,14 +134,6 @@ export function CustomReportGenerator({
                 return <Card><CardHeader className="print-hide"><CardTitle>Active Inventory Summary</CardTitle></CardHeader><CardContent><StorageTable /></CardContent></Card>;
             case 'hamali-register':
                 return <HamaliReport records={records} customers={customers} unloadingRecords={unloadingRecords} expenses={expenses} warehouseInfo={warehouseInfo} />;
-            case 'drying-history':
-                return <DryingHistoryTable 
-                            dryingRecords={dryingRecords} 
-                            customers={customers} 
-                            unloadingRecords={unloadingRecords} 
-                            lots={lots} 
-                            storageRecords={records} 
-                        />;
             case 'inflow-register':
                 return <InflowReport records={records} customers={customers} />;
             case 'outflow-register':

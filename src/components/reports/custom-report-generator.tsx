@@ -148,12 +148,12 @@ export function CustomReportGenerator({
                 <div>
                     <label htmlFor="report-type-select" className="text-sm font-medium text-muted-foreground">Select Report Type</label>
                     <Select onValueChange={setSelectedReport} value={selectedReport}>
-                        <SelectTrigger id="report-type-select" className="mt-1 w-full md:w-auto">
+                        <SelectTrigger id="report-type-select" className="mt-1 w-full md:w-auto text-sm h-9">
                             <SelectValue placeholder="Select a report type..." />
                         </SelectTrigger>
                         <SelectContent>
                             {reportTypes.map(report => (
-                                <SelectItem key={report.value} value={report.value}>
+                                <SelectItem key={report.value} value={report.value} className="text-sm">
                                     {report.label}
                                 </SelectItem>
                             ))}
@@ -161,11 +161,11 @@ export function CustomReportGenerator({
                     </Select>
                 </div>
                 <div className="self-end flex items-center gap-2">
-                     <Button onClick={() => window.print()} variant="outline">
+                     <Button onClick={() => window.print()} variant="outline" size="sm">
                         <Printer className="mr-2 h-4 w-4" />
                         Print Report
                     </Button>
-                     <Button onClick={handleDownload} disabled={isDownloading}>
+                     <Button onClick={handleDownload} disabled={isDownloading} size="sm">
                         {isDownloading ? (
                             <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Downloading...</>
                         ) : (

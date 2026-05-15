@@ -27,10 +27,9 @@ export function InflowReportTable({ records, customers, title, description, allR
 
     return (
         <div className="bg-white p-4 rounded-lg">
-             <div className="mb-4 text-center report-component-header">
+             <div className="mb-4 text-center">
                 <h2 className="text-xl font-bold uppercase tracking-wide">SRI LAKSHMI WAREHOUSE</h2>
-                <p className="text-lg font-semibold">{title}</p>
-                <p className="text-sm text-muted-foreground">{description}</p>
+                <p className="text-lg font-semibold uppercase">{title}</p>
                 <p className="text-xs text-muted-foreground">Generated on: {generatedDate}</p>
             </div>
             <Table>
@@ -49,12 +48,12 @@ export function InflowReportTable({ records, customers, title, description, allR
                     {records.length > 0 ? (
                         records.map((record) => (
                             <TableRow key={record.id}>
-                                <TableCell className="p-2">{format(toDate(record.storageStartDate), 'dd MMM yyyy')}</TableCell>
+                                <TableCell className="p-2 whitespace-nowrap">{format(toDate(record.storageStartDate), 'dd MMM yyyy')}</TableCell>
                                 <TableCell className="p-2 font-mono">{record.id}</TableCell>
                                 <TableCell className="p-2 font-medium whitespace-nowrap">{getCustomerName(record.customerId)}</TableCell>
                                 <TableCell className="p-2">{record.commodityDescription}</TableCell>
                                 <TableCell className="p-2">{record.location}</TableCell>
-                                <TableCell className="p-2 text-right font-mono">{record.bagsIn}</TableCell>
+                                <TableCell className="p-2 text-right font-mono font-bold">{record.bagsIn}</TableCell>
                                 <TableCell className="p-2 text-right print-hide">
                                     <ActionsMenu record={record} customers={customers} allRecords={allRecords} />
                                 </TableCell>
@@ -62,14 +61,14 @@ export function InflowReportTable({ records, customers, title, description, allR
                         ))
                     ) : (
                         <TableRow>
-                            <TableCell colSpan={7} className="p-2 text-center text-muted-foreground">
-                                No inflow records found for the selected criteria.
+                            <TableCell colSpan={7} className="p-4 text-center text-muted-foreground italic">
+                                No inflow records found for the selected period.
                             </TableCell>
                         </TableRow>
                     )}
                 </TableBody>
                 <TableFooter>
-                    <TableRow className="border-t-2 border-primary bg-secondary">
+                    <TableRow className="border-t-2 border-primary bg-secondary/20">
                         <TableCell 
                             colSpan={5}
                             className="p-2 text-right font-bold text-lg"
@@ -82,13 +81,15 @@ export function InflowReportTable({ records, customers, title, description, allR
                 </TableFooter>
             </Table>
 
-            <div className="mt-16 pt-8 flex flex-col items-end text-center space-y-2">
+            <div className="mt-16 pt-8 flex flex-col items-end text-center space-y-1">
                 <div className="w-72 border-t border-slate-400 pt-4">
                     <p className="text-[#1e293b] font-bold text-sm uppercase tracking-wider">AUTHORIZED MANAGER SIGNATURE</p>
                     <p className="text-primary font-bold text-xs uppercase mt-1">SRI LAKSHMI WAREHOUSE</p>
                 </div>
-                <p className="text-[10px] text-slate-400">Report validity verified on {generatedDate}</p>
-                <p className="text-[10px] text-slate-400 italic">This is a computer generated statement.</p>
+                <div className="text-[10px] text-slate-500 italic mt-4">
+                    <p>Report validity verified on {generatedDate}</p>
+                    <p>This is a computer generated statement.</p>
+                </div>
             </div>
         </div>
     );

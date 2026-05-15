@@ -170,7 +170,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
 
         <div className="grid grid-cols-2 gap-4 mb-4 p-4 border rounded-lg bg-secondary/30">
             <div>
-                <h3 className="font-bold text-sm mb-2 underline">STOCK STATUS</h3>
+                <h3 className="font-bold text-sm mb-2 underline uppercase">Stock Status</h3>
                 <div className="space-y-1 text-xs">
                     <div className="flex justify-between"><span className="text-muted-foreground">Bags Received:</span><span>{summary.totalBagsIn}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">Bags Delivered:</span><span>{summary.totalBagsOut}</span></div>
@@ -178,7 +178,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 </div>
             </div>
             <div>
-                <h3 className="font-bold text-sm mb-2 underline">ACCOUNT SUMMARY</h3>
+                <h3 className="font-bold text-sm mb-2 underline uppercase">Account Summary</h3>
                 <div className="space-y-1 text-xs">
                     <div className="flex justify-between"><span className="text-muted-foreground">Total Billed:</span><span>{formatCurrency(summary.totalDebit)}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">Total Payments:</span><span>{formatCurrency(summary.totalCredit)}</span></div>
@@ -229,13 +229,15 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
              </TableFooter>
         </Table>
         
-        <div className="mt-16 pt-8 flex flex-col items-end text-center space-y-2">
+        <div className="mt-16 pt-8 flex flex-col items-end text-center space-y-1">
             <div className="w-72 border-t border-slate-400 pt-4">
                 <p className="text-[#1e293b] font-bold text-sm uppercase tracking-wider">AUTHORIZED MANAGER SIGNATURE</p>
                 <p className="text-primary font-bold text-xs uppercase mt-1">SRI LAKSHMI WAREHOUSE</p>
             </div>
-            <p className="text-[10px] text-slate-400">Report validity verified on {generatedDate}</p>
-            <p className="text-[10px] text-slate-400 italic">This is a computer generated statement.</p>
+            <div className="text-[10px] text-slate-500 italic mt-4">
+                <p>Report validity verified on {generatedDate}</p>
+                <p>This is a computer generated statement.</p>
+            </div>
         </div>
     </div>
   );

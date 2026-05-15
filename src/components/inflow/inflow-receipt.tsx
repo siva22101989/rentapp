@@ -90,13 +90,15 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
                 </TableFooter>
             </Table>
             
-            <div className="mt-16 pt-8 flex flex-col items-end text-center space-y-2">
+            <div className="mt-16 pt-8 flex flex-col items-end text-center space-y-1">
                 <div className="w-72 border-t border-slate-400 pt-4">
                     <p className="text-[#1e293b] font-bold text-sm uppercase tracking-wider">AUTHORIZED MANAGER SIGNATURE</p>
                     <p className="text-primary font-bold text-xs uppercase mt-1">SRI LAKSHMI WAREHOUSE</p>
                 </div>
-                <p className="text-[10px] text-slate-400">Report validity verified on {generatedDate}</p>
-                <p className="text-[10px] text-slate-400 italic">This is a computer generated statement.</p>
+                <div className="text-[10px] text-slate-500 italic mt-4">
+                    <p>Report validity verified on {generatedDate}</p>
+                    <p>This is a computer generated statement.</p>
+                </div>
             </div>
         </div>
     );

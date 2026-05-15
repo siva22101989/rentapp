@@ -18,7 +18,7 @@ import { useFirestore } from '@/firebase/provider';
 import { z } from 'zod';
 import { Input } from '../ui/input';
 import { addDoc, collection } from 'firebase/firestore';
-import { cleanForFirestore, formatManualDate, parseManualDate } from '@/lib/utils';
+import { cleanForFirestore } from '@/lib/utils';
 import { useAppUser } from '@/firebase/auth/use-user';
 import { Label } from '../ui/label';
 
@@ -39,14 +39,14 @@ export function AddBorrowingDialog() {
   const [lenderName, setLenderName] = useState('');
   const [principal, setPrincipal] = useState<number | ''>('');
   const [interestRate, setInterestRate] = useState<number | ''>('');
-  const [dateTaken, setDateTaken] = useState(formatManualDate(new Date()));
+  const [dateTaken, setDateTaken] = useState(new Date().toISOString().split('T')[0]);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const resetForm = () => {
     setLenderName('');
     setPrincipal('');
     setInterestRate('');
-    setDateTaken(formatManualDate(new Date()));
+    setDateTaken(new Date().toISOString().split('T')[0]);
     setErrors({});
   };
 
@@ -56,12 +56,6 @@ export function AddBorrowingDialog() {
     
     if (!firestore || !appUser?.warehouseId) {
       toast({ title: 'Error', description: 'Could not add record: user or warehouse context is missing.', variant: 'destructive' });
-      return;
-    }
-
-    const finalDate = parseManualDate(dateTaken);
-    if (!finalDate) {
-      setErrors(prev => ({ ...prev, dateTaken: 'Invalid format. Use DD-MM-YYYY' }));
       return;
     }
 
@@ -90,7 +84,7 @@ export function AddBorrowingDialog() {
       try {
         const newBorrowing = {
           ...data,
-          dateTaken: finalDate,
+          dateTaken: new Date(data.dateTaken),
           status: 'Active' as const,
           warehouseId: appUser.warehouseId,
         };
@@ -108,8 +102,8 @@ export function AddBorrowingDialog() {
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { setIsOpen(open); if (!open) resetForm(); }}>
       <DialogTrigger asChild>
-        <Button variant="default">
-          <Landmark className="mr-2" />
+        <Button variant="default" className="text-sm">
+          <Landmark className="mr-2 h-4 w-4" />
           Add Borrowing
         </Button>
       </DialogTrigger>
@@ -117,35 +111,35 @@ export function AddBorrowingDialog() {
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>Add New Borrowing</DialogTitle>
-            <DialogDescription>
-              Record a new loan you have taken. Manual date format: DD-MM-YYYY.
+            <DialogDescription className="text-xs">
+              Record a new loan you have taken for operational capital.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="lenderName">Lender's Name</Label>
-                <Input id="lenderName" placeholder="e.g., John Doe" value={lenderName} onChange={e => setLenderName(e.target.value)} />
-                {errors.lenderName && <p className="text-sm font-medium text-destructive">{errors.lenderName}</p>}
+              <div className="space-y-1.5">
+                <Label htmlFor="lenderName" className="text-xs">Lender's Name</Label>
+                <Input id="lenderName" placeholder="e.g., John Doe" value={lenderName} onChange={e => setLenderName(e.target.value)} className="text-sm" />
+                {errors.lenderName && <p className="text-[10px] font-medium text-destructive">{errors.lenderName}</p>}
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="dateTaken">Date Taken (DD-MM-YYYY)</Label>
-                <Input id="dateTaken" placeholder="DD-MM-YYYY" value={dateTaken} onChange={e => setDateTaken(e.target.value)} />
-                 {errors.dateTaken && <p className="text-sm font-medium text-destructive">{errors.dateTaken}</p>}
+              <div className="space-y-1.5">
+                <Label htmlFor="dateTaken" className="text-xs">Date Taken</Label>
+                <Input id="dateTaken" type="date" value={dateTaken} onChange={e => setDateTaken(e.target.value)} className="text-sm" />
+                 {errors.dateTaken && <p className="text-[10px] font-medium text-destructive">{errors.dateTaken}</p>}
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="principal">Principal Amount</Label>
-                <Input id="principal" type="number" step="0.01" placeholder="0.00" value={principal} onChange={e => setPrincipal(e.target.value === '' ? '' : Number(e.target.value))} />
-                {errors.principal && <p className="text-sm font-medium text-destructive">{errors.principal}</p>}
+              <div className="space-y-1.5">
+                <Label htmlFor="principal" className="text-xs">Principal Amount</Label>
+                <Input id="principal" type="number" step="0.01" placeholder="0.00" value={principal} onChange={e => setPrincipal(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm" />
+                {errors.principal && <p className="text-[10px] font-medium text-destructive">{errors.principal}</p>}
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="interestRate">Monthly Interest Rate (%)</Label>
-                <Input id="interestRate" type="number" step="0.01" placeholder="e.g. 2" value={interestRate} onChange={e => setInterestRate(e.target.value === '' ? '' : Number(e.target.value))} />
-                 {errors.interestRate && <p className="text-sm font-medium text-destructive">{errors.interestRate}</p>}
+              <div className="space-y-1.5">
+                <Label htmlFor="interestRate" className="text-xs">Monthly Interest Rate (%)</Label>
+                <Input id="interestRate" type="number" step="0.01" placeholder="e.g. 2" value={interestRate} onChange={e => setInterestRate(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm" />
+                 {errors.interestRate && <p className="text-[10px] font-medium text-destructive">{errors.interestRate}</p>}
               </div>
           </div>
           <DialogFooter>
-            <DialogClose asChild><Button variant="outline" type="button">Cancel</Button></DialogClose>
-            <Button type="submit" disabled={isPending}>
+            <DialogClose asChild><Button variant="outline" type="button" className="text-sm">Cancel</Button></DialogClose>
+            <Button type="submit" disabled={isPending} className="text-sm">
               {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : 'Save Borrowing'}
             </Button>
           </DialogFooter>

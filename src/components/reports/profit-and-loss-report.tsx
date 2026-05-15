@@ -1,10 +1,10 @@
 'use client';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { formatCurrency, toDate } from "@/lib/utils";
 import { useMemo } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import type { Expense, StorageRecord, UnloadingRecord, WarehouseInfo, Borrowing, Lending, OtherIncome } from "@/lib/definitions";
-import { format, differenceInCalendarMonths } from "date-fns";
+import { format } from "date-fns";
 import { useDateFilter } from "@/firebase/provider";
 
 type ProfitAndLossReportProps = {
@@ -74,39 +74,40 @@ export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecor
         <CardContent className="pt-6">
             <div className="p-4 space-y-6">
                 <div className="text-center">
-                    <h2 className="text-xl font-bold">SRI LAKSHMI WAREHOUSE</h2>
+                    <h2 className="text-xl font-bold uppercase tracking-wide">SRI LAKSHMI WAREHOUSE</h2>
                     <h3 className="text-lg font-semibold underline uppercase">Profit & Loss Statement</h3>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-muted-foreground">
                         Period: {dateRange?.from ? format(dateRange.from, 'dd MMM yyyy') : 'All Time'} to {dateRange?.to ? format(dateRange.to, 'dd MMM yyyy') : 'Today'}
                     </p>
                 </div>
                 
-                <Table>
+                <Table className="text-sm">
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Particulars</TableHead>
-                            <TableHead className="text-right">Amount</TableHead>
+                            <TableHead className="font-bold text-black">Particulars</TableHead>
+                            <TableHead className="text-right font-bold text-black">Amount</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        <TableRow className="bg-gray-100 font-bold"><TableCell colSpan={2}>Income</TableCell></TableRow>
+                        <TableRow className="bg-muted/50 font-bold"><TableCell colSpan={2} className="uppercase text-xs tracking-wider">Income Sources</TableCell></TableRow>
                         {filteredIncomes.map((income) => (
-                            <TableRow key={`inc-${income.id}`}><TableCell className="pl-6">{income.description}</TableCell><TableCell className="text-right font-mono">{formatCurrency(income.amount)}</TableCell></TableRow>
+                            <TableRow key={`inc-${income.id}`}><TableCell className="pl-6">{income.description}</TableCell><TableCell className="text-right font-mono text-green-600">{formatCurrency(income.amount)}</TableCell></TableRow>
                         ))}
-                        <TableRow className="bg-gray-50 font-semibold"><TableCell className="text-right">Total Income</TableCell><TableCell className="text-right font-mono">{formatCurrency(periodIncome)}</TableCell></TableRow>
-                        <TableRow className="bg-gray-100 font-bold"><TableCell colSpan={2}>Expenses</TableCell></TableRow>
+                        <TableRow className="bg-slate-50 font-bold"><TableCell className="text-right uppercase text-xs">Total Operational Income</TableCell><TableCell className="text-right font-mono text-green-700">{formatCurrency(periodIncome)}</TableCell></TableRow>
+                        
+                        <TableRow className="bg-muted/50 font-bold"><TableCell colSpan={2} className="uppercase text-xs tracking-wider mt-4">Expense Categories</TableCell></TableRow>
                         {filteredExpenses.map((expense) => (
                             <TableRow key={`exp-${expense.id}`}><TableCell className="pl-6">{expense.description}</TableCell><TableCell className="text-right font-mono text-destructive">({formatCurrency(expense.amount)})</TableCell></TableRow>
                         ))}
                         {interestOnCapital > 0 && (
                             <TableRow><TableCell className="pl-6 italic">Interest on Capital (Notional)</TableCell><TableCell className="text-right font-mono text-destructive">({formatCurrency(interestOnCapital)})</TableCell></TableRow>
                         )}
-                        <TableRow className="bg-gray-50 font-semibold"><TableCell className="text-right">Total Expenses</TableCell><TableCell className="text-right font-mono text-destructive">{formatCurrency(periodExpenses)}</TableCell></TableRow>
+                        <TableRow className="bg-slate-50 font-bold"><TableCell className="text-right uppercase text-xs">Total Operational Expenses</TableCell><TableCell className="text-right font-mono text-destructive">{formatCurrency(periodExpenses)}</TableCell></TableRow>
                     </TableBody>
                     <TableFooter>
-                        <TableRow className="text-lg bg-gray-200">
-                            <TableCell className="font-bold">{periodBalance >= 0 ? 'Net Profit' : 'Net Loss'}</TableCell>
-                            <TableCell className={`text-right font-bold font-mono ${periodBalance >= 0 ? 'text-green-600' : 'text-destructive'}`}>{formatCurrency(periodBalance)}</TableCell>
+                        <TableRow className="text-lg bg-primary/10 border-t-2 border-primary">
+                            <TableCell className="font-bold uppercase tracking-tight">{periodBalance >= 0 ? 'Net Profit' : 'Net Loss'}</TableCell>
+                            <TableCell className={`text-right font-bold font-mono ${periodBalance >= 0 ? 'text-primary' : 'text-destructive'}`}>{formatCurrency(periodBalance)}</TableCell>
                         </TableRow>
                     </TableFooter>
                 </Table>

@@ -15,7 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase/provider';
 import type { Customer, Commodity, UnloadingRecord, WarehouseInfo, Lot, StorageRecord } from '@/lib/definitions';
 import { setDoc, doc, getDoc } from 'firebase/firestore';
-import { formatCurrency, cleanForFirestore, formatManualDate, parseManualDate } from '@/lib/utils';
+import { formatCurrency, cleanForFirestore } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 import { Combobox } from '../ui/combobox';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -24,14 +24,13 @@ import { format } from 'date-fns';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 import { useAppUser } from '@/firebase/auth/use-user';
-import { DateInput } from '../shared/date-input';
 
 const UnloadingRecordSchema = z.object({
   customerId: z.string().min(1, 'Customer is required.'),
   commodityDescription: z.string().min(1, 'Commodity is required.'),
   location: z.string().min(1, 'Storage location is required.'),
   lorryTractorNo: z.string().optional(),
-  unloadingDate: z.string().min(1, "Date is required."),
+  unloadingDate: z.string().min(1, 'Date is required.'),
   bagsUnloaded: z.coerce.number().positive('Number of bags must be positive.'),
   customerHamaliPerBag: z.coerce.number().nonnegative('Customer hamali rate must be non-negative.'),
   workerHamaliPerBag: z.coerce.number().nonnegative('Worker hamali rate must be non-negative.').optional(),
@@ -60,7 +59,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
           commodityDescription: '',
           location: '',
           lorryTractorNo: '',
-          unloadingDate: formatManualDate(new Date()),
+          unloadingDate: new Date().toISOString().split('T')[0],
           bagsUnloaded: undefined,
           customerHamaliPerBag: undefined,
           workerHamaliPerBag: undefined,
@@ -109,11 +108,6 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
             toast({ title: 'Error', description: 'Context missing.', variant: 'destructive' });
             return;
         }
-        const finalDate = parseManualDate(data.unloadingDate);
-        if (!finalDate) {
-            form.setError('unloadingDate', { message: 'Use DD-MM-YYYY format.' });
-            return;
-        }
 
         startTransition(async () => {
             try {
@@ -126,6 +120,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
 
                 const totalHamali = data.bagsUnloaded * data.customerHamaliPerBag;
                 const workerHamaliPayable = data.bagsUnloaded * (data.workerHamaliPerBag ?? data.customerHamaliPerBag);
+                const finalDate = new Date(data.unloadingDate);
                 
                 const rawRecord = { 
                     ...data, 
@@ -171,7 +166,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                 <form onSubmit={form.handleSubmit(onSubmit)}>
                     <CardHeader>
                         <CardTitle className="text-lg">Add New Unloading Record</CardTitle>
-                        <CardDescription className="text-xs">The Bill No. is auto-generated. Format: DD-MM-YYYY.</CardDescription>
+                        <CardDescription className="text-xs">The Bill No. is auto-generated and locked.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <FormField control={form.control} name="billNo" render={({ field }) => (
@@ -184,7 +179,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                                     </Badge>
                                 </FormLabel>
                                 <FormControl>
-                                    <Input className="font-mono font-bold bg-muted/50 cursor-not-allowed text-base" {...field} readOnly />
+                                    <Input className="font-mono font-bold bg-muted/50 cursor-not-allowed text-sm" {...field} readOnly />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -201,7 +196,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                                 <FormLabel className="text-xs">Commodity</FormLabel>
                                 <Select onValueChange={field.onChange} value={field.value}>
                                     <FormControl>
-                                        <SelectTrigger>
+                                        <SelectTrigger className="text-sm">
                                             <SelectValue placeholder="Select commodity" />
                                         </SelectTrigger>
                                     </FormControl>
@@ -221,9 +216,9 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                         )} />
                         <FormField control={form.control} name="unloadingDate" render={({ field }) => (
                             <FormItem>
-                                <FormLabel className="text-xs">Date (DD-MM-YYYY)</FormLabel>
+                                <FormLabel className="text-xs">Unloading Date</FormLabel>
                                 <FormControl>
-                                    <DateInput placeholder="DD-MM-YYYY" {...field} />
+                                    <Input type="date" className="text-sm" {...field} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -232,7 +227,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                             <FormItem>
                                 <FormLabel className="text-xs">Bags Unloaded</FormLabel>
                                 <FormControl>
-                                    <Input type="number" step="0.01" {...field} value={field.value ?? ''} />
+                                    <Input type="number" step="0.01" className="text-sm" {...field} value={field.value ?? ''} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -242,7 +237,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                                 <FormItem>
                                     <FormLabel className="text-xs">Cust Rate</FormLabel>
                                     <FormControl>
-                                        <Input type="number" step="0.01" {...field} value={field.value ?? ''} />
+                                        <Input type="number" step="0.01" className="text-sm" {...field} value={field.value ?? ''} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -251,7 +246,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                                 <FormItem>
                                     <FormLabel className="text-xs">Worker Rate</FormLabel>
                                     <FormControl>
-                                        <Input type="number" step="0.01" {...field} value={field.value ?? ''} />
+                                        <Input type="number" step="0.01" className="text-sm" {...field} value={field.value ?? ''} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -270,7 +265,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                         </div>
                     </CardContent>
                     <CardFooter>
-                        <Button type="submit" disabled={isPending} className="w-full">
+                        <Button type="submit" disabled={isPending} className="w-full text-sm">
                             {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : 'Add Record & Generate Bill'}
                         </Button>
                     </CardFooter>

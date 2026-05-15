@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition, useMemo } from 'react';
 import { useFirestore } from '@/firebase/provider';
-import { doc, updateDoc, arrayUnion, type Firestore, Timestamp, getDoc, writeBatch } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, writeBatch, Timestamp } from 'firebase/firestore';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +14,7 @@ import { Loader2 } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { calculateFinalRent } from '@/lib/billing';
 import { format } from 'date-fns';
-import { toDate, cleanForFirestore, formatCurrency, formatManualDate, parseManualDate } from '@/lib/utils';
+import { toDate, cleanForFirestore, formatCurrency } from '@/lib/utils';
 import { Combobox } from '../ui/combobox';
 import { useRouter } from 'next/navigation';
 import { useDoc } from '@/firebase/firestore/use-doc';
@@ -25,7 +25,7 @@ import { useAppUser } from '@/firebase/auth/use-user';
 
 function SubmitButton({ isPending }: { isPending: boolean }) {
     return (
-      <Button type="submit" disabled={isPending} className="w-full">
+      <Button type="submit" disabled={isPending} className="w-full text-sm">
         {isPending ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -40,7 +40,6 @@ function SubmitButton({ isPending }: { isPending: boolean }) {
 
 export function OutflowForm({ records, customers, commodities }: { records: StorageRecord[], customers: Customer[], commodities: Commodity[] }) {
     const { toast } = useToast();
-    const router = useRouter();
     const firestore = useFirestore();
     const appUser = useAppUser();
     const [isPending, startTransition] = useTransition();
@@ -52,7 +51,7 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
     const [amountPaidNow, setAmountPaidNow] = useState<number | ''>('');
     const [discount, setDiscount] = useState<number | ''>('');
     const [khataAmountInput, setKhataAmountInput] = useState<number | ''>('');
-    const [withdrawalDateStr, setWithdrawalDateStr] = useState(formatManualDate(new Date()));
+    const [withdrawalDateStr, setWithdrawalDateStr] = useState(new Date().toISOString().split('T')[0]);
     
     const [totalRent, setTotalRent] = useState(0);
     const [totalPendingHamali, setTotalPendingHamali] = useState(0);
@@ -96,7 +95,7 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
         let runningBags = 0;
         const processedRecords = new Set<string>();
 
-        const wDate = parseManualDate(withdrawalDateStr) || new Date();
+        const wDate = new Date(withdrawalDateStr);
         const currentWithdrawalEntries = Object.entries(withdrawals).filter(([, bags]) => Number(bags) > 0);
 
         currentWithdrawalEntries.forEach(([recordId, bags]) => {
@@ -142,7 +141,7 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
         setAmountPaidNow('');
         setDiscount('');
         setKhataAmountInput('');
-        setWithdrawalDateStr(formatManualDate(new Date()));
+        setWithdrawalDateStr(new Date().toISOString().split('T')[0]);
     }
     
     const handleCustomerChange = (customerId: string) => {
@@ -163,14 +162,9 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         
-        const finalDate = parseManualDate(withdrawalDateStr);
-        if (!finalDate) {
-            toast({ title: 'Invalid Date', description: 'Use DD-MM-YYYY format.', variant: 'destructive' });
-            return;
-        }
-
+        const finalDate = new Date(withdrawalDateStr);
         if (!firestore || withdrawalEntries.length === 0) {
-            toast({ title: 'Error', description: 'Please enter a withdrawal amount.', variant: 'destructive' });
+            toast({ title: 'Error', description: 'Please select items to withdraw.', variant: 'destructive' });
             return;
         }
 
@@ -199,11 +193,6 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
             
             const receiptUrl = `/outflow/receipt/${recordId}?${queryParams.toString()}`;
             receiptWindow = window.open(receiptUrl, '_blank');
-            
-            if (!receiptWindow) {
-                toast({ title: "Popup Blocked", description: "Please allow popups for this site.", variant: "destructive" });
-                return;
-            }
         }
 
         startTransition(async () => {
@@ -269,7 +258,7 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                 await batch.commit();
 
                 if (sendSmsNotification && warehouseInfo?.textbeeApiKey && selectedCustomer?.phone) {
-                    const defaultTemplate = `Dear {customerName}, withdrawal of {bags} bags of {commodity} recorded. Invoice: {billNo},\nRent: {rent},\nTotal: {total}.\nThank you. - {warehouseName}.`;
+                    const defaultTemplate = `Dear {customerName}, withdrawal of {bags} bags of {commodity} recorded. Patti: {billNo},\nRent: {rent},\nTotal: {total}.\nThank you. - {warehouseName}.`;
                     const template = warehouseInfo?.smsOutflowTemplate || defaultTemplate;
 
                     let commodity = 'various items';
@@ -278,9 +267,7 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                     if (withdrawalEntries.length === 1) {
                         const recordId = withdrawalEntries[0][0];
                         const record = records.find(r => r.id === recordId);
-                        if (record) {
-                            commodity = record.commodityDescription;
-                        }
+                        if (record) commodity = record.commodityDescription;
                         billNo = recordId;
                     } else {
                         billNo = withdrawalEntries.map(([id]) => id).join(', ');
@@ -293,14 +280,9 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                         .replace('{billNo}', billNo)
                         .replace('{rent}', formatCurrency(totalRent))
                         .replace('{total}', formatCurrency(totalPayable))
-                        .replace('{warehouseName}', warehouseInfo?.name || 'GrainDost');
+                        .replace('{warehouseName}', warehouseInfo?.name || 'Sri Lakshmi Warehouse');
 
-                    sendSms({
-                        apiKey: warehouseInfo.textbeeApiKey,
-                        deviceId: warehouseInfo.textbeeDeviceId,
-                        to: selectedCustomer.phone,
-                        message,
-                    }).catch(console.error);
+                    sendSms({ apiKey: warehouseInfo.textbeeApiKey, deviceId: warehouseInfo.textbeeDeviceId, to: selectedCustomer.phone, message }).catch(console.error);
                 }
 
                 toast({ title: 'Success', description: 'Withdrawal processed successfully.' });
@@ -319,12 +301,12 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
         <form onSubmit={handleSubmit} className="w-full max-w-3xl">
             <Card>
                 <CardHeader>
-                <CardTitle>Create Withdrawal</CardTitle>
-                <CardDescription>Enter details manually. Date format: DD-MM-YYYY.</CardDescription>
+                <CardTitle className="text-lg">Create Withdrawal</CardTitle>
+                <CardDescription className="text-xs">Select records for the chosen customer to process outflow.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="customerId">Customer</Label>
+                    <div className="space-y-1.5">
+                        <Label htmlFor="customerId" className="text-xs">Customer</Label>
                         <Combobox
                             options={customerOptions}
                             value={selectedCustomerId}
@@ -336,7 +318,7 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                     </div>
                     
                     {selectedCustomer && (
-                        <div className="text-sm text-muted-foreground p-3 border rounded-md bg-secondary/50 space-y-1 -mt-2">
+                        <div className="text-[11px] text-muted-foreground p-3 border rounded-md bg-secondary/50 space-y-0.5 -mt-2">
                             <p><strong>Father's Name:</strong> {selectedCustomer.fatherName || 'N/A'}</p>
                             <p><strong>Village:</strong> {selectedCustomer.village || 'N/A'}</p>
                             <p><strong>Phone:</strong> {selectedCustomer.phone}</p>
@@ -345,19 +327,19 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
 
                     {selectedCustomerId && (
                         <div className="border rounded-md overflow-hidden">
-                            <Table>
+                            <Table className="text-sm">
                                 <TableHeader>
-                                    <TableRow>
+                                    <TableRow className="text-xs">
                                         <TableHead>Storage ID</TableHead>
                                         <TableHead>Commodity</TableHead>
                                         <TableHead>Lot</TableHead>
                                         <TableHead className="text-right">Stock</TableHead>
-                                        <TableHead className="w-[120px]">Withdraw Qty</TableHead>
+                                        <TableHead className="w-[100px]">Withdraw</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {filteredRecords.length > 0 ? filteredRecords.map(record => (
-                                        <TableRow key={record.id} data-state={Number(withdrawals[record.id] || 0) > 0 ? "selected" : ""}>
+                                        <TableRow key={record.id} className="text-sm">
                                             <TableCell>{record.id}</TableCell>
                                             <TableCell>{record.commodityDescription}</TableCell>
                                             <TableCell>{record.location}</TableCell>
@@ -371,14 +353,14 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                                                     max={record.bagsStored}
                                                     value={withdrawals[record.id] || ''}
                                                     onChange={(e) => handleWithdrawalChange(record.id, e.target.value, record.bagsStored)}
-                                                    className="text-right h-8"
+                                                    className="text-right h-8 text-sm"
                                                 />
                                             </TableCell>
                                         </TableRow>
                                     )) : (
                                         <TableRow>
-                                            <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
-                                                No active records for this customer.
+                                            <TableCell colSpan={5} className="text-center h-24 text-muted-foreground italic">
+                                                No active records found.
                                             </TableCell>
                                         </TableRow>
                                     )}
@@ -387,25 +369,24 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                         </div>
                     )}
 
-
                     {withdrawalEntries.length > 0 && (
                         <>
-                            <div className="space-y-2">
-                                <Label htmlFor="withdrawalDate">Withdrawal Date (DD-MM-YYYY)</Label>
+                            <div className="space-y-1.5">
+                                <Label htmlFor="withdrawalDate" className="text-xs">Withdrawal Date</Label>
                                 <Input 
                                     id="withdrawalDate" 
                                     name="withdrawalDate" 
-                                    type="text"
-                                    placeholder="DD-MM-YYYY"
+                                    type="date"
                                     value={withdrawalDateStr}
                                     required
                                     onChange={(e) => setWithdrawalDateStr(e.target.value)}
+                                    className="text-sm"
                                     />
                             </div>
                             <Separator />
                             <div className="space-y-4">
-                                <h4 className="font-medium">Final Billing Summary</h4>
-                                <div className="space-y-2 text-sm">
+                                <h4 className="text-xs font-bold uppercase">Billing Summary</h4>
+                                <div className="space-y-2 text-xs">
                                     <div className="flex justify-between items-center">
                                         <span className="text-muted-foreground">Total Bags to Withdraw</span>
                                         <span className="font-mono font-bold">{totalBags}</span>
@@ -422,8 +403,8 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="khataAmountInput">Khata Amount (Weighbridge)</Label>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="khataAmountInput" className="text-xs">Khata Amount (Weighbridge)</Label>
                                     <Input
                                         id="khataAmountInput"
                                         name="khataAmountInput"
@@ -432,11 +413,12 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                                         step="0.01"
                                         value={khataAmountInput}
                                         onChange={e => setKhataAmountInput(e.target.value === '' ? '' : Number(e.target.value))}
+                                        className="text-sm"
                                     />
-                                    <p className="text-xs text-muted-foreground">Pending from record: {formatCurrency(totalKhataFromRecords)}</p>
+                                    <p className="text-[10px] text-muted-foreground">Record default: {formatCurrency(totalKhataFromRecords)}</p>
                                 </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="discount">Discount Amount</Label>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="discount" className="text-xs">Discount Amount</Label>
                                     <Input
                                         id="discount"
                                         name="discount"
@@ -446,6 +428,7 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                                         value={discount}
                                         onChange={e => setDiscount(e.target.value === '' ? '' : Number(e.target.value))}
                                         disabled={isMultiLotWithdrawal}
+                                        className="text-sm"
                                     />
                                 </div>
                             </div>
@@ -458,8 +441,8 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                                     <span className="font-mono">{formatCurrency(totalPayable)}</span>
                                 </div>
                                 
-                                <div className="space-y-2">
-                                    <Label htmlFor="amountPaidNow">Total Paid Now</Label>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="amountPaidNow" className="text-xs">Total Amount Paid Now</Label>
                                     <Input
                                         id="amountPaidNow"
                                         name="amountPaidNow"
@@ -470,9 +453,10 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                                         onChange={e => setAmountPaidNow(e.target.value === '' ? '' : Number(e.target.value))}
                                         max={totalPayable > 0 ? totalPayable.toFixed(2) : undefined}
                                         disabled={isMultiLotWithdrawal}
+                                        className="text-sm"
                                     />
-                                    <p className="text-xs text-muted-foreground">
-                                        {isMultiLotWithdrawal ? "Payment can only be recorded for single-lot withdrawals." : "Enter amount paid by customer. Leave blank if unpaid."}
+                                    <p className="text-[10px] text-muted-foreground">
+                                        {isMultiLotWithdrawal ? "Payment logic disabled for multi-lot withdrawals." : "Enter cash collected now. Leave blank for credit."}
                                     </p>
                                 </div>
                             </div>
@@ -485,7 +469,7 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                                 />
                                 <label
                                     htmlFor="sendSmsOutflow"
-                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                    className="text-xs font-medium leading-none"
                                 >
                                     Send SMS Notification to Customer
                                 </label>

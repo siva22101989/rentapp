@@ -43,7 +43,7 @@ type NavItem = {
 const navItems: NavItem[] = [
     { href: '/inflow', label: 'Inflow', icon: ArrowDownToDot, description: 'Record new items arriving for storage.', roles: ['owner', 'supervisor', 'biller', 'super-admin'] },
     { href: '/unloading', label: 'Unloading Process', icon: ArrowDownFromLine, description: 'Manage goods unloaded from vehicles.', roles: ['owner', 'supervisor', 'biller', 'super-admin'] },
-    { href: '/drying', label: 'Drying Process', icon: Wind, description: 'Manage items in the drying plot and finalize them into storage.', roles: ['owner', 'supervisor', 'biller', 'super-admin'] },
+    { href: '/drying', label: 'Drying Process', icon: Wind, description: 'Manage items in the drying plot and finalize into storage.', roles: ['owner', 'supervisor', 'biller', 'super-admin'] },
     { href: '/outflow', label: 'Outflow', icon: ArrowUpFromDot, description: 'Process withdrawals and generate final bills.', roles: ['owner', 'supervisor', 'biller', 'super-admin'] },
     { href: '/storage', label: 'Storage', icon: Archive, description: 'View all active inventory and stock.', roles: ['owner', 'supervisor', 'biller', 'super-admin'] },
     { href: '/payments/pending', label: 'Payments', icon: IndianRupee, description: 'View and manage pending payments.', roles: ['owner', 'biller', 'super-admin'] },
@@ -55,20 +55,20 @@ const navItems: NavItem[] = [
 function NavCard({ href, label, icon: Icon, description }: Omit<NavItem, 'roles'>) {
     return (
         <Card className="flex flex-col h-full hover:bg-muted/50 transition-colors hover:border-primary/50">
-            <CardHeader>
+            <CardHeader className="p-4 pb-2">
                 <div className="flex justify-between items-start">
-                    <CardTitle className="text-base">{label}</CardTitle>
-                    <Icon className="h-5 w-5 text-muted-foreground" />
+                    <CardTitle className="text-sm font-bold">{label}</CardTitle>
+                    <Icon className="h-4 w-4 text-muted-foreground" />
                 </div>
             </CardHeader>
-            <CardContent className="flex-grow">
-                <p className="text-xs text-muted-foreground">{description}</p>
+            <CardContent className="p-4 pt-0 flex-grow">
+                <p className="text-[11px] text-muted-foreground">{description}</p>
             </CardContent>
-            <CardFooter>
-                <Button asChild size="sm" className="w-full">
+            <CardFooter className="p-4">
+                <Button asChild size="sm" className="w-full text-xs h-8">
                     <Link href={href}>
                         Go to {label}
-                        <ArrowRight className="ml-2 h-4 w-4" />
+                        <ArrowRight className="ml-2 h-3 w-3" />
                     </Link>
                 </Button>
             </CardFooter>
@@ -101,8 +101,7 @@ function DashboardHeader({ activeRecordsCount, occupancy, warehouseInfo, appUser
                     </div>
                     <h2 className="text-xl md:text-2xl font-bold mt-2">{greeting}</h2>
                     <p className="text-sm text-muted-foreground mt-1 max-w-md">
-                        Here's what's happening in your warehouse today. You have {activeRecordsCount} active records and
-                        your storage is {occupancy.toFixed(1)}% full.
+                        Currently managing {activeRecordsCount} active Godown records. Total occupancy is {occupancy.toFixed(1)}%.
                     </p>
                 </div>
                 <div className="grid w-full grid-cols-2 items-center gap-4 md:w-auto">

@@ -39,7 +39,7 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
     return (
       <div ref={ref} className="bg-white p-4 sm:p-6 border-2 border-black font-sans text-lg text-black">
           <div className="text-center mb-4">
-              <h1 className="text-2xl font-bold tracking-wider">{warehouseInfo?.name || 'Sri Lakshmi Warehouse'}</h1>
+              <h1 className="text-2xl font-bold tracking-wider">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</h1>
               <p className="text-sm">{warehouseInfo?.addressLine1 || 'Owk - Koilakuntla Road, OWK - 518 122,'}</p>
               <p className="text-sm">{warehouseInfo?.addressLine2 || 'Kurnool (Dt.), A.P.'} Cell: {warehouseInfo?.phone || ''}</p>
               <h2 className="font-bold underline text-center mt-4 text-lg uppercase">Outflow Bill</h2>
@@ -90,7 +90,7 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
                       <TableCell></TableCell><TableCell></TableCell>
                       <TableCell className="text-right font-mono">{hamaliPending > 0 ? formatCurrency(hamaliPending) : '-'}</TableCell>
                   </TableRow>
-                  {record.khataAmount && (
+                  {record.khataAmount && record.khataAmount > 0 && (
                       <TableRow>
                           <TableCell>3. Khata (Weighbridge)</TableCell>
                           <TableCell></TableCell><TableCell></TableCell>

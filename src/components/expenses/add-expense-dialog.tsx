@@ -22,7 +22,7 @@ import { useFirestore } from '@/firebase/provider';
 import { z } from 'zod';
 import { Label } from '../ui/label';
 import { doc, writeBatch, arrayUnion, collection } from 'firebase/firestore';
-import { cleanForFirestore, formatCurrency, formatManualDate, parseManualDate } from '@/lib/utils';
+import { cleanForFirestore, formatCurrency } from '@/lib/utils';
 import { useAppUser } from '@/firebase/auth/use-user';
 
 const ExpenseSchema = z.object({
@@ -33,7 +33,7 @@ const ExpenseSchema = z.object({
   category: z.enum(expenseCategories, { required_error: 'Category is required.' }),
   borrowingId: z.string().optional(),
 }).superRefine((data, ctx) => {
-    if ((data.category === 'Interest Paid' || data.category === 'Principal Repayment') && !data.borrowingId) {
+    if ((data.category === 'Loan Repayment') && !data.borrowingId) {
         ctx.addIssue({
             code: z.ZodIssueCode.custom,
             message: 'Please select the loan account for this payment.',
@@ -49,7 +49,7 @@ export function AddExpenseDialog({ borrowings, nextRefNo }: { borrowings: Borrow
   const firestore = useFirestore();
   const appUser = useAppUser();
 
-  const [date, setDate] = useState(formatManualDate(new Date()));
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [category, setCategory] = useState<ExpenseCategory | undefined>(undefined);
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState<number | ''>('');
@@ -61,10 +61,10 @@ export function AddExpenseDialog({ borrowings, nextRefNo }: { borrowings: Borrow
     if (isOpen) setRefNo(nextRefNo);
   }, [isOpen, nextRefNo]);
 
-  const isLoanPayment = category === 'Interest Paid' || category === 'Principal Repayment';
+  const isLoanPayment = category === 'Loan Repayment';
   
   const resetForm = () => {
-    setDate(formatManualDate(new Date()));
+    setDate(new Date().toISOString().split('T')[0]);
     setCategory(undefined);
     setDescription('');
     setAmount('');
@@ -79,12 +79,6 @@ export function AddExpenseDialog({ borrowings, nextRefNo }: { borrowings: Borrow
     if (!firestore || !appUser?.warehouseId) {
       toast({ title: 'Error', description: 'User or warehouse context is missing.', variant: 'destructive' });
       return;
-    }
-
-    const finalDate = parseManualDate(date);
-    if (!finalDate) {
-        setErrors(prev => ({ ...prev, date: 'Invalid format. Use DD-MM-YYYY' }));
-        return;
     }
 
     const dataToValidate = {
@@ -114,6 +108,7 @@ export function AddExpenseDialog({ borrowings, nextRefNo }: { borrowings: Borrow
     startTransition(async () => {
       try {
         const batch = writeBatch(firestore);
+        const finalDate = new Date(data.date);
         
         let finalDescription = data.description;
         if (data.borrowingId && isLoanPayment) {
@@ -139,7 +134,7 @@ export function AddExpenseDialog({ borrowings, nextRefNo }: { borrowings: Borrow
             const newPayment: Payment = {
               amount: data.amount,
               date: finalDate,
-              type: data.category === 'Interest Paid' ? 'interest' : 'principal',
+              type: 'repayment',
             };
             batch.update(borrowingRef, {
                 payments: arrayUnion(cleanForFirestore(newPayment))
@@ -160,8 +155,8 @@ export function AddExpenseDialog({ borrowings, nextRefNo }: { borrowings: Borrow
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { setIsOpen(open); if (!open) resetForm(); }}>
       <DialogTrigger asChild>
-        <Button variant="default">
-          <PlusCircle className="mr-2" />
+        <Button variant="default" className="text-sm">
+          <PlusCircle className="mr-2 h-4 w-4" />
           Add Expense
         </Button>
       </DialogTrigger>
@@ -169,70 +164,70 @@ export function AddExpenseDialog({ borrowings, nextRefNo }: { borrowings: Borrow
           <form onSubmit={handleSubmit}>
             <DialogHeader>
               <DialogTitle>Add New Expense</DialogTitle>
-              <DialogDescription>
-                Enter details manually. Reference No is locked. Date format: DD-MM-YYYY.
+              <DialogDescription className="text-xs">
+                Reference No is auto-generated. Please specify category and amount.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-2">
               <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="refNo">Ref No</Label>
-                    <Input id="refNo" disabled={true} className="bg-muted font-mono font-bold" value={refNo} />
+                  <div className="space-y-1.5">
+                    <Label htmlFor="refNo" className="text-xs">Ref No</Label>
+                    <Input id="refNo" disabled={true} className="bg-muted font-mono font-bold text-sm" value={refNo} />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="date">Date (DD-MM-YYYY)</Label>
-                    <Input id="date" placeholder="DD-MM-YYYY" value={date} onChange={e => setDate(e.target.value)} />
-                    {errors.date && <p className="text-sm font-medium text-destructive">{errors.date}</p>}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="date" className="text-xs">Expense Date</Label>
+                    <Input id="date" type="date" value={date} onChange={e => setDate(e.target.value)} className="text-sm" />
+                    {errors.date && <p className="text-[10px] font-medium text-destructive">{errors.date}</p>}
                   </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="category">Category</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="category" className="text-xs">Category</Label>
                 <Select onValueChange={(value: ExpenseCategory) => setCategory(value)} value={category}>
-                  <SelectTrigger id="category"><SelectValue placeholder="Select a category" /></SelectTrigger>
+                  <SelectTrigger id="category" className="text-sm"><SelectValue placeholder="Select a category" /></SelectTrigger>
                   <SelectContent>
                     {expenseCategories.map(cat => (
-                      <SelectItem key={cat} value={cat}>
+                      <SelectItem key={cat} value={cat} className="text-sm">
                         {cat}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                {errors.category && <p className="text-sm font-medium text-destructive">{errors.category}</p>}
+                {errors.category && <p className="text-[10px] font-medium text-destructive">{errors.category}</p>}
               </div>
 
               {isLoanPayment && (
-                <div className="space-y-2">
-                  <Label htmlFor="borrowingId">Loan Account (Borrowing)</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="borrowingId" className="text-xs">Loan Account (Borrowing)</Label>
                   <Select onValueChange={setBorrowingId} value={borrowingId}>
-                    <SelectTrigger id="borrowingId"><SelectValue placeholder="Select loan account" /></SelectTrigger>
+                    <SelectTrigger id="borrowingId" className="text-sm"><SelectValue placeholder="Select loan account" /></SelectTrigger>
                     <SelectContent>
                       {borrowings
                         .filter(b => b.status !== 'Paid Off')
                         .map(b => (
-                        <SelectItem key={b.id} value={b.id}>
+                        <SelectItem key={b.id} value={b.id} className="text-sm">
                           {b.lenderName} ({formatCurrency(b.principal)})
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  {errors.borrowingId && <p className="text-sm font-medium text-destructive">{errors.borrowingId}</p>}
+                  {errors.borrowingId && <p className="text-[10px] font-medium text-destructive">{errors.borrowingId}</p>}
                 </div>
               )}
 
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea id="description" placeholder="e.g., Petrol for generator" value={description} onChange={e => setDescription(e.target.value)} />
-                {errors.description && <p className="text-sm font-medium text-destructive">{errors.description}</p>}
+              <div className="space-y-1.5">
+                <Label htmlFor="description" className="text-xs">Description</Label>
+                <Textarea id="description" placeholder="e.g., Petrol for generator" value={description} onChange={e => setDescription(e.target.value)} className="text-sm min-h-[60px]" />
+                {errors.description && <p className="text-[10px] font-medium text-destructive">{errors.description}</p>}
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="amount">Amount</Label>
-                <Input id="amount" type="number" step="0.01" placeholder="0.00" value={amount} onChange={e => setAmount(e.target.value === '' ? '' : Number(e.target.value))} />
-                {errors.amount && <p className="text-sm font-medium text-destructive">{errors.amount}</p>}
+              <div className="space-y-1.5">
+                <Label htmlFor="amount" className="text-xs">Amount</Label>
+                <Input id="amount" type="number" step="0.01" placeholder="0.00" value={amount} onChange={e => setAmount(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm" />
+                {errors.amount && <p className="text-[10px] font-medium text-destructive">{errors.amount}</p>}
               </div>
             </div>
             <DialogFooter>
-              <DialogClose asChild><Button variant="outline" type="button">Cancel</Button></DialogClose>
-              <Button type="submit" disabled={isPending}>
+              <DialogClose asChild><Button variant="outline" type="button" className="text-sm">Cancel</Button></DialogClose>
+              <Button type="submit" disabled={isPending} className="text-sm">
                 {isPending ? (
                   <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
                 ) : (

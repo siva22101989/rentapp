@@ -151,7 +151,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
   return (
     <div ref={ref} className="bg-white p-4 sm:p-6 printable-area text-foreground font-sans text-sm">
         <header className="text-center mb-4">
-            <h1 className="text-xl font-bold text-primary">SRI LAKSHMI WAREHOUSE</h1>
+            <h1 className="text-xl font-bold text-primary uppercase tracking-wide">SRI LAKSHMI WAREHOUSE</h1>
             <p className="text-xs text-muted-foreground">{warehouseInfo?.addressLine1 || ''}, {warehouseInfo?.addressLine2 || ''}</p>
         </header>
 
@@ -190,15 +190,15 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         <Table className="w-full text-[11px]">
             <TableHeader>
                 <TableRow className="border-b-2 border-border bg-muted/50">
-                    <TableHead className="p-1.5 font-bold">Date</TableHead>
-                    <TableHead className="p-1.5 font-bold">Description</TableHead>
-                    <TableHead className="p-1.5 font-bold">Storage ID</TableHead>
-                    <TableHead className="p-1.5 text-right font-bold">In</TableHead>
-                    <TableHead className="p-1.5 text-right font-bold">Out</TableHead>
-                    <TableHead className="p-1.5 text-right font-bold">Balance</TableHead>
-                    <TableHead className="p-1.5 text-right font-bold">Debit (+)</TableHead>
-                    <TableHead className="p-1.5 text-right font-bold">Credit (-)</TableHead>
-                    <TableHead className="p-1.5 text-right font-bold">Due</TableHead>
+                    <TableHead className="p-1.5 font-bold text-black">Date</TableHead>
+                    <TableHead className="p-1.5 font-bold text-black">Description</TableHead>
+                    <TableHead className="p-1.5 font-bold text-black">Storage ID</TableHead>
+                    <TableHead className="p-1.5 text-right font-bold text-black">In</TableHead>
+                    <TableHead className="p-1.5 text-right font-bold text-black">Out</TableHead>
+                    <TableHead className="p-1.5 text-right font-bold text-black">Balance</TableHead>
+                    <TableHead className="p-1.5 text-right font-bold text-black">Debit (+)</TableHead>
+                    <TableHead className="p-1.5 text-right font-bold text-black">Credit (-)</TableHead>
+                    <TableHead className="p-1.5 text-right font-bold text-black">Due</TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>

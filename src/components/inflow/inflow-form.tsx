@@ -10,7 +10,7 @@ import type { Customer, Payment, Commodity, Lot, StorageRecord, WarehouseInfo } 
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Sparkles } from 'lucide-react';
 import { Separator } from '../ui/separator';
-import { formatCurrency, cleanForFirestore, toDate, formatManualDate, parseManualDate } from '@/lib/utils';
+import { formatCurrency, cleanForFirestore, toDate } from '@/lib/utils';
 import { useFirestore } from '@/firebase/provider';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { Combobox } from '../ui/combobox';
@@ -20,11 +20,10 @@ import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 import { Checkbox } from '@/components/ui/checkbox';
 import { sendSms } from '@/lib/sms';
 import { format } from 'date-fns';
-import { DateInput } from '../shared/date-input';
 
 function SubmitButton({ isPending }: { isPending: boolean }) {
     return (
-      <Button type="submit" disabled={isPending} className="w-full">
+      <Button type="submit" disabled={isPending} className="w-full text-sm">
         {isPending ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -54,7 +53,7 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
     const [khataAmount, setKhataAmount] = useState<number | ''>('');
     const [selectedLot, setSelectedLot] = useState('');
     const [lorryTractorNo, setLorryTractorNo] = useState('');
-    const [storageStartDate, setStorageStartDate] = useState(formatManualDate(new Date()));
+    const [storageStartDate, setStorageStartDate] = useState(new Date().toISOString().split('T')[0]);
     const [storageId, setStorageId] = useState(nextId);
 
     useEffect(() => {
@@ -120,7 +119,7 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
         setKhataAmount('');
         setSelectedLot('');
         setLorryTractorNo('');
-        setStorageStartDate(formatManualDate(new Date()));
+        setStorageStartDate(new Date().toISOString().split('T')[0]);
         setStorageId(nextId);
     };
     
@@ -128,12 +127,6 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
         e.preventDefault();
         if (!firestore || !appUser?.warehouseId) {
             toast({ title: 'Error', description: 'Could not create record: user or warehouse context is missing.', variant: 'destructive' });
-            return;
-        }
-
-        const finalDate = parseManualDate(storageStartDate);
-        if (!finalDate) {
-            toast({ title: 'Invalid Date', description: 'Please enter the date in DD-MM-YYYY format.', variant: 'destructive' });
             return;
         }
 
@@ -173,6 +166,7 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                 const customerHamaliRate = Number(customerRate) || 0;
                 const workerHamaliRate = Number(workerRate) || customerHamaliRate;
                 const hamaliPaidAmount = Number(hamaliPaid) || 0;
+                const finalDate = new Date(storageStartDate);
 
                 const hamaliPayable = bagsStored * customerHamaliRate;
                 const workerHamaliPayable = bagsStored * workerHamaliRate;
@@ -255,11 +249,11 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
             <Card>
                 <CardHeader>
                     <CardTitle className="text-lg">New Storage Record Details</CardTitle>
-                    <CardDescription className="text-xs">The Storage ID is automatically generated. Format: DD-MM-YYYY.</CardDescription>
+                    <CardDescription className="text-xs">The Storage ID is automatically generated and locked.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                      <div className="space-y-1.5">
-                        <Label htmlFor="storageId" className="flex items-center gap-2">
+                        <Label htmlFor="storageId" className="flex items-center gap-2 text-xs">
                             Storage ID
                             <Badge variant="outline" className="text-[9px] uppercase font-bold py-0 h-4 bg-primary/5 text-primary border-primary/20">
                                 <Sparkles className="h-2 w-2 mr-1" />
@@ -269,13 +263,13 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                         <Input 
                             id="storageId" 
                             type="text" 
-                            className="font-mono font-bold text-base bg-muted/50 cursor-not-allowed"
+                            className="font-mono font-bold text-sm bg-muted/50 cursor-not-allowed"
                             value={storageId} 
                             readOnly
                         />
                     </div>
                      <div className="space-y-1.5">
-                        <Label htmlFor="customerId">Customer</Label>
+                        <Label htmlFor="customerId" className="text-xs">Customer</Label>
                         <Combobox
                             options={customerOptions}
                             value={selectedCustomerId}
@@ -295,7 +289,7 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
-                            <Label htmlFor="commodityDescription">Product</Label>
+                            <Label htmlFor="commodityDescription" className="text-xs">Product</Label>
                              <Combobox
                                 options={commodityOptions}
                                 value={selectedCommodity}
@@ -305,7 +299,7 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                             />
                         </div>
                          <div className="space-y-1.5">
-                            <Label htmlFor="location">Lot No.</Label>
+                            <Label htmlFor="location" className="text-xs">Lot No.</Label>
                              <Combobox
                                 options={lotOptions}
                                 value={selectedLot}
@@ -317,24 +311,25 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                     </div>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
-                            <Label htmlFor="lorryTractorNo">Lorry / Tractor No.</Label>
-                            <Input id="lorryTractorNo" name="lorryTractorNo" placeholder="e.g., AP 21 1234" value={lorryTractorNo} onChange={e => setLorryTractorNo(e.target.value)} />
+                            <Label htmlFor="lorryTractorNo" className="text-xs">Lorry / Tractor No.</Label>
+                            <Input id="lorryTractorNo" name="lorryTractorNo" placeholder="e.g., AP 21 1234" value={lorryTractorNo} onChange={e => setLorryTractorNo(e.target.value)} className="text-sm" />
                         </div>
                         <div className="space-y-1.5">
-                            <Label htmlFor="storageStartDate">Inflow Date (DD-MM-YYYY)</Label>
-                            <DateInput 
+                            <Label htmlFor="storageStartDate" className="text-xs">Inflow Date</Label>
+                            <Input 
                                 id="storageStartDate" 
                                 name="storageStartDate" 
-                                placeholder="DD-MM-YYYY"
+                                type="date" 
                                 value={storageStartDate}
                                 onChange={e => setStorageStartDate(e.target.value)}
+                                className="text-sm"
                                 required 
                             />
                         </div>
                     </div>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
-                            <Label htmlFor="bagsStored">No. of Bags (Packed)</Label>
+                            <Label htmlFor="bagsStored" className="text-xs">No. of Bags (Packed)</Label>
                             <Input 
                                 id="bagsStored" 
                                 name="bagsStored" 
@@ -344,10 +339,11 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                                 required
                                 value={bags}
                                 onChange={(e) => setBags(e.target.value === '' ? '' : Number(e.target.value))}
+                                className="text-sm"
                             />
                         </div>
                          <div className="space-y-1.5">
-                            <Label htmlFor="weight">Weight (Kgs)</Label>
+                            <Label htmlFor="weight" className="text-xs">Weight (Kgs)</Label>
                             <Input 
                                 id="weight" 
                                 name="weight" 
@@ -356,32 +352,33 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                                 placeholder="0.00" 
                                 value={weight}
                                 onChange={(e) => setWeight(e.target.value === '' ? '' : Number(e.target.value))}
+                                className="text-sm"
                             />
                         </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
-                            <Label htmlFor="customerHamaliRate">Cust Hamali Rate</Label>
-                            <Input id="customerHamaliRate" name="customerHamaliRate" type="number" placeholder="0.00" step="0.01" value={customerRate} onChange={e => setCustomerRate(e.target.value === '' ? '' : Number(e.target.value))}/>
+                            <Label htmlFor="customerHamaliRate" className="text-xs">Cust Hamali Rate</Label>
+                            <Input id="customerHamaliRate" name="customerHamaliRate" type="number" placeholder="0.00" step="0.01" value={customerRate} onChange={e => setCustomerRate(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm" />
                         </div>
                         <div className="space-y-1.5">
-                            <Label htmlFor="workerHamaliRate">Worker Hamali Rate</Label>
-                            <Input id="workerHamaliRate" name="workerHamaliRate" type="number" placeholder="0.00" step="0.01" value={workerRate} onChange={e => setWorkerRate(e.target.value === '' ? '' : Number(e.target.value))}/>
+                            <Label htmlFor="workerHamaliRate" className="text-xs">Worker Hamali Rate</Label>
+                            <Input id="workerHamaliRate" name="workerHamaliRate" type="number" placeholder="0.00" step="0.01" value={workerRate} onChange={e => setWorkerRate(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm" />
                         </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
-                            <Label htmlFor="hamaliPaid">Hamali Paid Now</Label>
-                            <Input id="hamaliPaid" name="hamaliPaid" type="number" placeholder="0.00" step="0.01" value={hamaliPaid} onChange={e => setHamaliPaid(e.target.value === '' ? '' : Number(e.target.value))}/>
+                            <Label htmlFor="hamaliPaid" className="text-xs">Hamali Paid Now</Label>
+                            <Input id="hamaliPaid" name="hamaliPaid" type="number" placeholder="0.00" step="0.01" value={hamaliPaid} onChange={e => setHamaliPaid(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm" />
                         </div>
                         <div className="space-y-1.5">
-                            <Label htmlFor="khataAmount">Khata Amount</Label>
-                            <Input id="khataAmount" name="khataAmount" type="number" placeholder="0.00" step="0.01" value={khataAmount} onChange={e => setKhataAmount(e.target.value === '' ? '' : Number(e.target.value))} />
+                            <Label htmlFor="khataAmount" className="text-xs">Khata Amount</Label>
+                            <Input id="khataAmount" name="khataAmount" type="number" placeholder="0.00" step="0.01" value={khataAmount} onChange={e => setKhataAmount(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm" />
                         </div>
                     </div>
                      <Separator />
                      <div className="space-y-3">
-                        <h4 className="text-sm font-bold uppercase tracking-tight">Billing Summary</h4>
+                        <h4 className="text-xs font-bold uppercase tracking-tight">Billing Summary</h4>
                         <div className="space-y-1.5 text-xs">
                             <div className="flex justify-between items-center font-semibold">
                                 <span className="text-foreground">Total Hamali (Customer)</span>

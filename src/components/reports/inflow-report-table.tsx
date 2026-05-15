@@ -6,7 +6,6 @@ import { format } from "date-fns";
 import type { Customer, StorageRecord } from "@/lib/definitions";
 import { toDate } from '@/lib/utils';
 import { useMemo } from "react";
-import { Badge } from "../ui/badge";
 import { ActionsMenu } from "../dashboard/actions-menu";
 
 type ReportTableProps = {
@@ -51,7 +50,7 @@ export function InflowReportTable({ records, customers, title, description, allR
                         records.map((record) => (
                             <TableRow key={record.id}>
                                 <TableCell className="p-2">{format(toDate(record.storageStartDate), 'dd MMM yyyy')}</TableCell>
-                                <TableCell className="p-2">{record.id}</TableCell>
+                                <TableCell className="p-2 font-mono">{record.id}</TableCell>
                                 <TableCell className="p-2 font-medium whitespace-nowrap">{getCustomerName(record.customerId)}</TableCell>
                                 <TableCell className="p-2">{record.commodityDescription}</TableCell>
                                 <TableCell className="p-2">{record.location}</TableCell>

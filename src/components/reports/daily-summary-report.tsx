@@ -6,9 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { TrendingUp, TrendingDown, Scale, ArrowDownToDot, ArrowUpFromDot, Search } from 'lucide-react';
-import { toDate, formatCurrency, parseManualDate, formatManualDate } from '@/lib/utils';
+import { toDate, formatCurrency } from '@/lib/utils';
 import { format, isSameDay } from 'date-fns';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from '@/components/ui/button';
 
 type DailyReportProps = {
@@ -35,14 +34,13 @@ type DailyData = {
     }
 }
 
-const DailySummaryContent = ({ dailyData, customers, selectedDate }: { dailyData: DailyData, customers: Customer[], selectedDate: Date }) => {
-    const getCustomerName = (customerId: string) => customers.find(c => c.id === customerId)?.name ?? 'Unknown';
+const DailySummaryContent = ({ dailyData, selectedDate }: { dailyData: DailyData, selectedDate: Date }) => {
     const generatedDate = useMemo(() => format(new Date(), 'dd MMM yyyy, hh:mm a'), []);
 
     return (
         <div className="p-4 space-y-6">
             <div className="mb-6 text-center">
-                <h2 className="text-xl font-bold">SRI LAKSHMI WAREHOUSE</h2>
+                <h2 className="text-xl font-bold uppercase tracking-wide">SRI LAKSHMI WAREHOUSE</h2>
                 <h3 className="font-semibold uppercase tracking-tight">Daily Summary Report</h3>
                 <p className="text-sm text-gray-500">{format(selectedDate, 'EEEE, dd MMMM yyyy')}</p>
             </div>
@@ -50,7 +48,7 @@ const DailySummaryContent = ({ dailyData, customers, selectedDate }: { dailyData
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Income</CardTitle>
+                        <CardTitle className="text-xs font-bold uppercase">Income</CardTitle>
                         <TrendingUp className="h-4 w-4 text-green-500" />
                     </CardHeader>
                     <CardContent>
@@ -59,7 +57,7 @@ const DailySummaryContent = ({ dailyData, customers, selectedDate }: { dailyData
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Expenses</CardTitle>
+                        <CardTitle className="text-xs font-bold uppercase">Expenses</CardTitle>
                         <TrendingDown className="h-4 w-4 text-red-500" />
                     </CardHeader>
                     <CardContent>
@@ -68,7 +66,7 @@ const DailySummaryContent = ({ dailyData, customers, selectedDate }: { dailyData
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Balance</CardTitle>
+                        <CardTitle className="text-xs font-bold uppercase">Balance</CardTitle>
                         <Scale className="h-4 w-4 text-gray-500" />
                     </CardHeader>
                     <CardContent>
@@ -77,7 +75,7 @@ const DailySummaryContent = ({ dailyData, customers, selectedDate }: { dailyData
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Bags In</CardTitle>
+                        <CardTitle className="text-xs font-bold uppercase">Bags In</CardTitle>
                         <ArrowDownToDot className="h-4 w-4 text-blue-500" />
                     </CardHeader>
                     <CardContent>
@@ -86,7 +84,7 @@ const DailySummaryContent = ({ dailyData, customers, selectedDate }: { dailyData
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Bags Out</CardTitle>
+                        <CardTitle className="text-xs font-bold uppercase">Bags Out</CardTitle>
                         <ArrowUpFromDot className="h-4 w-4 text-orange-500" />
                     </CardHeader>
                     <CardContent>
@@ -108,13 +106,12 @@ const DailySummaryContent = ({ dailyData, customers, selectedDate }: { dailyData
 };
 
 export function DailySummaryReport({ records, customers, unloadingRecords, expenses, otherIncomes }: DailyReportProps) {
-    const [dateInput, setDateInput] = useState(formatManualDate(new Date()));
+    const [dateInput, setDateInput] = useState(new Date().toISOString().split('T')[0]);
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     
     const handleSearch = () => {
-        const parsed = parseManualDate(dateInput);
-        if (parsed) {
-            setSelectedDate(parsed);
+        if (dateInput) {
+            setSelectedDate(new Date(dateInput));
         }
     };
 
@@ -184,28 +181,28 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
         <Card>
             <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4 print-hide">
                 <div className="flex-1">
-                    <CardTitle>Daily Summary Report</CardTitle>
-                    <CardDescription>Enter a date manually (DD-MM-YYYY) to view the summary.</CardDescription>
+                    <CardTitle className="text-lg">Daily Summary Report</CardTitle>
+                    <CardDescription className="text-xs">Select a date to view all warehouse transactions for that day.</CardDescription>
                 </div>
                 <div className="flex items-end gap-2 w-full sm:w-auto">
                     <div className="space-y-1">
-                        <Label htmlFor="daily-date">Select Date</Label>
+                        <Label htmlFor="daily-date" className="text-xs">Select Date</Label>
                         <Input 
                             id="daily-date"
-                            placeholder="DD-MM-YYYY" 
-                            className="w-full sm:w-[180px]"
+                            type="date"
+                            className="w-full sm:w-[180px] text-sm"
                             value={dateInput}
                             onChange={(e) => setDateInput(e.target.value)}
                         />
                     </div>
-                    <Button onClick={handleSearch}>
+                    <Button onClick={handleSearch} size="sm">
                         <Search className="h-4 w-4 mr-2" />
                         Show
                     </Button>
                 </div>
             </CardHeader>
             <CardContent>
-                <DailySummaryContent dailyData={dailyData} customers={customers} selectedDate={selectedDate} />
+                <DailySummaryContent dailyData={dailyData} selectedDate={selectedDate} />
             </CardContent>
         </Card>
     );

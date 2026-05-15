@@ -22,14 +22,14 @@ export const UnloadingReceipt = React.forwardRef<HTMLDivElement, { record: Unloa
     return (
         <div ref={ref} className="bg-white p-4 border-2 border-black font-sans text-lg text-black">
             <div className="text-center mb-4">
-                <h1 className="text-2xl font-bold tracking-wider">{warehouseInfo?.name || 'Sri Lakshmi Warehouse'}</h1>
+                <h1 className="text-2xl font-bold tracking-wider">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</h1>
                 <p className="text-sm">{warehouseInfo?.addressLine1 || 'Owk - Koilakuntla Road, OWK - 518 122,'}</p>
                 <p className="text-sm">{warehouseInfo?.addressLine2 || 'Kurnool (Dt.), A.P.'} Cell: {warehouseInfo?.phone || ''}</p>
                 <h2 className="font-bold underline text-center text-lg mt-4 uppercase">Unloading Bill</h2>
             </div>
             
             <div className="flex justify-between items-baseline my-2 text-base">
-                <div><span className="font-bold">Storage ID (Bill No):</span> {record.billNo}</div>
+                <div><span className="font-bold">Bill No.:</span> {record.billNo}</div>
                 <div><span className="font-bold">Date:</span> {formattedDate}</div>
             </div>
 

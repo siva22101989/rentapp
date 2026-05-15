@@ -17,7 +17,6 @@ import { Button } from '../ui/button';
 import { Printer, FileDown, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { DryingHistoryTable } from '@/components/drying/drying-history-table';
-import { LotStockOutflowReport } from './lot-stock-outflow-report';
 import { LotInventoryReport } from './lot-inventory-report';
 import { PendingPaymentsTable } from '@/components/payments/pending-payments-table';
 import { PaymentReport } from './payment-report';
@@ -28,7 +27,6 @@ const reportTypes = [
     { value: 'payment-register', label: 'Payment Register' },
     { value: 'pending-dues', label: 'Pending Dues Register' },
     { value: 'lot-active-stock', label: 'Lot-wise Active Stock Only' },
-    { value: 'lot-stock-outflow', label: 'Lot-wise Stock & Outflow History' },
     { value: 'customer-statement', label: 'Customer Statement of Account' },
     { value: 'hamali-register', label: 'Hamali Register' },
     { value: 'drying-history', label: 'Drying History Report' },
@@ -130,8 +128,6 @@ export function CustomReportGenerator({
                         />;
             case 'lot-active-stock':
                 return <LotInventoryReport records={records} customers={customers} />;
-            case 'lot-stock-outflow':
-                return <LotStockOutflowReport records={records} customers={customers} />;
             case 'all-customers':
                 return <CustomersTable customers={customers} />;
             case 'customer-statement':

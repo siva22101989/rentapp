@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { Customer, Payment, Commodity, Lot, StorageRecord, WarehouseInfo } from '@/lib/definitions';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Sparkles } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { formatCurrency, cleanForFirestore, toDate, formatManualDate, parseManualDate } from '@/lib/utils';
 import { useFirestore } from '@/firebase/provider';
@@ -228,7 +228,7 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                         .replace('{billNo}', storageId)
                         .replace('{date}', format(finalDate, 'dd/MM/yy'))
                         .replace('{hamaliAmount}', formatCurrency(hamaliPayable))
-                        .replace('{warehouseName}', warehouseInfo?.name || 'GrainDost');
+                        .replace('{warehouseName}', warehouseInfo?.name || 'Sri Lakshmi Warehouse');
 
                     sendSms({
                         apiKey: warehouseInfo.textbeeApiKey,
@@ -254,18 +254,23 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
             <Card>
                 <CardHeader>
                     <CardTitle>New Storage Record Details</CardTitle>
-                    <CardDescription>Manually set or correct the Storage ID below. Format: DD-MM-YYYY.</CardDescription>
+                    <CardDescription>The Storage ID is automatically generated. Format: DD-MM-YYYY.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                      <div className="space-y-2">
-                        <Label htmlFor="storageId">Storage ID</Label>
+                        <Label htmlFor="storageId" className="flex items-center gap-2">
+                            Storage ID
+                            <Badge variant="outline" className="text-[10px] uppercase font-bold py-0 h-4 bg-primary/5 text-primary border-primary/20">
+                                <Sparkles className="h-2 w-2 mr-1" />
+                                Auto-Generated
+                            </Badge>
+                        </Label>
                         <Input 
                             id="storageId" 
                             type="text" 
-                            placeholder="e.g., 1001"
-                            className="font-mono font-bold text-lg"
+                            className="font-mono font-bold text-lg bg-muted/50 cursor-not-allowed"
                             value={storageId} 
-                            onChange={(e) => setStorageId(e.target.value)}
+                            readOnly
                         />
                     </div>
                      <div className="space-y-2">

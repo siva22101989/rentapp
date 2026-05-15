@@ -151,7 +151,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
   return (
     <div ref={ref} className="bg-white p-4 sm:p-6 printable-area text-foreground font-sans text-sm">
         <header className="text-center mb-4">
-            <h1 className="text-xl font-bold text-primary">{warehouseInfo?.name || 'Sri Lakshmi Warehouse'}</h1>
+            <h1 className="text-xl font-bold text-primary">SRI LAKSHMI WAREHOUSE</h1>
             <p className="text-xs text-muted-foreground">{warehouseInfo?.addressLine1 || ''}, {warehouseInfo?.addressLine2 || ''}</p>
         </header>
 
@@ -230,9 +230,9 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         </Table>
         
         <div className="mt-16 pt-8 flex flex-col items-end text-center space-y-2">
-            <div className="w-64 border-t border-slate-300 pt-4">
-                <p className="text-[#1e293b] font-bold text-sm uppercase tracking-wider">Authorized Manager Signature</p>
-                <p className="text-primary font-bold text-xs uppercase mt-1">{warehouseInfo?.name || 'Sri Lakshmi Warehouse'}</p>
+            <div className="w-72 border-t border-slate-400 pt-4">
+                <p className="text-[#1e293b] font-bold text-sm uppercase tracking-wider">AUTHORIZED MANAGER SIGNATURE</p>
+                <p className="text-primary font-bold text-xs uppercase mt-1">SRI LAKSHMI WAREHOUSE</p>
             </div>
             <p className="text-[10px] text-slate-400">Report validity verified on {generatedDate}</p>
             <p className="text-[10px] text-slate-400 italic">This is a computer generated statement.</p>

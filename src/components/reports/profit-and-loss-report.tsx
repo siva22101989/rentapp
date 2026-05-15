@@ -74,7 +74,7 @@ export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecor
         <CardContent className="pt-6">
             <div className="p-4 space-y-6">
                 <div className="text-center">
-                    <h2 className="text-xl font-bold">Sri Lakshmi Warehouse</h2>
+                    <h2 className="text-xl font-bold">SRI LAKSHMI WAREHOUSE</h2>
                     <h3 className="text-lg font-semibold underline uppercase">Profit & Loss Statement</h3>
                     <p className="text-sm text-gray-500">
                         Period: {dateRange?.from ? format(dateRange.from, 'dd MMM yyyy') : 'All Time'} to {dateRange?.to ? format(dateRange.to, 'dd MMM yyyy') : 'Today'}
@@ -112,9 +112,9 @@ export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecor
                 </Table>
 
                 <div className="mt-16 pt-8 flex flex-col items-end text-center space-y-2">
-                    <div className="w-64 border-t border-slate-300 pt-4">
-                        <p className="text-[#1e293b] font-bold text-sm uppercase tracking-wider">Authorized Manager Signature</p>
-                        <p className="text-primary font-bold text-xs uppercase mt-1">Sri Lakshmi Warehouse</p>
+                    <div className="w-72 border-t border-slate-400 pt-4">
+                        <p className="text-[#1e293b] font-bold text-sm uppercase tracking-wider">AUTHORIZED MANAGER SIGNATURE</p>
+                        <p className="text-primary font-bold text-xs uppercase mt-1">SRI LAKSHMI WAREHOUSE</p>
                     </div>
                     <p className="text-[10px] text-slate-400">Report validity verified on {generatedDate}</p>
                     <p className="text-[10px] text-slate-400 italic">This is a computer generated statement.</p>

@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -23,6 +23,7 @@ import { format } from 'date-fns';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 import { useAppUser } from '@/firebase/auth/use-user';
+import { Badge } from '../ui/badge';
 
 const UnloadingRecordSchema = z.object({
   customerId: z.string().min(1, 'Customer is required.'),
@@ -148,7 +149,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                         .replace('{billNo}', data.billNo)
                         .replace('{date}', format(finalDate, 'dd/MM/yy'))
                         .replace('{hamaliAmount}', formatCurrency(totalHamali))
-                        .replace('{warehouseName}', warehouseInfo?.name || 'GrainDost');
+                        .replace('{warehouseName}', warehouseInfo?.name || 'Sri Lakshmi Warehouse');
                     
                     sendSms({ apiKey: warehouseInfo.textbeeApiKey, deviceId: warehouseInfo.textbeeDeviceId, to: selectedCustomer.phone, message }).catch(console.error);
                 }
@@ -169,14 +170,20 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                 <form onSubmit={form.handleSubmit(onSubmit)}>
                     <CardHeader>
                         <CardTitle>Add New Unloading Record</CardTitle>
-                        <CardDescription>Manual date format: DD-MM-YYYY.</CardDescription>
+                        <CardDescription>The Bill No. is auto-generated. Format: DD-MM-YYYY.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <FormField control={form.control} name="billNo" render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Bill No.</FormLabel>
+                                <FormLabel className="flex items-center gap-2">
+                                    Bill No. (Auto)
+                                    <Badge variant="outline" className="text-[10px] uppercase font-bold py-0 h-4 bg-primary/5 text-primary border-primary/20">
+                                        <Sparkles className="h-2 w-2 mr-1" />
+                                        Auto-Generated
+                                    </Badge>
+                                </FormLabel>
                                 <FormControl>
-                                    <Input className="font-mono font-bold" {...field} />
+                                    <Input className="font-mono font-bold bg-muted/50 cursor-not-allowed" {...field} readOnly />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>

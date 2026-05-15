@@ -28,7 +28,7 @@ export function PendingDuesReportTable({ summaries, title }: ReportTableProps) {
     return (
         <div className="bg-white p-6 rounded-xl border shadow-sm print:shadow-none print:border-none">
             <div className="mb-8 text-center border-b pb-6">
-                <h2 className="text-2xl font-bold text-primary tracking-tight">Sri Lakshmi Warehouse</h2>
+                <h2 className="text-2xl font-bold text-primary tracking-tight uppercase">SRI LAKSHMI WAREHOUSE</h2>
                 <p className="text-muted-foreground font-semibold text-lg uppercase tracking-wider mt-1">{title}</p>
                 <div className="flex justify-center gap-4 mt-2 text-xs text-muted-foreground">
                     <span>Generated: {generatedDate}</span>
@@ -78,9 +78,9 @@ export function PendingDuesReportTable({ summaries, title }: ReportTableProps) {
             </Table>
             
             <div className="mt-16 pt-8 flex flex-col items-end text-center space-y-2">
-                <div className="w-64 border-t border-slate-300 pt-4">
-                    <p className="text-[#1e293b] font-bold text-sm uppercase tracking-wider">Authorized Manager Signature</p>
-                    <p className="text-primary font-bold text-xs uppercase mt-1">Sri Lakshmi Warehouse</p>
+                <div className="w-72 border-t border-slate-400 pt-4">
+                    <p className="text-[#1e293b] font-bold text-sm uppercase tracking-wider">AUTHORIZED MANAGER SIGNATURE</p>
+                    <p className="text-primary font-bold text-xs uppercase mt-1">SRI LAKSHMI WAREHOUSE</p>
                 </div>
                 <p className="text-[10px] text-slate-400">Report validity verified on {generatedDate}</p>
                 <p className="text-[10px] text-slate-400 italic">This is a computer generated statement.</p>

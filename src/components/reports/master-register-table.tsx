@@ -49,7 +49,7 @@ export function MasterRegisterTable({ records, customers, title }: MasterRegiste
     return (
         <div className="bg-white p-4 rounded-lg overflow-x-auto">
              <div className="mb-6 text-center">
-                <h2 className="text-2xl font-bold">Sri Lakshmi Warehouse</h2>
+                <h2 className="text-2xl font-bold uppercase tracking-wide">SRI LAKSHMI WAREHOUSE</h2>
                 <p className="text-muted-foreground font-semibold uppercase tracking-wider">{title}</p>
                 <p className="text-xs text-muted-foreground">Generated on: {generatedDate}</p>
             </div>
@@ -120,12 +120,13 @@ export function MasterRegisterTable({ records, customers, title }: MasterRegiste
                 </TableFooter>
             </Table>
             
-            <div className="mt-12 flex flex-col items-center text-center space-y-2">
-                <div className="w-64 border-t border-slate-300 pt-4">
-                    <p className="text-[#1e293b] font-bold text-sm uppercase tracking-wider">Authorized Manager Signature</p>
-                    <p className="text-primary font-bold text-xs uppercase mt-1">Sri Lakshmi Warehouse</p>
-                    <p className="text-[10px] text-slate-400 mt-2">Report validity verified on {generatedDate}</p>
+            <div className="mt-16 pt-8 flex flex-col items-end text-center space-y-2">
+                <div className="w-72 border-t border-slate-400 pt-4">
+                    <p className="text-[#1e293b] font-bold text-sm uppercase tracking-wider">AUTHORIZED MANAGER SIGNATURE</p>
+                    <p className="text-primary font-bold text-xs uppercase mt-1">SRI LAKSHMI WAREHOUSE</p>
                 </div>
+                <p className="text-[10px] text-slate-400">Report validity verified on {generatedDate}</p>
+                <p className="text-[10px] text-slate-400 italic">This is a computer generated statement.</p>
             </div>
         </div>
     );

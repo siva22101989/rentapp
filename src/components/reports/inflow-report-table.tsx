@@ -29,7 +29,7 @@ export function InflowReportTable({ records, customers, title, description, allR
     return (
         <div className="bg-white p-4 rounded-lg">
              <div className="mb-4 text-center report-component-header">
-                <h2 className="text-xl font-bold">Sri Lakshmi Warehouse</h2>
+                <h2 className="text-xl font-bold uppercase tracking-wide">SRI LAKSHMI WAREHOUSE</h2>
                 <p className="text-lg font-semibold">{title}</p>
                 <p className="text-sm text-muted-foreground">{description}</p>
                 <p className="text-xs text-muted-foreground">Generated on: {generatedDate}</p>
@@ -41,7 +41,6 @@ export function InflowReportTable({ records, customers, title, description, allR
                         <TableHead className="h-auto p-2">Storage ID</TableHead>
                         <TableHead className="h-auto p-2 min-w-[180px]">Customer</TableHead>
                         <TableHead className="h-auto p-2">Commodity</TableHead>
-                        <TableHead className="h-auto p-2">Inflow Type</TableHead>
                         <TableHead className="h-auto p-2">Lot No</TableHead>
                         <TableHead className="h-auto p-2 text-right">Bags</TableHead>
                         <TableHead className="h-auto p-2 w-[50px] text-right print-hide">Actions</TableHead>
@@ -55,11 +54,6 @@ export function InflowReportTable({ records, customers, title, description, allR
                                 <TableCell className="p-2">{record.id}</TableCell>
                                 <TableCell className="p-2 font-medium whitespace-nowrap">{getCustomerName(record.customerId)}</TableCell>
                                 <TableCell className="p-2">{record.commodityDescription}</TableCell>
-                                <TableCell className="p-2">
-                                    <Badge variant={record.inflowType === 'Direct' ? 'default' : 'secondary'} className={record.inflowType === 'Plot' ? 'bg-purple-100 text-purple-800' : ''}>
-                                        {record.inflowType || 'Direct'}
-                                    </Badge>
-                                </TableCell>
                                 <TableCell className="p-2">{record.location}</TableCell>
                                 <TableCell className="p-2 text-right font-mono">{record.bagsIn}</TableCell>
                                 <TableCell className="p-2 text-right print-hide">
@@ -69,7 +63,7 @@ export function InflowReportTable({ records, customers, title, description, allR
                         ))
                     ) : (
                         <TableRow>
-                            <TableCell colSpan={8} className="p-2 text-center text-muted-foreground">
+                            <TableCell colSpan={7} className="p-2 text-center text-muted-foreground">
                                 No inflow records found for the selected criteria.
                             </TableCell>
                         </TableRow>
@@ -78,7 +72,7 @@ export function InflowReportTable({ records, customers, title, description, allR
                 <TableFooter>
                     <TableRow className="border-t-2 border-primary bg-secondary">
                         <TableCell 
-                            colSpan={6}
+                            colSpan={5}
                             className="p-2 text-right font-bold text-lg"
                         >
                             Total Bags
@@ -90,9 +84,9 @@ export function InflowReportTable({ records, customers, title, description, allR
             </Table>
 
             <div className="mt-16 pt-8 flex flex-col items-end text-center space-y-2">
-                <div className="w-64 border-t border-slate-300 pt-4">
-                    <p className="text-[#1e293b] font-bold text-sm uppercase tracking-wider">Authorized Manager Signature</p>
-                    <p className="text-primary font-bold text-xs uppercase mt-1">Sri Lakshmi Warehouse</p>
+                <div className="w-72 border-t border-slate-400 pt-4">
+                    <p className="text-[#1e293b] font-bold text-sm uppercase tracking-wider">AUTHORIZED MANAGER SIGNATURE</p>
+                    <p className="text-primary font-bold text-xs uppercase mt-1">SRI LAKSHMI WAREHOUSE</p>
                 </div>
                 <p className="text-[10px] text-slate-400">Report validity verified on {generatedDate}</p>
                 <p className="text-[10px] text-slate-400 italic">This is a computer generated statement.</p>

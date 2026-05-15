@@ -40,7 +40,7 @@ export function HamaliProfitReportTable({ events, customers, title }: ReportTabl
     return (
         <div className="bg-white p-4 rounded-lg">
              <div className="mb-4 text-center">
-                <h2 className="text-xl font-bold">Sri Lakshmi Warehouse</h2>
+                <h2 className="text-xl font-bold uppercase tracking-wide">SRI LAKSHMI WAREHOUSE</h2>
                 <p className="text-muted-foreground font-semibold uppercase">{title}</p>
                 <p className="text-xs text-muted-foreground">Generated on: {generatedDate}</p>
             </div>
@@ -86,12 +86,13 @@ export function HamaliProfitReportTable({ events, customers, title }: ReportTabl
                 </TableFooter>
             </Table>
             
-            <div className="mt-16 pt-8 flex flex-col items-center text-center space-y-2">
-                <div className="w-64 border-t border-slate-300 pt-4">
-                    <p className="text-[#1e293b] font-bold text-sm uppercase tracking-wider">Authorized Manager Signature</p>
-                    <p className="text-primary font-bold text-xs uppercase mt-1">Sri Lakshmi Warehouse</p>
+            <div className="mt-16 pt-8 flex flex-col items-end text-center space-y-2">
+                <div className="w-72 border-t border-slate-400 pt-4">
+                    <p className="text-[#1e293b] font-bold text-sm uppercase tracking-wider">AUTHORIZED MANAGER SIGNATURE</p>
+                    <p className="text-primary font-bold text-xs uppercase mt-1">SRI LAKSHMI WAREHOUSE</p>
                 </div>
-                <p className="text-[10px] text-slate-400 mt-2">Report validity verified on {generatedDate}</p>
+                <p className="text-[10px] text-slate-400">Report validity verified on {generatedDate}</p>
+                <p className="text-[10px] text-slate-400 italic">This is a computer generated statement.</p>
             </div>
         </div>
     );

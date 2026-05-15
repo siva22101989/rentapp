@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from "react";
@@ -27,7 +26,6 @@ export function InflowReportTable({ records, customers, title, description, allR
     }
 
     const totalBagsIn = records.reduce((acc, record) => acc + (record.bagsIn || 0), 0);
-    const totalWeight = records.reduce((acc, record) => acc + (record.weight || 0), 0);
 
     return (
         <div className="bg-white p-4 rounded-lg">
@@ -48,7 +46,6 @@ export function InflowReportTable({ records, customers, title, description, allR
                         <TableHead className="h-auto p-2">Lorry/Tractor No</TableHead>
                         <TableHead className="h-auto p-2">Lot No</TableHead>
                         <TableHead className="h-auto p-2 text-right">Bags</TableHead>
-                        <TableHead className="h-auto p-2 text-right">Weight (Kgs)</TableHead>
                         <TableHead className="h-auto p-2 w-[50px] text-right print-hide">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -68,7 +65,6 @@ export function InflowReportTable({ records, customers, title, description, allR
                                 <TableCell className="p-2">{record.lorryTractorNo}</TableCell>
                                 <TableCell className="p-2">{record.location}</TableCell>
                                 <TableCell className="p-2 text-right font-mono">{record.bagsIn}</TableCell>
-                                <TableCell className="p-2 text-right font-mono">{record.weight ? record.weight.toFixed(2) : ''}</TableCell>
                                 <TableCell className="p-2 text-right print-hide">
                                     <ActionsMenu record={record} customers={customers} allRecords={allRecords} />
                                 </TableCell>
@@ -76,7 +72,7 @@ export function InflowReportTable({ records, customers, title, description, allR
                         ))
                     ) : (
                         <TableRow>
-                            <TableCell colSpan={10} className="p-2 text-center text-muted-foreground">
+                            <TableCell colSpan={9} className="p-2 text-center text-muted-foreground">
                                 No inflow records found for the selected criteria.
                             </TableCell>
                         </TableRow>
@@ -91,7 +87,6 @@ export function InflowReportTable({ records, customers, title, description, allR
                             Grand Total
                         </TableCell>
                         <TableCell className="p-2 text-right font-mono font-bold text-lg">{totalBagsIn}</TableCell>
-                        <TableCell className="p-2 text-right font-mono font-bold text-lg">{totalWeight.toFixed(2)}</TableCell>
                         <TableCell className="p-2 print-hide"></TableCell>
                     </TableRow>
                 </TableFooter>

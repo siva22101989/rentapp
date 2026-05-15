@@ -43,7 +43,6 @@ export function InflowReportTable({ records, customers, title, description, allR
                         <TableHead className="h-auto p-2 min-w-[180px]">Customer</TableHead>
                         <TableHead className="h-auto p-2">Commodity</TableHead>
                         <TableHead className="h-auto p-2">Inflow Type</TableHead>
-                        <TableHead className="h-auto p-2">Lorry/Tractor No</TableHead>
                         <TableHead className="h-auto p-2">Lot No</TableHead>
                         <TableHead className="h-auto p-2 text-right">Bags</TableHead>
                         <TableHead className="h-auto p-2 w-[50px] text-right print-hide">Actions</TableHead>
@@ -62,7 +61,6 @@ export function InflowReportTable({ records, customers, title, description, allR
                                         {record.inflowType || 'Direct'}
                                     </Badge>
                                 </TableCell>
-                                <TableCell className="p-2">{record.lorryTractorNo}</TableCell>
                                 <TableCell className="p-2">{record.location}</TableCell>
                                 <TableCell className="p-2 text-right font-mono">{record.bagsIn}</TableCell>
                                 <TableCell className="p-2 text-right print-hide">
@@ -72,7 +70,7 @@ export function InflowReportTable({ records, customers, title, description, allR
                         ))
                     ) : (
                         <TableRow>
-                            <TableCell colSpan={9} className="p-2 text-center text-muted-foreground">
+                            <TableCell colSpan={8} className="p-2 text-center text-muted-foreground">
                                 No inflow records found for the selected criteria.
                             </TableCell>
                         </TableRow>
@@ -81,7 +79,7 @@ export function InflowReportTable({ records, customers, title, description, allR
                 <TableFooter>
                     <TableRow className="border-t-2 border-primary bg-secondary">
                         <TableCell 
-                            colSpan={7}
+                            colSpan={6}
                             className="p-2 text-right font-bold text-lg"
                         >
                             Grand Total

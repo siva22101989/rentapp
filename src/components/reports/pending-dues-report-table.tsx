@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -33,8 +32,6 @@ export function PendingDuesReportTable({ summaries, title }: ReportTableProps) {
                 <p className="text-muted-foreground font-semibold text-lg uppercase tracking-wider mt-1">{title}</p>
                 <div className="flex justify-center gap-4 mt-2 text-xs text-muted-foreground">
                     <span>Generated: {generatedDate}</span>
-                    <span className="hidden print:inline">•</span>
-                    <span className="hidden print:inline">Status: Outstanding Balance Only</span>
                 </div>
             </div>
 
@@ -80,12 +77,12 @@ export function PendingDuesReportTable({ summaries, title }: ReportTableProps) {
                 </TableFooter>
             </Table>
             
-            <div className="mt-10 flex flex-col items-center text-center space-y-2 print:mt-16">
+            <div className="mt-16 pt-8 flex flex-col items-center text-center space-y-2">
                 <div className="w-64 border-t border-slate-300 pt-4">
                     <p className="text-[#1e293b] font-bold text-sm uppercase tracking-wider">Authorized Manager Signature</p>
                     <p className="text-primary font-bold text-xs uppercase mt-1">Sri Lakshmi Warehouse</p>
-                    <p className="text-[10px] text-slate-400 mt-2">Report validity verified on {generatedDate}</p>
                 </div>
+                <p className="text-[10px] text-slate-400 mt-2">Report validity verified on {generatedDate}</p>
             </div>
         </div>
     );

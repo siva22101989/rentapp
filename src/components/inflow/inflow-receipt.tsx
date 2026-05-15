@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -6,7 +5,6 @@ import type { Customer, StorageRecord, WarehouseInfo, UnloadingRecord } from '@/
 import { format, differenceInDays } from 'date-fns';
 import { toDate, formatCurrency } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '../ui/table';
-
 
 export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageRecord, customer: Customer, warehouseInfo: WarehouseInfo | null, unloadingRecord?: UnloadingRecord }>(({ record, customer, warehouseInfo, unloadingRecord }, ref) => {
     const [formattedDate, setFormattedDate] = useState('');
@@ -27,14 +25,7 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
         }
     }, [record]);
 
-
-    if (!record || !customer) {
-        return (
-            <div className="w-full max-w-2xl mx-auto bg-background p-4 sm:p-6">
-                <p>Loading receipt...</p>
-            </div>
-        );
-    }
+    if (!record || !customer) return <div>Loading...</div>;
     
     const hamaliRate = record.hamaliRate ?? (record.bagsIn > 0 ? record.hamaliPayable / record.bagsIn : 0);
 
@@ -51,153 +42,55 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
         </div>
     );
 
-    if (record.inflowType === 'Plot') {
-        return (
-            <div ref={ref} className="bg-white p-4 sm:p-6 border-2 border-black font-sans text-lg text-black">
-                {/* Header */}
-                <div className="text-center mb-4">
-                    <h1 className="text-2xl font-bold tracking-wider">{warehouseInfo?.name || 'Sri Lakshmi Warehouse'}</h1>
-                    <p className="text-sm">{warehouseInfo?.addressLine1 || 'Survey No. 165,237/2, Owk - Koilakuntla Road, OWK - 518 122,'}</p>
-                    <p className="text-sm">{warehouseInfo?.addressLine2 || 'Owk (M), Kurnool (Dt.), A.P.'} Cell: {warehouseInfo?.phone || '9703503423, 9160606633'}</p>
-                    <h2 className="font-bold underline text-center mt-4 text-base">INFLOW BILL (FROM PLOT)</h2>
-                </div>
-
-                {/* Customer Details */}
-                <div className="grid grid-cols-2 gap-x-4 mb-4 text-base">
-                    <div>
-                        <p><span className="font-bold">Bill No.:</span> {record.id}</p>
-                        <p><span className="font-bold">Depositor Name:</span> {customer.name}</p>
-                        <p><span className="font-bold">Address:</span> {customer.village || 'N/A'}</p>
-                        <p><span className="font-bold">Phone:</span> {customer.phone || 'N/A'}</p>
-                    </div>
-                    <div className="text-right">
-                        <p><span className="font-bold">Date:</span> {formattedDate}</p>
-                    </div>
-                </div>
-
-                {/* Particulars Section */}
-                <div className="border-y-2 border-black py-2 mb-4">
-                    <h2 className="font-bold text-center mb-2 text-base">PARTICULARS OF DEPOSIT (FROM PLOT)</h2>
-                    <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-base">
-                        <p><span className="font-bold">1. Storage ID:</span> {record.id}</p>
-                        <p><span className="font-bold">Storage Date:</span> {formattedDate}</p>
-                        <p><span className="font-bold">Unloading Bill No.:</span> {unloadingRecord?.billNo || 'N/A'}</p>
-                        <p><span className="font-bold">Unloading Date:</span> {unloadingRecord ? format(toDate(unloadingRecord.unloadingDate), 'dd/MM/yy') : 'N/A'}</p>
-                        
-                        <p className="col-span-2"><span className="font-bold">2. Commodity:</span> {record.commodityDescription}</p>
-                        
-                        <p><span className="font-bold">Unloaded Bags:</span> {unloadingRecord?.bagsUnloaded || 'N/A'}</p>
-                        <p><span className="font-bold">Bags for Plot:</span> {record.bagsForDrying || 'N/A'}</p>
-                        <p><span className="font-bold">Bags Packed (Stock):</span> {record.bagsIn}</p>
-                        <p></p>
-                        
-                        <p><span className="font-bold">3. Godown No.:</span> {record.location || 'N/A'}</p>
-                        <p><span className="font-bold">Lot No.:</span> {record.location || 'N/A'}</p>
-                        
-                         <p className="col-span-2"><span className="font-bold">Drying Period:</span> {record.dryingStartDate ? format(toDate(record.dryingStartDate), 'dd/MM/yy') : 'N/A'} to {record.dryingEndDate ? format(toDate(record.dryingEndDate), 'dd/MM/yy') : 'N/A'} ({dryingDays ?? 'N/A'} days)</p>
-                    </div>
-                </div>
-
-                {/* Charges Table */}
-                <Table className="text-lg">
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead className="text-black font-bold">PARTICULARS</TableHead>
-                            <TableHead className="text-center text-black font-bold">Calculation</TableHead>
-                            <TableHead className="text-right text-black font-bold">Amount</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {record.hamaliDetails && record.hamaliDetails.length > 0 ? (
-                            record.hamaliDetails.map((item, index) => (
-                                <TableRow key={index}>
-                                    <TableCell className="py-1">{item.description}</TableCell>
-                                    <TableCell className="text-center font-mono text-base py-1">{item.bags && item.rate ? `${item.bags} bags x ${formatCurrency(item.rate)}` : '-'}</TableCell>
-                                    <TableCell className="text-right font-mono py-1">{formatCurrency(item.amount)}</TableCell>
-                                </TableRow>
-                            ))
-                        ) : (
-                            record.hamaliPayable > 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={2} className="py-1">Total Hamali Charges</TableCell>
-                                    <TableCell className="text-right font-mono py-1">{formatCurrency(record.hamaliPayable)}</TableCell>
-                                </TableRow>
-                            ) : null
-                        )}
-                    </TableBody>
-                    <TableFooter>
-                        <TableRow className="font-bold border-t-2 border-black">
-                            <TableCell colSpan={2} className="text-right">TOTAL HAMALI</TableCell>
-                            <TableCell className="text-right font-mono">{formatCurrency(record.hamaliPayable)}</TableCell>
-                        </TableRow>
-                    </TableFooter>
-                </Table>
-
-                {commonFooter}
-            </div>
-        );
-    }
-
     return (
         <div ref={ref} className="bg-white p-4 sm:p-6 border-2 border-black font-sans text-lg text-black">
-            {/* Header */}
             <div className="text-center mb-4">
                 <h1 className="text-2xl font-bold tracking-wider">{warehouseInfo?.name || 'Sri Lakshmi Warehouse'}</h1>
                 <p className="text-sm">{warehouseInfo?.addressLine1 || 'Survey No. 165,237/2, Owk - Koilakuntla Road, OWK - 518 122,'}</p>
                 <p className="text-sm">{warehouseInfo?.addressLine2 || 'Owk (M), Kurnool (Dt.), A.P.'} Cell: {warehouseInfo?.phone || '9703503423, 9160606633'}</p>
-                 <h2 className="font-bold underline text-center mt-4 text-lg">INFLOW BILL</h2>
+                <h2 className="font-bold underline text-center mt-4 text-lg">INFLOW BILL</h2>
             </div>
     
-            {/* Customer Details */}
             <div className="grid grid-cols-2 gap-x-4 mb-4 text-base">
                 <div>
                     <p><span className="font-bold">Storage ID:</span> {record.id}</p>
-                    <p><span className="font-bold">Depositor Name:</span> {customer.name}</p>
-                    <p><span className="font-bold">Address:</span> {customer.village || 'N/A'}</p>
-                    <p><span className="font-bold">Phone:</span> {customer.phone || 'N/A'}</p>
+                    <p><span className="font-bold">Depositor:</span> {customer.name}</p>
+                    <p><span className="font-bold">Village:</span> {customer.village || 'N/A'}</p>
                 </div>
                 <div className="text-right">
                     <p><span className="font-bold">Date:</span> {formattedDate}</p>
                 </div>
             </div>
     
-            {/* Particulars Section */}
             <div className="border-y-2 border-black py-2 mb-4">
-                <h2 className="font-bold text-center mb-2 text-base">PARTICULARS OF DEPOSIT</h2>
+                <h2 className="font-bold text-center mb-2 text-base uppercase">Particulars of Deposit</h2>
                 <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-base">
-                    <p><span className="font-bold">1. Storage ID:</span> {record.id}</p>
-                    <p><span className="font-bold">Date:</span> {formattedDate}</p>
-                    <p><span className="font-bold">2. Commodity:</span> {record.commodityDescription}</p>
-                    <p><span className="font-bold">Quantity:</span> {record.weight ? `${record.weight} Kgs` : 'N/A'}</p>
+                    <p><span className="font-bold">Storage ID:</span> {record.id}</p>
+                    <p><span className="font-bold">Commodity:</span> {record.commodityDescription}</p>
                     <p><span className="font-bold">No. of Bags:</span> {record.bagsIn}</p>
-                    <p><span className="font-bold">Net Weight:</span> {record.weight ? `${record.weight} Kgs` : 'N/A'}</p>
-                    <p><span className="font-bold">3. Godown No.:</span> {record.location || 'N/A'}</p>
                     <p><span className="font-bold">Lot No.:</span> {record.location || 'N/A'}</p>
-                    <p><span className="font-bold">4. Lorry/Tractor No.:</span> {record.lorryTractorNo || 'N/A'}</p>
+                    {dryingDays && <p className="col-span-2 font-bold italic text-sm">Processed from Plot (Drying: {dryingDays} days)</p>}
                 </div>
             </div>
             
-            {/* Charges Table */}
             <Table className="text-lg">
                  <TableHeader>
                     <TableRow>
                         <TableHead className="text-black font-bold">PARTICULARS</TableHead>
-                        <TableHead className="text-center text-black font-bold">Calculation</TableHead>
+                        <TableHead className="text-center text-black font-bold">Details</TableHead>
                         <TableHead className="text-right text-black font-bold">Amount</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                     {record.hamaliPayable > 0 && (
-                        <TableRow>
-                            <TableCell>1. Unloading Charges (Hamali)</TableCell>
-                            <TableCell className="text-center font-mono text-base">{record.bagsIn} bags x {formatCurrency(hamaliRate)}</TableCell>
-                            <TableCell className="text-right font-mono">{formatCurrency(record.hamaliPayable)}</TableCell>
-                        </TableRow>
-                    )}
+                     <TableRow>
+                        <TableCell>Handling/Hamali Charges</TableCell>
+                        <TableCell className="text-center font-mono text-base">{record.bagsIn} bags x {formatCurrency(hamaliRate)}</TableCell>
+                        <TableCell className="text-right font-mono">{formatCurrency(record.hamaliPayable)}</TableCell>
+                    </TableRow>
                     {record.khataAmount && record.khataAmount > 0 && (
                         <TableRow>
-                            <TableCell>2. Khata (Weighbridge) Charges</TableCell>
-                             <TableCell></TableCell>
+                            <TableCell>Khata (Weighbridge)</TableCell>
+                            <TableCell></TableCell>
                             <TableCell className="text-right font-mono">{formatCurrency(record.khataAmount)}</TableCell>
                         </TableRow>
                     )}

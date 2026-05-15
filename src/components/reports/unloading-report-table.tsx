@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -28,64 +27,58 @@ export function UnloadingReportTable({ records, customers, title, commodities }:
         <div className="bg-white p-4 rounded-lg">
              <div className="mb-4 text-center">
                 <h2 className="text-xl font-bold">Sri Lakshmi Warehouse</h2>
-                <p className="text-muted-foreground font-semibold">{title}</p>
+                <p className="text-muted-foreground font-semibold uppercase">{title}</p>
                 <p className="text-xs text-muted-foreground">Generated on: {generatedDate}</p>
             </div>
             <Table>
                 <TableHeader>
                     <TableRow>
                         <TableHead>Date</TableHead>
-                        <TableHead>Bill No</TableHead>
+                        <TableHead>Storage ID</TableHead>
                         <TableHead>Customer</TableHead>
                         <TableHead>Lot No</TableHead>
                         <TableHead>Commodity</TableHead>
-                        <TableHead>Lorry/Tractor No</TableHead>
                         <TableHead className="text-right">Bags Unloaded</TableHead>
                         <TableHead className="w-[50px] print-hide"></TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {records.map((record) => {
-                        const hamaliPending = (record.totalHamali || 0) - (record.payments || []).reduce((acc, p) => acc + p.amount, 0);
-                        const recordWithPending = {...record, hamaliPending: Math.max(0, hamaliPending)};
-
-                        return (
-                            <TableRow key={record.id}>
-                                <TableCell>{format(toDate(record.unloadingDate), 'dd MMM yyyy')}</TableCell>
-                                <TableCell>{record.billNo}</TableCell>
-                                <TableCell className="font-medium">{getCustomerName(record.customerId)}</TableCell>
-                                <TableCell>{record.location || 'N/A'}</TableCell>
-                                <TableCell>{record.commodityDescription}</TableCell>
-                                <TableCell>{record.lorryTractorNo}</TableCell>
-                                <TableCell className="text-right font-mono">{record.bagsUnloaded}</TableCell>
-                                <TableCell className="text-right print-hide">
-                                    <UnloadingTableActionsMenu 
-                                        record={recordWithPending} 
-                                        customers={customers} 
-                                        commodities={commodities}
-                                        lots={[]} // Empty array here as it's not needed for the action menu in report view
-                                        storageRecords={[]}
-                                    />
-                                </TableCell>
-                            </TableRow>
-                        )
-                    })}
-                    {records.length === 0 && (
-                        <TableRow>
-                            <TableCell colSpan={8} className="text-center text-muted-foreground">
-                                No unloading records found for the selected criteria.
+                    {records.map((record) => (
+                        <TableRow key={record.id}>
+                            <TableCell>{format(toDate(record.unloadingDate), 'dd/MM/yy')}</TableCell>
+                            <TableCell className="font-mono">{record.billNo || record.id}</TableCell>
+                            <TableCell className="font-medium">{getCustomerName(record.customerId)}</TableCell>
+                            <TableCell>{record.location || 'N/A'}</TableCell>
+                            <TableCell>{record.commodityDescription}</TableCell>
+                            <TableCell className="text-right font-mono">{record.bagsUnloaded}</TableCell>
+                            <TableCell className="text-right print-hide">
+                                <UnloadingTableActionsMenu 
+                                    record={{...record, hamaliPending: 0}} 
+                                    customers={customers} 
+                                    commodities={commodities}
+                                    lots={[]} 
+                                    storageRecords={[]}
+                                />
                             </TableCell>
                         </TableRow>
-                    )}
+                    ))}
                 </TableBody>
                 <TableFooter>
                     <TableRow>
-                        <TableCell colSpan={6} className="text-right font-bold">Total Bags Unloaded</TableCell>
+                        <TableCell colSpan={5} className="text-right font-bold">Total Bags Unloaded</TableCell>
                         <TableCell className="text-right font-mono font-bold">{totalBagsUnloaded}</TableCell>
                         <TableCell className="print-hide"></TableCell>
                     </TableRow>
                 </TableFooter>
             </Table>
+
+            <div className="mt-16 pt-8 flex flex-col items-center text-center space-y-2">
+                <div className="w-64 border-t border-slate-300 pt-4">
+                    <p className="text-[#1e293b] font-bold text-sm uppercase tracking-wider">Authorized Manager Signature</p>
+                    <p className="text-primary font-bold text-xs uppercase mt-1">Sri Lakshmi Warehouse</p>
+                </div>
+                <p className="text-[10px] text-slate-400 mt-2">Report validity verified on {generatedDate}</p>
+            </div>
         </div>
     );
 }

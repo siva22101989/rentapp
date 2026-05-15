@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -6,7 +5,16 @@ import { format } from "date-fns";
 import type { Customer } from "@/lib/definitions";
 import { formatCurrency } from '@/lib/utils';
 import { useMemo } from "react";
-import type { WorkerHamaliEvent } from "./hamali-report";
+
+type WorkerHamaliEvent = {
+    date: Date;
+    description: string;
+    recordId: string;
+    customerId?: string;
+    payable: number;
+    paid: number;
+    bags?: number;
+}
 
 type ReportTableProps = {
     events: WorkerHamaliEvent[];
@@ -14,14 +22,9 @@ type ReportTableProps = {
     title: string;
 }
 
-export function WorkerHamaliReportTable({ events, customers, title }: ReportTableProps) {
+export function WorkerHamaliReportTable({ events, title }: ReportTableProps) {
     const generatedDate = useMemo(() => format(new Date(), 'dd MMM yyyy, hh:mm a'), []);
     
-    const getCustomerName = (customerId?: string) => {
-        if (!customerId) return '';
-        return customers.find(c => c.id === customerId)?.name ?? 'Unknown';
-    }
-
     const totalPayable = events.reduce((acc, event) => acc + event.payable, 0);
     const totalPaid = events.reduce((acc, event) => acc + event.paid, 0);
     const balance = totalPayable - totalPaid;
@@ -30,16 +33,15 @@ export function WorkerHamaliReportTable({ events, customers, title }: ReportTabl
         <div className="bg-white p-4 rounded-lg">
              <div className="mb-4 text-center">
                 <h2 className="text-xl font-bold">Sri Lakshmi Warehouse</h2>
-                <p className="text-muted-foreground font-semibold">{title}</p>
+                <p className="text-muted-foreground font-semibold uppercase">{title}</p>
                 <p className="text-xs text-muted-foreground">Generated on: {generatedDate}</p>
             </div>
-            <Table>
+            <Table className="text-xs">
                 <TableHeader>
                     <TableRow>
                         <TableHead>Date</TableHead>
-                        <TableHead>Customer</TableHead>
                         <TableHead>Description</TableHead>
-                        <TableHead>Reference ID</TableHead>
+                        <TableHead>Storage ID</TableHead>
                         <TableHead className="text-center">Bags</TableHead>
                         <TableHead className="text-right">Worker Payable</TableHead>
                         <TableHead className="text-right">Paid</TableHead>
@@ -48,10 +50,9 @@ export function WorkerHamaliReportTable({ events, customers, title }: ReportTabl
                 <TableBody>
                     {events.map((event, index) => (
                         <TableRow key={index}>
-                            <TableCell>{format(event.date, 'dd MMM yyyy')}</TableCell>
-                            <TableCell className="font-medium">{event.paid > 0 ? 'Payment' : getCustomerName(event.customerId)}</TableCell>
-                            <TableCell>{event.paid > 0 ? 'Payment for Hamali done' : event.description}</TableCell>
-                            <TableCell>{event.recordId}</TableCell>
+                            <TableCell>{format(event.date, 'dd/MM/yy')}</TableCell>
+                            <TableCell>{event.description}</TableCell>
+                            <TableCell className="font-mono">{event.recordId}</TableCell>
                             <TableCell className="text-center font-mono">{event.bags || ''}</TableCell>
                             <TableCell className="text-right font-mono">
                                 {event.payable > 0 ? formatCurrency(event.payable) : ''}
@@ -61,26 +62,27 @@ export function WorkerHamaliReportTable({ events, customers, title }: ReportTabl
                             </TableCell>
                         </TableRow>
                     ))}
-                    {events.length === 0 && (
-                        <TableRow>
-                            <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                                No worker hamali transactions found for the selected criteria.
-                            </TableCell>
-                        </TableRow>
-                    )}
                 </TableBody>
                 <TableFooter>
-                    <TableRow className="bg-secondary/50">
-                        <TableCell colSpan={5} className="text-right font-bold">Totals</TableCell>
+                    <TableRow className="bg-secondary/30">
+                        <TableCell colSpan={4} className="text-right font-bold">Totals</TableCell>
                         <TableCell className="text-right font-mono font-bold">{formatCurrency(totalPayable)}</TableCell>
                         <TableCell className="text-right font-mono font-bold text-green-600">{formatCurrency(totalPaid)}</TableCell>
                     </TableRow>
                      <TableRow>
-                        <TableCell colSpan={6} className="text-right font-bold">Pending Balance (Worker Payable - Paid)</TableCell>
-                        <TableCell className="text-right font-mono font-bold text-destructive">{formatCurrency(balance)}</TableCell>
+                        <TableCell colSpan={5} className="text-right font-bold text-lg">Balance Pending to Workers</TableCell>
+                        <TableCell className="text-right font-mono font-bold text-lg text-destructive">{formatCurrency(balance)}</TableCell>
                     </TableRow>
                 </TableFooter>
             </Table>
+            
+            <div className="mt-16 pt-8 flex flex-col items-center text-center space-y-2">
+                <div className="w-64 border-t border-slate-300 pt-4">
+                    <p className="text-[#1e293b] font-bold text-sm uppercase tracking-wider">Authorized Manager Signature</p>
+                    <p className="text-primary font-bold text-xs uppercase mt-1">Sri Lakshmi Warehouse</p>
+                </div>
+                <p className="text-[10px] text-slate-400 mt-2">Report validity verified on {generatedDate}</p>
+            </div>
         </div>
     );
 }

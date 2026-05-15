@@ -1,4 +1,3 @@
-
 'use client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { formatCurrency, toDate } from "@/lib/utils";
@@ -7,212 +6,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFoo
 import type { Expense, StorageRecord, UnloadingRecord, WarehouseInfo, Borrowing, Lending, OtherIncome } from "@/lib/definitions";
 import { format, differenceInCalendarMonths } from "date-fns";
 import { useDateFilter } from "@/firebase/provider";
-
-function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
-  const activeBorrowings = useMemo(() => (borrowings || []).filter(b => b.status !== 'Paid Off'), [borrowings]);
-
-  const { borrowingsWithInterest, totals } = useMemo(() => {
-    const calculatedBorrowings = activeBorrowings.map(borrowing => {
-        let principal = borrowing.principal;
-        let accruedInterest = 0;
-        let lastDate = toDate(borrowing.dateTaken);
-        const monthlyRate = borrowing.interestRate / 100;
-
-        const allPayments = [...(borrowing.payments || []).map(p => ({...p, date: toDate(p.date)}))].sort((a,b) => a.date.getTime() - b.date.getTime());
-
-        for (const payment of allPayments) {
-            const dateOfPayment = payment.date;
-            
-            const months = differenceInCalendarMonths(dateOfPayment, lastDate);
-            if (months > 0) {
-                accruedInterest += principal * monthlyRate * months;
-            }
-            
-            let paymentAmount = payment.amount;
-            const interestPayment = Math.min(paymentAmount, accruedInterest);
-            accruedInterest -= interestPayment;
-            paymentAmount -= interestPayment;
-
-            if (paymentAmount > 0) {
-                principal -= paymentAmount;
-            }
-
-            lastDate = dateOfPayment;
-        }
-
-        const today = new Date();
-        const finalMonths = differenceInCalendarMonths(today, lastDate);
-        if (finalMonths > 0) {
-            accruedInterest += principal * monthlyRate * finalMonths;
-        }
-
-        const totalMonths = differenceInCalendarMonths(today, toDate(borrowing.dateTaken));
-        
-        return {
-            ...borrowing,
-            principalDue: principal,
-            interestDue: Math.max(0, accruedInterest),
-            totalDue: principal + Math.max(0, accruedInterest),
-            monthsPassed: totalMonths,
-        };
-    });
-
-     const totals = calculatedBorrowings.reduce((acc, curr) => {
-        acc.principalDue += curr.principalDue;
-        acc.interestDue += curr.interestDue;
-        acc.totalDue += curr.totalDue;
-        return acc;
-    }, { principalDue: 0, interestDue: 0, totalDue: 0 });
-
-    return { borrowingsWithInterest: calculatedBorrowings, totals };
-  }, [activeBorrowings]);
-
-  if (borrowingsWithInterest.length === 0) return null;
-  
-  return (
-    <Card>
-      <CardHeader><CardTitle>Context: Active Borrowings</CardTitle></CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader><TableRow>
-            <TableHead>Lender</TableHead>
-            <TableHead>Date Taken</TableHead>
-            <TableHead>Months</TableHead>
-            <TableHead>Monthly Rate</TableHead>
-            <TableHead className="text-right">Principal Due</TableHead>
-            <TableHead className="text-right">Interest Due</TableHead>
-            <TableHead className="text-right">Total Due</TableHead>
-          </TableRow></TableHeader>
-          <TableBody>
-            {borrowingsWithInterest.map((borrowing) => (
-                <TableRow key={borrowing.id}>
-                  <TableCell className="font-medium">{borrowing.lenderName}</TableCell>
-                  <TableCell>{format(toDate(borrowing.dateTaken), 'dd MMM yyyy')}</TableCell>
-                  <TableCell className="text-center">{borrowing.monthsPassed}</TableCell>
-                  <TableCell>{borrowing.interestRate}%</TableCell>
-                  <TableCell className="text-right font-mono text-destructive">{formatCurrency(borrowing.principalDue)}</TableCell>
-                  <TableCell className="text-right font-mono text-destructive">{formatCurrency(borrowing.interestDue)}</TableCell>
-                  <TableCell className="text-right font-mono font-bold text-destructive">{formatCurrency(borrowing.totalDue)}</TableCell>
-                </TableRow>
-            ))}
-          </TableBody>
-           <TableFooter>
-                <TableRow>
-                    <TableCell colSpan={4} className="text-right font-bold">Totals</TableCell>
-                    <TableCell className="text-right font-mono font-bold text-destructive">{formatCurrency(totals.principalDue)}</TableCell>
-                    <TableCell className="text-right font-mono font-bold text-destructive">{formatCurrency(totals.interestDue)}</TableCell>
-                    <TableCell className="text-right font-mono font-bold text-destructive">{formatCurrency(totals.totalDue)}</TableCell>
-                </TableRow>
-            </TableFooter>
-        </Table>
-      </CardContent>
-    </Card>
-  )
-}
-
-function LendingsTable({ lendings }: { lendings: Lending[] }) {
-  const activeLendings = useMemo(() => (lendings || []).filter(l => l.status !== 'Paid Off'), [lendings]);
-  
-  if (activeLendings.length === 0) return null;
-  
-  const { lendingsWithInterest, totals } = useMemo(() => {
-    const calculatedLendings = activeLendings.map(lending => {
-        let principal = lending.principal;
-        let accruedInterest = 0;
-        let lastDate = toDate(lending.dateGiven);
-        const monthlyRate = lending.interestRate / 100;
-
-        const allPayments = [...(lending.payments || []).map(p => ({...p, date: toDate(p.date)}))].sort((a,b) => a.date.getTime() - b.date.getTime());
-
-        for (const payment of allPayments) {
-            const dateOfPayment = payment.date;
-            
-            const months = differenceInCalendarMonths(dateOfPayment, lastDate);
-            if (months > 0) {
-                accruedInterest += principal * monthlyRate * months;
-            }
-            
-            let paymentAmount = payment.amount;
-            const interestPayment = Math.min(paymentAmount, accruedInterest);
-            accruedInterest -= interestPayment;
-            paymentAmount -= interestPayment;
-
-            if (paymentAmount > 0) {
-                principal -= paymentAmount;
-            }
-
-            lastDate = dateOfPayment;
-        }
-
-        const today = new Date();
-        const finalMonths = differenceInCalendarMonths(today, lastDate);
-        if (finalMonths > 0) {
-            accruedInterest += principal * monthlyRate * finalMonths;
-        }
-
-        const totalMonths = differenceInCalendarMonths(today, toDate(lending.dateGiven));
-        
-        return {
-            ...lending,
-            principalDue: principal,
-            interestDue: Math.max(0, accruedInterest),
-            totalDue: principal + Math.max(0, accruedInterest),
-            monthsPassed: totalMonths,
-        };
-    });
-
-     const totals = calculatedLendings.reduce((acc, curr) => {
-        acc.principalDue += curr.principalDue;
-        acc.interestDue += curr.interestDue;
-        acc.totalDue += curr.totalDue;
-        return acc;
-    }, { principalDue: 0, interestDue: 0, totalDue: 0 });
-
-    return { lendingsWithInterest: calculatedLendings, totals };
-  }, [activeLendings]);
-
-  if (lendingsWithInterest.length === 0) return null;
-  
-  return (
-    <Card>
-      <CardHeader><CardTitle>Context: Active Lendings</CardTitle></CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader><TableRow>
-            <TableHead>Borrower</TableHead>
-            <TableHead>Date Given</TableHead>
-            <TableHead>Months</TableHead>
-            <TableHead>Monthly Rate</TableHead>
-            <TableHead className="text-right">Principal Due</TableHead>
-            <TableHead className="text-right">Interest Due</TableHead>
-            <TableHead className="text-right">Total Due</TableHead>
-          </TableRow></TableHeader>
-          <TableBody>
-            {lendingsWithInterest.map((lending) => (
-                <TableRow key={lending.id}>
-                  <TableCell className="font-medium">{lending.borrowerName}</TableCell>
-                  <TableCell>{format(toDate(lending.dateGiven), 'dd MMM yyyy')}</TableCell>
-                  <TableCell className="text-center">{lending.monthsPassed}</TableCell>
-                  <TableCell>{lending.interestRate}%</TableCell>
-                  <TableCell className="text-right font-mono text-green-600">{formatCurrency(lending.principalDue)}</TableCell>
-                  <TableCell className="text-right font-mono text-green-600">{formatCurrency(lending.interestDue)}</TableCell>
-                  <TableCell className="text-right font-mono font-bold text-green-600">{formatCurrency(lending.totalDue)}</TableCell>
-                </TableRow>
-            ))}
-          </TableBody>
-           <TableFooter>
-                <TableRow>
-                    <TableCell colSpan={4} className="text-right font-bold">Totals</TableCell>
-                    <TableCell className="text-right font-mono font-bold text-green-600">{formatCurrency(totals.principalDue)}</TableCell>
-                    <TableCell className="text-right font-mono font-bold text-green-600">{formatCurrency(totals.interestDue)}</TableCell>
-                    <TableCell className="text-right font-mono font-bold text-green-600">{formatCurrency(totals.totalDue)}</TableCell>
-                </TableRow>
-            </TableFooter>
-        </Table>
-      </CardContent>
-    </Card>
-  )
-}
 
 type ProfitAndLossReportProps = {
     allRecords: StorageRecord[];
@@ -224,8 +17,9 @@ type ProfitAndLossReportProps = {
     lendings: Lending[];
 }
 
-export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecords, otherIncomes, warehouseInfo, borrowings, lendings }: ProfitAndLossReportProps) {
+export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecords, otherIncomes, warehouseInfo }: ProfitAndLossReportProps) {
   const { dateRange, financialYear } = useDateFilter();
+  const generatedDate = useMemo(() => format(new Date(), 'dd MMM yyyy, hh:mm a'), []);
 
   const { periodIncome, periodExpenses, periodBalance, filteredExpenses, filteredIncomes, interestOnCapital } = useMemo(() => {
     if (!allRecords || !allExpenses || !allUnloadingRecords || !otherIncomes) {
@@ -277,19 +71,13 @@ export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecor
 
   return (
     <Card>
-        <CardHeader className="print-hide">
-            <div className="flex-1">
-                <CardTitle>Profit & Loss Statement</CardTitle>
-                <CardDescription>A P&L statement for the selected financial period.</CardDescription>
-            </div>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
             <div className="p-4 space-y-6">
                 <div className="text-center">
-                    <h2 className="text-xl font-bold">{warehouseInfo?.name || "Sri Lakshmi Warehouse"}</h2>
-                    <h3 className="text-lg font-semibold">Profit & Loss Statement</h3>
+                    <h2 className="text-xl font-bold">Sri Lakshmi Warehouse</h2>
+                    <h3 className="text-lg font-semibold underline uppercase">Profit & Loss Statement</h3>
                     <p className="text-sm text-gray-500">
-                        For the period: {dateRange?.from ? format(dateRange.from, 'dd MMM yyyy') : 'Start of time'} to {dateRange?.to ? format(dateRange.to, 'dd MMM yyyy') : 'Today'}
+                        Period: {dateRange?.from ? format(dateRange.from, 'dd MMM yyyy') : 'All Time'} to {dateRange?.to ? format(dateRange.to, 'dd MMM yyyy') : 'Today'}
                     </p>
                 </div>
                 
@@ -301,62 +89,34 @@ export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecor
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        <TableRow className="bg-gray-100 hover:bg-gray-100">
-                            <TableCell colSpan={2} className="font-bold">Income</TableCell>
-                        </TableRow>
+                        <TableRow className="bg-gray-100 font-bold"><TableCell colSpan={2}>Income</TableCell></TableRow>
                         {filteredIncomes.map((income) => (
-                            <TableRow key={`inc-${income.id}`}>
-                                <TableCell className="pl-6">{income.description}</TableCell>
-                                <TableCell className="text-right font-mono">{formatCurrency(income.amount)}</TableCell>
-                            </TableRow>
+                            <TableRow key={`inc-${income.id}`}><TableCell className="pl-6">{income.description}</TableCell><TableCell className="text-right font-mono">{formatCurrency(income.amount)}</TableCell></TableRow>
                         ))}
-                        <TableRow>
-                            <TableCell colSpan={2} className="h-4" />
-                        </TableRow>
-                        <TableRow className="border-y bg-gray-50">
-                            <TableCell className="font-semibold text-right">Total Income</TableCell>
-                            <TableCell className="text-right font-mono font-semibold">{formatCurrency(periodIncome)}</TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell colSpan={2} className="h-8" />
-                        </TableRow>
-
-                        <TableRow className="bg-gray-100 hover:bg-gray-100">
-                            <TableCell colSpan={2} className="font-bold">Expenses</TableCell>
-                        </TableRow>
+                        <TableRow className="bg-gray-50 font-semibold"><TableCell className="text-right">Total Income</TableCell><TableCell className="text-right font-mono">{formatCurrency(periodIncome)}</TableCell></TableRow>
+                        <TableRow className="bg-gray-100 font-bold"><TableCell colSpan={2}>Expenses</TableCell></TableRow>
                         {filteredExpenses.map((expense) => (
-                            <TableRow key={`exp-${expense.id}`}>
-                                <TableCell className="pl-6">{expense.description}</TableCell>
-                                <TableCell className="text-right font-mono text-destructive">({formatCurrency(expense.amount)})</TableCell>
-                            </TableRow>
+                            <TableRow key={`exp-${expense.id}`}><TableCell className="pl-6">{expense.description}</TableCell><TableCell className="text-right font-mono text-destructive">({formatCurrency(expense.amount)})</TableCell></TableRow>
                         ))}
                         {interestOnCapital > 0 && (
-                            <TableRow key="exp-capital">
-                                <TableCell className="pl-6">Interest on Capital (Notional)</TableCell>
-                                <TableCell className="text-right font-mono text-destructive">({formatCurrency(interestOnCapital)})</TableCell>
-                            </TableRow>
+                            <TableRow><TableCell className="pl-6 italic">Interest on Capital (Notional)</TableCell><TableCell className="text-right font-mono text-destructive">({formatCurrency(interestOnCapital)})</TableCell></TableRow>
                         )}
-                        <TableRow>
-                            <TableCell colSpan={2} className="h-4" />
-                        </TableRow>
-                        <TableRow className="border-y bg-gray-50">
-                            <TableCell className="font-semibold text-right">Total Expenses</TableCell>
-                            <TableCell className="text-right font-mono font-semibold text-destructive">{formatCurrency(periodExpenses)}</TableCell>
-                        </TableRow>
+                        <TableRow className="bg-gray-50 font-semibold"><TableCell className="text-right">Total Expenses</TableCell><TableCell className="text-right font-mono text-destructive">{formatCurrency(periodExpenses)}</TableCell></TableRow>
                     </TableBody>
                     <TableFooter>
-                        <TableRow className="text-lg bg-gray-200 hover:bg-gray-200">
+                        <TableRow className="text-lg bg-gray-200">
                             <TableCell className="font-bold">{periodBalance >= 0 ? 'Net Profit' : 'Net Loss'}</TableCell>
-                            <TableCell className={`text-right font-bold font-mono ${periodBalance >= 0 ? 'text-green-600' : 'text-destructive'}`}>
-                                {formatCurrency(periodBalance)}
-                            </TableCell>
+                            <TableCell className={`text-right font-bold font-mono ${periodBalance >= 0 ? 'text-green-600' : 'text-destructive'}`}>{formatCurrency(periodBalance)}</TableCell>
                         </TableRow>
                     </TableFooter>
                 </Table>
 
-                <div className="space-y-4 pt-8">
-                    <BorrowingsTable borrowings={borrowings || []} />
-                    <LendingsTable lendings={lendings || []} />
+                <div className="mt-16 pt-8 flex flex-col items-center text-center space-y-2">
+                    <div className="w-64 border-t border-slate-300 pt-4">
+                        <p className="text-[#1e293b] font-bold text-sm uppercase tracking-wider">Authorized Manager Signature</p>
+                        <p className="text-primary font-bold text-xs uppercase mt-1">Sri Lakshmi Warehouse</p>
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-2">Report validity verified on {generatedDate}</p>
                 </div>
             </div>
         </CardContent>

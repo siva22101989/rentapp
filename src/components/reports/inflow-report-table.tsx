@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from "react";
@@ -9,7 +8,6 @@ import { toDate } from '@/lib/utils';
 import { useMemo } from "react";
 import { Badge } from "../ui/badge";
 import { ActionsMenu } from "../dashboard/actions-menu";
-
 
 type ReportTableProps = {
     records: StorageRecord[];
@@ -83,13 +81,24 @@ export function InflowReportTable({ records, customers, title, description, allR
                             colSpan={6}
                             className="p-2 text-right font-bold text-lg"
                         >
-                            Grand Total
+                            Total Bags
                         </TableCell>
                         <TableCell className="p-2 text-right font-mono font-bold text-lg">{totalBagsIn}</TableCell>
                         <TableCell className="p-2 print-hide"></TableCell>
                     </TableRow>
                 </TableFooter>
             </Table>
+
+            <div className="mt-16 pt-8 flex flex-col items-center text-center space-y-2">
+                <div className="flex justify-between w-full mb-8 px-4">
+                    <div className="w-48 border-t border-gray-400 pt-1 text-xs">Depositor Signature</div>
+                    <div className="w-64 border-t border-slate-300 pt-4">
+                        <p className="text-[#1e293b] font-bold text-sm uppercase tracking-wider">Authorized Manager Signature</p>
+                        <p className="text-primary font-bold text-xs uppercase mt-1">Sri Lakshmi Warehouse</p>
+                    </div>
+                </div>
+                <p className="text-[10px] text-slate-400">Report validity verified on {generatedDate}</p>
+            </div>
         </div>
     );
 }

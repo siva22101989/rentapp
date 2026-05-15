@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo } from "react";
@@ -50,8 +49,8 @@ export function MasterRegisterTable({ records, customers, title }: MasterRegiste
     return (
         <div className="bg-white p-4 rounded-lg overflow-x-auto">
              <div className="mb-6 text-center">
-                <h2 className="text-2xl font-bold">Sri Lakshmi Warehouse Master Register</h2>
-                <p className="text-muted-foreground">{title}</p>
+                <h2 className="text-2xl font-bold">Sri Lakshmi Warehouse</h2>
+                <p className="text-muted-foreground font-semibold uppercase tracking-wider">{title}</p>
                 <p className="text-xs text-muted-foreground">Generated on: {generatedDate}</p>
             </div>
             <Table className="text-xs">
@@ -120,6 +119,14 @@ export function MasterRegisterTable({ records, customers, title }: MasterRegiste
                     </TableRow>
                 </TableFooter>
             </Table>
+            
+            <div className="mt-12 flex flex-col items-center text-center space-y-2">
+                <div className="w-64 border-t border-slate-300 pt-4">
+                    <p className="text-[#1e293b] font-bold text-sm uppercase tracking-wider">Authorized Manager Signature</p>
+                    <p className="text-primary font-bold text-xs uppercase mt-1">Sri Lakshmi Warehouse</p>
+                    <p className="text-[10px] text-slate-400 mt-2">Report validity verified on {generatedDate}</p>
+                </div>
+            </div>
         </div>
     );
 }

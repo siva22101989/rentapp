@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -14,55 +13,45 @@ export const UnloadingReceipt = React.forwardRef<HTMLDivElement, { record: Unloa
     useEffect(() => {
         if (record && record.unloadingDate) {
             const unloadingDate = toDate(record.unloadingDate);
-            setFormattedDate(format(unloadingDate, 'dd/MM/yy, hh:mm a'));
+            setFormattedDate(format(unloadingDate, 'dd/MM/yyyy'));
         }
     }, [record]);
 
-
-    if (!record || !customer) {
-        return (
-            <div className="w-full max-w-2xl mx-auto bg-background p-4 sm:p-6">
-                <p>Loading receipt...</p>
-            </div>
-        );
-    }
+    if (!record || !customer) return <div>Loading...</div>;
     
     return (
         <div ref={ref} className="bg-white p-4 border-2 border-black font-sans text-lg text-black">
             <div className="text-center mb-4">
                 <h1 className="text-2xl font-bold tracking-wider">{warehouseInfo?.name || 'Sri Lakshmi Warehouse'}</h1>
-                {warehouseInfo?.ownerName && <p className="text-sm">Prop: {warehouseInfo.ownerName}</p>}
                 <p className="text-sm">{warehouseInfo?.addressLine1 || 'Survey No. 165,237/2, Owk - Koilakuntla Road, OWK - 518 122,'}</p>
                 <p className="text-sm">{warehouseInfo?.addressLine2 || 'Owk (M), Kurnool (Dt.), A.P.'} Cell: {warehouseInfo?.phone || '9703503423, 9160606633'}</p>
-                <h2 className="font-bold underline text-center text-lg mt-4">UNLOADING BILL</h2>
+                <h2 className="font-bold underline text-center text-lg mt-4 uppercase">Unloading Bill</h2>
             </div>
             
             <div className="flex justify-between items-baseline my-2 text-base">
-                <div><span className="font-bold">Bill No.</span> {record.billNo}</div>
+                <div><span className="font-bold">Storage ID (Bill No):</span> {record.billNo}</div>
                 <div><span className="font-bold">Date:</span> {formattedDate}</div>
             </div>
 
             <div className="space-y-1 mb-2 text-base">
-                <div className="flex"><span className="w-1/3 font-bold">CUSTOMER</span><span>: {customer.name}</span></div>
-                {customer.fatherName && <div className="flex"><span className="w-1/3 font-bold">FATHER'S NAME</span><span>: {customer.fatherName}</span></div>}
+                <div className="flex"><span className="w-1/3 font-bold">DEPOSITOR</span><span>: {customer.name}</span></div>
                 <div className="flex"><span className="w-1/3 font-bold">VILLAGE</span><span>: {customer.village || 'N/A'}</span></div>
-                <div className="flex"><span className="w-1/3 font-bold">STORAGE LOCATION</span><span>: {record.location || 'N/A'}</span></div>
-                <div className="flex"><span className="w-1/3 font-bold">LORRY/TRACTOR No.</span><span>: {record.lorryTractorNo || 'N/A'}</span></div>
+                <div className="flex"><span className="w-1/3 font-bold">LOT NO.</span><span>: {record.location || 'N/A'}</span></div>
                 <div className="flex"><span className="w-1/3 font-bold">PRODUCT</span><span>: {record.commodityDescription}</span></div>
             </div>
 
             <Table className="text-lg">
                 <TableHeader>
                     <TableRow>
-                        <TableHead className="text-black">Description</TableHead>
-                        <TableHead className="text-center text-black">Bags</TableHead>
-                        <TableHead className="text-center text-black">Rate</TableHead>
-                        <TableHead className="text-right text-black">Amount</TableHead>
+                        <TableHead className="text-black font-bold">Description</TableHead>
+                        <TableHead className="text-center text-black font-bold">Bags</TableHead>
+                        <TableHead className="text-center text-black font-bold">Rate</TableHead>
+                        <TableHead className="text-right text-black font-bold">Amount</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     <TableRow>
-                        <TableCell>Hamali Charges</TableCell>
+                        <TableCell>Unloading Hamali Charges</TableCell>
                         <TableCell className="text-center">{record.bagsUnloaded}</TableCell>
                         <TableCell className="text-center font-mono">{formatCurrency(record.hamaliPerBag)}</TableCell>
                         <TableCell className="text-right font-mono">{formatCurrency(record.totalHamali)}</TableCell>
@@ -70,7 +59,7 @@ export const UnloadingReceipt = React.forwardRef<HTMLDivElement, { record: Unloa
                 </TableBody>
                 <TableFooter>
                     <TableRow>
-                        <TableCell colSpan={3} className="text-right font-bold">Total Hamali</TableCell>
+                        <TableCell colSpan={3} className="text-right font-bold">TOTAL PAYABLE</TableCell>
                         <TableCell className="text-right font-bold font-mono">{formatCurrency(record.totalHamali)}</TableCell>
                     </TableRow>
                 </TableFooter>
@@ -78,7 +67,7 @@ export const UnloadingReceipt = React.forwardRef<HTMLDivElement, { record: Unloa
             
             <div className="mt-16 pt-8 flex flex-col items-center text-center space-y-2">
                 <div className="flex justify-between w-full mb-8">
-                    <div className="w-48 border-t border-gray-400 pt-1 text-xs">Customer Signature</div>
+                    <div className="w-48 border-t border-gray-400 pt-1 text-xs">Depositor Signature</div>
                     <div className="w-64 border-t border-slate-300 pt-4">
                         <p className="text-[#1e293b] font-bold text-sm uppercase tracking-wider">Authorized Manager Signature</p>
                         <p className="text-primary font-bold text-xs uppercase mt-1">{warehouseInfo?.name || 'Sri Lakshmi Warehouse'}</p>

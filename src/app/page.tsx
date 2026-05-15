@@ -1,7 +1,6 @@
-
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAppUser } from "@/firebase/auth/use-user";
 import type { LucideIcon } from 'lucide-react';
 import Link from 'next/link';
@@ -13,17 +12,13 @@ import {
   Users,
   FileText,
   Scale,
-  Settings,
   Wind,
   ArrowDownFromLine,
-  LayoutDashboard,
   ArrowRight,
   TrendingUp,
   Warehouse,
   Wheat,
-  Hammer
 } from 'lucide-react';
-import { StorageTable } from "@/components/dashboard/storage-table";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { doc, collection, query, where } from "firebase/firestore";
 import { useFirestore } from "@/firebase/provider";
@@ -35,8 +30,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useDoc } from "@/firebase/firestore/use-doc";
-import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
 import { SuperAdminDashboard } from "@/components/super-admin/super-admin-dashboard";
 
 type NavItem = {
@@ -114,24 +107,20 @@ function DashboardHeader({ activeRecordsCount, occupancy, warehouseInfo, appUser
                 </div>
                 <div className="grid w-full grid-cols-2 items-center gap-4 md:w-auto">
                     <Card className="p-4 bg-background/50">
-                        <CardHeader className="p-0 flex-row items-center gap-2 text-muted-foreground">
+                        <div className="flex flex-row items-center gap-2 text-muted-foreground text-sm font-medium">
                             <TrendingUp size={16} />
-                            <CardTitle>Active Records</CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-0 mt-2">
-                            <p className="text-3xl font-bold">{activeRecordsCount}</p>
-                        </CardContent>
+                            Active Records
+                        </div>
+                        <p className="text-3xl font-bold mt-2">{activeRecordsCount}</p>
                     </Card>
                     <Card className="p-4 bg-background/50">
-                        <CardHeader className="p-0 flex-row items-center gap-2 text-muted-foreground">
+                        <div className="flex flex-row items-center gap-2 text-muted-foreground text-sm font-medium">
                             <Warehouse size={16} />
-                            <CardTitle>Occupancy</CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-0 mt-2">
-                            <p className="text-3xl font-bold">{occupancy.toFixed(1)}%</p>
-                            <Progress value={occupancy} className="h-1.5 mt-2" />
-                        </CardContent>
-                    </div>
+                            Occupancy
+                        </div>
+                        <p className="text-3xl font-bold mt-2">{occupancy.toFixed(1)}%</p>
+                        <Progress value={occupancy} className="h-1.5 mt-2" />
+                    </Card>
                 </div>
             </CardContent>
         </Card>
@@ -159,11 +148,9 @@ function DashboardHeaderSkeleton() {
 export default function DashboardPage() {
     const appUser = useAppUser();
     const firestore = useFirestore();
-    const router = useRouter();
 
     const accessibleNavItems = navItems.filter(item => {
         if (!appUser) return false;
-        // Super-admin should not see these nav items on this page as they'll be redirected
         if (appUser.role === 'super-admin') return false; 
         return item.roles.includes(appUser.role);
     });

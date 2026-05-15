@@ -2,10 +2,9 @@
 
 import { useState, useRef } from 'react';
 import type { Customer, StorageRecord, UnloadingRecord, Expense, WarehouseInfo, Borrowing, Lending, OtherIncome, Commodity, Lot, DryingRecord } from "@/lib/definitions";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ReportClient } from '@/components/reports/report-client';
-import { StorageTable } from '@/components/dashboard/storage-table';
 import { HamaliReport } from './hamali-report';
 import { InflowReport } from './inflow-report';
 import { OutflowReport } from './outflow-report';
@@ -15,7 +14,6 @@ import { ProfitAndLossReport } from './profit-and-loss-report';
 import { Button } from '../ui/button';
 import { Printer, FileDown, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { LotInventoryReport } from './lot-inventory-report';
 import { PendingPaymentsTable } from '@/components/payments/pending-payments-table';
 import { PaymentReport } from './payment-report';
 
@@ -24,13 +22,11 @@ const reportTypes = [
     { value: 'profit-and-loss', label: 'Profit & Loss Report' },
     { value: 'payment-register', label: 'Payment Register' },
     { value: 'pending-dues', label: 'Pending Dues Register' },
-    { value: 'lot-active-stock', label: 'Lot-wise Active Stock Only' },
     { value: 'customer-statement', label: 'Customer Statement of Account' },
     { value: 'hamali-register', label: 'Hamali Register' },
     { value: 'inflow-register', label: 'Inflow Register' },
     { value: 'outflow-register', label: 'Outflow Register' },
     { value: 'unloading-register', label: 'Unloading Register' },
-    { value: 'active-inventory', label: 'Active Inventory Summary' },
 ];
 
 type ReportGeneratorProps = {
@@ -61,7 +57,6 @@ export function CustomReportGenerator({
     commodities,
     initialReport, 
     initialCustomerId,
-    lots
 }: ReportGeneratorProps) {
     const [selectedReport, setSelectedReport] = useState<string>(initialReport || 'daily-summary');
     const [isDownloading, setIsDownloading] = useState(false);
@@ -121,8 +116,6 @@ export function CustomReportGenerator({
                             unloadingRecords={unloadingRecords}
                             title="Pending Dues Register"
                         />;
-            case 'lot-active-stock':
-                return <LotInventoryReport records={records} customers={customers} />;
             case 'customer-statement':
                 return <ReportClient 
                             records={records} 
@@ -130,14 +123,12 @@ export function CustomReportGenerator({
                             unloadingRecords={unloadingRecords} 
                             initialCustomerId={initialCustomerId}
                         />;
-            case 'active-inventory':
-                return <Card><CardHeader className="print-hide"><CardTitle>Active Inventory Summary</CardTitle></CardHeader><CardContent><StorageTable /></CardContent></Card>;
             case 'hamali-register':
                 return <HamaliReport records={records} customers={customers} unloadingRecords={unloadingRecords} expenses={expenses} warehouseInfo={warehouseInfo} />;
             case 'inflow-register':
                 return <InflowReport records={records} customers={customers} />;
             case 'outflow-register':
-                return <OutflowReport records={records} customers={customers} commodities={commodities} lots={lots} />;
+                return <OutflowReport records={records} customers={customers} commodities={commodities} lots={[]} />;
             case 'unloading-register':
                 return <UnloadingReport unloadingRecords={unloadingRecords} customers={customers} commodities={commodities} />;
             default:

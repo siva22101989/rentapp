@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo } from 'react';
@@ -27,29 +26,15 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
     const formattedEndDate = format(deliveryOrderDate, 'dd/MM/yyyy');
     
     const startDate = toDate(record.storageStartDate);
-    const totalMonths = differenceInMonths(deliveryOrderDate, startDate);
-    const years = Math.floor(totalMonths / 12);
-    const months = totalMonths % 12;
-    let durationStr = '';
-    if (years > 0) durationStr += `${years} Year${years > 1 ? 's' : ''} `;
-    if (months > 0 || years === 0) durationStr += `${months} month${months > 1 ? 's' : ''}`;
-    if (durationStr === '') durationStr = 'Less than a month';
-
+    const totalMonths = differenceInMonths(deliveryOrderDate, startDate) + 1;
     const rentPerBag = withdrawnBags > 0 ? finalRent / withdrawnBags : 0;
 
-    const originalHamaliPayable = record.hamaliPayable || 0;
-    const hamaliPaid = (record.payments || [])
-        .filter(p => p.type === 'hamali')
-        .reduce((acc, p) => acc + p.amount, 0);
-    const hamaliPending = Math.max(0, originalHamaliPayable - hamaliPaid);
+    const hPaid = (record.payments || []).filter(p => p.type === 'hamali').reduce((acc, p) => acc + p.amount, 0);
+    const hamaliPending = Math.max(0, (record.hamaliPayable || 0) - hPaid);
     
     const totalAmount = finalRent + hamaliPending + (record.khataAmount || 0);
     const grandTotal = totalAmount - discount;
     const balanceDue = grandTotal - paidNow;
-
-    if (!record) {
-        return <div className="max-w-3xl mx-auto">Loading receipt...</div>;
-    }
 
     return (
       <div ref={ref} className="bg-white p-4 sm:p-6 border-2 border-black font-sans text-lg text-black">
@@ -57,34 +42,29 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
               <h1 className="text-2xl font-bold tracking-wider">{warehouseInfo?.name || 'Sri Lakshmi Warehouse'}</h1>
               <p className="text-sm">{warehouseInfo?.addressLine1 || 'Survey No. 165,237/2, Owk - Koilakuntla Road, OWK - 518 122,'}</p>
               <p className="text-sm">{warehouseInfo?.addressLine2 || 'Owk (M), Kurnool (Dt.), A.P.'} Cell: {warehouseInfo?.phone || '9703503423, 9160606633'}</p>
+              <h2 className="font-bold underline text-center mt-4 text-lg">OUTFLOW BILL</h2>
           </div>
-          
-          <h2 className="font-bold underline text-center mb-4 text-lg">OUTFLOW BILL</h2>
           
           <div className="grid grid-cols-2 gap-x-4 mb-4 text-base">
               <div>
                   <p><span className="font-bold">Bill No.:</span> {deliveryOrderNo}</p>
-                  <p><span className="font-bold">Depositor Name:</span> {customer.name}</p>
-                  <p><span className="font-bold">Address:</span> {customer.village || 'N/A'}</p>
+                  <p><span className="font-bold">Depositor:</span> {customer.name}</p>
+                  <p><span className="font-bold">Village:</span> {customer.village || 'N/A'}</p>
               </div>
               <div className="text-right">
-                  <p>{durationStr}</p>
+                  <p>{totalMonths} month(s) stored</p>
                   <p><span className="font-bold">Date:</span> {formattedEndDate}</p>
               </div>
           </div>
 
           <div className="border-y-2 border-black py-2 mb-4">
-              <h2 className="font-bold text-center mb-2 text-base">PARTICULARS OF WITHDRAWAL</h2>
+              <h2 className="font-bold text-center mb-2 text-base uppercase">Particulars of Withdrawal</h2>
               <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-base">
-                  <p><span className="font-bold">1. Storage ID:</span> {record.id}</p>
-                  <p><span className="font-bold">Date:</span> {formattedStartDate}</p>
-                  <p><span className="font-bold">Delivery Order No.:</span> {deliveryOrderNo}</p>
-                  <p><span className="font-bold">Date:</span> {formattedEndDate}</p>
-                  <p><span className="font-bold">2. Name of the Commodity:</span> {record.commodityDescription}</p>
-                  <p><span className="font-bold">Quantity:</span> {record.weight ? `${record.weight} Kgs` : 'N/A'}</p>
-                  <p><span className="font-bold">No. of Bags:</span> {withdrawnBags}</p>
-                  <p><span className="font-bold">Net Weight:</span> {record.weight ? `${record.weight} Kgs` : 'N/A'}</p>
-                  <p><span className="font-bold">3. Godown No.:</span> {record.location || 'N/A'}</p>
+                  <p><span className="font-bold">Storage ID:</span> {record.id}</p>
+                  <p><span className="font-bold">Start Date:</span> {formattedStartDate}</p>
+                  <p><span className="font-bold">End Date:</span> {formattedEndDate}</p>
+                  <p><span className="font-bold">Commodity:</span> {record.commodityDescription}</p>
+                  <p><span className="font-bold">Bags Withdrawn:</span> {withdrawnBags}</p>
                   <p><span className="font-bold">Lot No.:</span> {record.location || 'N/A'}</p>
               </div>
           </div>
@@ -92,45 +72,33 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
           <Table className="text-lg">
               <TableHeader>
                   <TableRow>
-                      <TableHead className="text-black font-bold w-[50%]">PARTICULARS</TableHead>
-                      <TableHead className="text-center text-black font-bold">No.of Bags</TableHead>
+                      <TableHead className="text-black font-bold">PARTICULARS</TableHead>
+                      <TableHead className="text-center text-black font-bold">Bags</TableHead>
                       <TableHead className="text-center text-black font-bold">Rate</TableHead>
                       <TableHead className="text-right text-black font-bold">Amount</TableHead>
                   </TableRow>
               </TableHeader>
               <TableBody>
                   <TableRow>
-                      <TableCell>1. Ware house Rent</TableCell>
+                      <TableCell>1. Warehouse Rent</TableCell>
                       <TableCell className="text-center">{withdrawnBags}</TableCell>
-                      <TableCell className="text-center">{rentPerBag > 0 ? rentPerBag.toFixed(2) : ''}</TableCell>
-                      <TableCell className="text-right font-mono">{finalRent > 0 ? formatCurrency(finalRent) : ''}</TableCell>
+                      <TableCell className="text-center font-mono">{rentPerBag.toFixed(2)}</TableCell>
+                      <TableCell className="text-right font-mono">{formatCurrency(finalRent)}</TableCell>
                   </TableRow>
                   <TableRow>
-                      <TableCell>2. Unloading Charges</TableCell>
-                      <TableCell></TableCell>
-                      <TableCell></TableCell>
-                      <TableCell className="text-right font-mono">{hamaliPending > 0 ? formatCurrency(hamaliPending) : ''}</TableCell>
+                      <TableCell>2. Handling/Hamali Charges</TableCell>
+                      <TableCell></TableCell><TableCell></TableCell>
+                      <TableCell className="text-right font-mono">{hamaliPending > 0 ? formatCurrency(hamaliPending) : '-'}</TableCell>
                   </TableRow>
-                  {record.khataAmount !== undefined && record.khataAmount > 0 && (
+                  {record.khataAmount && (
                       <TableRow>
-                          <TableCell>3. Khata (Weighbridge) Charges</TableCell>
-                          <TableCell></TableCell>
-                          <TableCell></TableCell>
+                          <TableCell>3. Khata (Weighbridge)</TableCell>
+                          <TableCell></TableCell><TableCell></TableCell>
                           <TableCell className="text-right font-mono">{formatCurrency(record.khataAmount)}</TableCell>
                       </TableRow>
                   )}
               </TableBody>
               <TableFooter>
-                  <TableRow>
-                      <TableCell colSpan={3} className="text-right font-bold">TOTAL</TableCell>
-                      <TableCell className="text-right font-mono font-bold">{formatCurrency(totalAmount)}</TableCell>
-                  </TableRow>
-                  {discount > 0 && (
-                      <TableRow>
-                          <TableCell colSpan={3} className="text-right font-bold">Discount</TableCell>
-                          <TableCell className="text-right font-mono font-bold text-green-600">- {formatCurrency(discount)}</TableCell>
-                      </TableRow>
-                  )}
                   <TableRow className="font-bold border-t-2 border-black">
                       <TableCell colSpan={3} className="text-right">GRAND TOTAL</TableCell>
                       <TableCell className="text-right font-mono">{formatCurrency(grandTotal)}</TableCell>
@@ -138,12 +106,12 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
                   {paidNow > 0 && (
                       <TableRow>
                           <TableCell colSpan={3} className="text-right font-bold">Amount Paid Now</TableCell>
-                          <TableCell className="text-right font-mono font-bold text-green-600">- {formatCurrency(paidNow)}</TableCell>
+                          <TableCell className="text-right font-mono text-green-600">-{formatCurrency(paidNow)}</TableCell>
                       </TableRow>
                   )}
                   <TableRow>
                       <TableCell colSpan={3} className="text-right font-bold text-destructive">Balance Due</TableCell>
-                      <TableCell className="text-right font-mono font-bold text-destructive">{formatCurrency(balanceDue)}</TableCell>
+                      <TableCell className="text-right font-mono text-destructive">{formatCurrency(balanceDue)}</TableCell>
                   </TableRow>
               </TableFooter>
           </Table>

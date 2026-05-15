@@ -1,8 +1,7 @@
-
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import type { Customer, StorageRecord, UnloadingRecord, Expense, Payment, OtherIncome, WarehouseInfo } from "@/lib/definitions";
+import type { Customer, StorageRecord, UnloadingRecord, Expense, Payment, OtherIncome } from "@/lib/definitions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -44,14 +43,14 @@ const DailySummaryContent = ({ dailyData, customers, selectedDate }: { dailyData
         <div className="p-4 space-y-6">
             <div className="mb-6 text-center">
                 <h2 className="text-xl font-bold">Sri Lakshmi Warehouse</h2>
-                <h3 className="font-semibold">Daily Summary Report</h3>
+                <h3 className="font-semibold uppercase tracking-tight">Daily Summary Report</h3>
                 <p className="text-sm text-gray-500">{format(selectedDate, 'EEEE, dd MMMM yyyy')}</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Income</CardTitle>
+                        <CardTitle className="text-sm font-medium">Income</CardTitle>
                         <TrendingUp className="h-4 w-4 text-green-500" />
                     </CardHeader>
                     <CardContent>
@@ -60,7 +59,7 @@ const DailySummaryContent = ({ dailyData, customers, selectedDate }: { dailyData
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
+                        <CardTitle className="text-sm font-medium">Expenses</CardTitle>
                         <TrendingDown className="h-4 w-4 text-red-500" />
                     </CardHeader>
                     <CardContent>
@@ -69,7 +68,7 @@ const DailySummaryContent = ({ dailyData, customers, selectedDate }: { dailyData
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Net Balance</CardTitle>
+                        <CardTitle className="text-sm font-medium">Balance</CardTitle>
                         <Scale className="h-4 w-4 text-gray-500" />
                     </CardHeader>
                     <CardContent>
@@ -96,36 +95,16 @@ const DailySummaryContent = ({ dailyData, customers, selectedDate }: { dailyData
                 </Card>
             </div>
 
-            <div className="space-y-6">
-                {dailyData.outflows.length > 0 && (
-                    <section>
-                        <h3 className="font-semibold mb-2">Outflows Today</h3>
-                        <Table>
-                            <TableHeader><TableRow><TableHead>Storage ID</TableHead><TableHead>Customer</TableHead><TableHead>Commodity</TableHead><TableHead className="text-right">Bags Withdrawn</TableHead></TableRow></TableHeader>
-                            <TableBody>
-                                {dailyData.outflows.map((rec, idx) => (
-                                    <TableRow key={`out-${rec.id}-${idx}`}><TableCell>{rec.id}</TableCell><TableCell>{getCustomerName(rec.customerId)}</TableCell><TableCell>{rec.commodityDescription}</TableCell><TableCell className="text-right font-mono">{rec.bagsWithdrawn}</TableCell></TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </section>
-                )}
-                 {(dailyData.inflows.length + dailyData.outflows.length + dailyData.payments.length + dailyData.expenses.length) === 0 && (
-                    <div className="text-center py-16 text-gray-500">No transactions recorded for this day.</div>
-                )}
-            </div>
-
-            <div className="mt-10 flex flex-col items-center text-center space-y-2">
+            <div className="mt-16 pt-8 flex flex-col items-center text-center space-y-2">
                 <div className="w-64 border-t border-slate-300 pt-4">
                     <p className="text-[#1e293b] font-bold text-sm uppercase tracking-wider">Authorized Manager Signature</p>
                     <p className="text-primary font-bold text-xs uppercase mt-1">Sri Lakshmi Warehouse</p>
-                    <p className="text-[10px] text-slate-400 mt-2">Report validity verified on {generatedDate}</p>
                 </div>
+                <p className="text-[10px] text-slate-400 mt-2">Report validity verified on {generatedDate}</p>
             </div>
         </div>
     );
 };
-
 
 export function DailySummaryReport({ records, customers, unloadingRecords, expenses, otherIncomes }: DailyReportProps) {
     const [dateInput, setDateInput] = useState(formatManualDate(new Date()));
@@ -158,11 +137,9 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
 
         const customerMap = new Map(customers.map(c => [c.id, c.name]));
 
-        // Inflows
         data.inflows = records.filter(r => isSameDay(toDate(r.storageStartDate), date));
         data.summary.totalInflowBags = data.inflows.reduce((sum, r) => sum + (r.bagsIn || 0), 0);
 
-        // Outflows
         records.forEach(r => {
             (r.outflows || []).forEach(outflow => {
                 if (isSameDay(toDate(outflow.date), date)) {
@@ -171,16 +148,13 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
                 }
             });
         });
-        data.outflows.sort((a, b) => b.outflowDate.getTime() - a.outflowDate.getTime());
 
-        // Unloadings
         data.unloadings = unloadingRecords.filter(r => isSameDay(toDate(r.unloadingDate), date));
         
-        // Income sources
         records.forEach(r => {
             (r.payments || []).forEach(p => {
                 if (isSameDay(toDate(p.date), date)) {
-                    data.payments.push({ ...p, customerName: customerMap.get(r.customerId) ?? 'Unknown', recordId: r.id, description: `Payment for Storage (${p.type || 'other'})` });
+                    data.payments.push({ ...p, customerName: customerMap.get(r.customerId) ?? 'Unknown', recordId: r.id, description: `Payment for Storage` });
                     data.summary.totalIncome += p.amount;
                 }
             });
@@ -196,11 +170,9 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
         data.otherIncomes = otherIncomes.filter(i => isSameDay(toDate(i.date), date));
         data.summary.totalIncome += data.otherIncomes.reduce((sum, i) => sum + i.amount, 0);
 
-        // Expenses
         data.expenses = expenses.filter(e => isSameDay(toDate(e.date), date));
         data.summary.totalExpenses = data.expenses.reduce((sum, e) => sum + e.amount, 0);
 
-        // Final summary calculation
         data.summary.netBalance = data.summary.totalIncome - data.summary.totalExpenses;
         
         return data;
@@ -212,18 +184,17 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
             <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4 print-hide">
                 <div className="flex-1">
                     <CardTitle>Daily Summary Report</CardTitle>
-                    <CardDescription>Enter a date manually to view the summary.</CardDescription>
+                    <CardDescription>Enter a date manually (DD-MM-YYYY) to view the summary.</CardDescription>
                 </div>
                 <div className="flex items-end gap-2 w-full sm:w-auto">
                     <div className="space-y-1">
-                        <Label htmlFor="daily-date">Select Date (DD-MM-YYYY)</Label>
+                        <Label htmlFor="daily-date">Select Date</Label>
                         <Input 
                             id="daily-date"
-                            placeholder="e.g. 15-05-2024" 
+                            placeholder="DD-MM-YYYY" 
                             className="w-full sm:w-[180px]"
                             value={dateInput}
                             onChange={(e) => setDateInput(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                         />
                     </div>
                     <Button onClick={handleSearch}>

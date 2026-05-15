@@ -29,7 +29,7 @@ export function PendingDuesReportTable({ summaries, title }: ReportTableProps) {
     return (
         <div className="bg-white p-6 rounded-xl border shadow-sm print:shadow-none print:border-none">
             <div className="mb-8 text-center border-b pb-6">
-                <h2 className="text-2xl font-bold text-primary tracking-tight">GrainDost Warehouse</h2>
+                <h2 className="text-2xl font-bold text-primary tracking-tight">Sri Lakshmi Warehouse</h2>
                 <p className="text-muted-foreground font-semibold text-lg uppercase tracking-wider mt-1">{title}</p>
                 <div className="flex justify-center gap-4 mt-2 text-xs text-muted-foreground">
                     <span>Generated: {generatedDate}</span>
@@ -83,7 +83,7 @@ export function PendingDuesReportTable({ summaries, title }: ReportTableProps) {
             <div className="mt-10 flex flex-col items-center text-center space-y-2 print:mt-16">
                 <div className="w-64 border-t border-slate-300 pt-4">
                     <p className="text-[#1e293b] font-bold text-sm uppercase tracking-wider">Authorized Manager Signature</p>
-                    <p className="text-primary font-bold text-xs uppercase mt-1">GrainDost Warehouse</p>
+                    <p className="text-primary font-bold text-xs uppercase mt-1">Sri Lakshmi Warehouse</p>
                     <p className="text-[10px] text-slate-400 mt-2">Report validity verified on {generatedDate}</p>
                 </div>
             </div>

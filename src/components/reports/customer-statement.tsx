@@ -171,7 +171,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
   return (
     <div ref={ref} className="bg-white p-4 sm:p-6 printable-area text-foreground font-sans text-sm">
         <header className="text-center mb-4">
-            <h1 className="text-xl font-bold text-primary">{warehouseInfo?.name || 'GrainDost Warehouse'}</h1>
+            <h1 className="text-xl font-bold text-primary">{warehouseInfo?.name || 'Sri Lakshmi Warehouse'}</h1>
             <p className="text-xs text-muted-foreground">{warehouseInfo?.addressLine1 || ''}, {warehouseInfo?.addressLine2 || ''}</p>
             <p className="text-xs text-muted-foreground">Phone: {warehouseInfo?.phone}</p>
         </header>
@@ -256,7 +256,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         <div className="mt-12 flex flex-col items-center text-center space-y-2">
             <div className="w-64 border-t border-slate-300 pt-4">
                 <p className="text-[#1e293b] font-bold text-sm uppercase tracking-wider">Authorized Manager Signature</p>
-                <p className="text-primary font-bold text-xs uppercase mt-1">{warehouseInfo?.name || 'GrainDost Warehouse'}</p>
+                <p className="text-primary font-bold text-xs uppercase mt-1">{warehouseInfo?.name || 'Sri Lakshmi Warehouse'}</p>
                 <p className="text-[10px] text-slate-400 mt-2">Report validity verified on {generatedDate}</p>
             </div>
             <p className="text-[10px] text-muted-foreground italic pt-4">This is a computer generated document and does not require a physical signature. E. & O. E.</p>

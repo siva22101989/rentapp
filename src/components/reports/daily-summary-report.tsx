@@ -43,7 +43,7 @@ const DailySummaryContent = ({ dailyData, customers, selectedDate }: { dailyData
     return (
         <div className="p-4 space-y-6">
             <div className="mb-6 text-center">
-                <h2 className="text-xl font-bold">GrainDost Warehouse</h2>
+                <h2 className="text-xl font-bold">Sri Lakshmi Warehouse</h2>
                 <h3 className="font-semibold">Daily Summary Report</h3>
                 <p className="text-sm text-gray-500">{format(selectedDate, 'EEEE, dd MMMM yyyy')}</p>
             </div>
@@ -118,7 +118,7 @@ const DailySummaryContent = ({ dailyData, customers, selectedDate }: { dailyData
             <div className="mt-10 flex flex-col items-center text-center space-y-2">
                 <div className="w-64 border-t border-slate-300 pt-4">
                     <p className="text-[#1e293b] font-bold text-sm uppercase tracking-wider">Authorized Manager Signature</p>
-                    <p className="text-primary font-bold text-xs uppercase mt-1">GrainDost Warehouse</p>
+                    <p className="text-primary font-bold text-xs uppercase mt-1">Sri Lakshmi Warehouse</p>
                     <p className="text-[10px] text-slate-400 mt-2">Report validity verified on {generatedDate}</p>
                 </div>
             </div>

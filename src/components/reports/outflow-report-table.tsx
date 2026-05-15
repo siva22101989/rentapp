@@ -52,16 +52,16 @@ export function OutflowReportTable({ events, customers, title, allRecords, commo
 
     return (
         <div className="bg-white p-4 rounded-lg">
-             <div className="mb-4">
-                <h2 className="text-xl font-bold">GrainDost</h2>
-                <p className="text-muted-foreground">{title}</p>
+             <div className="mb-4 text-center">
+                <h2 className="text-xl font-bold">Sri Lakshmi Warehouse</h2>
+                <p className="text-muted-foreground font-semibold">{title}</p>
                 <p className="text-xs text-muted-foreground">Generated on: {generatedDate}</p>
             </div>
             <Table className="text-xs">
                 <TableHeader>
                     <TableRow>
                         <TableHead className="h-auto py-2 px-2">Date</TableHead>
-                        <TableHead className="h-auto py-2 px-2">Bill No</TableHead>
+                        <TableHead className="h-auto py-2 px-2">Storage ID</TableHead>
                         <TableHead className="h-auto py-2 px-2">Customer</TableHead>
                         <TableHead className="h-auto py-2 px-2">Commodity</TableHead>
                         <TableHead className="h-auto py-2 px-2">Lot No</TableHead>

@@ -30,7 +30,7 @@ export const UnloadingReceipt = React.forwardRef<HTMLDivElement, { record: Unloa
     return (
         <div ref={ref} className="bg-white p-4 border-2 border-black font-sans text-lg text-black">
             <div className="text-center mb-4">
-                <h1 className="text-2xl font-bold tracking-wider">{warehouseInfo?.name || 'GrainDost Warehouse'}</h1>
+                <h1 className="text-2xl font-bold tracking-wider">{warehouseInfo?.name || 'Sri Lakshmi Warehouse'}</h1>
                 {warehouseInfo?.ownerName && <p className="text-sm">Prop: {warehouseInfo.ownerName}</p>}
                 <p className="text-sm">{warehouseInfo?.addressLine1 || 'Survey No. 165,237/2, Owk - Koilakuntla Road, OWK - 518 122,'}</p>
                 <p className="text-sm">{warehouseInfo?.addressLine2 || 'Owk (M), Kurnool (Dt.), A.P.'} Cell: {warehouseInfo?.phone || '9703503423, 9160606633'}</p>
@@ -81,7 +81,7 @@ export const UnloadingReceipt = React.forwardRef<HTMLDivElement, { record: Unloa
                     <div className="w-48 border-t border-gray-400 pt-1 text-xs">Customer Signature</div>
                     <div className="w-64 border-t border-slate-300 pt-4">
                         <p className="text-[#1e293b] font-bold text-sm uppercase tracking-wider">Authorized Manager Signature</p>
-                        <p className="text-primary font-bold text-xs uppercase mt-1">{warehouseInfo?.name || 'GrainDost Warehouse'}</p>
+                        <p className="text-primary font-bold text-xs uppercase mt-1">{warehouseInfo?.name || 'Sri Lakshmi Warehouse'}</p>
                     </div>
                 </div>
                 <p className="text-[10px] text-slate-400">Report validity verified on {generatedDate}</p>

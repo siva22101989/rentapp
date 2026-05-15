@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo } from "react";
@@ -49,7 +50,7 @@ export function MasterRegisterTable({ records, customers, title }: MasterRegiste
     return (
         <div className="bg-white p-4 rounded-lg overflow-x-auto">
              <div className="mb-6 text-center">
-                <h2 className="text-2xl font-bold">GrainDost Master Register</h2>
+                <h2 className="text-2xl font-bold">Sri Lakshmi Warehouse Master Register</h2>
                 <p className="text-muted-foreground">{title}</p>
                 <p className="text-xs text-muted-foreground">Generated on: {generatedDate}</p>
             </div>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -25,9 +26,9 @@ export function UnloadingReportTable({ records, customers, title, commodities }:
 
     return (
         <div className="bg-white p-4 rounded-lg">
-             <div className="mb-4">
-                <h2 className="text-xl font-bold">GrainDost</h2>
-                <p className="text-muted-foreground">{title}</p>
+             <div className="mb-4 text-center">
+                <h2 className="text-xl font-bold">Sri Lakshmi Warehouse</h2>
+                <p className="text-muted-foreground font-semibold">{title}</p>
                 <p className="text-xs text-muted-foreground">Generated on: {generatedDate}</p>
             </div>
             <Table>

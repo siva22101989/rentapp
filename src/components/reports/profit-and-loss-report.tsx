@@ -286,7 +286,7 @@ export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecor
         <CardContent>
             <div className="p-4 space-y-6">
                 <div className="text-center">
-                    <h2 className="text-xl font-bold">{warehouseInfo?.name || "GrainDost"}</h2>
+                    <h2 className="text-xl font-bold">{warehouseInfo?.name || "Sri Lakshmi Warehouse"}</h2>
                     <h3 className="text-lg font-semibold">Profit & Loss Statement</h3>
                     <p className="text-sm text-gray-500">
                         For the period: {dateRange?.from ? format(dateRange.from, 'dd MMM yyyy') : 'Start of time'} to {dateRange?.to ? format(dateRange.to, 'dd MMM yyyy') : 'Today'}
@@ -341,7 +341,7 @@ export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecor
                         </TableRow>
                         <TableRow className="border-y bg-gray-50">
                             <TableCell className="font-semibold text-right">Total Expenses</TableCell>
-                            <TableCell className="text-right font-mono font-semibold text-destructive">({formatCurrency(periodExpenses)})</TableCell>
+                            <TableCell className="text-right font-mono font-semibold text-destructive">{formatCurrency(periodExpenses)}</TableCell>
                         </TableRow>
                     </TableBody>
                     <TableFooter>

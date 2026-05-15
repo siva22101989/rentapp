@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo } from 'react';
@@ -33,7 +34,7 @@ function LotInventoryTable({ groupedLots, customers, title }: { groupedLots: Gro
         return (
              <div className="bg-white p-4 rounded-lg">
                 <div className="mb-4 text-center">
-                    <h2 className="text-xl font-bold">GrainDost</h2>
+                    <h2 className="text-xl font-bold">Sri Lakshmi Warehouse</h2>
                     <p className="text-muted-foreground font-semibold">{title}</p>
                     <p className="text-xs text-muted-foreground">Generated on: {generatedDate}</p>
                 </div>
@@ -47,7 +48,7 @@ function LotInventoryTable({ groupedLots, customers, title }: { groupedLots: Gro
     return (
         <div className="bg-white p-4 rounded-lg">
             <div className="mb-6 text-center">
-                <h2 className="text-2xl font-bold">GrainDost</h2>
+                <h2 className="text-2xl font-bold">Sri Lakshmi Warehouse</h2>
                 <p className="text-muted-foreground font-semibold uppercase tracking-wider">{title}</p>
                 <p className="text-xs text-muted-foreground">Generated on: {generatedDate}</p>
             </div>

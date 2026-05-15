@@ -100,7 +100,7 @@ function DashboardHeader({ activeRecordsCount, occupancy, warehouseInfo, appUser
                     <div className="flex items-center gap-2">
                         <p className="text-sm font-medium text-primary flex items-center gap-2">
                             <Wheat size={16} />
-                            {warehouseInfo?.name || 'GrainDost'}
+                            {warehouseInfo?.name || 'Sri Lakshmi Warehouse'}
                         </p>
                         {appUser?.role && (
                             <Badge variant="outline" className="capitalize">{appUser.role}</Badge>
@@ -131,7 +131,7 @@ function DashboardHeader({ activeRecordsCount, occupancy, warehouseInfo, appUser
                             <p className="text-3xl font-bold">{occupancy.toFixed(1)}%</p>
                             <Progress value={occupancy} className="h-1.5 mt-2" />
                         </CardContent>
-                    </Card>
+                    </div>
                 </div>
             </CardContent>
         </Card>

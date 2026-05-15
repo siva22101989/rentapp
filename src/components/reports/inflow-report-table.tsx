@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from "react";
@@ -30,7 +31,7 @@ export function InflowReportTable({ records, customers, title, description, allR
     return (
         <div className="bg-white p-4 rounded-lg">
              <div className="mb-4 text-center report-component-header">
-                <h2 className="text-xl font-bold">GrainDost</h2>
+                <h2 className="text-xl font-bold">Sri Lakshmi Warehouse</h2>
                 <p className="text-lg font-semibold">{title}</p>
                 <p className="text-sm text-muted-foreground">{description}</p>
                 <p className="text-xs text-muted-foreground">Generated on: {generatedDate}</p>
@@ -39,7 +40,7 @@ export function InflowReportTable({ records, customers, title, description, allR
                 <TableHeader>
                     <TableRow>
                         <TableHead className="h-auto p-2">Date</TableHead>
-                        <TableHead className="h-auto p-2">Bill No</TableHead>
+                        <TableHead className="h-auto p-2">Storage ID</TableHead>
                         <TableHead className="h-auto p-2 min-w-[180px]">Customer</TableHead>
                         <TableHead className="h-auto p-2">Commodity</TableHead>
                         <TableHead className="h-auto p-2">Inflow Type</TableHead>

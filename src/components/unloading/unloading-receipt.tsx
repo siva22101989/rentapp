@@ -68,12 +68,15 @@ export const UnloadingReceipt = React.forwardRef<HTMLDivElement, { record: Unloa
             <div className="mt-16 pt-8 flex flex-col items-center text-center space-y-2">
                 <div className="flex justify-between w-full mb-8">
                     <div className="w-48 border-t border-gray-400 pt-1 text-xs">Depositor Signature</div>
-                    <div className="w-64 border-t border-slate-300 pt-4">
-                        <p className="text-[#1e293b] font-bold text-sm uppercase tracking-wider">Authorized Manager Signature</p>
-                        <p className="text-primary font-bold text-xs uppercase mt-1">{warehouseInfo?.name || 'Sri Lakshmi Warehouse'}</p>
+                    <div className="flex flex-col items-center text-center">
+                        <div className="w-64 border-t border-slate-300 pt-4">
+                            <p className="text-[#1e293b] font-bold text-sm uppercase tracking-wider">Authorized Manager Signature</p>
+                            <p className="text-primary font-bold text-xs uppercase mt-1">{warehouseInfo?.name || 'Sri Lakshmi Warehouse'}</p>
+                        </div>
+                        <p className="text-[10px] text-slate-400 mt-2">Report validity verified on {generatedDate}</p>
+                        <p className="text-[10px] text-slate-400 italic">This is a computer generated statement.</p>
                     </div>
                 </div>
-                <p className="text-[10px] text-slate-400">Report validity verified on {generatedDate}</p>
             </div>
         </div>
     );

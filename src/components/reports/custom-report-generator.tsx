@@ -4,7 +4,6 @@ import { useState, useRef } from 'react';
 import type { Customer, StorageRecord, UnloadingRecord, Expense, WarehouseInfo, Borrowing, Lending, OtherIncome, Commodity, Lot, DryingRecord } from "@/lib/definitions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CustomersTable } from '@/components/customers/customers-table';
 import { ReportClient } from '@/components/reports/report-client';
 import { StorageTable } from '@/components/dashboard/storage-table';
 import { HamaliReport } from './hamali-report';
@@ -34,7 +33,6 @@ const reportTypes = [
     { value: 'outflow-register', label: 'Outflow Register' },
     { value: 'unloading-register', label: 'Unloading Register' },
     { value: 'active-inventory', label: 'Active Inventory Summary' },
-    { value: 'all-customers', label: 'All Customers List' },
 ];
 
 type ReportGeneratorProps = {
@@ -128,8 +126,6 @@ export function CustomReportGenerator({
                         />;
             case 'lot-active-stock':
                 return <LotInventoryReport records={records} customers={customers} />;
-            case 'all-customers':
-                return <CustomersTable customers={customers} />;
             case 'customer-statement':
                 return <ReportClient 
                             records={records} 

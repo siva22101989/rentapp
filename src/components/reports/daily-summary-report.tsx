@@ -27,10 +27,10 @@ type DailyData = {
 }
 
 const DailySummaryContent = ({ dailyData, selectedDate }: { dailyData: DailyData, selectedDate: Date }) => {
-    const generatedDate = useMemo(() => format(new Date(), 'dd/MM/yyyy, hh:mm a'), []);
+    const timestamp = useMemo(() => format(new Date(), 'dd/MM/yyyy, hh:mm a'), []);
 
     return (
-        <div className="p-4 space-y-6">
+        <div className="p-4 space-y-6 text-black">
             <div className="mb-6 text-center">
                 <h2 className="text-xl font-bold uppercase tracking-wide">SRI LAKSHMI WAREHOUSE</h2>
                 <h3 className="font-semibold uppercase tracking-tight">Daily Summary Report</h3>
@@ -38,45 +38,45 @@ const DailySummaryContent = ({ dailyData, selectedDate }: { dailyData: DailyData
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                <Card>
+                <Card className="shadow-none border border-slate-200">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-[10px] font-bold uppercase tracking-wider">Income</CardTitle>
+                        <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Income</CardTitle>
                         <TrendingUp className="h-4 w-4 text-green-500" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-xl font-bold text-green-600">{formatCurrency(dailyData.summary.totalIncome)}</div>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card className="shadow-none border border-slate-200">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-[10px] font-bold uppercase tracking-wider">Expenses</CardTitle>
+                        <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Expenses</CardTitle>
                         <TrendingDown className="h-4 w-4 text-red-500" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-xl font-bold text-destructive">{formatCurrency(dailyData.summary.totalExpenses)}</div>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card className="shadow-none border border-slate-200">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-[10px] font-bold uppercase tracking-wider">Balance</CardTitle>
+                        <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Balance</CardTitle>
                         <Scale className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className={`text-xl font-bold ${dailyData.summary.netBalance >= 0 ? 'text-primary' : 'text-destructive'}`}>{formatCurrency(dailyData.summary.netBalance)}</div>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card className="shadow-none border border-slate-200">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-[10px] font-bold uppercase tracking-wider">Bags In</CardTitle>
+                        <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Bags In</CardTitle>
                         <ArrowDownToDot className="h-4 w-4 text-blue-500" />
                     </CardHeader>
                     <CardContent>
                          <div className="text-xl font-bold">{dailyData.summary.totalInflowBags}</div>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card className="shadow-none border border-slate-200">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-[10px] font-bold uppercase tracking-wider">Bags Out</CardTitle>
+                        <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Bags Out</CardTitle>
                         <ArrowUpFromDot className="h-4 w-4 text-orange-500" />
                     </CardHeader>
                     <CardContent>
@@ -91,7 +91,7 @@ const DailySummaryContent = ({ dailyData, selectedDate }: { dailyData: DailyData
                     <p className="text-[#3498db] font-bold text-[10px] uppercase mt-1">SRI LAKSHMI WAREHOUSE</p>
                 </div>
                 <div className="text-[9px] text-slate-500 italic mt-6 space-y-0.5">
-                    <p>Report validity verified on {generatedDate}</p>
+                    <p>Report validity verified on {timestamp}</p>
                     <p>This is a computer generated statement.</p>
                 </div>
             </div>
@@ -118,13 +118,7 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
             payments: [],
             expenses: [],
             otherIncomes: [],
-            summary: {
-                totalIncome: 0,
-                totalExpenses: 0,
-                netBalance: 0,
-                totalInflowBags: 0,
-                totalOutflowBags: 0,
-            }
+            summary: { totalIncome: 0, totalExpenses: 0, netBalance: 0, totalInflowBags: 0, totalOutflowBags: 0 }
         };
 
         const customerMap = new Map(customers.map(c => [c.id, c.name]));
@@ -139,11 +133,6 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
                     data.summary.totalOutflowBags += outflow.bagsWithdrawn;
                 }
             });
-        });
-
-        data.unloadings = unloadingRecords.filter(r => isSameDay(toDate(r.unloadingDate), date));
-        
-        records.forEach(r => {
             (r.payments || []).forEach(p => {
                 if (isSameDay(toDate(p.date), date)) {
                     data.payments.push({ ...p, customerName: customerMap.get(r.customerId) ?? 'Unknown', recordId: r.id, description: `Payment for Storage` });
@@ -151,6 +140,8 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
                 }
             });
         });
+
+        data.unloadings = unloadingRecords.filter(r => isSameDay(toDate(r.unloadingDate), date));
         unloadingRecords.forEach(r => {
             (r.payments || []).forEach(p => {
                 if (isSameDay(toDate(p.date), date)) {
@@ -159,6 +150,7 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
                 }
             });
         });
+
         data.otherIncomes = otherIncomes.filter(i => isSameDay(toDate(i.date), date));
         data.summary.totalIncome += data.otherIncomes.reduce((sum, i) => sum + i.amount, 0);
 
@@ -176,23 +168,14 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
             <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4 print-hide">
                 <div className="flex-1 text-left">
                     <CardTitle className="text-lg font-bold">Daily Summary Report</CardTitle>
-                    <CardDescription className="text-xs">Select a date to view all warehouse transactions for that day.</CardDescription>
+                    <CardDescription className="text-xs">View all transactions for a specific day.</CardDescription>
                 </div>
-                <div className="flex items-end gap-2 w-full sm:w-auto">
+                <div className="flex items-end gap-2">
                     <div className="space-y-1 text-left">
-                        <Label htmlFor="daily-date" className="text-xs">Select Date</Label>
-                        <Input 
-                            id="daily-date"
-                            type="date"
-                            className="w-full sm:w-[180px] text-sm h-9"
-                            value={dateInput}
-                            onChange={(e) => setDateInput(e.target.value)}
-                        />
+                        <Label htmlFor="daily-date" className="text-xs font-semibold">Select Date</Label>
+                        <Input id="daily-date" type="date" className="w-[180px] text-sm h-9" value={dateInput} onChange={(e) => setDateInput(e.target.value)} />
                     </div>
-                    <Button onClick={handleSearch} size="sm" className="h-9">
-                        <Search className="h-4 w-4 mr-2" />
-                        Show Report
-                    </Button>
+                    <Button onClick={handleSearch} size="sm" className="h-9"><Search className="h-4 w-4 mr-2" /> Show Report</Button>
                 </div>
             </CardHeader>
             <CardContent>

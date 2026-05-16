@@ -25,10 +25,7 @@ function SubmitButton({ isPending }: { isPending: boolean }) {
     return (
       <Button type="submit" disabled={isPending} className="w-full text-sm">
         {isPending ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Saving...
-          </>
+          <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
         ) : (
           'Create Storage Record'
         )}
@@ -94,26 +91,13 @@ export function InflowForm({ customers, commodities, lots, records }: { customer
             .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
             .map(lot => {
                 const occupied = lotOccupancy[lot.name] || 0;
-                const capacity = lot.capacity ? ` / ${lot.capacity}` : '';
-                return ({
-                    value: lot.name,
-                    label: `${lot.name} (${occupied}${capacity} bags)`
-                })
+                return ({ value: lot.name, label: `${lot.name} (${occupied} bags)` })
             });
     }, [lots, lotOccupancy]);
 
-    const selectedCustomer = useMemo(() => {
-        return customers.find(c => c.id === selectedCustomerId);
-    }, [selectedCustomerId, customers]);
+    const selectedCustomer = useMemo(() => customers.find(c => c.id === selectedCustomerId), [selectedCustomerId, customers]);
 
-
-    const { customerHamali } = useMemo(() => {
-        const bagsValue = Number(bags) || 0;
-        const custRateValue = Number(customerRate) || 0;
-        return {
-            customerHamali: bagsValue * custRateValue
-        }
-    }, [bags, customerRate]);
+    const customerHamali = useMemo(() => (Number(bags) || 0) * (Number(customerRate) || 0), [bags, customerRate]);
 
     const resetForm = () => {
         setBags('');
@@ -131,67 +115,45 @@ export function InflowForm({ customers, commodities, lots, records }: { customer
     
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        if (!firestore || !appUser?.warehouseId) {
-            toast({ title: 'Error', description: 'Context missing.', variant: 'destructive' });
-            return;
-        }
-
-        if (!storageId) {
-            toast({ title: 'Error', description: 'Storage ID is required.', variant: 'destructive' });
-            return;
-        }
-
-        const bagsValue = Number(bags);
-        if (!bagsValue || bagsValue <= 0) {
-             toast({ title: 'Error', description: 'Number of bags must be positive.', variant: 'destructive' });
-             return;
-        }
-        if (!selectedCustomerId) {
-            toast({ title: 'Error', description: 'Please select a customer.', variant: 'destructive' });
-            return;
-        }
-        if (!selectedCommodity) {
-            toast({ title: 'Error', description: 'Please select a product.', variant: 'destructive' });
+        if (!firestore || !appUser?.warehouseId || !storageId || !selectedCustomerId || !selectedCommodity) {
+            toast({ title: 'Error', description: 'Required fields missing.', variant: 'destructive' });
             return;
         }
 
         startTransition(async () => {
             try {
-                const existingRef = doc(firestore, 'storageRecords', storageId);
-                const existingSnap = await getDoc(existingRef);
+                const existingSnap = await getDoc(doc(firestore, 'storageRecords', storageId));
                 if (existingSnap.exists()) {
-                    toast({ title: 'Duplicate ID', description: `Storage ID #${storageId} already exists.`, variant: 'destructive' });
+                    toast({ title: 'Duplicate ID', description: `ID #${storageId} already exists.`, variant: 'destructive' });
                     return;
                 }
 
                 const finalDate = new Date(storageStartDate);
-                const customerHamaliRate = Number(customerRate) || 0;
-                const workerHamaliRate = Number(workerRate) || customerHamaliRate;
-                const hamaliPayable = bagsValue * customerHamaliRate;
-                const workerHamaliPayable = bagsValue * workerHamaliRate;
+                const custRate = Number(customerRate) || 0;
+                const workRate = Number(workerRate) || custRate;
+                const hPayable = (Number(bags) || 0) * custRate;
+                const wPayable = (Number(bags) || 0) * workRate;
 
                 const payments: Payment[] = [];
-                if (Number(hamaliPaid) > 0) {
-                    payments.push({ amount: Number(hamaliPaid), date: finalDate, type: 'hamali' });
-                }
+                if (Number(hamaliPaid) > 0) payments.push({ amount: Number(hamaliPaid), date: finalDate, type: 'hamali' });
 
                 const commodityDetails = commodities.find(c => c.name === selectedCommodity);
                 
-                const rawRecord: Omit<StorageRecord, 'id'> = {
+                const rawRecord = {
                     warehouseId: appUser.warehouseId,
                     customerId: selectedCustomerId,
                     commodityDescription: selectedCommodity,
                     location: selectedLot,
-                    bagsIn: bagsValue,
+                    bagsIn: Number(bags),
                     bagsOut: 0,
-                    bagsStored: bagsValue,
+                    bagsStored: Number(bags),
                     storageStartDate: finalDate,
                     storageEndDate: null,
                     billingCycle: '6-Month Initial',
                     payments,
-                    hamaliPayable,
-                    hamaliRate: customerHamaliRate,
-                    workerHamaliPayable,
+                    hamaliPayable: hPayable,
+                    hamaliRate: custRate,
+                    workerHamaliPayable: wPayable,
                     totalRentBilled: 0,
                     lorryTractorNo,
                     weight: Number(weight) || 0,
@@ -208,23 +170,19 @@ export function InflowForm({ customers, commodities, lots, records }: { customer
                 await setDoc(doc(firestore, "storageRecords", storageId), cleanForFirestore(rawRecord));
 
                 if (sendSmsNotification && warehouseInfo?.textbeeApiKey && selectedCustomer?.phone) {
-                    const msg = (warehouseInfo.smsInflowTemplate || `Dear {customerName}, inflow of {bags} bags of {commodity} recorded. Bill: {billNo}. Thank you.`)
+                    const msg = (warehouseInfo.smsInflowTemplate || `Dear {customerName}, inflow of {bags} bags of {commodity} recorded. Bill: {billNo}.`)
                         .replace('{customerName}', selectedCustomer.name)
-                        .replace('{bags}', String(bagsValue))
+                        .replace('{bags}', String(bags))
                         .replace('{commodity}', selectedCommodity)
                         .replace('{billNo}', storageId)
-                        .replace('{date}', format(finalDate, 'dd/MM/yy'))
-                        .replace('{warehouseName}', warehouseInfo.name || 'Sri Lakshmi Warehouse');
-
+                        .replace('{date}', format(finalDate, 'dd/MM/yy'));
                     sendSms({ apiKey: warehouseInfo.textbeeApiKey, deviceId: warehouseInfo.textbeeDeviceId, to: selectedCustomer.phone, message: msg }).catch(console.error);
                 }
                 
                 toast({ title: 'Success', description: 'Record created.' });
                 resetForm();
                 window.open(`/inflow/receipt/${storageId}`, '_blank');
-                
             } catch (error) {
-                console.error(error);
                 toast({ title: 'Error', description: 'Failed to create record.', variant: 'destructive' });
             }
         });
@@ -236,95 +194,70 @@ export function InflowForm({ customers, commodities, lots, records }: { customer
             <Card>
                 <CardHeader>
                     <CardTitle className="text-lg font-bold">New Storage Record Details</CardTitle>
-                    <CardDescription className="text-xs">Storage ID is strictly auto-generated and locked for accuracy.</CardDescription>
+                    <CardDescription className="text-xs">Storage ID is strictly auto-generated and locked.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                     <div className="space-y-1.5 text-left">
-                        <Label htmlFor="storageId" className="flex items-center gap-2 text-xs font-semibold">
+                     <div className="space-y-1.5">
+                        <Label className="flex items-center gap-2 text-xs font-semibold">
                             Storage ID
-                            <Badge variant="outline" className="text-[9px] uppercase font-bold py-0 h-4 bg-primary/5 text-primary border-primary/20">
-                                <Sparkles className="h-2 w-2 mr-1" />
-                                Auto-Generated
+                            <Badge variant="outline" className="text-[9px] uppercase font-bold py-0 h-4 bg-primary/5 text-primary">
+                                <Sparkles className="h-2 w-2 mr-1" /> Auto-Generated
                             </Badge>
                         </Label>
-                        <Input 
-                            id="storageId" 
-                            className="font-mono font-bold text-sm bg-muted/50 cursor-not-allowed h-9"
-                            value={storageId} 
-                            readOnly
-                        />
+                        <Input className="font-mono font-bold bg-muted/50 text-sm h-9" value={storageId} readOnly />
                     </div>
-                     <div className="space-y-1.5 text-left">
+                     <div className="space-y-1.5">
                         <Label className="text-xs font-semibold">Customer</Label>
-                        <Combobox
-                            options={customerOptions}
-                            value={selectedCustomerId}
-                            onChange={setSelectedCustomerId}
-                            placeholder="Select a customer..."
-                            modal={true}
-                        />
+                        <Combobox options={customerOptions} value={selectedCustomerId} onChange={setSelectedCustomerId} placeholder="Select a customer..." modal={true} />
                     </div>
-
                     <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1.5 text-left">
+                        <div className="space-y-1.5">
                             <Label className="text-xs font-semibold">Product</Label>
-                             <Combobox
-                                options={commodityOptions}
-                                value={selectedCommodity}
-                                onChange={setSelectedCommodity}
-                                placeholder="Select a product..."
-                                modal={true}
-                            />
+                             <Combobox options={commodityOptions} value={selectedCommodity} onChange={setSelectedCommodity} placeholder="Select..." modal={true} />
                         </div>
-                         <div className="space-y-1.5 text-left">
+                         <div className="space-y-1.5">
                             <Label className="text-xs font-semibold">Lot No.</Label>
-                             <Combobox
-                                options={lotOptions}
-                                value={selectedLot}
-                                onChange={setSelectedLot}
-                                placeholder="Select a lot..."
-                                modal={true}
-                            />
+                             <Combobox options={lotOptions} value={selectedLot} onChange={setSelectedLot} placeholder="Select..." modal={true} />
                         </div>
                     </div>
                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1.5 text-left">
-                            <Label htmlFor="lorry" className="text-xs font-semibold">Vehicle No.</Label>
-                            <Input id="lorry" placeholder="e.g. AP 21 1234" value={lorryTractorNo} onChange={e => setLorryTractorNo(e.target.value)} className="text-sm h-9" />
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-semibold">Vehicle No.</Label>
+                            <Input placeholder="e.g. AP 21" value={lorryTractorNo} onChange={e => setLorryTractorNo(e.target.value)} className="text-sm h-9" />
                         </div>
-                        <div className="space-y-1.5 text-left">
-                            <Label htmlFor="date" className="text-xs font-semibold">Inflow Date</Label>
-                            <Input id="date" type="date" value={storageStartDate} onChange={e => setStorageStartDate(e.target.value)} className="text-sm h-9" required />
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-semibold">Inflow Date</Label>
+                            <Input type="date" value={storageStartDate} onChange={e => setStorageStartDate(e.target.value)} className="text-sm h-9" required />
                         </div>
                     </div>
                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1.5 text-left">
-                            <Label htmlFor="bags" className="text-xs font-semibold">No. of Bags</Label>
-                            <Input id="bags" type="number" step="0.01" required value={bags} onChange={(e) => setBags(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-semibold">No. of Bags</Label>
+                            <Input type="number" step="0.01" required value={bags} onChange={e => setBags(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
                         </div>
-                         <div className="space-y-1.5 text-left">
-                            <Label htmlFor="wt" className="text-xs font-semibold">Weight (Kgs)</Label>
-                            <Input id="wt" type="number" step="0.01" value={weight} onChange={(e) => setWeight(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1.5 text-left">
-                            <Label htmlFor="cRate" className="text-xs font-semibold">Cust Hamali Rate</Label>
-                            <Input id="cRate" type="number" step="0.01" value={customerRate} onChange={e => setCustomerRate(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
-                        </div>
-                        <div className="space-y-1.5 text-left">
-                            <Label htmlFor="wRate" className="text-xs font-semibold">Worker Rate</Label>
-                            <Input id="wRate" type="number" step="0.01" value={workerRate} onChange={e => setWorkerRate(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
+                         <div className="space-y-1.5">
+                            <Label className="text-xs font-semibold">Weight (Kgs)</Label>
+                            <Input type="number" step="0.01" value={weight} onChange={e => setWeight(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
                         </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1.5 text-left">
-                            <Label htmlFor="hPaid" className="text-xs font-semibold">Paid Now</Label>
-                            <Input id="hPaid" type="number" step="0.01" value={hamaliPaid} onChange={e => setHamaliPaid(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-semibold">Cust Hamali Rate</Label>
+                            <Input type="number" step="0.01" value={customerRate} onChange={e => setCustomerRate(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
                         </div>
-                        <div className="space-y-1.5 text-left">
-                            <Label htmlFor="khata" className="text-xs font-semibold">Khata Amount</Label>
-                            <Input id="khata" type="number" step="0.01" value={khataAmount} onChange={e => setKhataAmount(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-semibold">Worker Rate</Label>
+                            <Input type="number" step="0.01" value={workerRate} onChange={e => setWorkerRate(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-semibold">Paid Now</Label>
+                            <Input type="number" step="0.01" value={hamaliPaid} onChange={e => setHamaliPaid(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-semibold">Khata Amount</Label>
+                            <Input type="number" step="0.01" value={khataAmount} onChange={e => setKhataAmount(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
                         </div>
                     </div>
                      <Separator />
@@ -336,7 +269,7 @@ export function InflowForm({ customers, commodities, lots, records }: { customer
                     </div>
                      <div className="flex items-center space-x-2 pt-2">
                         <Checkbox id="sms" checked={sendSmsNotification} onCheckedChange={(c) => setSendSmsNotification(Boolean(c))} disabled={!warehouseInfo?.textbeeApiKey || !selectedCustomer?.phone} />
-                        <label htmlFor="sms" className="text-xs font-medium cursor-pointer leading-none">Send SMS Notification</label>
+                        <label htmlFor="sms" className="text-xs font-medium cursor-pointer">Send SMS Notification</label>
                     </div>
                 </CardContent>
                 <CardFooter>

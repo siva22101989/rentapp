@@ -10,7 +10,7 @@ import type { Customer, Payment, Commodity, Lot, StorageRecord, WarehouseInfo } 
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Sparkles } from 'lucide-react';
 import { Separator } from '../ui/separator';
-import { formatCurrency, cleanForFirestore, toDate } from '@/lib/utils';
+import { formatCurrency, cleanForFirestore } from '@/lib/utils';
 import { useFirestore } from '@/firebase/provider';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { Combobox } from '../ui/combobox';

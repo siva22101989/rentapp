@@ -122,12 +122,12 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
 
   }, [records, unloadingRecords]);
   
-  const generatedTimestamp = useMemo(() => format(new Date(), 'M/d/yyyy, h:mm:ss a'), []);
+  const generatedTimestamp = useMemo(() => format(new Date(), 'dd/MM/yyyy, hh:mm:ss a'), []);
 
   return (
     <div ref={ref} className="bg-white p-4 sm:p-8 printable-area text-foreground font-sans text-xs">
         <header className="text-left mb-4">
-            <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Sri Lakshmi WareHouse</h1>
+            <h1 className="text-2xl font-bold text-slate-800 tracking-tight uppercase">Sri Lakshmi WareHouse</h1>
             <p className="text-sm font-semibold text-muted-foreground mt-1">Statement of Account - {customer.name}</p>
             <p className="text-[10px] text-muted-foreground">Generated: {generatedTimestamp}</p>
             <Separator className="bg-[#3498db] h-[2px] mt-4" />
@@ -177,15 +177,15 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             <Table className="w-full border-collapse">
                 <TableHeader>
                     <TableRow className="bg-[#3498db] hover:bg-[#3498db] border-none h-9">
-                        <TableHead className="text-white font-bold h-9 border border-slate-300 px-2 text-center">Date</TableHead>
-                        <TableHead className="text-white font-bold h-9 border border-slate-300 px-2 text-center">Description</TableHead>
-                        <TableHead className="text-white font-bold h-9 border border-slate-300 px-2 text-center">Invoice No</TableHead>
-                        <TableHead className="text-white font-bold h-9 border border-slate-300 px-2 text-center">Bags In</TableHead>
-                        <TableHead className="text-white font-bold h-9 border border-slate-300 px-2 text-center">Bags Out</TableHead>
-                        <TableHead className="text-white font-bold h-9 border border-slate-300 px-2 text-center">Hamali</TableHead>
-                        <TableHead className="text-white font-bold h-9 border border-slate-300 px-2 text-center">Rent</TableHead>
-                        <TableHead className="text-white font-bold h-9 border border-slate-300 px-2 text-center">Credit</TableHead>
-                        <TableHead className="text-white font-bold h-9 border border-slate-300 px-2 text-center">Balance</TableHead>
+                        <TableHead className="text-white font-bold h-9 border border-slate-300 px-2 text-center uppercase">Date</TableHead>
+                        <TableHead className="text-white font-bold h-9 border border-slate-300 px-2 text-center uppercase">Description</TableHead>
+                        <TableHead className="text-white font-bold h-9 border border-slate-300 px-2 text-center uppercase">Bill No</TableHead>
+                        <TableHead className="text-white font-bold h-9 border border-slate-300 px-2 text-center uppercase">Bags In</TableHead>
+                        <TableHead className="text-white font-bold h-9 border border-slate-300 px-2 text-center uppercase">Bags Out</TableHead>
+                        <TableHead className="text-white font-bold h-9 border border-slate-300 px-2 text-center uppercase">Hamali</TableHead>
+                        <TableHead className="text-white font-bold h-9 border border-slate-300 px-2 text-center uppercase">Rent</TableHead>
+                        <TableHead className="text-white font-bold h-9 border border-slate-300 px-2 text-center uppercase">Credit</TableHead>
+                        <TableHead className="text-white font-bold h-9 border border-slate-300 px-2 text-center uppercase">Balance</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -205,7 +205,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 </TableBody>
                  <TableFooter>
                     <TableRow className="bg-slate-100 hover:bg-slate-100 font-bold border-t-2 border-slate-400 h-9">
-                        <TableCell colSpan={3} className="text-right border border-slate-300 uppercase px-2">Total Closing Summary:</TableCell>
+                        <TableCell colSpan={3} className="text-right border border-slate-300 uppercase px-2">Grand Total Portfolio:</TableCell>
                         <TableCell className="text-center border border-slate-300 font-mono px-2">{totals.totalBagsIn}</TableCell>
                         <TableCell className="text-center border border-slate-300 font-mono px-2">{totals.totalBagsOut}</TableCell>
                         <TableCell className="text-center border border-slate-300 font-mono px-2">{formatCurrency(totals.totalHamali)}</TableCell>

@@ -225,7 +225,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                             )} />
                             <FormField control={form.control} name="unloadingDate" render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel className="text-xs font-semibold text-left">Date</Label>
+                                    <FormLabel className="text-xs font-semibold text-left">Date</FormLabel>
                                     <FormControl>
                                         <Input type="date" className="text-sm h-9" {...field} />
                                     </FormControl>

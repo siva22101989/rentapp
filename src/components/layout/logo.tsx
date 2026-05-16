@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { Wheat } from 'lucide-react';
 
 export function Logo() {

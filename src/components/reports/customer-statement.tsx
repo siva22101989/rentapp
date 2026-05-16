@@ -67,13 +67,13 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             credit: 0,
         });
 
-        // Outflow Entries - Explicitly using record.id as the "Inflow Bill No"
+        // Outflow Entries - Sequential Suffix Logic (e.g., S-200-1, S-200-2)
         if (Array.isArray(record.outflows)) {
             record.outflows.forEach((outflow, idx) => {
                 events.push({
                     date: toDate(outflow.date),
-                    description: `Outflow from Bill #${record.id}`,
-                    invoiceId: record.id, 
+                    description: `Outflow`,
+                    invoiceId: `${record.id}-${idx + 1}`, 
                     bagsIn: 0,
                     bagsOut: outflow.bagsWithdrawn,
                     hamali: 0,
@@ -87,7 +87,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         (record.payments || []).forEach(payment => {
             events.push({
                 date: toDate(payment.date),
-                description: `Payment (Storage ID #${record.id})`,
+                description: `Payment`,
                 invoiceId: record.id,
                 bagsIn: 0,
                 bagsOut: 0,
@@ -98,12 +98,8 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         });
     });
     
-    // Sort events by date, then by Invoice ID for consistency
-    const sortedEvents = events.sort((a, b) => {
-        const dateDiff = a.date.getTime() - b.date.getTime();
-        if (dateDiff !== 0) return dateDiff;
-        return a.invoiceId.localeCompare(b.invoiceId);
-    });
+    // Sort events by date
+    const sortedEvents = events.sort((a, b) => a.date.getTime() - b.date.getTime());
 
     let runningBalance = 0;
     let totalBagsIn = 0;

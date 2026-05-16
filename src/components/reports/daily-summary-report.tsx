@@ -27,7 +27,7 @@ type DailyData = {
 }
 
 const DailySummaryContent = ({ dailyData, selectedDate }: { dailyData: DailyData, selectedDate: Date }) => {
-    const generatedDate = useMemo(() => format(new Date(), 'dd MMM yyyy, hh:mm a'), []);
+    const generatedDate = useMemo(() => format(new Date(), 'dd/MM/yyyy, hh:mm a'), []);
 
     return (
         <div className="p-4 space-y-6">

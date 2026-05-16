@@ -30,7 +30,7 @@ type ReportTableProps = {
 }
 
 export function OutflowReportTable({ events, customers, title, allRecords, commodities, lots }: ReportTableProps) {
-    const generatedDate = useMemo(() => format(new Date(), 'dd MMM yyyy, hh:mm a'), []);
+    const generatedDate = useMemo(() => format(new Date(), 'dd/MM/yyyy, hh:mm a'), []);
     const firestore = useFirestore();
     const appUser = useAppUser();
 
@@ -54,17 +54,17 @@ export function OutflowReportTable({ events, customers, title, allRecords, commo
                 <p className="text-muted-foreground font-semibold uppercase">{title}</p>
                 <p className="text-xs text-muted-foreground">Generated on: {generatedDate}</p>
             </div>
-            <Table className="text-xs">
+            <Table className="text-xs border">
                 <TableHeader>
-                    <TableRow>
-                        <TableHead className="py-2 px-2">Date</TableHead>
-                        <TableHead className="py-2 px-2">Storage ID</TableHead>
-                        <TableHead className="py-2 px-2">Customer</TableHead>
-                        <TableHead className="py-2 px-2">Commodity</TableHead>
-                        <TableHead className="py-2 px-2">Lot No</TableHead>
-                        <TableHead className="py-2 px-2 text-right">Bags Out</TableHead>
-                        <TableHead className="py-2 px-2 text-right">Rent Billed</TableHead>
-                        <TableHead className="py-2 px-2 w-[50px] text-right print-hide">Actions</TableHead>
+                    <TableRow className="bg-[#3498db] hover:bg-[#3498db]">
+                        <TableHead className="py-2 px-2 text-white text-center font-bold border">Date</TableHead>
+                        <TableHead className="py-2 px-2 text-white text-center font-bold border">Bill No</TableHead>
+                        <TableHead className="py-2 px-2 text-white text-center font-bold border">Customer</TableHead>
+                        <TableHead className="py-2 px-2 text-white text-center font-bold border">Commodity</TableHead>
+                        <TableHead className="py-2 px-2 text-white text-center font-bold border">Lot No</TableHead>
+                        <TableHead className="py-2 px-2 text-white text-center font-bold border">Bags Out</TableHead>
+                        <TableHead className="py-2 px-2 text-white text-center font-bold border">Rent Billed</TableHead>
+                        <TableHead className="py-2 px-2 w-[50px] text-white text-center font-bold border print-hide">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -82,14 +82,14 @@ export function OutflowReportTable({ events, customers, title, allRecords, commo
 
                         return (
                         <TableRow key={index}>
-                            <TableCell className="p-2">{format(toDate(event.date), 'dd/MM/yy')}</TableCell>
-                            <TableCell className="p-2">{deliveryOrderNo}</TableCell>
-                            <TableCell className="p-2 font-medium">{getCustomerName(event.customerId)}</TableCell>
-                            <TableCell className="p-2">{event.commodityDescription}</TableCell>
-                            <TableCell className="p-2">{event.location}</TableCell>
-                            <TableCell className="p-2 text-right font-mono">{event.bagsWithdrawn}</TableCell>
-                            <TableCell className="p-2 text-right font-mono">{formatCurrency(event.rentBilled)}</TableCell>
-                            <TableCell className="p-2 print-hide text-right">
+                            <TableCell className="p-2 text-center border">{format(toDate(event.date), 'dd/MM/yyyy')}</TableCell>
+                            <TableCell className="p-2 text-center border font-mono">{deliveryOrderNo}</TableCell>
+                            <TableCell className="p-2 text-center border font-medium">{getCustomerName(event.customerId)}</TableCell>
+                            <TableCell className="p-2 text-center border">{event.commodityDescription}</TableCell>
+                            <TableCell className="p-2 text-center border">{event.location}</TableCell>
+                            <TableCell className="p-2 text-center border font-mono">{event.bagsWithdrawn}</TableCell>
+                            <TableCell className="p-2 text-center border font-mono">{formatCurrency(event.rentBilled)}</TableCell>
+                            <TableCell className="p-2 text-center border print-hide">
                                 {fullRecord && customer && outflowIndex !== -1 && (
                                     <OutflowActionsMenu
                                         record={fullRecord}
@@ -109,22 +109,24 @@ export function OutflowReportTable({ events, customers, title, allRecords, commo
                     )})}
                 </TableBody>
                 <TableFooter>
-                    <TableRow>
-                        <TableCell colSpan={5} className="p-2 text-right font-bold">Totals</TableCell>
-                        <TableCell className="p-2 text-right font-mono font-bold">{totalBagsWithdrawn}</TableCell>
-                        <TableCell className="p-2 text-right font-mono font-bold">{formatCurrency(totalRentBilled)}</TableCell>
-                        <TableCell className="p-2 print-hide"></TableCell>
+                    <TableRow className="bg-slate-50">
+                        <TableCell colSpan={5} className="p-2 text-right font-bold border">Totals</TableCell>
+                        <TableCell className="p-2 text-center font-mono font-bold border">{totalBagsWithdrawn}</TableCell>
+                        <TableCell className="p-2 text-center font-mono font-bold border">{formatCurrency(totalRentBilled)}</TableCell>
+                        <TableCell className="p-2 border print-hide"></TableCell>
                     </TableRow>
                 </TableFooter>
             </Table>
 
-            <div className="mt-16 pt-8 flex flex-col items-end text-center space-y-2">
+            <div className="mt-16 pt-8 flex flex-col items-end text-center space-y-1">
                 <div className="w-72 border-t border-slate-400 pt-4">
                     <p className="text-[#1e293b] font-bold text-sm uppercase tracking-wider">AUTHORIZED MANAGER SIGNATURE</p>
-                    <p className="text-primary font-bold text-xs uppercase mt-1">SRI LAKSHMI WAREHOUSE</p>
+                    <p className="text-[#3498db] font-bold text-xs uppercase mt-1">SRI LAKSHMI WAREHOUSE</p>
                 </div>
-                <p className="text-[10px] text-slate-400">Report validity verified on {generatedDate}</p>
-                <p className="text-[10px] text-slate-400 italic">This is a computer generated statement.</p>
+                <div className="text-[10px] text-slate-500 italic mt-4">
+                    <p>Report validity verified on {generatedDate}</p>
+                    <p>This is a computer generated statement.</p>
+                </div>
             </div>
         </div>
     );

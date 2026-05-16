@@ -269,7 +269,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                         </div>
                         <div className="flex items-center space-x-2 pt-2">
                             <Checkbox id="smsU" checked={sendSmsNotification} onCheckedChange={(c) => setSendSmsNotification(Boolean(c))} disabled={!warehouseInfo?.textbeeApiKey || !selectedCustomer?.phone} />
-                            <label htmlFor="smsU" className="text-xs font-medium cursor-pointer">Send SMS Notification</label>
+                            <label htmlFor="smsU" className="text-xs font-medium cursor-pointer leading-none">Send SMS Notification</label>
                         </div>
                     </CardContent>
                     <CardFooter>

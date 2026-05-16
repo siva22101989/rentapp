@@ -10,14 +10,6 @@ import { toDate, formatCurrency } from '@/lib/utils';
 import { format, isSameDay } from 'date-fns';
 import { Button } from '@/components/ui/button';
 
-type DailyReportProps = {
-    records: StorageRecord[];
-    customers: Customer[];
-    unloadingRecords: UnloadingRecord[];
-    expenses: Expense[];
-    otherIncomes: OtherIncome[];
-}
-
 type DailyData = {
     inflows: StorageRecord[];
     outflows: (StorageRecord & { bagsWithdrawn: number; rentBilled: number; outflowDate: Date })[];
@@ -35,7 +27,7 @@ type DailyData = {
 }
 
 const DailySummaryContent = ({ dailyData, selectedDate }: { dailyData: DailyData, selectedDate: Date }) => {
-    const generatedDate = useMemo(() => format(new Date(), 'dd/MM/yyyy, hh:mm a'), []);
+    const generatedDate = useMemo(() => format(new Date(), 'dd MMM yyyy, hh:mm a'), []);
 
     return (
         <div className="p-4 space-y-6">
@@ -107,7 +99,7 @@ const DailySummaryContent = ({ dailyData, selectedDate }: { dailyData: DailyData
     );
 };
 
-export function DailySummaryReport({ records, customers, unloadingRecords, expenses, otherIncomes }: DailyReportProps) {
+export function DailySummaryReport({ records, customers, unloadingRecords, expenses, otherIncomes }: { records: StorageRecord[], customers: Customer[], unloadingRecords: UnloadingRecord[], expenses: Expense[], otherIncomes: OtherIncome[] }) {
     const [dateInput, setDateInput] = useState(new Date().toISOString().split('T')[0]);
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     

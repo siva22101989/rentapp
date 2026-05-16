@@ -32,36 +32,36 @@ export function InflowReportTable({ records, customers, title, description, allR
                 <p className="text-lg font-semibold uppercase">{title}</p>
                 <p className="text-xs text-muted-foreground">Generated on: {generatedDate}</p>
             </div>
-            <Table>
+            <Table className="border-collapse border border-slate-200">
                 <TableHeader>
-                    <TableRow>
-                        <TableHead className="h-auto p-2">Date</TableHead>
-                        <TableHead className="h-auto p-2">Inflow Bill No</TableHead>
-                        <TableHead className="h-auto p-2 min-w-[180px]">Customer</TableHead>
-                        <TableHead className="h-auto p-2">Commodity</TableHead>
-                        <TableHead className="h-auto p-2">Lot No</TableHead>
-                        <TableHead className="h-auto p-2 text-right">Bags In (Full)</TableHead>
-                        <TableHead className="h-auto p-2 w-[50px] text-right print-hide">Actions</TableHead>
+                    <TableRow className="bg-[#3498db] hover:bg-[#3498db]">
+                        <TableHead className="h-auto p-2 text-white border border-slate-300 text-center uppercase">Date</TableHead>
+                        <TableHead className="h-auto p-2 text-white border border-slate-300 text-center uppercase">Inflow Bill No</TableHead>
+                        <TableHead className="h-auto p-2 text-white border border-slate-300 text-center uppercase">Customer</TableHead>
+                        <TableHead className="h-auto p-2 text-white border border-slate-300 text-center uppercase">Commodity</TableHead>
+                        <TableHead className="h-auto p-2 text-white border border-slate-300 text-center uppercase">Lot No</TableHead>
+                        <TableHead className="h-auto p-2 text-white border border-slate-300 text-center uppercase">Bags In</TableHead>
+                        <TableHead className="h-auto p-2 text-white border border-slate-300 text-center uppercase print-hide">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {records.length > 0 ? (
                         records.map((record) => (
-                            <TableRow key={record.id}>
-                                <TableCell className="p-2 whitespace-nowrap">{format(toDate(record.storageStartDate), 'dd MMM yyyy')}</TableCell>
-                                <TableCell className="p-2 font-mono">{record.id}</TableCell>
-                                <TableCell className="p-2 font-medium whitespace-nowrap">{getCustomerName(record.customerId)}</TableCell>
-                                <TableCell className="p-2">{record.commodityDescription}</TableCell>
-                                <TableCell className="p-2">{record.location}</TableCell>
-                                <TableCell className="p-2 text-right font-mono font-bold">{record.bagsIn}</TableCell>
-                                <TableCell className="p-2 text-right print-hide">
+                            <TableRow key={record.id} className="hover:bg-slate-50 h-8">
+                                <TableCell className="p-2 border border-slate-300 text-center">{format(toDate(record.storageStartDate), 'dd/MM/yyyy')}</TableCell>
+                                <TableCell className="p-2 border border-slate-300 text-center font-mono">{record.id}</TableCell>
+                                <TableCell className="p-2 border border-slate-300 text-center font-medium">{getCustomerName(record.customerId)}</TableCell>
+                                <TableCell className="p-2 border border-slate-300 text-center">{record.commodityDescription}</TableCell>
+                                <TableCell className="p-2 border border-slate-300 text-center">{record.location}</TableCell>
+                                <TableCell className="p-2 border border-slate-300 text-center font-mono font-bold">{record.bagsIn}</TableCell>
+                                <TableCell className="p-2 border border-slate-300 text-center print-hide">
                                     <ActionsMenu record={record} customers={customers} allRecords={allRecords} />
                                 </TableCell>
                             </TableRow>
                         ))
                     ) : (
                         <TableRow>
-                            <TableCell colSpan={7} className="p-4 text-center text-muted-foreground italic">
+                            <TableCell colSpan={7} className="p-4 border border-slate-300 text-center text-muted-foreground italic">
                                 No inflow records found for the selected period.
                             </TableCell>
                         </TableRow>
@@ -71,12 +71,12 @@ export function InflowReportTable({ records, customers, title, description, allR
                     <TableRow className="border-t-2 border-primary bg-secondary/20">
                         <TableCell 
                             colSpan={5}
-                            className="p-2 text-right font-bold text-lg"
+                            className="p-2 border border-slate-300 text-right font-bold"
                         >
-                            Total Full Bags Received
+                            Total Bags Received
                         </TableCell>
-                        <TableCell className="p-2 text-right font-mono font-bold text-lg">{totalBagsIn}</TableCell>
-                        <TableCell className="p-2 print-hide"></TableCell>
+                        <TableCell className="p-2 border border-slate-300 text-center font-mono font-bold">{totalBagsIn}</TableCell>
+                        <TableCell className="p-2 border border-slate-300 print-hide"></TableCell>
                     </TableRow>
                 </TableFooter>
             </Table>

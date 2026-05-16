@@ -54,6 +54,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
 
     // 2. Process Storage Records (Inflow, Outflow, Payments)
     (records || []).forEach(record => {
+        // Inflow Entry
         const inflowDebit = (record.hamaliPayable || 0) + (record.khataAmount || 0);
         events.push({
             date: toDate(record.storageStartDate),
@@ -66,12 +67,13 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             credit: 0,
         });
 
+        // Outflow Entries - Explicitly using record.id as the "Inflow Bill No"
         if (Array.isArray(record.outflows)) {
             record.outflows.forEach((outflow, idx) => {
                 events.push({
                     date: toDate(outflow.date),
-                    description: `Outflow`,
-                    invoiceId: record.id,
+                    description: `Outflow from Bill #${record.id}`,
+                    invoiceId: record.id, 
                     bagsIn: 0,
                     bagsOut: outflow.bagsWithdrawn,
                     hamali: 0,
@@ -81,6 +83,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             });
         }
 
+        // Payments linked to this Storage Record
         (record.payments || []).forEach(payment => {
             events.push({
                 date: toDate(payment.date),
@@ -95,7 +98,12 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         });
     });
     
-    const sortedEvents = events.sort((a, b) => a.date.getTime() - b.date.getTime());
+    // Sort events by date, then by Invoice ID for consistency
+    const sortedEvents = events.sort((a, b) => {
+        const dateDiff = a.date.getTime() - b.date.getTime();
+        if (dateDiff !== 0) return dateDiff;
+        return a.invoiceId.localeCompare(b.invoiceId);
+    });
 
     let runningBalance = 0;
     let totalBagsIn = 0;

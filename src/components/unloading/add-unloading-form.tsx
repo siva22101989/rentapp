@@ -183,7 +183,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                         )} />
                         <FormField control={form.control} name="customerId" render={({ field }) => (
                             <FormItem className="flex flex-col">
-                                <FormLabel className="text-xs font-semibold">Customer</FormLabel>
+                                <FormLabel className="text-xs font-semibold text-left">Customer</FormLabel>
                                 <Combobox options={customerOptions} value={field.value} onChange={field.onChange} placeholder="Select a customer..." modal={true} />
                                 <FormMessage />
                             </FormItem>
@@ -191,7 +191,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                         <div className="grid grid-cols-2 gap-4">
                             <FormField control={form.control} name="commodityDescription" render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel className="text-xs font-semibold">Commodity</FormLabel>
+                                    <FormLabel className="text-xs font-semibold text-left">Commodity</FormLabel>
                                     <Select onValueChange={field.onChange} value={field.value}>
                                         <FormControl>
                                             <SelectTrigger className="text-sm h-9">
@@ -207,7 +207,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                             )} />
                             <FormField control={form.control} name="location" render={({ field }) => (
                                 <FormItem className="flex flex-col">
-                                    <FormLabel className="text-xs font-semibold">Lot No.</FormLabel>
+                                    <FormLabel className="text-xs font-semibold text-left">Lot No.</FormLabel>
                                     <Combobox options={lotOptions} value={field.value} onChange={field.onChange} placeholder="Select" modal={true} />
                                     <FormMessage />
                                 </FormItem>
@@ -216,7 +216,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                         <div className="grid grid-cols-2 gap-4">
                             <FormField control={form.control} name="lorryTractorNo" render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel className="text-xs font-semibold">Vehicle No.</FormLabel>
+                                    <FormLabel className="text-xs font-semibold text-left">Vehicle No.</FormLabel>
                                     <FormControl>
                                         <Input className="text-sm h-9" {...field} />
                                     </FormControl>
@@ -225,7 +225,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                             )} />
                             <FormField control={form.control} name="unloadingDate" render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel className="text-xs font-semibold">Date</FormLabel>
+                                    <FormLabel className="text-xs font-semibold text-left">Date</Label>
                                     <FormControl>
                                         <Input type="date" className="text-sm h-9" {...field} />
                                     </FormControl>
@@ -235,7 +235,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                         </div>
                         <FormField control={form.control} name="bagsUnloaded" render={({ field }) => (
                             <FormItem>
-                                <FormLabel className="text-xs font-semibold">Bags Unloaded</FormLabel>
+                                <FormLabel className="text-xs font-semibold text-left">Bags Unloaded</FormLabel>
                                 <FormControl>
                                     <Input type="number" step="0.01" className="text-sm h-9" {...field} value={field.value ?? ''} />
                                 </FormControl>
@@ -245,7 +245,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                         <div className="grid grid-cols-2 gap-4">
                             <FormField control={form.control} name="customerHamaliPerBag" render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel className="text-xs font-semibold">Cust Rate</FormLabel>
+                                    <FormLabel className="text-xs font-semibold text-left">Cust Rate</FormLabel>
                                     <FormControl>
                                         <Input type="number" step="0.01" className="text-sm h-9" {...field} value={field.value ?? ''} />
                                     </FormControl>
@@ -254,7 +254,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                             )} />
                             <FormField control={form.control} name="workerHamaliPerBag" render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel className="text-xs font-semibold">Worker Rate</FormLabel>
+                                    <FormLabel className="text-xs font-semibold text-left">Worker Rate</FormLabel>
                                     <FormControl>
                                         <Input type="number" step="0.01" className="text-sm h-9" {...field} value={field.value ?? ''} />
                                     </FormControl>

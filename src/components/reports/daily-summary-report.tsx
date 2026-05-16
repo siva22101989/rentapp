@@ -35,14 +35,14 @@ type DailyData = {
 }
 
 const DailySummaryContent = ({ dailyData, selectedDate }: { dailyData: DailyData, selectedDate: Date }) => {
-    const generatedDate = useMemo(() => format(new Date(), 'dd MMM yyyy, hh:mm a'), []);
+    const generatedDate = useMemo(() => format(new Date(), 'dd/MM/yyyy, hh:mm a'), []);
 
     return (
         <div className="p-4 space-y-6">
             <div className="mb-6 text-center">
                 <h2 className="text-xl font-bold uppercase tracking-wide">SRI LAKSHMI WAREHOUSE</h2>
                 <h3 className="font-semibold uppercase tracking-tight">Daily Summary Report</h3>
-                <p className="text-sm text-muted-foreground">{format(selectedDate, 'EEEE, dd MMMM yyyy')}</p>
+                <p className="text-sm text-muted-foreground">{format(selectedDate, 'EEEE, dd/MM/yyyy')}</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -182,12 +182,12 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
     return (
         <Card>
             <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4 print-hide">
-                <div className="flex-1">
+                <div className="flex-1 text-left">
                     <CardTitle className="text-lg font-bold">Daily Summary Report</CardTitle>
                     <CardDescription className="text-xs">Select a date to view all warehouse transactions for that day.</CardDescription>
                 </div>
                 <div className="flex items-end gap-2 w-full sm:w-auto">
-                    <div className="space-y-1">
+                    <div className="space-y-1 text-left">
                         <Label htmlFor="daily-date" className="text-xs">Select Date</Label>
                         <Input 
                             id="daily-date"

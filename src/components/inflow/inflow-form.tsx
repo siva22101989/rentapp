@@ -239,7 +239,7 @@ export function InflowForm({ customers, commodities, lots, records }: { customer
                     <CardDescription className="text-xs">Storage ID is strictly auto-generated and locked for accuracy.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                     <div className="space-y-1.5">
+                     <div className="space-y-1.5 text-left">
                         <Label htmlFor="storageId" className="flex items-center gap-2 text-xs font-semibold">
                             Storage ID
                             <Badge variant="outline" className="text-[9px] uppercase font-bold py-0 h-4 bg-primary/5 text-primary border-primary/20">
@@ -254,7 +254,7 @@ export function InflowForm({ customers, commodities, lots, records }: { customer
                             readOnly
                         />
                     </div>
-                     <div className="space-y-1.5">
+                     <div className="space-y-1.5 text-left">
                         <Label className="text-xs font-semibold">Customer</Label>
                         <Combobox
                             options={customerOptions}
@@ -266,7 +266,7 @@ export function InflowForm({ customers, commodities, lots, records }: { customer
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
+                        <div className="space-y-1.5 text-left">
                             <Label className="text-xs font-semibold">Product</Label>
                              <Combobox
                                 options={commodityOptions}
@@ -276,7 +276,7 @@ export function InflowForm({ customers, commodities, lots, records }: { customer
                                 modal={true}
                             />
                         </div>
-                         <div className="space-y-1.5">
+                         <div className="space-y-1.5 text-left">
                             <Label className="text-xs font-semibold">Lot No.</Label>
                              <Combobox
                                 options={lotOptions}
@@ -288,41 +288,41 @@ export function InflowForm({ customers, commodities, lots, records }: { customer
                         </div>
                     </div>
                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
+                        <div className="space-y-1.5 text-left">
                             <Label htmlFor="lorry" className="text-xs font-semibold">Vehicle No.</Label>
                             <Input id="lorry" placeholder="e.g. AP 21 1234" value={lorryTractorNo} onChange={e => setLorryTractorNo(e.target.value)} className="text-sm h-9" />
                         </div>
-                        <div className="space-y-1.5">
+                        <div className="space-y-1.5 text-left">
                             <Label htmlFor="date" className="text-xs font-semibold">Inflow Date</Label>
                             <Input id="date" type="date" value={storageStartDate} onChange={e => setStorageStartDate(e.target.value)} className="text-sm h-9" required />
                         </div>
                     </div>
                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
+                        <div className="space-y-1.5 text-left">
                             <Label htmlFor="bags" className="text-xs font-semibold">No. of Bags</Label>
                             <Input id="bags" type="number" step="0.01" required value={bags} onChange={(e) => setBags(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
                         </div>
-                         <div className="space-y-1.5">
+                         <div className="space-y-1.5 text-left">
                             <Label htmlFor="wt" className="text-xs font-semibold">Weight (Kgs)</Label>
                             <Input id="wt" type="number" step="0.01" value={weight} onChange={(e) => setWeight(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
                         </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
+                        <div className="space-y-1.5 text-left">
                             <Label htmlFor="cRate" className="text-xs font-semibold">Cust Hamali Rate</Label>
                             <Input id="cRate" type="number" step="0.01" value={customerRate} onChange={e => setCustomerRate(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
                         </div>
-                        <div className="space-y-1.5">
+                        <div className="space-y-1.5 text-left">
                             <Label htmlFor="wRate" className="text-xs font-semibold">Worker Rate</Label>
                             <Input id="wRate" type="number" step="0.01" value={workerRate} onChange={e => setWorkerRate(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
                         </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
+                        <div className="space-y-1.5 text-left">
                             <Label htmlFor="hPaid" className="text-xs font-semibold">Paid Now</Label>
                             <Input id="hPaid" type="number" step="0.01" value={hamaliPaid} onChange={e => setHamaliPaid(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
                         </div>
-                        <div className="space-y-1.5">
+                        <div className="space-y-1.5 text-left">
                             <Label htmlFor="khata" className="text-xs font-semibold">Khata Amount</Label>
                             <Input id="khata" type="number" step="0.01" value={khataAmount} onChange={e => setKhataAmount(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
                         </div>

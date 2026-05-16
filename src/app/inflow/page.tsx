@@ -69,7 +69,6 @@ export default function InflowPage() {
           commodities={commodities || []}
           lots={lots || []}
           records={records || []}
-          nextId={nextId}
         />
       ) : (
         <Card><CardContent className="p-8 text-center text-muted-foreground">This function is not available for super-admins.</CardContent></Card>

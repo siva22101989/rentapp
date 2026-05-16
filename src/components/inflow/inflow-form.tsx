@@ -36,7 +36,7 @@ function SubmitButton({ isPending }: { isPending: boolean }) {
     );
 }
 
-export function InflowForm({ customers, commodities, lots, records, nextId }: { customers: Customer[], commodities: Commodity[], lots: Lot[], records: StorageRecord[], nextId: string }) {
+export function InflowForm({ customers, commodities, lots, records }: { customers: Customer[], commodities: Commodity[], lots: Lot[], records: StorageRecord[] }) {
     const { toast } = useToast();
     const firestore = useFirestore();
     const appUser = useAppUser();

@@ -36,11 +36,11 @@ export function InflowReportTable({ records, customers, title, description, allR
                 <TableHeader>
                     <TableRow>
                         <TableHead className="h-auto p-2">Date</TableHead>
-                        <TableHead className="h-auto p-2">Storage ID</TableHead>
+                        <TableHead className="h-auto p-2">Inflow Bill No</TableHead>
                         <TableHead className="h-auto p-2 min-w-[180px]">Customer</TableHead>
                         <TableHead className="h-auto p-2">Commodity</TableHead>
                         <TableHead className="h-auto p-2">Lot No</TableHead>
-                        <TableHead className="h-auto p-2 text-right">Bags In</TableHead>
+                        <TableHead className="h-auto p-2 text-right">Bags In (Full)</TableHead>
                         <TableHead className="h-auto p-2 w-[50px] text-right print-hide">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -73,7 +73,7 @@ export function InflowReportTable({ records, customers, title, description, allR
                             colSpan={5}
                             className="p-2 text-right font-bold text-lg"
                         >
-                            Total Bags
+                            Total Full Bags Received
                         </TableCell>
                         <TableCell className="p-2 text-right font-mono font-bold text-lg">{totalBagsIn}</TableCell>
                         <TableCell className="p-2 print-hide"></TableCell>

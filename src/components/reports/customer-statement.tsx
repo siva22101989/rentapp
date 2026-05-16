@@ -25,7 +25,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         if (remainingHamali > 0) {
             events.push({
                 date: toDate(unloading.unloadingDate),
-                description: `Unloading Charges (${remainingBags} truck bags in plot)`,
+                description: `Unloading Charges: ${unloading.commodityDescription}`,
                 invoiceId: unloading.billNo || unloading.id.substring(0, 5),
                 bagsReceived: remainingBags,
                 bagsDelivered: 0,
@@ -37,7 +37,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         (unloading.payments || []).forEach(payment => {
             events.push({
                 date: toDate(payment.date),
-                description: `Payment Received (Unloading Bill #${unloading.billNo})`,
+                description: `Payment Received (Bill #${unloading.billNo})`,
                 invoiceId: unloading.billNo || unloading.id.substring(0, 5),
                 bagsReceived: 0,
                 bagsDelivered: 0,
@@ -48,37 +48,25 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
     });
 
     (records || []).forEach(record => {
-        const truckBags = record.bagsForDrying || record.bagsIn;
-        const godownBags = record.bagsIn;
+        // Correctly combine all inflow charges into one line item as requested
+        const totalInflowDebit = (record.hamaliPayable || 0) + (record.khataAmount || 0);
 
         events.push({
             date: toDate(record.storageStartDate),
-            description: `Handling/Hamali Charges: ${record.commodityDescription} (${truckBags} truck bags)`,
+            description: `Inflow: ${record.commodityDescription}`,
             invoiceId: record.id,
-            bagsReceived: godownBags,
+            bagsReceived: record.bagsIn,
             bagsDelivered: 0,
-            debit: record.hamaliPayable || 0,
+            debit: totalInflowDebit,
             credit: 0,
         });
-        
-        if (record.khataAmount && record.khataAmount > 0) {
-             events.push({
-                date: toDate(record.storageStartDate),
-                description: `Khata (Weighbridge) Charge`,
-                invoiceId: record.id,
-                bagsReceived: 0,
-                bagsDelivered: 0,
-                debit: record.khataAmount,
-                credit: 0
-            });
-        }
 
         if (Array.isArray(record.outflows)) {
             record.outflows.forEach((outflow, index) => {
                 const deliveryNo = record.outflows && record.outflows.length > 1 ? `${record.id}-${index + 1}` : record.id;
                 events.push({
                     date: toDate(outflow.date),
-                    description: `Outflow Rent: ${record.commodityDescription} (${outflow.bagsWithdrawn} bags)`,
+                    description: `Outflow Rent: ${record.commodityDescription}`,
                     invoiceId: deliveryNo,
                     bagsReceived: 0,
                     bagsDelivered: outflow.bagsWithdrawn,
@@ -192,8 +180,8 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 <TableRow className="border-b-2 border-border bg-muted/50">
                     <TableHead className="p-1.5 font-bold text-black">Date</TableHead>
                     <TableHead className="p-1.5 font-bold text-black">Description</TableHead>
-                    <TableHead className="p-1.5 font-bold text-black">Storage ID</TableHead>
-                    <TableHead className="p-1.5 text-right font-bold text-black">In</TableHead>
+                    <TableHead className="p-1.5 font-bold text-black">Inflow Bill No</TableHead>
+                    <TableHead className="p-1.5 text-right font-bold text-black">Bags In</TableHead>
                     <TableHead className="p-1.5 text-right font-bold text-black">Out</TableHead>
                     <TableHead className="p-1.5 text-right font-bold text-black">Balance</TableHead>
                     <TableHead className="p-1.5 text-right font-bold text-black">Debit (+)</TableHead>

@@ -68,16 +68,15 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         // Outflow Line Items
         if (Array.isArray(record.outflows)) {
             record.outflows.forEach((outflow, idx) => {
-                const deliveryNo = record.outflows && record.outflows.length > 1 ? `${record.id}-${idx + 1}` : record.id;
                 events.push({
                     date: toDate(outflow.date),
                     description: `Outflow`,
-                    invoiceId: deliveryNo,
+                    invoiceId: record.id,
                     bagsIn: 0,
                     bagsOut: outflow.bagsWithdrawn,
                     hamali: 0,
                     rent: outflow.rentBilled || 0,
-                    credit: outflow.discount || 0, // Discounts count as credits against balance
+                    credit: outflow.discount || 0,
                 });
             });
         }
@@ -117,7 +116,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         totalCredit += event.credit;
 
         return { ...event, balance: runningBalance };
-    }).reverse(); // Most recent at the top for viewing, though chronological for balance
+    });
     
     const totals = { totalBagsIn, totalBagsOut, totalHamali, totalRent, totalCredit, finalBalance: runningBalance };
 
@@ -130,7 +129,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
   return (
     <div ref={ref} className="bg-white p-4 sm:p-8 printable-area text-foreground font-sans text-xs">
         <header className="text-center mb-6">
-            <h1 className="text-2xl font-bold text-primary uppercase tracking-wider mb-1">SRI LAKSHMI WAREHOUSE</h1>
+            <h1 className="text-2xl font-bold text-[#3498db] uppercase tracking-wider mb-1">SRI LAKSHMI WAREHOUSE</h1>
             <p className="text-sm text-muted-foreground">{warehouseInfo?.addressLine1 || ''} {warehouseInfo?.addressLine2 || ''} | Cell: {warehouseInfo?.phone || ''}</p>
             <h2 className="text-lg font-bold mt-4 underline uppercase">Statement of Account</h2>
         </header>
@@ -152,45 +151,45 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             </div>
         </div>
 
-        <div className="overflow-hidden border rounded-lg shadow-sm mb-8">
+        <div className="overflow-hidden border border-slate-200 rounded-sm shadow-sm mb-8">
             <Table className="w-full border-collapse">
                 <TableHeader>
-                    <TableRow className="bg-[#3498db] hover:bg-[#3498db] border-none">
-                        <TableHead className="text-white font-bold h-10 border-r border-white/20">Date</TableHead>
-                        <TableHead className="text-white font-bold h-10 border-r border-white/20">Description</TableHead>
-                        <TableHead className="text-white font-bold h-10 border-r border-white/20">Invoice No</TableHead>
-                        <TableHead className="text-white font-bold h-10 border-r border-white/20 text-right">Bags In</TableHead>
-                        <TableHead className="text-white font-bold h-10 border-r border-white/20 text-right">Bags Out</TableHead>
-                        <TableHead className="text-white font-bold h-10 border-r border-white/20 text-right">Hamali</TableHead>
-                        <TableHead className="text-white font-bold h-10 border-r border-white/20 text-right">Rent</TableHead>
-                        <TableHead className="text-white font-bold h-10 border-r border-white/20 text-right">Credit</TableHead>
-                        <TableHead className="text-white font-bold h-10 text-right">Balance</TableHead>
+                    <TableRow className="bg-[#3498db] hover:bg-[#3498db] border-none h-9">
+                        <TableHead className="text-white font-bold h-9 border-r border-white/20 px-2">Date</TableHead>
+                        <TableHead className="text-white font-bold h-9 border-r border-white/20 px-2">Description</TableHead>
+                        <TableHead className="text-white font-bold h-9 border-r border-white/20 px-2">Invoice No</TableHead>
+                        <TableHead className="text-white font-bold h-9 border-r border-white/20 text-right px-2">Bags In</TableHead>
+                        <TableHead className="text-white font-bold h-9 border-r border-white/20 text-right px-2">Bags Out</TableHead>
+                        <TableHead className="text-white font-bold h-9 border-r border-white/20 text-right px-2">Hamali</TableHead>
+                        <TableHead className="text-white font-bold h-9 border-r border-white/20 text-right px-2">Rent</TableHead>
+                        <TableHead className="text-white font-bold h-9 border-r border-white/20 text-right px-2">Credit</TableHead>
+                        <TableHead className="text-white font-bold h-9 text-right px-2">Balance</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {lineItems.map((item, index) => (
-                        <TableRow key={index} className="border-b hover:bg-slate-50/50 odd:bg-slate-50/20">
-                            <TableCell className="py-2 whitespace-nowrap border-r">{format(item.date, 'dd/MM/yyyy')}</TableCell>
-                            <TableCell className="py-2 font-medium border-r">{item.description}</TableCell>
-                            <TableCell className="py-2 font-mono border-r">{item.invoiceId}</TableCell>
-                            <TableCell className="py-2 text-right border-r font-mono">{item.bagsIn || ''}</TableCell>
-                            <TableCell className="py-2 text-right border-r font-mono">{item.bagsOut || ''}</TableCell>
-                            <TableCell className="py-2 text-right border-r font-mono">{item.hamali > 0 ? formatCurrency(item.hamali) : ''}</TableCell>
-                            <TableCell className="py-2 text-right border-r font-mono">{item.rent > 0 ? formatCurrency(item.rent) : ''}</TableCell>
-                            <TableCell className="py-2 text-right border-r font-mono text-green-700">{item.credit > 0 ? formatCurrency(item.credit) : ''}</TableCell>
-                            <TableCell className="py-2 text-right font-mono font-bold">{formatCurrency(item.balance)}</TableCell>
+                        <TableRow key={index} className="border-b border-slate-100 hover:bg-slate-50/50 odd:bg-slate-50/20">
+                            <TableCell className="py-1 px-2 whitespace-nowrap border-r border-slate-100">{format(item.date, 'MM/dd/yyyy')}</TableCell>
+                            <TableCell className="py-1 px-2 font-medium border-r border-slate-100">{item.description}</TableCell>
+                            <TableCell className="py-1 px-2 font-mono border-r border-slate-100">{item.invoiceId}</TableCell>
+                            <TableCell className="py-1 px-2 text-right border-r border-slate-100 font-mono">{item.bagsIn || ''}</TableCell>
+                            <TableCell className="py-1 px-2 text-right border-r border-slate-100 font-mono">{item.bagsOut || ''}</TableCell>
+                            <TableCell className="py-1 px-2 text-right border-r border-slate-100 font-mono">{item.hamali > 0 ? formatCurrency(item.hamali) : ''}</TableCell>
+                            <TableCell className="py-1 px-2 text-right border-r border-slate-100 font-mono">{item.rent > 0 ? formatCurrency(item.rent) : ''}</TableCell>
+                            <TableCell className="py-1 px-2 text-right border-r border-slate-100 font-mono text-green-700">{item.credit > 0 ? formatCurrency(item.credit) : ''}</TableCell>
+                            <TableCell className="py-1 px-2 text-right font-mono font-bold">{formatCurrency(item.balance)}</TableCell>
                         </TableRow>
                     ))}
                 </TableBody>
                  <TableFooter>
-                    <TableRow className="bg-slate-100 hover:bg-slate-100 font-bold border-t-2 border-slate-300">
-                        <TableCell colSpan={3} className="text-right uppercase">Closing Totals:</TableCell>
-                        <TableCell className="text-right font-mono">{totals.totalBagsIn}</TableCell>
-                        <TableCell className="text-right font-mono">{totals.totalBagsOut}</TableCell>
-                        <TableCell className="text-right font-mono">{formatCurrency(totals.totalHamali)}</TableCell>
-                        <TableCell className="text-right font-mono">{formatCurrency(totals.totalRent)}</TableCell>
-                        <TableCell className="text-right font-mono text-green-700">{formatCurrency(totals.totalCredit)}</TableCell>
-                        <TableCell className="text-right font-mono text-destructive text-sm">{formatCurrency(totals.finalBalance)}</TableCell>
+                    <TableRow className="bg-slate-100 hover:bg-slate-100 font-bold border-t-2 border-slate-300 h-9">
+                        <TableCell colSpan={3} className="text-right uppercase px-2">Closing Totals:</TableCell>
+                        <TableCell className="text-right font-mono px-2">{totals.totalBagsIn}</TableCell>
+                        <TableCell className="text-right font-mono px-2">{totals.totalBagsOut}</TableCell>
+                        <TableCell className="text-right font-mono px-2">{formatCurrency(totals.totalHamali)}</TableCell>
+                        <TableCell className="text-right font-mono px-2">{formatCurrency(totals.totalRent)}</TableCell>
+                        <TableCell className="text-right font-mono text-green-700 px-2">{formatCurrency(totals.totalCredit)}</TableCell>
+                        <TableCell className="text-right font-mono text-destructive text-sm px-2">{formatCurrency(totals.finalBalance)}</TableCell>
                     </TableRow>
                  </TableFooter>
             </Table>
@@ -198,8 +197,8 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         
         <div className="mt-16 flex flex-col items-end text-center space-y-1">
             <div className="w-72 border-t border-slate-400 pt-4">
-                <p className="text-[#1e293b] font-bold text-xs uppercase tracking-wider">AUTHORIZED MANAGER SIGNATURE</p>
-                <p className="text-primary font-bold text-[10px] uppercase mt-1">SRI LAKSHMI WAREHOUSE</p>
+                <p className="text-[#1e293b] font-bold text-[11px] uppercase tracking-wider">AUTHORIZED MANAGER SIGNATURE</p>
+                <p className="text-[#3498db] font-bold text-[10px] uppercase mt-1">SRI LAKSHMI WAREHOUSE</p>
             </div>
             <div className="text-[9px] text-slate-500 italic mt-6 space-y-0.5">
                 <p>Report validity verified on {generatedDate}</p>

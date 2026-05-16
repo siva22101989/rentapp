@@ -95,8 +95,8 @@ const DailySummaryContent = ({ dailyData, selectedDate }: { dailyData: DailyData
 
             <div className="mt-20 flex flex-col items-end text-center space-y-1">
                 <div className="w-72 border-t border-slate-400 pt-4">
-                    <p className="text-[#1e293b] font-bold text-xs uppercase tracking-wider">AUTHORIZED MANAGER SIGNATURE</p>
-                    <p className="text-primary font-bold text-[10px] uppercase mt-1">SRI LAKSHMI WAREHOUSE</p>
+                    <p className="text-[#1e293b] font-bold text-[11px] uppercase tracking-wider">AUTHORIZED MANAGER SIGNATURE</p>
+                    <p className="text-[#3498db] font-bold text-[10px] uppercase mt-1">SRI LAKSHMI WAREHOUSE</p>
                 </div>
                 <div className="text-[9px] text-slate-500 italic mt-6 space-y-0.5">
                     <p>Report validity verified on {generatedDate}</p>

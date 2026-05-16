@@ -107,16 +107,13 @@ export function InflowForm({ customers, commodities, lots, records }: { customer
     }, [selectedCustomerId, customers]);
 
 
-    const { customerHamali, workerHamali } = useMemo(() => {
+    const { customerHamali } = useMemo(() => {
         const bagsValue = Number(bags) || 0;
         const custRateValue = Number(customerRate) || 0;
-        const workRateValue = Number(workerRate) || custRateValue;
-        
         return {
-            customerHamali: bagsValue * custRateValue,
-            workerHamali: bagsValue * workRateValue
+            customerHamali: bagsValue * custRateValue
         }
-    }, [bags, customerRate, workerRate]);
+    }, [bags, customerRate]);
 
     const resetForm = () => {
         setBags('');

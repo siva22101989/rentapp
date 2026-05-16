@@ -44,8 +44,8 @@ export function PaymentReportTable({ events, customers, title }: ReportTableProp
     return (
         <div className="bg-white p-4 rounded-lg">
              <div className="mb-4 text-center">
-                <h2 className="text-xl font-bold">Sri Lakshmi Warehouse</h2>
-                <p className="text-muted-foreground font-semibold">{title}</p>
+                <h2 className="text-xl font-bold uppercase tracking-wide">SRI LAKSHMI WAREHOUSE</h2>
+                <p className="text-muted-foreground font-semibold uppercase">{title}</p>
                 <p className="text-xs text-muted-foreground">Generated on: {generatedDate}</p>
             </div>
             <Table>
@@ -87,6 +87,17 @@ export function PaymentReportTable({ events, customers, title }: ReportTableProp
                     </TableRow>
                 </TableFooter>
             </Table>
+            
+            <div className="mt-16 pt-8 flex flex-col items-end text-center space-y-1">
+                <div className="w-72 border-t border-slate-400 pt-4">
+                    <p className="text-[#1e293b] font-bold text-sm uppercase tracking-wider">AUTHORIZED MANAGER SIGNATURE</p>
+                    <p className="text-primary font-bold text-xs uppercase mt-1">SRI LAKSHMI WAREHOUSE</p>
+                </div>
+                <div className="text-[10px] text-slate-500 italic mt-4">
+                    <p>Report validity verified on {generatedDate}</p>
+                    <p>This is a computer generated statement.</p>
+                </div>
+            </div>
         </div>
     );
 }

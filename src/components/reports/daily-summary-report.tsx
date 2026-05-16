@@ -52,7 +52,7 @@ const DailySummaryContent = ({ dailyData, selectedDate }: { dailyData: DailyData
                         <TrendingUp className="h-4 w-4 text-green-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-green-600">{formatCurrency(dailyData.summary.totalIncome)}</div>
+                        <div className="text-xl font-bold text-green-600">{formatCurrency(dailyData.summary.totalIncome)}</div>
                     </CardContent>
                 </Card>
                 <Card>
@@ -61,7 +61,7 @@ const DailySummaryContent = ({ dailyData, selectedDate }: { dailyData: DailyData
                         <TrendingDown className="h-4 w-4 text-red-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-destructive">{formatCurrency(dailyData.summary.totalExpenses)}</div>
+                        <div className="text-xl font-bold text-destructive">{formatCurrency(dailyData.summary.totalExpenses)}</div>
                     </CardContent>
                 </Card>
                 <Card>
@@ -70,7 +70,7 @@ const DailySummaryContent = ({ dailyData, selectedDate }: { dailyData: DailyData
                         <Scale className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className={`text-2xl font-bold ${dailyData.summary.netBalance >= 0 ? 'text-primary' : 'text-destructive'}`}>{formatCurrency(dailyData.summary.netBalance)}</div>
+                        <div className={`text-xl font-bold ${dailyData.summary.netBalance >= 0 ? 'text-primary' : 'text-destructive'}`}>{formatCurrency(dailyData.summary.netBalance)}</div>
                     </CardContent>
                 </Card>
                 <Card>
@@ -79,7 +79,7 @@ const DailySummaryContent = ({ dailyData, selectedDate }: { dailyData: DailyData
                         <ArrowDownToDot className="h-4 w-4 text-blue-500" />
                     </CardHeader>
                     <CardContent>
-                         <div className="text-2xl font-bold">{dailyData.summary.totalInflowBags}</div>
+                         <div className="text-xl font-bold">{dailyData.summary.totalInflowBags}</div>
                     </CardContent>
                 </Card>
                 <Card>
@@ -88,17 +88,17 @@ const DailySummaryContent = ({ dailyData, selectedDate }: { dailyData: DailyData
                         <ArrowUpFromDot className="h-4 w-4 text-orange-500" />
                     </CardHeader>
                     <CardContent>
-                         <div className="text-2xl font-bold">{dailyData.summary.totalOutflowBags}</div>
+                         <div className="text-xl font-bold">{dailyData.summary.totalOutflowBags}</div>
                     </CardContent>
                 </Card>
             </div>
 
-            <div className="mt-16 pt-8 flex flex-col items-end text-center space-y-1">
+            <div className="mt-20 flex flex-col items-end text-center space-y-1">
                 <div className="w-72 border-t border-slate-400 pt-4">
-                    <p className="text-[#1e293b] font-bold text-sm uppercase tracking-wider">AUTHORIZED MANAGER SIGNATURE</p>
-                    <p className="text-primary font-bold text-xs uppercase mt-1">SRI LAKSHMI WAREHOUSE</p>
+                    <p className="text-[#1e293b] font-bold text-xs uppercase tracking-wider">AUTHORIZED MANAGER SIGNATURE</p>
+                    <p className="text-primary font-bold text-[10px] uppercase mt-1">SRI LAKSHMI WAREHOUSE</p>
                 </div>
-                <div className="text-[10px] text-slate-500 italic mt-4">
+                <div className="text-[9px] text-slate-500 italic mt-6 space-y-0.5">
                     <p>Report validity verified on {generatedDate}</p>
                     <p>This is a computer generated statement.</p>
                 </div>
@@ -143,7 +143,7 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
         records.forEach(r => {
             (r.outflows || []).forEach(outflow => {
                 if (isSameDay(toDate(outflow.date), date)) {
-                    data.outflows.push({ ...r, ...outflow, outflowDate: toDate(outflow.date) });
+                    data.outflows.push({ ...r, ...outflow, outflowDate: toDate(outflow.date) } as any);
                     data.summary.totalOutflowBags += outflow.bagsWithdrawn;
                 }
             });

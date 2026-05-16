@@ -135,7 +135,7 @@ export function InflowForm({ customers, commodities, lots, records }: { customer
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (!firestore || !appUser?.warehouseId) {
-            toast({ title: 'Error', description: 'Could not create record: user or warehouse context is missing.', variant: 'destructive' });
+            toast({ title: 'Error', description: 'Context missing.', variant: 'destructive' });
             return;
         }
 
@@ -144,17 +144,16 @@ export function InflowForm({ customers, commodities, lots, records }: { customer
             return;
         }
 
-        const bagsStored = Number(bags);
-         if (!bagsStored || bagsStored <= 0) {
-             toast({ title: 'Error', description: 'Number of bags must be a positive number.', variant: 'destructive' });
+        const bagsValue = Number(bags);
+        if (!bagsValue || bagsValue <= 0) {
+             toast({ title: 'Error', description: 'Number of bags must be positive.', variant: 'destructive' });
              return;
         }
         if (!selectedCustomerId) {
             toast({ title: 'Error', description: 'Please select a customer.', variant: 'destructive' });
             return;
         }
-        const commodityDetails = commodities.find(c => c.name === selectedCommodity);
-         if (!commodityDetails) {
+        if (!selectedCommodity) {
             toast({ title: 'Error', description: 'Please select a product.', variant: 'destructive' });
             return;
         }
@@ -164,90 +163,72 @@ export function InflowForm({ customers, commodities, lots, records }: { customer
                 const existingRef = doc(firestore, 'storageRecords', storageId);
                 const existingSnap = await getDoc(existingRef);
                 if (existingSnap.exists()) {
-                    toast({ title: 'Duplicate ID', description: `A record with Storage ID #${storageId} already exists.`, variant: 'destructive' });
+                    toast({ title: 'Duplicate ID', description: `Storage ID #${storageId} already exists.`, variant: 'destructive' });
                     return;
                 }
 
-                const receiptUrl = `/inflow/receipt/${storageId}`;
-                const receiptWindow = window.open(receiptUrl, '_blank');
-
-                const weightValue = Number(weight) || 0;
+                const finalDate = new Date(storageStartDate);
                 const customerHamaliRate = Number(customerRate) || 0;
                 const workerHamaliRate = Number(workerRate) || customerHamaliRate;
-                const hamaliPaidAmount = Number(hamaliPaid) || 0;
-                const finalDate = new Date(storageStartDate);
-
-                const hamaliPayable = bagsStored * customerHamaliRate;
-                const workerHamaliPayable = bagsStored * workerHamaliRate;
+                const hamaliPayable = bagsValue * customerHamaliRate;
+                const workerHamaliPayable = bagsValue * workerHamaliRate;
 
                 const payments: Payment[] = [];
-                if (hamaliPaidAmount > 0) {
-                    payments.push({
-                        amount: hamaliPaidAmount,
-                        date: finalDate,
-                        type: 'hamali'
-                    });
+                if (Number(hamaliPaid) > 0) {
+                    payments.push({ amount: Number(hamaliPaid), date: finalDate, type: 'hamali' });
                 }
+
+                const commodityDetails = commodities.find(c => c.name === selectedCommodity);
                 
                 const rawRecord: Omit<StorageRecord, 'id'> = {
                     warehouseId: appUser.warehouseId,
                     customerId: selectedCustomerId,
                     commodityDescription: selectedCommodity,
                     location: selectedLot,
-                    bagsIn: bagsStored,
+                    bagsIn: bagsValue,
                     bagsOut: 0,
-                    bagsStored,
+                    bagsStored: bagsValue,
                     storageStartDate: finalDate,
                     storageEndDate: null,
-                    billingCycle: '6-Month Initial' as const,
+                    billingCycle: '6-Month Initial',
                     payments,
                     hamaliPayable,
                     hamaliRate: customerHamaliRate,
-                    workerHamaliPayable: workerHamaliPayable,
+                    workerHamaliPayable,
                     totalRentBilled: 0,
-                    lorryTractorNo: lorryTractorNo,
-                    weight: weightValue,
-                    inflowType: 'Direct' as const,
-                    dryingRecordId: '',
+                    lorryTractorNo,
+                    weight: Number(weight) || 0,
+                    inflowType: 'Direct',
                     khataAmount: Number(khataAmount) || 0,
-                    billingType: commodityDetails.billingType,
-                    monthlyRate: commodityDetails.monthlyRate,
-                    minBillingMonths: commodityDetails.minBillingMonths,
-                    insuranceRate: commodityDetails.insuranceRate,
-                    rate6Months: commodityDetails.rate6Months,
-                    rate1Year: commodityDetails.rate1Year,
+                    billingType: commodityDetails?.billingType || 'slab',
+                    monthlyRate: commodityDetails?.monthlyRate,
+                    minBillingMonths: commodityDetails?.minBillingMonths,
+                    insuranceRate: commodityDetails?.insuranceRate,
+                    rate6Months: commodityDetails?.rate6Months,
+                    rate1Year: commodityDetails?.rate1Year,
                 };
 
-                const docRef = doc(firestore, "storageRecords", storageId);
-                await setDoc(docRef, cleanForFirestore(rawRecord));
+                await setDoc(doc(firestore, "storageRecords", storageId), cleanForFirestore(rawRecord));
 
                 if (sendSmsNotification && warehouseInfo?.textbeeApiKey && selectedCustomer?.phone) {
-                    const defaultTemplate = `Dear {customerName}, your inflow of {bags} bags of {commodity} has been recorded on {date}. ID: {billNo}. Hamali: {hamaliAmount}. Thank you. - {warehouseName}`;
-                    const template = warehouseInfo?.smsInflowTemplate || defaultTemplate;
-
-                    const message = template
+                    const msg = (warehouseInfo.smsInflowTemplate || `Dear {customerName}, inflow of {bags} bags of {commodity} recorded. Bill: {billNo}. Thank you.`)
                         .replace('{customerName}', selectedCustomer.name)
-                        .replace('{bags}', String(bagsStored))
+                        .replace('{bags}', String(bagsValue))
                         .replace('{commodity}', selectedCommodity)
                         .replace('{billNo}', storageId)
                         .replace('{date}', format(finalDate, 'dd/MM/yy'))
-                        .replace('{hamaliAmount}', formatCurrency(hamaliPayable))
-                        .replace('{warehouseName}', warehouseInfo?.name || 'Sri Lakshmi Warehouse');
+                        .replace('{warehouseName}', warehouseInfo.name || 'Sri Lakshmi Warehouse');
 
-                    sendSms({
-                        apiKey: warehouseInfo.textbeeApiKey,
-                        deviceId: warehouseInfo.textbeeDeviceId,
-                        to: selectedCustomer.phone,
-                        message: message,
-                    }).catch(console.error);
+                    sendSms({ apiKey: warehouseInfo.textbeeApiKey, deviceId: warehouseInfo.textbeeDeviceId, to: selectedCustomer.phone, message: msg }).catch(console.error);
                 }
                 
-                toast({ title: 'Success', description: 'Storage record created successfully.' });
+                toast({ title: 'Success', description: 'Record created.' });
                 resetForm();
+                window.open(`/inflow/receipt/${storageId}`, '_blank');
                 
             } catch (error) {
                 console.error(error);
-                toast({ title: 'Error', description: 'Failed to create inflow record.', variant: 'destructive' });
+                toast({ title: 'Error', description: 'Failed to create record.', variant: 'destructive' });
             }
         });
     }
@@ -258,7 +239,7 @@ export function InflowForm({ customers, commodities, lots, records }: { customer
             <Card>
                 <CardHeader>
                     <CardTitle className="text-lg font-bold">New Storage Record Details</CardTitle>
-                    <CardDescription className="text-xs">The Storage ID is automatically generated and locked.</CardDescription>
+                    <CardDescription className="text-xs">Storage ID is strictly auto-generated and locked for accuracy.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                      <div className="space-y-1.5">
@@ -271,155 +252,94 @@ export function InflowForm({ customers, commodities, lots, records }: { customer
                         </Label>
                         <Input 
                             id="storageId" 
-                            type="text" 
                             className="font-mono font-bold text-sm bg-muted/50 cursor-not-allowed h-9"
                             value={storageId} 
                             readOnly
                         />
                     </div>
                      <div className="space-y-1.5">
-                        <Label htmlFor="customerId" className="text-xs font-semibold">Customer</Label>
+                        <Label className="text-xs font-semibold">Customer</Label>
                         <Combobox
                             options={customerOptions}
                             value={selectedCustomerId}
                             onChange={setSelectedCustomerId}
                             placeholder="Select a customer..."
-                            searchPlaceholder="Search customers..."
                             modal={true}
                         />
                     </div>
 
-                    {selectedCustomer && (
-                        <div className="text-[11px] text-muted-foreground p-3 border rounded-md bg-secondary/50 space-y-0.5 -mt-2">
-                            <p><strong>Father's Name:</strong> {selectedCustomer.fatherName || 'N/A'}</p>
-                            <p><strong>Village:</strong> {selectedCustomer.village || 'N/A'}</p>
-                            <p><strong>Phone:</strong> {selectedCustomer.phone}</p>
-                        </div>
-                    )}
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1.5">
-                            <Label htmlFor="commodityDescription" className="text-xs font-semibold">Product</Label>
+                            <Label className="text-xs font-semibold">Product</Label>
                              <Combobox
                                 options={commodityOptions}
                                 value={selectedCommodity}
                                 onChange={setSelectedCommodity}
                                 placeholder="Select a product..."
-                                searchPlaceholder="Search products..."
                                 modal={true}
                             />
                         </div>
                          <div className="space-y-1.5">
-                            <Label htmlFor="location" className="text-xs font-semibold">Lot No.</Label>
+                            <Label className="text-xs font-semibold">Lot No.</Label>
                              <Combobox
                                 options={lotOptions}
                                 value={selectedLot}
                                 onChange={setSelectedLot}
                                 placeholder="Select a lot..."
-                                searchPlaceholder="Search lots..."
                                 modal={true}
                             />
                         </div>
                     </div>
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1.5">
-                            <Label htmlFor="lorryTractorNo" className="text-xs font-semibold">Lorry / Tractor No.</Label>
-                            <Input id="lorryTractorNo" name="lorryTractorNo" placeholder="e.g., AP 21 1234" value={lorryTractorNo} onChange={e => setLorryTractorNo(e.target.value)} className="text-sm h-9" />
+                            <Label htmlFor="lorry" className="text-xs font-semibold">Vehicle No.</Label>
+                            <Input id="lorry" placeholder="e.g. AP 21 1234" value={lorryTractorNo} onChange={e => setLorryTractorNo(e.target.value)} className="text-sm h-9" />
                         </div>
                         <div className="space-y-1.5">
-                            <Label htmlFor="storageStartDate" className="text-xs font-semibold">Inflow Date</Label>
-                            <Input 
-                                id="storageStartDate" 
-                                name="storageStartDate" 
-                                type="date" 
-                                value={storageStartDate}
-                                onChange={e => setStorageStartDate(e.target.value)}
-                                className="text-sm h-9"
-                                required 
-                            />
+                            <Label htmlFor="date" className="text-xs font-semibold">Inflow Date</Label>
+                            <Input id="date" type="date" value={storageStartDate} onChange={e => setStorageStartDate(e.target.value)} className="text-sm h-9" required />
                         </div>
                     </div>
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1.5">
-                            <Label htmlFor="bagsStored" className="text-xs font-semibold">No. of Bags (Packed)</Label>
-                            <Input 
-                                id="bagsStored" 
-                                name="bagsStored" 
-                                type="number" 
-                                step="0.01"
-                                placeholder="0" 
-                                required
-                                value={bags}
-                                onChange={(e) => setBags(e.target.value === '' ? '' : Number(e.target.value))}
-                                className="text-sm h-9"
-                            />
+                            <Label htmlFor="bags" className="text-xs font-semibold">No. of Bags</Label>
+                            <Input id="bags" type="number" step="0.01" required value={bags} onChange={(e) => setBags(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
                         </div>
                          <div className="space-y-1.5">
-                            <Label htmlFor="weight" className="text-xs font-semibold">Weight (Kgs)</Label>
-                            <Input 
-                                id="weight" 
-                                name="weight" 
-                                type="number" 
-                                step="0.01" 
-                                placeholder="0.00" 
-                                value={weight}
-                                onChange={(e) => setWeight(e.target.value === '' ? '' : Number(e.target.value))}
-                                className="text-sm h-9"
-                            />
+                            <Label htmlFor="wt" className="text-xs font-semibold">Weight (Kgs)</Label>
+                            <Input id="wt" type="number" step="0.01" value={weight} onChange={(e) => setWeight(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
                         </div>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1.5">
-                            <Label htmlFor="customerHamaliRate" className="text-xs font-semibold">Cust Hamali Rate</Label>
-                            <Input id="customerHamaliRate" name="customerHamaliRate" type="number" placeholder="0.00" step="0.01" value={customerRate} onChange={e => setCustomerRate(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
+                            <Label htmlFor="cRate" className="text-xs font-semibold">Cust Hamali Rate</Label>
+                            <Input id="cRate" type="number" step="0.01" value={customerRate} onChange={e => setCustomerRate(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
                         </div>
                         <div className="space-y-1.5">
-                            <Label htmlFor="workerHamaliRate" className="text-xs font-semibold">Worker Hamali Rate</Label>
-                            <Input id="workerHamaliRate" name="workerHamaliRate" type="number" placeholder="0.00" step="0.01" value={workerRate} onChange={e => setWorkerRate(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
+                            <Label htmlFor="wRate" className="text-xs font-semibold">Worker Rate</Label>
+                            <Input id="wRate" type="number" step="0.01" value={workerRate} onChange={e => setWorkerRate(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
                         </div>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1.5">
-                            <Label htmlFor="hamaliPaid" className="text-xs font-semibold">Hamali Paid Now</Label>
-                            <Input id="hamaliPaid" name="hamaliPaid" type="number" placeholder="0.00" step="0.01" value={hamaliPaid} onChange={e => setHamaliPaid(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
+                            <Label htmlFor="hPaid" className="text-xs font-semibold">Paid Now</Label>
+                            <Input id="hPaid" type="number" step="0.01" value={hamaliPaid} onChange={e => setHamaliPaid(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
                         </div>
                         <div className="space-y-1.5">
-                            <Label htmlFor="khataAmount" className="text-xs font-semibold">Khata Amount</Label>
-                            <Input id="khataAmount" name="khataAmount" type="number" placeholder="0.00" step="0.01" value={khataAmount} onChange={e => setKhataAmount(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
+                            <Label htmlFor="khata" className="text-xs font-semibold">Khata Amount</Label>
+                            <Input id="khata" type="number" step="0.01" value={khataAmount} onChange={e => setKhataAmount(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
                         </div>
                     </div>
                      <Separator />
-                     <div className="space-y-3">
-                        <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Billing Summary</h4>
-                        <div className="space-y-1.5 text-sm">
-                            <div className="flex justify-between items-center font-medium">
-                                <span className="text-muted-foreground">Total Hamali (Customer)</span>
-                                <span className="font-mono">{formatCurrency(customerHamali)}</span>
-                            </div>
-                             <div className="flex justify-between items-center text-muted-foreground text-xs">
-                                <span>Total Hamali (Worker)</span>
-                                <span className="font-mono">{formatCurrency(workerHamali)}</span>
-                            </div>
-                            <Separator />
-                            <div className="flex justify-between items-center font-bold">
-                                <span className="text-destructive uppercase text-xs">Hamali Pending</span>
-                                <span className="font-mono text-destructive">{formatCurrency(customerHamali - (Number(hamaliPaid) || 0))}</span>
-                            </div>
+                     <div className="space-y-2 text-sm">
+                        <div className="flex justify-between font-bold">
+                            <span className="text-destructive uppercase text-[10px]">Net Hamali Pending</span>
+                            <span className="font-mono text-destructive">{formatCurrency(customerHamali - (Number(hamaliPaid) || 0))}</span>
                         </div>
                     </div>
                      <div className="flex items-center space-x-2 pt-2">
-                        <Checkbox 
-                            id="sendSms" 
-                            checked={sendSmsNotification}
-                            onCheckedChange={(checked) => setSendSmsNotification(Boolean(checked))}
-                            disabled={!warehouseInfo?.textbeeApiKey || !selectedCustomer?.phone}
-                        />
-                        <label
-                            htmlFor="sendSms"
-                            className="text-xs font-medium leading-none cursor-pointer"
-                        >
-                            Send SMS Notification to Customer
-                        </label>
+                        <Checkbox id="sms" checked={sendSmsNotification} onCheckedChange={(c) => setSendSmsNotification(Boolean(c))} disabled={!warehouseInfo?.textbeeApiKey || !selectedCustomer?.phone} />
+                        <label htmlFor="sms" className="text-xs font-medium cursor-pointer leading-none">Send SMS Notification</label>
                     </div>
                 </CardContent>
                 <CardFooter>

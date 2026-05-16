@@ -114,7 +114,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                 const existingRef = doc(firestore, 'unloadingRecords', data.billNo);
                 const existingSnap = await getDoc(existingRef);
                 if (existingSnap.exists()) {
-                    toast({ title: 'Duplicate Bill No', description: `An unloading record with Bill No #${data.billNo} already exists.`, variant: 'destructive' });
+                    toast({ title: 'Duplicate Bill No', description: `Bill No #${data.billNo} already exists.`, variant: 'destructive' });
                     return;
                 }
 
@@ -136,15 +136,12 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                 await setDoc(doc(firestore, 'unloadingRecords', data.billNo), cleanForFirestore(rawRecord));
 
                 if (sendSmsNotification && warehouseInfo?.textbeeApiKey && selectedCustomer?.phone) {
-                    const template = warehouseInfo?.smsUnloadingTemplate || 'Dear {customerName}, delivery of {bags} bags received on {date}. Bill No: {billNo}. Thank you.';
+                    const template = warehouseInfo?.smsUnloadingTemplate || 'Dear {customerName}, delivery received on {date}. Bill: {billNo}. Thank you.';
                     const message = template
                         .replace('{customerName}', selectedCustomer.name)
                         .replace('{bags}', String(data.bagsUnloaded))
-                        .replace('{commodity}', data.commodityDescription)
-                        .replace('{location}', data.location)
                         .replace('{billNo}', data.billNo)
                         .replace('{date}', format(finalDate, 'dd/MM/yy'))
-                        .replace('{hamaliAmount}', formatCurrency(totalHamali))
                         .replace('{warehouseName}', warehouseInfo?.name || 'Sri Lakshmi Warehouse');
                     
                     sendSms({ apiKey: warehouseInfo.textbeeApiKey, deviceId: warehouseInfo.textbeeDeviceId, to: selectedCustomer.phone, message }).catch(console.error);
@@ -166,7 +163,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                 <form onSubmit={form.handleSubmit(onSubmit)}>
                     <CardHeader>
                         <CardTitle className="text-lg font-bold">Add New Unloading Record</CardTitle>
-                        <CardDescription className="text-xs">The Bill No. is auto-generated and locked.</CardDescription>
+                        <CardDescription className="text-xs">Bill No. is strictly auto-generated sequentially.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <FormField control={form.control} name="billNo" render={({ field }) => (
@@ -187,42 +184,55 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                         <FormField control={form.control} name="customerId" render={({ field }) => (
                             <FormItem className="flex flex-col">
                                 <FormLabel className="text-xs font-semibold">Customer</FormLabel>
-                                <Combobox options={customerOptions} value={field.value} onChange={field.onChange} placeholder="Select a customer..." searchPlaceholder="Search customers..." modal={true} />
+                                <Combobox options={customerOptions} value={field.value} onChange={field.onChange} placeholder="Select a customer..." modal={true} />
                                 <FormMessage />
                             </FormItem>
                         )} />
-                        <FormField control={form.control} name="commodityDescription" render={({ field }) => (
-                            <FormItem>
-                                <FormLabel className="text-xs font-semibold">Commodity</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value}>
+                        <div className="grid grid-cols-2 gap-4">
+                            <FormField control={form.control} name="commodityDescription" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="text-xs font-semibold">Commodity</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger className="text-sm h-9">
+                                                <SelectValue placeholder="Select" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {commodities.map(c => <SelectItem key={c.id} value={c.name} className="text-sm">{c.name}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                            <FormField control={form.control} name="location" render={({ field }) => (
+                                <FormItem className="flex flex-col">
+                                    <FormLabel className="text-xs font-semibold">Lot No.</FormLabel>
+                                    <Combobox options={lotOptions} value={field.value} onChange={field.onChange} placeholder="Select" modal={true} />
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <FormField control={form.control} name="lorryTractorNo" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="text-xs font-semibold">Vehicle No.</FormLabel>
                                     <FormControl>
-                                        <SelectTrigger className="text-sm h-9">
-                                            <SelectValue placeholder="Select commodity" />
-                                        </SelectTrigger>
+                                        <Input className="text-sm h-9" {...field} />
                                     </FormControl>
-                                    <SelectContent>
-                                        {commodities.map(c => <SelectItem key={c.id} value={c.name} className="text-sm">{c.name}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                            </FormItem>
-                        )} />
-                        <FormField control={form.control} name="location" render={({ field }) => (
-                            <FormItem className="flex flex-col">
-                                <FormLabel className="text-xs font-semibold">Storage Location (Lot No.)</FormLabel>
-                                <Combobox options={lotOptions} value={field.value} onChange={field.onChange} placeholder="Select location..." searchPlaceholder="Search lots..." modal={true} />
-                                <FormMessage />
-                            </FormItem>
-                        )} />
-                        <FormField control={form.control} name="unloadingDate" render={({ field }) => (
-                            <FormItem>
-                                <FormLabel className="text-xs font-semibold">Unloading Date</FormLabel>
-                                <FormControl>
-                                    <Input type="date" className="text-sm h-9" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )} />
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                            <FormField control={form.control} name="unloadingDate" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="text-xs font-semibold">Date</FormLabel>
+                                    <FormControl>
+                                        <Input type="date" className="text-sm h-9" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                        </div>
                         <FormField control={form.control} name="bagsUnloaded" render={({ field }) => (
                             <FormItem>
                                 <FormLabel className="text-xs font-semibold">Bags Unloaded</FormLabel>
@@ -253,15 +263,13 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                             )} />
                         </div>
                         <Separator />
-                        <div className="space-y-1 text-sm font-medium">
-                            <div className="flex justify-between text-primary">
-                                <span className="text-xs uppercase text-muted-foreground tracking-wider">Total Customer Hamali</span>
-                                <span className="font-mono">{formatCurrency(totalCustomerHamali)}</span>
-                            </div>
+                        <div className="flex justify-between text-primary font-bold text-sm">
+                            <span className="text-xs uppercase text-muted-foreground tracking-wider">Total Hamali</span>
+                            <span className="font-mono">{formatCurrency(totalCustomerHamali)}</span>
                         </div>
                         <div className="flex items-center space-x-2 pt-2">
-                            <Checkbox id="sendSmsUnloading" checked={sendSmsNotification} onCheckedChange={(checked) => setSendSmsNotification(Boolean(checked))} disabled={!warehouseInfo?.textbeeApiKey || !selectedCustomer?.phone} />
-                            <label htmlFor="sendSmsUnloading" className="text-xs font-medium leading-none cursor-pointer">Send SMS Notification</label>
+                            <Checkbox id="smsU" checked={sendSmsNotification} onCheckedChange={(c) => setSendSmsNotification(Boolean(c))} disabled={!warehouseInfo?.textbeeApiKey || !selectedCustomer?.phone} />
+                            <label htmlFor="smsU" className="text-xs font-medium cursor-pointer">Send SMS Notification</label>
                         </div>
                     </CardContent>
                     <CardFooter>

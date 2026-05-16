@@ -6,7 +6,7 @@ import { UserProvider } from '@/firebase/auth/use-user';
 
 export const metadata: Metadata = {
   title: 'GrainDost',
-  description: 'Sri Lakshmi Warehouse Management System',
+  description: 'Warehouse Management System for Sri Lakshmi Warehouse',
 };
 
 export default function RootLayout({

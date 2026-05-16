@@ -5,7 +5,7 @@ import type { Customer, StorageRecord, UnloadingRecord, Expense, Payment, OtherI
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { TrendingUp, TrendingDown, Scale, ArrowDownToDot, ArrowUpFromDot, Search } from 'lucide-react';
+import { TrendingUp, TrendingDown, Scale, ArrowDownToDot, ArrowUpFromDot, Search } from 'lucide-center';
 import { toDate, formatCurrency } from '@/lib/utils';
 import { format, isSameDay } from 'date-fns';
 import { Button } from '@/components/ui/button';

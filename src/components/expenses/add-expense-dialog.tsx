@@ -165,14 +165,14 @@ export function AddExpenseDialog({ borrowings, nextRefNo }: { borrowings: Borrow
             <DialogHeader>
               <DialogTitle>Add New Expense</DialogTitle>
               <DialogDescription className="text-xs">
-                Reference No is auto-generated. Please specify category and amount.
+                Reference No is auto-generated and locked.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-2">
               <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label htmlFor="refNo" className="text-xs">Ref No</Label>
-                    <Input id="refNo" disabled={true} className="bg-muted font-mono font-bold text-sm" value={refNo} />
+                    <Input id="refNo" disabled={true} className="bg-muted font-mono font-bold text-sm cursor-not-allowed" value={refNo} readOnly />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="date" className="text-xs">Expense Date</Label>

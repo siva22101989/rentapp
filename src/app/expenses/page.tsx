@@ -1,4 +1,3 @@
-
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { AddExpenseDialog } from "@/components/expenses/add-expense-dialog";
@@ -47,7 +46,7 @@ function IncomesTable({ incomes }: { incomes: OtherIncome[] }) {
               {incomes.map((income) => (
                 <TableRow key={income.id}>
                   <TableCell className="hidden sm:table-cell">{format(toDate(income.date), 'dd MMM yyyy')}</TableCell>
-                  <TableCell className="font-mono">{income.refNo || income.id.substring(0, 5).replace(/\D/g, '') || '-'}</TableCell>
+                  <TableCell className="font-mono">{income.refNo || '-'}</TableCell>
                   <TableCell>{income.category}</TableCell>
                   <TableCell className="font-medium">{income.description}</TableCell>
                   <TableCell>{income.lorryTractorNo || '-'}</TableCell>
@@ -99,7 +98,7 @@ function ExpensesTable({ expenses }: { expenses: Expense[] }) {
             {expenses.map((expense) => (
               <TableRow key={expense.id}>
                 <TableCell className="hidden sm:table-cell">{format(toDate(expense.date), 'dd MMM yyyy')}</TableCell>
-                <TableCell className="font-mono">{expense.refNo || expense.id.substring(0, 5).replace(/\D/g, '') || '-'}</TableCell>
+                <TableCell className="font-mono">{expense.refNo || '-'}</TableCell>
                 <TableCell>{expense.category}</TableCell>
                 <TableCell className="font-medium">{expense.description}</TableCell>
                 <TableCell className="text-right font-mono">{formatCurrency(expense.amount)}</TableCell>
@@ -331,7 +330,7 @@ export default function ExpensesPage() {
 
   const { periodIncome, periodExpenses, periodBalance, filteredExpenses, filteredIncomes, interestOnCapital, estimatedRent, activeBags, nextExpenseRefNo, nextIncomeRefNo } = useMemo(() => {
     if (!allRecords || !allExpenses || !allUnloadingRecords || !otherIncomes || !allCommodities) {
-        return { periodIncome: 0, periodExpenses: 0, periodBalance: 0, filteredExpenses: [], filteredIncomes: [], interestOnCapital: 0, estimatedRent: 0, activeBags: 0, nextExpenseRefNo: '1', nextIncomeRefNo: '1' };
+        return { periodIncome: 0, periodExpenses: 0, periodBalance: 0, filteredExpenses: [], filteredIncomes: [], interestOnCapital: 0, estimatedRent: 0, activeBags: 0, nextExpenseRefNo: 'E-1001', nextIncomeRefNo: 'I-1001' };
     }
 
     const inRange = (date: Date) => {
@@ -378,9 +377,7 @@ export default function ExpensesPage() {
     const activeRecords = allRecords.filter(r => !r.storageEndDate && r.bagsStored > 0);
     const today = new Date();
     const rentEstimate = activeRecords.reduce((total, record) => {
-      // Robust commodity fallback matching
       const commodity = allCommodities.find(c => c.name.trim().toLowerCase() === record.commodityDescription.trim().toLowerCase());
-      
       const recordWithRates: StorageRecord = {
           ...record,
           billingType: record.billingType || commodity?.billingType || 'slab',
@@ -391,8 +388,6 @@ export default function ExpensesPage() {
           rate1Year: record.rate1Year ?? commodity?.rate1Year ?? 0,
       };
 
-      // Accurate Outstanding Balance Calculation:
-      // (Rent on currently held bags) + (Billed Rent on past outflows) + (Hamali + Khata) - (Total Paid)
       const { rent: currentStockRent } = calculateFinalRent({ ...recordWithRates, storageStartDate: toDate(recordWithRates.storageStartDate) }, today, record.bagsStored);
       const billedRentOnOutflows = (record.outflows || []).reduce((acc, o) => acc + (o.rentBilled || 0), 0);
       const totalLiabilities = currentStockRent + billedRentOnOutflows + (record.hamaliPayable || 0) + (record.khataAmount || 0);
@@ -404,12 +399,12 @@ export default function ExpensesPage() {
     
     const totalActiveBags = activeRecords.reduce((acc, record) => acc + record.bagsStored, 0);
 
-    const getMaxRef = (list: any[]) => {
+    const getMaxRef = (list: any[], prefix: string) => {
       const max = list.reduce((max, item) => {
-        const val = parseInt(item.refNo || '0', 10);
+        const val = parseInt(item.refNo?.replace(/[^0-9]/g, '') || '0', 10);
         return isNaN(val) ? max : Math.max(max, val);
       }, 0);
-      return (max + 1).toString();
+      return `${prefix}-${Math.max(1001, max + 1)}`;
     };
 
     return {
@@ -421,8 +416,8 @@ export default function ExpensesPage() {
       interestOnCapital: calculatedInterest,
       estimatedRent: rentEstimate,
       activeBags: totalActiveBags,
-      nextExpenseRefNo: getMaxRef(allExpenses),
-      nextIncomeRefNo: getMaxRef(otherIncomes)
+      nextExpenseRefNo: getMaxRef(allExpenses, 'E'),
+      nextIncomeRefNo: getMaxRef(otherIncomes, 'I')
     };
   }, [allRecords, allExpenses, allUnloadingRecords, otherIncomes, dateRange, warehouseInfo, financialYear, allCommodities]);
 

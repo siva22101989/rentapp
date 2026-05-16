@@ -48,13 +48,12 @@ export default function UnloadingPage() {
   const { data: storageRecords, loading: loadingStorage } = useCollection<StorageRecord>(storageRecordsQuery);
 
   const nextBillNo = useMemo(() => {
-    if (!unloadingRecords || unloadingRecords.length === 0) return '1';
+    if (!unloadingRecords || unloadingRecords.length === 0) return 'U-1001';
     const maxBillNo = unloadingRecords.reduce((max, record) => {
-      // Ensure we only treat numerical bill numbers
       const billNo = parseInt(record.billNo?.replace(/[^0-9]/g, '') || '0', 10);
       return billNo > max ? billNo : max;
     }, 0);
-    return (maxBillNo + 1).toString();
+    return `U-${maxBillNo + 1}`;
   }, [unloadingRecords]);
 
   if (loadingCustomers || loadingRecords || loadingCommodities || loadingLots || loadingStorage) {

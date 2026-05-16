@@ -42,13 +42,12 @@ export default function InflowPage() {
   const { data: lots, loading: loadingLots } = useCollection<Lot>(lotsQuery);
 
   const nextId = useMemo(() => {
-    if (!records || records.length === 0) return '1';
+    if (!records || records.length === 0) return 'S-1001';
     const maxId = records.reduce((max, r) => {
-        // Extract numerical portion of ID
         const idNum = parseInt(r.id.replace(/[^0-9]/g, ''), 10);
         return isNaN(idNum) ? max : Math.max(max, idNum);
     }, 0);
-    return (maxId + 1).toString();
+    return `S-${maxId + 1}`;
   }, [records]);
 
 

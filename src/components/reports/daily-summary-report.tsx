@@ -5,7 +5,7 @@ import type { Customer, StorageRecord, UnloadingRecord, Expense, Payment, OtherI
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { TrendingUp, TrendingDown, Scale, ArrowDownToDot, ArrowUpFromDot, Search } from 'lucide-center';
+import { TrendingUp, TrendingDown, Scale, ArrowDownToDot, ArrowUpFromDot, Search } from 'lucide-react';
 import { toDate, formatCurrency } from '@/lib/utils';
 import { format, isSameDay } from 'date-fns';
 import { Button } from '@/components/ui/button';
@@ -42,13 +42,13 @@ const DailySummaryContent = ({ dailyData, selectedDate }: { dailyData: DailyData
             <div className="mb-6 text-center">
                 <h2 className="text-xl font-bold uppercase tracking-wide">SRI LAKSHMI WAREHOUSE</h2>
                 <h3 className="font-semibold uppercase tracking-tight">Daily Summary Report</h3>
-                <p className="text-sm text-gray-500">{format(selectedDate, 'EEEE, dd MMMM yyyy')}</p>
+                <p className="text-sm text-muted-foreground">{format(selectedDate, 'EEEE, dd MMMM yyyy')}</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-xs font-bold uppercase">Income</CardTitle>
+                        <CardTitle className="text-[10px] font-bold uppercase tracking-wider">Income</CardTitle>
                         <TrendingUp className="h-4 w-4 text-green-500" />
                     </CardHeader>
                     <CardContent>
@@ -57,7 +57,7 @@ const DailySummaryContent = ({ dailyData, selectedDate }: { dailyData: DailyData
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-xs font-bold uppercase">Expenses</CardTitle>
+                        <CardTitle className="text-[10px] font-bold uppercase tracking-wider">Expenses</CardTitle>
                         <TrendingDown className="h-4 w-4 text-red-500" />
                     </CardHeader>
                     <CardContent>
@@ -66,8 +66,8 @@ const DailySummaryContent = ({ dailyData, selectedDate }: { dailyData: DailyData
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-xs font-bold uppercase">Balance</CardTitle>
-                        <Scale className="h-4 w-4 text-gray-500" />
+                        <CardTitle className="text-[10px] font-bold uppercase tracking-wider">Balance</CardTitle>
+                        <Scale className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className={`text-2xl font-bold ${dailyData.summary.netBalance >= 0 ? 'text-primary' : 'text-destructive'}`}>{formatCurrency(dailyData.summary.netBalance)}</div>
@@ -75,7 +75,7 @@ const DailySummaryContent = ({ dailyData, selectedDate }: { dailyData: DailyData
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-xs font-bold uppercase">Bags In</CardTitle>
+                        <CardTitle className="text-[10px] font-bold uppercase tracking-wider">Bags In</CardTitle>
                         <ArrowDownToDot className="h-4 w-4 text-blue-500" />
                     </CardHeader>
                     <CardContent>
@@ -84,7 +84,7 @@ const DailySummaryContent = ({ dailyData, selectedDate }: { dailyData: DailyData
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-xs font-bold uppercase">Bags Out</CardTitle>
+                        <CardTitle className="text-[10px] font-bold uppercase tracking-wider">Bags Out</CardTitle>
                         <ArrowUpFromDot className="h-4 w-4 text-orange-500" />
                     </CardHeader>
                     <CardContent>
@@ -183,7 +183,7 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
         <Card>
             <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4 print-hide">
                 <div className="flex-1">
-                    <CardTitle className="text-lg">Daily Summary Report</CardTitle>
+                    <CardTitle className="text-lg font-bold">Daily Summary Report</CardTitle>
                     <CardDescription className="text-xs">Select a date to view all warehouse transactions for that day.</CardDescription>
                 </div>
                 <div className="flex items-end gap-2 w-full sm:w-auto">
@@ -192,14 +192,14 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
                         <Input 
                             id="daily-date"
                             type="date"
-                            className="w-full sm:w-[180px] text-sm"
+                            className="w-full sm:w-[180px] text-sm h-9"
                             value={dateInput}
                             onChange={(e) => setDateInput(e.target.value)}
                         />
                     </div>
-                    <Button onClick={handleSearch} size="sm">
+                    <Button onClick={handleSearch} size="sm" className="h-9">
                         <Search className="h-4 w-4 mr-2" />
-                        Show
+                        Show Report
                     </Button>
                 </div>
             </CardHeader>

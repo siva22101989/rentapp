@@ -101,7 +101,7 @@ function DashboardHeader({ activeRecordsCount, occupancy, warehouseInfo, appUser
                     </div>
                     <h2 className="text-xl md:text-2xl font-bold mt-2">{greeting}</h2>
                     <p className="text-sm text-muted-foreground mt-1 max-w-md">
-                        Currently managing {activeRecordsCount} active Godown records. Total occupancy is {occupancy.toFixed(1)}%.
+                        Currently managing {activeRecordsCount} active records. Total occupancy is {occupancy.toFixed(1)}%.
                     </p>
                 </div>
                 <div className="grid w-full grid-cols-2 items-center gap-4 md:w-auto">

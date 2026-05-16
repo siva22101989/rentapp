@@ -54,11 +54,21 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
     const [selectedLot, setSelectedLot] = useState('');
     const [lorryTractorNo, setLorryTractorNo] = useState('');
     const [storageStartDate, setStorageStartDate] = useState(new Date().toISOString().split('T')[0]);
-    const [storageId, setStorageId] = useState(nextId);
+
+    const generatedId = useMemo(() => {
+        if (!records || records.length === 0) return 'S-1001';
+        const maxId = records.reduce((max, r) => {
+            const idNum = parseInt(r.id.replace(/[^0-9]/g, ''), 10);
+            return isNaN(idNum) ? max : Math.max(max, idNum);
+        }, 0);
+        return `S-${Math.max(1001, maxId + 1)}`;
+    }, [records]);
+
+    const [storageId, setStorageId] = useState(generatedId);
 
     useEffect(() => {
-        setStorageId(nextId);
-    }, [nextId]);
+        setStorageId(generatedId);
+    }, [generatedId]);
 
     const warehouseInfoRef = useMemoFirebase(
       () => (firestore && appUser?.warehouseId ? doc(firestore, 'warehouses', appUser.warehouseId) : null),
@@ -120,7 +130,6 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
         setSelectedLot('');
         setLorryTractorNo('');
         setStorageStartDate(new Date().toISOString().split('T')[0]);
-        setStorageId(nextId);
     };
     
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -248,12 +257,12 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
         <form onSubmit={handleSubmit} className="w-full max-w-lg">
             <Card>
                 <CardHeader>
-                    <CardTitle className="text-lg">New Storage Record Details</CardTitle>
+                    <CardTitle className="text-lg font-bold">New Storage Record Details</CardTitle>
                     <CardDescription className="text-xs">The Storage ID is automatically generated and locked.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                      <div className="space-y-1.5">
-                        <Label htmlFor="storageId" className="flex items-center gap-2 text-xs">
+                        <Label htmlFor="storageId" className="flex items-center gap-2 text-xs font-semibold">
                             Storage ID
                             <Badge variant="outline" className="text-[9px] uppercase font-bold py-0 h-4 bg-primary/5 text-primary border-primary/20">
                                 <Sparkles className="h-2 w-2 mr-1" />
@@ -263,19 +272,20 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                         <Input 
                             id="storageId" 
                             type="text" 
-                            className="font-mono font-bold text-sm bg-muted/50 cursor-not-allowed"
+                            className="font-mono font-bold text-sm bg-muted/50 cursor-not-allowed h-9"
                             value={storageId} 
                             readOnly
                         />
                     </div>
                      <div className="space-y-1.5">
-                        <Label htmlFor="customerId" className="text-xs">Customer</Label>
+                        <Label htmlFor="customerId" className="text-xs font-semibold">Customer</Label>
                         <Combobox
                             options={customerOptions}
                             value={selectedCustomerId}
                             onChange={setSelectedCustomerId}
                             placeholder="Select a customer..."
                             searchPlaceholder="Search customers..."
+                            modal={true}
                         />
                     </div>
 
@@ -289,47 +299,49 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
-                            <Label htmlFor="commodityDescription" className="text-xs">Product</Label>
+                            <Label htmlFor="commodityDescription" className="text-xs font-semibold">Product</Label>
                              <Combobox
                                 options={commodityOptions}
                                 value={selectedCommodity}
                                 onChange={setSelectedCommodity}
                                 placeholder="Select a product..."
                                 searchPlaceholder="Search products..."
+                                modal={true}
                             />
                         </div>
                          <div className="space-y-1.5">
-                            <Label htmlFor="location" className="text-xs">Lot No.</Label>
+                            <Label htmlFor="location" className="text-xs font-semibold">Lot No.</Label>
                              <Combobox
                                 options={lotOptions}
                                 value={selectedLot}
                                 onChange={setSelectedLot}
                                 placeholder="Select a lot..."
                                 searchPlaceholder="Search lots..."
+                                modal={true}
                             />
                         </div>
                     </div>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
-                            <Label htmlFor="lorryTractorNo" className="text-xs">Lorry / Tractor No.</Label>
-                            <Input id="lorryTractorNo" name="lorryTractorNo" placeholder="e.g., AP 21 1234" value={lorryTractorNo} onChange={e => setLorryTractorNo(e.target.value)} className="text-sm" />
+                            <Label htmlFor="lorryTractorNo" className="text-xs font-semibold">Lorry / Tractor No.</Label>
+                            <Input id="lorryTractorNo" name="lorryTractorNo" placeholder="e.g., AP 21 1234" value={lorryTractorNo} onChange={e => setLorryTractorNo(e.target.value)} className="text-sm h-9" />
                         </div>
                         <div className="space-y-1.5">
-                            <Label htmlFor="storageStartDate" className="text-xs">Inflow Date</Label>
+                            <Label htmlFor="storageStartDate" className="text-xs font-semibold">Inflow Date</Label>
                             <Input 
                                 id="storageStartDate" 
                                 name="storageStartDate" 
                                 type="date" 
                                 value={storageStartDate}
                                 onChange={e => setStorageStartDate(e.target.value)}
-                                className="text-sm"
+                                className="text-sm h-9"
                                 required 
                             />
                         </div>
                     </div>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
-                            <Label htmlFor="bagsStored" className="text-xs">No. of Bags (Packed)</Label>
+                            <Label htmlFor="bagsStored" className="text-xs font-semibold">No. of Bags (Packed)</Label>
                             <Input 
                                 id="bagsStored" 
                                 name="bagsStored" 
@@ -339,11 +351,11 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                                 required
                                 value={bags}
                                 onChange={(e) => setBags(e.target.value === '' ? '' : Number(e.target.value))}
-                                className="text-sm"
+                                className="text-sm h-9"
                             />
                         </div>
                          <div className="space-y-1.5">
-                            <Label htmlFor="weight" className="text-xs">Weight (Kgs)</Label>
+                            <Label htmlFor="weight" className="text-xs font-semibold">Weight (Kgs)</Label>
                             <Input 
                                 id="weight" 
                                 name="weight" 
@@ -352,45 +364,45 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                                 placeholder="0.00" 
                                 value={weight}
                                 onChange={(e) => setWeight(e.target.value === '' ? '' : Number(e.target.value))}
-                                className="text-sm"
+                                className="text-sm h-9"
                             />
                         </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
-                            <Label htmlFor="customerHamaliRate" className="text-xs">Cust Hamali Rate</Label>
-                            <Input id="customerHamaliRate" name="customerHamaliRate" type="number" placeholder="0.00" step="0.01" value={customerRate} onChange={e => setCustomerRate(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm" />
+                            <Label htmlFor="customerHamaliRate" className="text-xs font-semibold">Cust Hamali Rate</Label>
+                            <Input id="customerHamaliRate" name="customerHamaliRate" type="number" placeholder="0.00" step="0.01" value={customerRate} onChange={e => setCustomerRate(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
                         </div>
                         <div className="space-y-1.5">
-                            <Label htmlFor="workerHamaliRate" className="text-xs">Worker Hamali Rate</Label>
-                            <Input id="workerHamaliRate" name="workerHamaliRate" type="number" placeholder="0.00" step="0.01" value={workerRate} onChange={e => setWorkerRate(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm" />
+                            <Label htmlFor="workerHamaliRate" className="text-xs font-semibold">Worker Hamali Rate</Label>
+                            <Input id="workerHamaliRate" name="workerHamaliRate" type="number" placeholder="0.00" step="0.01" value={workerRate} onChange={e => setWorkerRate(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
                         </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
-                            <Label htmlFor="hamaliPaid" className="text-xs">Hamali Paid Now</Label>
-                            <Input id="hamaliPaid" name="hamaliPaid" type="number" placeholder="0.00" step="0.01" value={hamaliPaid} onChange={e => setHamaliPaid(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm" />
+                            <Label htmlFor="hamaliPaid" className="text-xs font-semibold">Hamali Paid Now</Label>
+                            <Input id="hamaliPaid" name="hamaliPaid" type="number" placeholder="0.00" step="0.01" value={hamaliPaid} onChange={e => setHamaliPaid(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
                         </div>
                         <div className="space-y-1.5">
-                            <Label htmlFor="khataAmount" className="text-xs">Khata Amount</Label>
-                            <Input id="khataAmount" name="khataAmount" type="number" placeholder="0.00" step="0.01" value={khataAmount} onChange={e => setKhataAmount(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm" />
+                            <Label htmlFor="khataAmount" className="text-xs font-semibold">Khata Amount</Label>
+                            <Input id="khataAmount" name="khataAmount" type="number" placeholder="0.00" step="0.01" value={khataAmount} onChange={e => setKhataAmount(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
                         </div>
                     </div>
                      <Separator />
                      <div className="space-y-3">
-                        <h4 className="text-xs font-bold uppercase tracking-tight">Billing Summary</h4>
-                        <div className="space-y-1.5 text-xs">
-                            <div className="flex justify-between items-center font-semibold">
-                                <span className="text-foreground">Total Hamali (Customer)</span>
+                        <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Billing Summary</h4>
+                        <div className="space-y-1.5 text-sm">
+                            <div className="flex justify-between items-center font-medium">
+                                <span className="text-muted-foreground">Total Hamali (Customer)</span>
                                 <span className="font-mono">{formatCurrency(customerHamali)}</span>
                             </div>
-                             <div className="flex justify-between items-center text-muted-foreground">
+                             <div className="flex justify-between items-center text-muted-foreground text-xs">
                                 <span>Total Hamali (Worker)</span>
                                 <span className="font-mono">{formatCurrency(workerHamali)}</span>
                             </div>
                             <Separator />
-                            <div className="flex justify-between items-center font-bold text-sm">
-                                <span className="text-destructive uppercase">Hamali Pending</span>
+                            <div className="flex justify-between items-center font-bold">
+                                <span className="text-destructive uppercase text-xs">Hamali Pending</span>
                                 <span className="font-mono text-destructive">{formatCurrency(customerHamali - (Number(hamaliPaid) || 0))}</span>
                             </div>
                         </div>
@@ -404,7 +416,7 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                         />
                         <label
                             htmlFor="sendSms"
-                            className="text-xs font-medium leading-none"
+                            className="text-xs font-medium leading-none cursor-pointer"
                         >
                             Send SMS Notification to Customer
                         </label>

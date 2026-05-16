@@ -4,7 +4,9 @@ import { useMemo, forwardRef } from 'react';
 import type { Customer, StorageRecord, UnloadingRecord, WarehouseInfo } from '@/lib/definitions';
 import { formatCurrency, toDate } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '../ui/table';
+import { Card, CardContent } from '../ui/card';
 import { format } from 'date-fns';
+import { Separator } from '../ui/separator';
 
 type CustomerStatementProps = {
   customer: Customer;
@@ -52,7 +54,6 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
 
     // 2. Process Storage Records (Inflow, Outflow, Payments)
     (records || []).forEach(record => {
-        // Consolidated Inflow Row: Combining Hamali and Khata
         const inflowDebit = (record.hamaliPayable || 0) + (record.khataAmount || 0);
         events.push({
             date: toDate(record.storageStartDate),
@@ -65,7 +66,6 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             credit: 0,
         });
 
-        // Outflow Line Items
         if (Array.isArray(record.outflows)) {
             record.outflows.forEach((outflow, idx) => {
                 events.push({
@@ -81,7 +81,6 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             });
         }
 
-        // Standard Payments
         (record.payments || []).forEach(payment => {
             events.push({
                 date: toDate(payment.date),
@@ -96,7 +95,6 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         });
     });
     
-    // Sort all events chronologically
     const sortedEvents = events.sort((a, b) => a.date.getTime() - b.date.getTime());
 
     let runningBalance = 0;
@@ -124,35 +122,59 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
 
   }, [records, unloadingRecords]);
   
-  const generatedDate = useMemo(() => format(new Date(), 'dd/MM/yyyy, hh:mm a'), []);
+  const generatedTimestamp = useMemo(() => format(new Date(), 'M/d/yyyy, h:mm:ss a'), []);
 
   return (
     <div ref={ref} className="bg-white p-4 sm:p-8 printable-area text-foreground font-sans text-xs">
-        <header className="text-center mb-6">
-            <h1 className="text-2xl font-bold text-[#3498db] uppercase tracking-wider mb-1">SRI LAKSHMI WAREHOUSE</h1>
-            <p className="text-sm text-muted-foreground">{warehouseInfo?.addressLine1 || ''} {warehouseInfo?.addressLine2 || ''} | Cell: {warehouseInfo?.phone || ''}</p>
-            <h2 className="text-lg font-bold mt-4 underline uppercase">Statement of Account</h2>
+        <header className="text-left mb-4">
+            <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Sri Lakshmi WareHouse</h1>
+            <p className="text-sm font-semibold text-muted-foreground mt-1">Statement of Account - {customer.name}</p>
+            <p className="text-[10px] text-muted-foreground">Generated: {generatedTimestamp}</p>
+            <Separator className="bg-[#3498db] h-[2px] mt-4" />
         </header>
 
-        <div className="flex justify-between items-end mb-6 border-b pb-4">
-             <div className="space-y-1 text-left">
-                <p className="text-[10px] text-muted-foreground font-bold uppercase">Customer Details:</p>
-                <p className="font-bold text-lg text-slate-900">{customer.name}</p>
-                {customer.fatherName && <p className="text-sm font-medium">S/O: {customer.fatherName}</p>}
-                <p className="text-sm">{customer.village || 'N/A'}</p>
-                <p className="text-sm">{customer.phone}</p>
-            </div>
-            <div className="text-right space-y-1">
-                 <p className="text-sm"><span className="font-bold">Date:</span> {format(new Date(), 'dd/MM/yyyy')}</p>
-                 <div className="mt-2 p-2 bg-slate-900 text-white rounded text-center">
-                    <p className="text-[10px] uppercase font-bold opacity-80">Final Balance Due</p>
-                    <p className="text-lg font-bold font-mono">{formatCurrency(totals.finalBalance)}</p>
-                 </div>
-            </div>
+        <div className="grid grid-cols-2 gap-8 mb-8 mt-6">
+            <Card className="shadow-none border border-slate-200 bg-slate-50/30">
+                <CardContent className="p-4 space-y-2">
+                    <div className="flex justify-between items-center text-sm border-b border-slate-200 pb-1">
+                        <span className="font-bold text-slate-700">Total Bags In:</span>
+                        <span className="font-mono text-slate-900">{totals.totalBagsIn}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm border-b border-slate-200 pb-1">
+                        <span className="font-bold text-slate-700">Total Bags Out:</span>
+                        <span className="font-mono text-slate-900">{totals.totalBagsOut}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm font-bold text-slate-900 pt-1">
+                        <span>Balance Stock:</span>
+                        <span className="font-mono text-base">{totals.totalBagsIn - totals.totalBagsOut}</span>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card className="shadow-none border border-slate-200 bg-slate-50/30">
+                <CardContent className="p-4 space-y-2">
+                    <div className="flex justify-between items-center text-sm border-b border-slate-200 pb-1">
+                        <span className="font-bold text-slate-700">Total Hamali:</span>
+                        <span className="font-mono text-slate-900">{formatCurrency(totals.totalHamali)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm border-b border-slate-200 pb-1">
+                        <span className="font-bold text-slate-700">Total Rent:</span>
+                        <span className="font-mono text-slate-900">{formatCurrency(totals.totalRent)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm border-b border-slate-200 pb-1">
+                        <span className="font-bold text-slate-700">Total Paid:</span>
+                        <span className="font-mono text-green-600">{formatCurrency(totals.totalCredit)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm font-bold pt-1">
+                        <span className="text-slate-900">Balance Due:</span>
+                        <span className="font-mono text-destructive text-base">{formatCurrency(totals.finalBalance)}</span>
+                    </div>
+                </CardContent>
+            </Card>
         </div>
 
-        <div className="overflow-hidden border border-slate-300 rounded-sm shadow-sm mb-8">
-            <Table className="w-full border-collapse border border-slate-300">
+        <div className="overflow-hidden border border-slate-300 rounded-sm">
+            <Table className="w-full border-collapse">
                 <TableHeader>
                     <TableRow className="bg-[#3498db] hover:bg-[#3498db] border-none h-9">
                         <TableHead className="text-white font-bold h-9 border border-slate-300 px-2 text-center">Date</TableHead>
@@ -183,7 +205,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 </TableBody>
                  <TableFooter>
                     <TableRow className="bg-slate-100 hover:bg-slate-100 font-bold border-t-2 border-slate-400 h-9">
-                        <TableCell colSpan={3} className="text-right border border-slate-300 uppercase px-2">Closing Totals:</TableCell>
+                        <TableCell colSpan={3} className="text-right border border-slate-300 uppercase px-2">Total Closing Summary:</TableCell>
                         <TableCell className="text-center border border-slate-300 font-mono px-2">{totals.totalBagsIn}</TableCell>
                         <TableCell className="text-center border border-slate-300 font-mono px-2">{totals.totalBagsOut}</TableCell>
                         <TableCell className="text-center border border-slate-300 font-mono px-2">{formatCurrency(totals.totalHamali)}</TableCell>
@@ -197,11 +219,11 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         
         <div className="mt-16 flex flex-col items-end text-center space-y-1">
             <div className="w-72 border-t border-slate-400 pt-4">
-                <p className="text-[#1e293b] font-bold text-[11px] uppercase tracking-wider">AUTHORIZED MANAGER SIGNATURE</p>
+                <p className="text-slate-800 font-bold text-[11px] uppercase tracking-wider">AUTHORIZED MANAGER SIGNATURE</p>
                 <p className="text-[#3498db] font-bold text-[10px] uppercase mt-1">SRI LAKSHMI WAREHOUSE</p>
             </div>
             <div className="text-[9px] text-slate-500 italic mt-6 space-y-0.5">
-                <p>Report validity verified on {generatedDate}</p>
+                <p>Report validity verified on {format(new Date(), 'dd/MM/yyyy, hh:mm a')}</p>
                 <p>This is a computer generated statement.</p>
             </div>
         </div>

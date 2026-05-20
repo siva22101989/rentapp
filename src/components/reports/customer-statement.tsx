@@ -1,12 +1,11 @@
+
 'use client';
 
 import { useMemo, forwardRef } from 'react';
 import type { Customer, StorageRecord, UnloadingRecord, WarehouseInfo } from '@/lib/definitions';
 import { formatCurrency, toDate } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '../ui/table';
-import { Card, CardContent } from '../ui/card';
 import { format } from 'date-fns';
-import { Separator } from '../ui/separator';
 
 type CustomerStatementProps = {
   customer: Customer;
@@ -20,215 +19,252 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
   const { lineItems, totals } = useMemo(() => {
     const events: any[] = [];
     
-    // 1. Process Unloading Records
+    // 1. Process Unloading Records (Vehicle Gate Entries)
     (unloadingRecords || []).forEach(unloading => {
-        const remainingBags = Math.max(0, (unloading.bagsUnloaded || 0) - (unloading.bagsSentToDrying || 0));
-        const remainingHamali = remainingBags * (unloading.hamaliPerBag || 0);
-
-        if (remainingHamali > 0) {
+        const totalHamali = unloading.totalHamali || 0;
+        
+        if (totalHamali > 0) {
             events.push({
                 date: toDate(unloading.unloadingDate),
-                description: `Unloading - ${unloading.commodityDescription}`,
-                invoiceId: unloading.billNo || unloading.id,
-                lotNo: unloading.location || '-',
-                bagsIn: remainingBags,
-                bagsOut: 0,
-                hamali: remainingHamali,
+                description: `Vehicle Unloading: ${unloading.commodityDescription}`,
+                billNo: unloading.billNo || unloading.id,
+                bags: unloading.bagsUnloaded,
+                hamali: totalHamali,
                 rent: 0,
-                credit: 0,
+                paid: 0,
+                sortDate: toDate(unloading.unloadingDate).getTime(),
+                type: 'INFLOW_UNLOADING'
             });
         }
 
-        (unloading.payments || []).forEach(payment => {
+        (unloading.payments || []).forEach((payment, pIdx) => {
             events.push({
                 date: toDate(payment.date),
-                description: `Payment (Unloading #${unloading.billNo})`,
-                invoiceId: unloading.billNo || unloading.id,
-                lotNo: unloading.location || '-',
-                bagsIn: 0,
-                bagsOut: 0,
+                description: `Payment (Ref: ${unloading.billNo || unloading.id})`,
+                billNo: unloading.billNo || unloading.id,
+                bags: 0,
                 hamali: 0,
                 rent: 0,
-                credit: payment.amount || 0,
+                paid: payment.amount || 0,
+                sortDate: toDate(payment.date).getTime() + pIdx,
+                type: 'PAYMENT'
             });
         });
     });
 
-    // 2. Process Storage Records
+    // 2. Process Storage Records (Godown Inflows & Withdrawals)
     (records || []).forEach(record => {
-        const inflowDebit = (record.hamaliPayable || 0) + (record.khataAmount || 0);
-        events.push({
-            date: toDate(record.storageStartDate),
-            description: `Inflow - ${record.commodityDescription}`,
-            invoiceId: record.id,
-            lotNo: record.location || '-',
-            bagsIn: record.bagsIn,
-            bagsOut: 0,
-            hamali: inflowDebit,
-            rent: 0,
-            credit: 0,
-        });
+        const inflowDebit = record.hamaliPayable || 0;
+        if (inflowDebit > 0) {
+            events.push({
+                date: toDate(record.storageStartDate),
+                description: record.inflowType === 'Plot' ? `Godown Stacking: ${record.commodityDescription}` : `Direct Stacking: ${record.commodityDescription}`,
+                billNo: record.id,
+                bags: record.bagsIn,
+                hamali: inflowDebit,
+                rent: 0,
+                paid: 0,
+                sortDate: toDate(record.storageStartDate).getTime(),
+                type: 'INFLOW_STORAGE'
+            });
+        }
+        
+        if (record.khataAmount && record.khataAmount > 0) {
+            events.push({
+                date: toDate(record.storageStartDate),
+                description: `Khata / Weighbridge Charges`,
+                billNo: record.id,
+                bags: 0,
+                hamali: record.khataAmount,
+                rent: 0,
+                paid: 0,
+                sortDate: toDate(record.storageStartDate).getTime() + 2,
+                type: 'OTHER_CHARGE'
+            });
+        }
 
         if (Array.isArray(record.outflows)) {
             record.outflows.forEach((outflow, idx) => {
+                const pattiNo = `${record.id}-${idx + 1}`;
                 events.push({
                     date: toDate(outflow.date),
-                    description: `Outflow`,
-                    invoiceId: `${record.id}-${idx + 1}`, 
-                    lotNo: record.location || '-',
-                    bagsIn: 0,
-                    bagsOut: outflow.bagsWithdrawn,
+                    description: `Rent Billed: Withdrawal of ${outflow.bagsWithdrawn} bags`,
+                    billNo: pattiNo, 
+                    bags: -outflow.bagsWithdrawn,
                     hamali: 0,
                     rent: outflow.rentBilled || 0,
-                    credit: outflow.discount || 0,
+                    paid: 0,
+                    sortDate: toDate(outflow.date).getTime() + 3,
+                    type: 'OUTFLOW'
                 });
+
+                if (outflow.discount && outflow.discount > 0) {
+                    events.push({
+                        date: toDate(outflow.date),
+                        description: `Discount (Bill #${pattiNo})`,
+                        billNo: pattiNo,
+                        bags: 0,
+                        hamali: 0,
+                        rent: 0,
+                        paid: outflow.discount,
+                        sortDate: toDate(outflow.date).getTime() + 4,
+                        type: 'DISCOUNT'
+                    });
+                }
             });
         }
 
-        (record.payments || []).forEach(payment => {
+        (record.payments || []).forEach((payment, pIdx) => {
             events.push({
                 date: toDate(payment.date),
-                description: `Payment`,
-                invoiceId: record.id,
-                lotNo: record.location || '-',
-                bagsIn: 0,
-                bagsOut: 0,
+                description: payment.type === 'discount' ? `Rebate/Discount Applied` : (payment.type === 'hamali' ? `Hamali Payment Received` : `Rent/Storage Payment Received`),
+                billNo: record.id,
+                bags: 0,
                 hamali: 0,
                 rent: 0,
-                credit: payment.amount || 0,
+                paid: payment.amount || 0,
+                sortDate: toDate(payment.date).getTime() + 5 + pIdx,
+                type: 'PAYMENT'
             });
         });
     });
     
-    const sortedEvents = events.sort((a, b) => a.date.getTime() - b.date.getTime());
+    const sortedEvents = events.sort((a, b) => a.sortDate - b.sortDate);
 
     let runningBalance = 0;
-    let totalBagsIn = 0;
-    let totalBagsOut = 0;
+    let runningStock = 0;
     let totalHamali = 0;
     let totalRent = 0;
-    let totalCredit = 0;
+    let totalPaid = 0;
 
     const lineItems = sortedEvents.map(event => {
-        runningBalance += (event.hamali + event.rent) - event.credit;
-        totalBagsIn += event.bagsIn;
-        totalBagsOut += event.bagsOut;
-        totalHamali += event.hamali;
-        totalRent += event.rent;
-        totalCredit += event.credit;
-        return { ...event, balance: runningBalance };
+        const debit = (event.hamali || 0) + (event.rent || 0);
+        const credit = event.paid || 0;
+        
+        runningBalance += (debit - credit);
+        runningStock += (event.bags || 0);
+        
+        totalHamali += (event.hamali || 0);
+        totalRent += (event.rent || 0);
+        totalPaid += credit;
+        
+        return { 
+            ...event, 
+            totalStock: runningStock,
+            balance: runningBalance
+        };
     });
     
-    return { lineItems, totals: { totalBagsIn, totalBagsOut, totalHamali, totalRent, totalCredit, finalBalance: runningBalance } };
+    return { 
+        lineItems: [...lineItems].reverse(), 
+        totals: { 
+            totalHamali, 
+            totalRent, 
+            totalPaid, 
+            finalBalance: runningBalance,
+            finalStock: runningStock
+        } 
+    };
   }, [records, unloadingRecords]);
   
   const timestamp = useMemo(() => format(new Date(), 'dd/MM/yyyy, hh:mm a'), []);
 
   return (
-    <div ref={ref} className="bg-white p-4 sm:p-8 printable-area text-black font-sans text-[11px]">
-        <header className="text-left mb-4">
-            <h1 className="text-2xl font-bold text-slate-800 tracking-tight uppercase">Sri Lakshmi WareHouse</h1>
-            <p className="text-sm font-semibold text-muted-foreground mt-1">Statement of Account - {customer.name}</p>
-            <p className="text-[10px] text-muted-foreground">Generated: {timestamp}</p>
-            <Separator className="bg-[#3498db] h-[2px] mt-4" />
+    <div ref={ref} className="bg-white p-4 sm:p-8 printable-area text-black font-sans text-[11px] leading-tight">
+        <header className="text-center mb-8 border-b-2 border-slate-900 pb-6">
+            <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">{warehouseInfo?.name || 'Sri Lakshmi Warehouse'}</h1>
+            <p className="text-xs font-bold text-slate-600 mt-1 uppercase tracking-widest">{warehouseInfo?.addressLine1} {warehouseInfo?.addressLine2}</p>
+            <p className="text-xs font-bold text-slate-600">PH: {warehouseInfo?.phone}</p>
+            <div className="mt-4 inline-block bg-slate-900 text-white px-6 py-1.5 font-bold text-sm uppercase tracking-[0.2em]">Customer Account Statement</div>
         </header>
 
-        <div className="grid grid-cols-2 gap-8 mb-8 mt-6">
-            <Card className="shadow-none border border-slate-200 bg-slate-50/30">
-                <CardContent className="p-4 space-y-2">
-                    <div className="flex justify-between items-center text-sm border-b border-slate-200 pb-1">
-                        <span className="font-bold text-slate-700">Total Bags In:</span>
-                        <span className="font-mono text-slate-900">{totals.totalBagsIn}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm border-b border-slate-200 pb-1">
-                        <span className="font-bold text-slate-700">Total Bags Out:</span>
-                        <span className="font-mono text-slate-900">{totals.totalBagsOut}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm font-bold text-slate-900 pt-1">
-                        <span>Balance Stock:</span>
-                        <span className="font-mono text-base">{totals.totalBagsIn - totals.totalBagsOut}</span>
-                    </div>
-                </CardContent>
-            </Card>
-
-            <Card className="shadow-none border border-slate-200 bg-slate-50/30">
-                <CardContent className="p-4 space-y-2">
-                    <div className="flex justify-between items-center text-sm border-b border-slate-200 pb-1">
-                        <span className="font-bold text-slate-700">Total Hamali:</span>
-                        <span className="font-mono text-slate-900">{formatCurrency(totals.totalHamali)}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm border-b border-slate-200 pb-1">
-                        <span className="font-bold text-slate-700">Total Rent:</span>
-                        <span className="font-mono text-slate-900">{formatCurrency(totals.totalRent)}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm border-b border-slate-200 pb-1">
-                        <span className="font-bold text-slate-700">Total Paid:</span>
-                        <span className="font-mono text-green-600">{formatCurrency(totals.totalCredit)}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm font-bold pt-1">
-                        <span className="text-slate-900">Balance Due:</span>
-                        <span className="font-mono text-destructive text-base">{formatCurrency(totals.finalBalance)}</span>
-                    </div>
-                </CardContent>
-            </Card>
+        <div className="grid grid-cols-2 gap-8 mb-6">
+            <div className="space-y-1.5 text-left border-l-4 border-slate-900 pl-4">
+                <p className="flex justify-between w-full max-w-[300px]"><span className="font-bold text-slate-500 uppercase tracking-tighter">Depositor</span><span className="font-black text-slate-900">: {customer.name}</span></p>
+                <p className="flex justify-between w-full max-w-[300px]"><span className="font-bold text-slate-500 uppercase tracking-tighter">Village</span><span className="font-bold text-slate-900">: {customer.village || 'N/A'}</span></p>
+                <p className="flex justify-between w-full max-w-[300px]"><span className="font-bold text-slate-500 uppercase tracking-tighter">Contact</span><span className="font-bold text-slate-900">: {customer.phone}</span></p>
+            </div>
+            <div className="text-right flex flex-col justify-end">
+                <p className="text-[10px] text-slate-500 uppercase font-bold">Statement Generated: {timestamp}</p>
+                <div className="mt-2">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Net Balance Due</p>
+                    <p className="text-3xl font-black text-destructive tracking-tighter">{formatCurrency(totals.finalBalance)}</p>
+                </div>
+            </div>
         </div>
 
-        <div className="overflow-hidden border border-slate-300 rounded-sm">
+        <div className="overflow-hidden border-2 border-slate-900 rounded-sm">
             <Table className="w-full border-collapse">
                 <TableHeader>
-                    <TableRow className="bg-[#3498db] hover:bg-[#3498db] h-9">
-                        <TableHead className="text-white font-bold border border-slate-300 px-1 text-center uppercase">Date</TableHead>
-                        <TableHead className="text-white font-bold border border-slate-300 px-1 text-center uppercase">Description</TableHead>
-                        <TableHead className="text-white font-bold border border-slate-300 px-1 text-center uppercase">Bill No</TableHead>
-                        <TableHead className="text-white font-bold border border-slate-300 px-1 text-center uppercase">Lot No</TableHead>
-                        <TableHead className="text-white font-bold border border-slate-300 px-1 text-center uppercase">Bags In</TableHead>
-                        <TableHead className="text-white font-bold border border-slate-300 px-1 text-center uppercase">Bags Out</TableHead>
-                        <TableHead className="text-white font-bold border border-slate-300 px-1 text-center uppercase">Hamali</TableHead>
-                        <TableHead className="text-white font-bold border border-slate-300 px-1 text-center uppercase">Rent</TableHead>
-                        <TableHead className="text-white font-bold border border-slate-300 px-1 text-center uppercase">Credit</TableHead>
-                        <TableHead className="text-white font-bold border border-slate-300 px-1 text-center uppercase">Balance</TableHead>
+                    <TableRow className="bg-slate-900 hover:bg-slate-900 h-10">
+                        <TableHead className="text-white font-black border-r border-slate-700 px-2 text-center uppercase w-[70px]">Date</TableHead>
+                        <TableHead className="text-white font-black border-r border-slate-700 px-2 text-center uppercase w-[90px]">Inflow Bill No</TableHead>
+                        <TableHead className="text-white font-black border-r border-slate-700 px-2 text-center uppercase w-[60px]">WR (Bags)</TableHead>
+                        <TableHead className="text-white font-black border-r border-slate-700 px-2 text-center uppercase w-[70px]">Total Stock</TableHead>
+                        <TableHead className="text-white font-black border-r border-slate-700 px-2 text-right uppercase w-[90px]">Hamali Amount</TableHead>
+                        <TableHead className="text-white font-black border-r border-slate-700 px-2 text-right uppercase w-[90px]">Rent Amount</TableHead>
+                        <TableHead className="text-white font-black border-r border-slate-700 px-2 text-right uppercase w-[90px]">Paid Amount</TableHead>
+                        <TableHead className="text-white font-black px-3 text-right uppercase w-[110px]">Balance Amount</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {lineItems.map((item, index) => (
-                        <TableRow key={index} className="border-b border-slate-300 hover:bg-slate-50 h-8">
-                            <TableCell className="p-1 border border-slate-300 text-center">{format(item.date, 'dd/MM/yyyy')}</TableCell>
-                            <TableCell className="p-1 border border-slate-300 text-center font-medium">{item.description}</TableCell>
-                            <TableCell className="p-1 border border-slate-300 text-center font-mono">{item.invoiceId}</TableCell>
-                            <TableCell className="p-1 border border-slate-300 text-center font-mono">{item.lotNo}</TableCell>
-                            <TableCell className="p-1 border border-slate-300 text-center font-mono">{item.bagsIn || ''}</TableCell>
-                            <TableCell className="p-1 border border-slate-300 text-center font-mono">{item.bagsOut || ''}</TableCell>
-                            <TableCell className="p-1 border border-slate-300 text-center font-mono">{item.hamali > 0 ? formatCurrency(item.hamali) : ''}</TableCell>
-                            <TableCell className="p-1 border border-slate-300 text-center font-mono">{item.rent > 0 ? formatCurrency(item.rent) : ''}</TableCell>
-                            <TableCell className="p-1 border border-slate-300 text-center font-mono text-green-700">{item.credit > 0 ? formatCurrency(item.credit) : ''}</TableCell>
-                            <TableCell className="p-1 border border-slate-300 text-center font-mono font-bold">{formatCurrency(item.balance)}</TableCell>
+                        <TableRow key={index} className="border-b border-slate-200 hover:bg-slate-50 h-8 group">
+                            <TableCell className="p-2 border-r border-slate-200 text-center font-bold text-slate-600">{format(item.date, 'dd/MM/yy')}</TableCell>
+                            <TableCell className="p-2 border-r border-slate-200 text-center font-mono font-black text-slate-900">{item.billNo}</TableCell>
+                            <TableCell className={`p-2 border-r border-slate-200 text-center font-mono font-bold ${item.bags > 0 ? 'text-primary' : item.bags < 0 ? 'text-destructive' : 'text-slate-400'}`}>
+                                {item.bags !== 0 ? item.bags : '-'}
+                            </TableCell>
+                            <TableCell className="p-2 border-r border-slate-200 text-center font-mono font-black text-slate-900 bg-slate-50">{item.totalStock}</TableCell>
+                            <TableCell className="p-2 border-r border-slate-200 text-right font-mono font-bold text-slate-600">{item.hamali > 0 ? formatCurrency(item.hamali).replace('₹', '') : '-'}</TableCell>
+                            <TableCell className="p-2 border-r border-slate-200 text-right font-mono font-bold text-slate-600">{item.rent > 0 ? formatCurrency(item.rent).replace('₹', '') : '-'}</TableCell>
+                            <TableCell className="p-2 border-r border-slate-200 text-right font-mono text-green-700 font-black">{item.paid > 0 ? formatCurrency(item.paid).replace('₹', '') : '-'}</TableCell>
+                            <TableCell className="p-2 px-3 text-right font-mono font-black bg-slate-100/50 group-hover:bg-slate-100">{formatCurrency(item.balance).replace('₹', '')}</TableCell>
                         </TableRow>
                     ))}
+                    {lineItems.length === 0 && (
+                        <TableRow>
+                            <TableCell colSpan={8} className="p-12 text-center text-slate-400 font-bold uppercase tracking-widest italic">No transaction history available.</TableCell>
+                        </TableRow>
+                    )}
                 </TableBody>
                  <TableFooter>
-                    <TableRow className="bg-slate-100 font-bold border-t-2 border-slate-400 h-9">
-                        <TableCell colSpan={4} className="text-right border border-slate-300 uppercase px-2">Grand Totals:</TableCell>
-                        <TableCell className="text-center border border-slate-300 font-mono">{totals.totalBagsIn}</TableCell>
-                        <TableCell className="text-center border border-slate-300 font-mono">{totals.totalBagsOut}</TableCell>
-                        <TableCell className="text-center border border-slate-300 font-mono">{formatCurrency(totals.totalHamali)}</TableCell>
-                        <TableCell className="text-center border border-slate-300 font-mono">{formatCurrency(totals.totalRent)}</TableCell>
-                        <TableCell className="text-center border border-slate-300 font-mono text-green-700">{formatCurrency(totals.totalCredit)}</TableCell>
-                        <TableCell className="text-center border border-slate-300 font-mono text-destructive text-sm">{formatCurrency(totals.finalBalance)}</TableCell>
+                    <TableRow className="bg-slate-900 text-white font-black border-t-2 border-slate-900 h-10">
+                        <TableCell colSpan={2} className="text-right border-r border-slate-700 uppercase px-3 tracking-widest text-[9px]">Grand Totals:</TableCell>
+                        <TableCell className="text-center border-r border-slate-700 font-mono text-xs">-</TableCell>
+                        <TableCell className="text-center border-r border-slate-700 font-mono text-xs">{totals.finalStock}</TableCell>
+                        <TableCell className="text-right border-r border-slate-700 font-mono text-xs">{formatCurrency(totals.totalHamali).replace('₹', '')}</TableCell>
+                        <TableCell className="text-right border-r border-slate-700 font-mono text-xs">{formatCurrency(totals.totalRent).replace('₹', '')}</TableCell>
+                        <TableCell className="text-right border-r border-slate-700 font-mono text-xs text-green-300">{formatCurrency(totals.totalPaid).replace('₹', '')}</TableCell>
+                        <TableCell className="text-right font-mono text-sm bg-destructive text-white px-3">{formatCurrency(totals.finalBalance).replace('₹', '')}</TableCell>
                     </TableRow>
                  </TableFooter>
             </Table>
         </div>
         
-        <div className="mt-16 flex flex-col items-end text-center space-y-1">
-            <div className="w-72 border-t border-slate-400 pt-4">
-                <p className="text-slate-800 font-bold text-[11px] uppercase tracking-wider">AUTHORIZED MANAGER SIGNATURE</p>
-                <p className="text-[#3498db] font-bold text-[10px] uppercase mt-1">SRI LAKSHMI WAREHOUSE</p>
+        <div className="mt-16 flex justify-between text-center gap-12">
+            <div className="flex-1 max-w-[250px]">
+                <div className="border-t-2 border-slate-900 pt-2">
+                    <p className="text-slate-900 font-black text-[10px] uppercase tracking-tighter">Customer Signature</p>
+                </div>
             </div>
-            <div className="text-[9px] text-slate-500 italic mt-6 space-y-0.5">
-                <p>Report validity verified on {timestamp}</p>
-                <p>This is a computer generated statement.</p>
+            {warehouseInfo?.bankDetails && (
+                <div className="flex-1 bg-slate-50 border-2 border-dashed border-slate-300 p-4 text-left">
+                    <p className="text-[9px] font-black uppercase text-slate-400 mb-1">Bank Payment Info</p>
+                    <p className="font-bold text-slate-700 whitespace-pre-wrap leading-tight">{warehouseInfo.bankDetails}</p>
+                </div>
+            )}
+            <div className="flex-1 max-w-[250px]">
+                <div className="border-t-2 border-slate-900 pt-2">
+                    <p className="text-slate-900 font-black text-[10px] uppercase tracking-tighter">Manager / Accountant</p>
+                    <p className="text-primary font-black text-[9px] uppercase mt-1 tracking-widest">{warehouseInfo?.name || 'Sri Lakshmi Warehouse'}</p>
+                </div>
             </div>
         </div>
+
+        <footer className="text-[8px] text-slate-400 font-bold uppercase mt-12 text-center border-t pt-4 border-slate-100">
+            <p>Computer generated document - No physical signature required for audit purposes.</p>
+        </footer>
     </div>
   );
 });

@@ -1,3 +1,4 @@
+
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { AddExpenseDialog } from "@/components/expenses/add-expense-dialog";
@@ -34,22 +35,20 @@ function IncomesTable({ incomes }: { incomes: OtherIncome[] }) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="hidden sm:table-cell">Date</TableHead>
-                <TableHead>Ref No</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Vehicle</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
+                <TableHead className="hidden sm:table-cell uppercase text-[10px] font-bold">Date</TableHead>
+                <TableHead className="uppercase text-[10px] font-bold">Ref No</TableHead>
+                <TableHead className="uppercase text-[10px] font-bold">Category</TableHead>
+                <TableHead className="uppercase text-[10px] font-bold">Description</TableHead>
+                <TableHead className="text-right uppercase text-[10px] font-bold">Amount</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {incomes.map((income) => (
-                <TableRow key={income.id}>
-                  <TableCell className="hidden sm:table-cell">{format(toDate(income.date), 'dd MMM yyyy')}</TableCell>
+                <TableRow key={income.id} className="h-8 text-[13px]">
+                  <TableCell className="hidden sm:table-cell">{format(toDate(income.date), 'dd/MM/yy')}</TableCell>
                   <TableCell className="font-mono">{income.refNo || '-'}</TableCell>
                   <TableCell>{income.category}</TableCell>
                   <TableCell className="font-medium">{income.description}</TableCell>
-                  <TableCell>{income.lorryTractorNo || '-'}</TableCell>
                   <TableCell className="text-right font-mono text-green-600">{formatCurrency(income.amount)}</TableCell>
                 </TableRow>
               ))}
@@ -86,18 +85,18 @@ function ExpensesTable({ expenses }: { expenses: Expense[] }) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="hidden sm:table-cell">Date</TableHead>
-              <TableHead>Ref No</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
+              <TableHead className="hidden sm:table-cell uppercase text-[10px] font-bold">Date</TableHead>
+              <TableHead className="uppercase text-[10px] font-bold">Ref No</TableHead>
+              <TableHead className="uppercase text-[10px] font-bold">Category</TableHead>
+              <TableHead className="uppercase text-[10px] font-bold">Description</TableHead>
+              <TableHead className="text-right uppercase text-[10px] font-bold">Amount</TableHead>
               {canEdit && <TableHead className="w-[50px]"></TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {expenses.map((expense) => (
-              <TableRow key={expense.id}>
-                <TableCell className="hidden sm:table-cell">{format(toDate(expense.date), 'dd MMM yyyy')}</TableCell>
+              <TableRow key={expense.id} className="h-8 text-[13px]">
+                <TableCell className="hidden sm:table-cell">{format(toDate(expense.date), 'dd/MM/yy')}</TableCell>
                 <TableCell className="font-mono">{expense.refNo || '-'}</TableCell>
                 <TableCell>{expense.category}</TableCell>
                 <TableCell className="font-medium">{expense.description}</TableCell>
@@ -114,185 +113,6 @@ function ExpensesTable({ expenses }: { expenses: Expense[] }) {
       </CardContent>
     </Card>
   );
-}
-
-function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
-  const appUser = useAppUser();
-  const canEdit = appUser?.role === 'owner';
-  const activeBorrowings = useMemo(() => (borrowings || []).filter(b => b.status !== 'Paid Off'), [borrowings]);
-
-  if (activeBorrowings.length === 0) {
-    return null;
-  }
-  
-  const borrowingsWithInterest = useMemo(() => {
-    return activeBorrowings.map(borrowing => {
-        let principal = borrowing.principal;
-        let accruedInterest = 0;
-        let lastDate = toDate(borrowing.dateTaken);
-        const monthlyRate = borrowing.interestRate / 100;
-
-        const allPayments = [...(borrowing.payments || []).map(p => ({...p, date: toDate(p.date)}))].sort((a,b) => a.date.getTime() - b.date.getTime());
-
-        for (const payment of allPayments) {
-            const dateOfPayment = payment.date;
-            
-            const months = differenceInCalendarMonths(dateOfPayment, lastDate);
-            if (months > 0) {
-                accruedInterest += principal * monthlyRate * months;
-            }
-            
-            let paymentAmount = payment.amount;
-            const interestPayment = Math.min(paymentAmount, accruedInterest);
-            accruedInterest -= interestPayment;
-            paymentAmount -= interestPayment;
-
-            if (paymentAmount > 0) {
-                principal -= paymentAmount;
-            }
-
-            lastDate = dateOfPayment;
-        }
-
-        const today = new Date();
-        const finalMonths = differenceInCalendarMonths(today, lastDate);
-        if (finalMonths > 0) {
-            accruedInterest += principal * monthlyRate * finalMonths;
-        }
-        
-        return {
-            ...borrowing,
-            principalDue: principal,
-            interestDue: Math.max(0, accruedInterest),
-        };
-    });
-  }, [activeBorrowings]);
-  
-  return (
-    <div>
-        <h3 className="text-lg font-semibold mb-2 px-6">Active Borrowings (Money Taken)</h3>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="px-6">Lender</TableHead>
-              <TableHead>Ref No</TableHead>
-              <TableHead>Date Taken</TableHead>
-              <TableHead>Interest</TableHead>
-              <TableHead className="text-right">Yearly Interest</TableHead>
-              <TableHead className="text-right px-6">Principal</TableHead>
-              {canEdit && <TableHead className="w-[50px]"></TableHead>}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {borrowingsWithInterest.map((borrowing) => (
-                <TableRow key={borrowing.id}>
-                  <TableCell className="font-medium px-6">{borrowing.lenderName}</TableCell>
-                  <TableCell className="font-mono">{borrowing.refNo || '-'}</TableCell>
-                  <TableCell>{format(toDate(borrowing.dateTaken), 'dd MMM yyyy')}</TableCell>
-                  <TableCell>{borrowing.interestRate}% Monthly</TableCell>
-                  <TableCell className="text-right font-mono text-destructive">{formatCurrency(borrowing.interestDue)}</TableCell>
-                  <TableCell className="text-right font-mono text-destructive px-6">{formatCurrency(borrowing.principalDue)}</TableCell>
-                  {canEdit && (
-                    <TableCell>
-                      <BorrowingActionsMenu borrowing={borrowing} />
-                    </TableCell>
-                  )}
-                </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-    </div>
-  )
-}
-
-function LendingsTable({ lendings }: { lendings: Lending[] }) {
-  const appUser = useAppUser();
-  const canEdit = appUser?.role === 'owner';
-  const activeLendings = useMemo(() => (lendings || []).filter(l => l.status !== 'Paid Off'), [lendings]);
-  
-  if (activeLendings.length === 0) {
-    return null;
-  }
-  
-  const lendingsWithInterest = useMemo(() => {
-    return activeLendings.map(lending => {
-        let principal = lending.principal;
-        let accruedInterest = 0;
-        let lastDate = toDate(lending.dateGiven);
-        const monthlyRate = lending.interestRate / 100;
-
-        const allPayments = [...(lending.payments || []).map(p => ({...p, date: toDate(p.date)}))].sort((a,b) => a.date.getTime() - b.date.getTime());
-
-        for (const payment of allPayments) {
-            const dateOfPayment = payment.date;
-            
-            const months = differenceInCalendarMonths(dateOfPayment, lastDate);
-            if (months > 0) {
-                accruedInterest += principal * monthlyRate * months;
-            }
-            
-            let paymentAmount = payment.amount;
-            const interestPayment = Math.min(paymentAmount, accruedInterest);
-            accruedInterest -= interestPayment;
-            paymentAmount -= interestPayment;
-
-            if (paymentAmount > 0) {
-                principal -= paymentAmount;
-            }
-
-            lastDate = dateOfPayment;
-        }
-
-        const today = new Date();
-        const finalMonths = differenceInCalendarMonths(today, lastDate);
-        if (finalMonths > 0) {
-            accruedInterest += principal * monthlyRate * finalMonths;
-        }
-        
-        return {
-            ...lending,
-            principalDue: principal,
-            interestDue: Math.max(0, accruedInterest),
-        };
-    });
-
-  }, [activeLendings]);
-  
-  return (
-    <div>
-        <h3 className="text-lg font-semibold mb-2 px-6">Active Lendings (Money Given)</h3>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="px-6">Borrower</TableHead>
-              <TableHead>Ref No</TableHead>
-              <TableHead>Date Given</TableHead>
-              <TableHead>Interest</TableHead>
-              <TableHead className="text-right">Yearly Interest Income</TableHead>
-              <TableHead className="text-right px-6">Principal</TableHead>
-              {canEdit && <TableHead className="w-[50px]"></TableHead>}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {lendingsWithInterest.map((lending) => (
-                <TableRow key={lending.id}>
-                  <TableCell className="font-medium px-6">{lending.borrowerName}</TableCell>
-                  <TableCell className="font-mono">{lending.refNo || '-'}</TableCell>
-                  <TableCell>{format(toDate(lending.dateGiven), 'dd MMM yyyy')}</TableCell>
-                  <TableCell>{lending.interestRate}% Monthly</TableCell>
-                  <TableCell className="text-right font-mono text-green-600">{formatCurrency(lending.interestDue)}</TableCell>
-                  <TableCell className="text-right font-mono text-green-600 px-6">{formatCurrency(lending.principalDue)}</TableCell>
-                  {canEdit && (
-                    <TableCell>
-                      <LendingActionsMenu lending={lending} />
-                    </TableCell>
-                  )}
-                </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-    </div>
-  )
 }
 
 export default function ExpensesPage() {
@@ -330,7 +150,7 @@ export default function ExpensesPage() {
 
   const { periodIncome, periodExpenses, periodBalance, filteredExpenses, filteredIncomes, interestOnCapital, estimatedRent, activeBags, nextExpenseRefNo, nextIncomeRefNo } = useMemo(() => {
     if (!allRecords || !allExpenses || !allUnloadingRecords || !otherIncomes || !allCommodities) {
-        return { periodIncome: 0, periodExpenses: 0, periodBalance: 0, filteredExpenses: [], filteredIncomes: [], interestOnCapital: 0, estimatedRent: 0, activeBags: 0, nextExpenseRefNo: 'E-1001', nextIncomeRefNo: 'I-1001' };
+        return { periodIncome: 0, periodExpenses: 0, periodBalance: 0, filteredExpenses: [], filteredIncomes: [], interestOnCapital: 0, estimatedRent: 0, activeBags: 0, nextExpenseRefNo: '1001', nextIncomeRefNo: '1001' };
     }
 
     const inRange = (date: Date) => {
@@ -399,12 +219,12 @@ export default function ExpensesPage() {
     
     const totalActiveBags = activeRecords.reduce((acc, record) => acc + record.bagsStored, 0);
 
-    const getMaxRef = (list: any[], prefix: string) => {
+    const getMaxRef = (list: any[]) => {
       const max = list.reduce((max, item) => {
         const val = parseInt(item.refNo?.replace(/[^0-9]/g, '') || '0', 10);
         return isNaN(val) ? max : Math.max(max, val);
       }, 0);
-      return `${prefix}-${Math.max(1001, max + 1)}`;
+      return String(Math.max(1001, max + 1));
     };
 
     return {
@@ -416,8 +236,8 @@ export default function ExpensesPage() {
       interestOnCapital: calculatedInterest,
       estimatedRent: rentEstimate,
       activeBags: totalActiveBags,
-      nextExpenseRefNo: getMaxRef(allExpenses, 'E'),
-      nextIncomeRefNo: getMaxRef(otherIncomes, 'I')
+      nextExpenseRefNo: getMaxRef(allExpenses),
+      nextIncomeRefNo: getMaxRef(otherIncomes)
     };
   }, [allRecords, allExpenses, allUnloadingRecords, otherIncomes, dateRange, warehouseInfo, financialYear, allCommodities]);
 
@@ -452,71 +272,54 @@ export default function ExpensesPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 mb-6">
-        <Card>
+        <Card className="stylish-card">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Income</CardTitle>
-                <TrendingUp className="h-4 w-4 text-muted-foreground text-green-500" />
+                <TrendingUp className="h-4 w-4 text-green-500" />
             </CardHeader>
             <CardContent>
                 <div className="text-2xl font-bold text-green-600">{formatCurrency(periodIncome)}</div>
-                <p className="text-xs text-muted-foreground">
-                    Income received during the selected period.
-                </p>
             </CardContent>
         </Card>
-        <Card>
+        <Card className="stylish-card">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
-                 <TrendingDown className="h-4 w-4 text-muted-foreground text-red-500" />
+                 <TrendingDown className="h-4 w-4 text-red-500" />
             </CardHeader>
             <CardContent>
                 <div className="text-2xl font-bold text-destructive">{formatCurrency(periodExpenses)}</div>
-                 <p className="text-xs text-muted-foreground">
-                    Expenses recorded during the selected period.
-                </p>
             </CardContent>
         </Card>
-         <Card>
+         <Card className="stylish-card">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Interest on Capital</CardTitle>
                 <Banknote className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
                 <div className="text-2xl font-bold text-orange-600">{formatCurrency(interestOnCapital)}</div>
-                <p className="text-xs text-muted-foreground">
-                    on {formatCurrency(warehouseInfo?.capitalInvestment || 0)} @ {warehouseInfo?.annualInterestRate || 0}% p.a.
-                </p>
             </CardContent>
         </Card>
-         <Card>
+         <Card className="stylish-card">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Outstanding Balance</CardTitle>
                 <IndianRupee className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
                 <div className="text-2xl font-bold text-blue-600">{formatCurrency(estimatedRent)}</div>
-                <p className="text-xs text-muted-foreground">
-                    Money Owed on {activeBags} active bags.
-                </p>
+                <p className="text-[10px] text-muted-foreground">Owed on {activeBags} active bags.</p>
             </CardContent>
         </Card>
-        <Card>
+        <Card className="stylish-card">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Net Profit / Loss</CardTitle>
                  <Scale className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
                 <div className={`text-2xl font-bold ${periodBalance >= 0 ? 'text-primary' : 'text-destructive'}`}>{formatCurrency(periodBalance)}</div>
-                 <p className="text-xs text-muted-foreground">
-                    Your net profit or loss for the selected period.
-                </p>
             </CardContent>
         </Card>
       </div>
       <div className="space-y-8">
-        <BorrowingsTable borrowings={borrowings || []} />
-        <LendingsTable lendings={lendings || []} />
-        <Separator />
         <IncomesTable incomes={filteredIncomes} />
         <ExpensesTable expenses={filteredExpenses} />
       </div>

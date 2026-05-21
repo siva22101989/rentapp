@@ -1,3 +1,4 @@
+
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
@@ -42,17 +43,17 @@ export default function InflowPage() {
   const { data: lots, loading: loadingLots } = useCollection<Lot>(lotsQuery);
 
   const nextId = useMemo(() => {
-    if (!records || records.length === 0) return 'S-1001';
+    if (!records || records.length === 0) return '1001';
     const maxId = records.reduce((max, r) => {
         const idNum = parseInt(r.id.replace(/[^0-9]/g, ''), 10);
         return isNaN(idNum) ? max : Math.max(max, idNum);
     }, 0);
-    return `S-${maxId + 1}`;
+    return String(Math.max(1001, maxId + 1));
   }, [records]);
 
 
   if (loadingCustomers || loadingRecords || loadingCommodities || loadingLots) {
-    return <AppLayout><div>Loading...</div></AppLayout>;
+    return <AppLayout><div className="p-8 text-center">Loading inflow data...</div></AppLayout>;
   }
 
   return (
@@ -69,6 +70,7 @@ export default function InflowPage() {
           commodities={commodities || []}
           lots={lots || []}
           records={records || []}
+          nextId={nextId}
         />
       ) : (
         <Card><CardContent className="p-8 text-center text-muted-foreground">This function is not available for super-admins.</CardContent></Card>

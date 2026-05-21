@@ -1,3 +1,4 @@
+
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
@@ -48,16 +49,16 @@ export default function UnloadingPage() {
   const { data: storageRecords, loading: loadingStorage } = useCollection<StorageRecord>(storageRecordsQuery);
 
   const nextBillNo = useMemo(() => {
-    if (!unloadingRecords || unloadingRecords.length === 0) return 'U-1001';
+    if (!unloadingRecords || unloadingRecords.length === 0) return '1001';
     const maxBillNo = unloadingRecords.reduce((max, record) => {
       const billNo = parseInt(record.billNo?.replace(/[^0-9]/g, '') || '0', 10);
-      return billNo > max ? billNo : max;
+      return isNaN(billNo) ? max : Math.max(max, billNo);
     }, 0);
-    return `U-${maxBillNo + 1}`;
+    return String(Math.max(1001, maxBillNo + 1));
   }, [unloadingRecords]);
 
   if (loadingCustomers || loadingRecords || loadingCommodities || loadingLots || loadingStorage) {
-    return <AppLayout><div>Loading...</div></AppLayout>;
+    return <AppLayout><div className="p-8 text-center">Loading unloading process...</div></AppLayout>;
   }
 
   return (

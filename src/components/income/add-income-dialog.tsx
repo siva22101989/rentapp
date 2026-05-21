@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -171,7 +172,7 @@ export function AddIncomeDialog({ lendings, nextRefNo }: { lendings: Lending[], 
             <DialogHeader>
               <DialogTitle>Add Miscellaneous Income</DialogTitle>
               <DialogDescription className="text-xs">
-                Reference No is auto-generated and locked.
+                Reference No (Numerical) is auto-generated.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-2">
@@ -211,7 +212,7 @@ export function AddIncomeDialog({ lendings, nextRefNo }: { lendings: Lending[], 
                             .filter(l => l.status !== 'Paid Off')
                             .map(l => (
                             <SelectItem key={l.id} value={l.id} className="text-sm">
-                                {l.borrowerName} ({formatCurrency(l.principal)})
+                                {l.borrowerName} ({formatCurrency(b.principal)})
                             </SelectItem>
                         ))}
                         </SelectContent>

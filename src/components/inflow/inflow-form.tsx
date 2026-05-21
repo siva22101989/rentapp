@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useTransition, useState, useEffect, useMemo } from 'react';
@@ -21,19 +22,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { sendSms } from '@/lib/sms';
 import { format } from 'date-fns';
 
-function SubmitButton({ isPending }: { isPending: boolean }) {
-    return (
-      <Button type="submit" disabled={isPending} className="w-full text-sm">
-        {isPending ? (
-          <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
-        ) : (
-          'Create Storage Record'
-        )}
-      </Button>
-    );
-}
-
-export function InflowForm({ customers, commodities, lots, records }: { customers: Customer[], commodities: Commodity[], lots: Lot[], records: StorageRecord[] }) {
+export function InflowForm({ customers, commodities, lots, records, nextId }: { customers: Customer[], commodities: Commodity[], lots: Lot[], records: StorageRecord[], nextId: string }) {
     const { toast } = useToast();
     const firestore = useFirestore();
     const appUser = useAppUser();
@@ -52,20 +41,11 @@ export function InflowForm({ customers, commodities, lots, records }: { customer
     const [lorryTractorNo, setLorryTractorNo] = useState('');
     const [storageStartDate, setStorageStartDate] = useState(new Date().toISOString().split('T')[0]);
 
-    const generatedId = useMemo(() => {
-        if (!records || records.length === 0) return 'S-1001';
-        const maxId = records.reduce((max, r) => {
-            const idNum = parseInt(r.id.replace(/[^0-9]/g, ''), 10);
-            return isNaN(idNum) ? max : Math.max(max, idNum);
-        }, 0);
-        return `S-${Math.max(1001, maxId + 1)}`;
-    }, [records]);
-
-    const [storageId, setStorageId] = useState(generatedId);
+    const [storageId, setStorageId] = useState(nextId);
 
     useEffect(() => {
-        setStorageId(generatedId);
-    }, [generatedId]);
+        setStorageId(nextId);
+    }, [nextId]);
 
     const warehouseInfoRef = useMemoFirebase(
       () => (firestore && appUser?.warehouseId ? doc(firestore, 'warehouses', appUser.warehouseId) : null),
@@ -96,7 +76,6 @@ export function InflowForm({ customers, commodities, lots, records }: { customer
     }, [lots, lotOccupancy]);
 
     const selectedCustomer = useMemo(() => customers.find(c => c.id === selectedCustomerId), [selectedCustomerId, customers]);
-
     const customerHamali = useMemo(() => (Number(bags) || 0) * (Number(customerRate) || 0), [bags, customerRate]);
 
     const resetForm = () => {
@@ -191,15 +170,15 @@ export function InflowForm({ customers, commodities, lots, records }: { customer
   return (
     <div className="flex justify-center">
         <form onSubmit={handleSubmit} className="w-full max-w-lg">
-            <Card>
+            <Card className="stylish-card">
                 <CardHeader>
                     <CardTitle className="text-lg font-bold">New Storage Record Details</CardTitle>
-                    <CardDescription className="text-xs">Storage ID is strictly auto-generated and locked.</CardDescription>
+                    <CardDescription className="text-xs">Identifier is strictly numerical.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                      <div className="space-y-1.5">
                         <Label className="flex items-center gap-2 text-xs font-semibold">
-                            Storage ID
+                            Storage ID (Numerical)
                             <Badge variant="outline" className="text-[9px] uppercase font-bold py-0 h-4 bg-primary/5 text-primary">
                                 <Sparkles className="h-2 w-2 mr-1" /> Auto-Generated
                             </Badge>
@@ -273,7 +252,9 @@ export function InflowForm({ customers, commodities, lots, records }: { customer
                     </div>
                 </CardContent>
                 <CardFooter>
-                    <SubmitButton isPending={isPending} />
+                    <Button type="submit" disabled={isPending} className="w-full text-sm">
+                        {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : 'Create Storage Record'}
+                    </Button>
                 </CardFooter>
             </Card>
         </form>

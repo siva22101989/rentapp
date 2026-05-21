@@ -144,13 +144,13 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                 <form onSubmit={form.handleSubmit(onSubmit)}>
                     <CardHeader>
                         <CardTitle className="text-lg font-bold">New Unloading Record</CardTitle>
-                        <CardDescription className="text-xs">Bill No. is auto-generated.</CardDescription>
+                        <CardDescription className="text-xs">Identified by numeric Bill No.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <FormField control={form.control} name="billNo" render={({ field }) => (
                             <FormItem>
                                 <FormLabel className="flex items-center gap-2 text-xs font-semibold">
-                                    Bill No.
+                                    Bill No. (Numerical)
                                     <Badge variant="outline" className="text-[9px] uppercase py-0 h-4 bg-primary/5 text-primary"><Sparkles className="h-2 w-2 mr-1" /> Auto</Badge>
                                 </FormLabel>
                                 <FormControl><Input className="font-mono font-bold bg-muted/50 text-sm h-9" {...field} readOnly /></FormControl>

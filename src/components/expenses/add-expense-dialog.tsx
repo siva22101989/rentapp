@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -165,7 +166,7 @@ export function AddExpenseDialog({ borrowings, nextRefNo }: { borrowings: Borrow
             <DialogHeader>
               <DialogTitle>Add New Expense</DialogTitle>
               <DialogDescription className="text-xs">
-                Reference No is auto-generated and locked.
+                Reference No (Numerical) is auto-generated.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-2">

@@ -1,3 +1,4 @@
+
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
@@ -10,13 +11,14 @@ import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 import { useAppUser } from "@/firebase/auth/use-user";
 import { Card, CardContent } from "@/components/ui/card";
 import { useMemo } from "react";
+import { Loader2 } from "lucide-react";
 
 export default function OutflowPage() {
   const firestore = useFirestore();
   const appUser = useAppUser();
   const canAdd = appUser?.role !== 'super-admin';
 
-  // Fetch all warehouse records to ensure we don't miss any due to incomplete fields
+  // Fetch all warehouse records to ensure we don't miss any due to Firestore 'null' field filtering issues
   const allRecordsQuery = useMemoFirebase(
     () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'storageRecords'), where('warehouseId', '==', appUser.warehouseId)) : null),
     [firestore, appUser]
@@ -35,10 +37,10 @@ export default function OutflowPage() {
   );
   const { data: commodities, loading: loadingCommodities } = useCollection<Commodity>(commoditiesQuery);
 
-  // In-memory filter for active stock: must have bagsStored > 0
+  // Robust in-memory filter for active stock: must have bagsStored > 0
   const activeRecords = useMemo(() => {
     if (!allRecords) return [];
-    return allRecords.filter(r => Number(r.bagsStored || 0) > 0);
+    return allRecords.filter(r => (Number(r.bagsStored) || 0) > 0);
   }, [allRecords]);
 
   if (loadingCustomers || loadingRecords || loadingCommodities) {
@@ -46,7 +48,7 @@ export default function OutflowPage() {
         <AppLayout>
             <div className="flex h-64 items-center justify-center text-muted-foreground">
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Loading active Godown stock...
+                Loading active inventory stock...
             </div>
         </AppLayout>
     );
@@ -66,5 +68,3 @@ export default function OutflowPage() {
     </AppLayout>
   );
 }
-
-import { Loader2 } from "lucide-react";

@@ -98,7 +98,7 @@ function DashboardHeader({ activeRecordsCount, occupancy, warehouseInfo, appUser
                         </Badge>
                         <span className="text-white/40 text-xs font-medium">|</span>
                         <p className="text-sm font-bold flex items-center gap-2 text-white/80">
-                            <Wheat size={16} />
+                            <Warehouse size={16} />
                             {warehouseInfo?.name || 'Sri Lakshmi Warehouse'}
                         </p>
                     </div>

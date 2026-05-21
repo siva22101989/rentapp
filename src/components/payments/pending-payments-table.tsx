@@ -56,6 +56,7 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, tit
             // Accrued Rent on items still in Godown
             let accruedRent = 0;
             if (r.bagsStored > 0 && !r.storageEndDate) {
+                // Ensure record has billing rates, otherwise it won't show dues
                 const { rent } = calculateFinalRent({ ...r, storageStartDate: toDate(r.storageStartDate) }, today, r.bagsStored);
                 accruedRent = rent;
             }
@@ -75,14 +76,17 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, tit
         unloadingRecords.forEach(r => {
             const s = getSummary(r.customerId);
             const remainingBags = Math.max(0, (r.bagsUnloaded || 0) - (r.bagsSentToDrying || 0));
-            if (remainingBags <= 0) return;
-
-            const remainingHamaliLiability = remainingBags * (r.hamaliPerBag || 0);
-            const totalPaidOnUnloading = (r.payments || []).reduce((acc, p) => acc + p.amount, 0);
+            if (remainingBags <= 0) {
+                 // Check if it has payments but is billed elsewhere?
+                 // No, only remaining bags generate new hamali liability here.
+            } else {
+                const remainingHamaliLiability = remainingBags * (r.hamaliPerBag || 0);
+                s.totalBilled += remainingHamaliLiability;
+                s.totalHamaliLiability += remainingHamaliLiability;
+            }
             
-            s.totalBilled += remainingHamaliLiability;
+            const totalPaidOnUnloading = (r.payments || []).reduce((acc, p) => acc + p.amount, 0);
             s.amountPaid += totalPaidOnUnloading;
-            s.totalHamaliLiability += remainingHamaliLiability;
 
             const uDate = toDate(r.unloadingDate).getTime();
             if (uDate > s.lastDate) s.lastDate = uDate;

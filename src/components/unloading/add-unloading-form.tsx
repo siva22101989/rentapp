@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo, useTransition } from 'react';
@@ -187,7 +188,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                                 <FormItem><FormLabel className="text-xs font-semibold">Vehicle No.</FormLabel><FormControl><Input className="text-sm h-9" {...field} /></FormControl><FormMessage /></FormItem>
                             )} />
                             <FormField control={form.control} name="unloadingDate" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-semibold">Date</FormLabel><FormControl><Input type="date" className="text-sm h-9" {...field} /></FormControl><FormMessage /></FormMessage>
+                                <FormItem><FormLabel className="text-xs font-semibold">Date</FormLabel><FormControl><Input type="date" className="text-sm h-9" {...field} /></FormControl><FormMessage /></FormItem>
                             )} />
                         </div>
                         <FormField control={form.control} name="bagsUnloaded" render={({ field }) => (

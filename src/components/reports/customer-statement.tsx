@@ -6,7 +6,6 @@ import type { Customer, StorageRecord, UnloadingRecord, WarehouseInfo } from '@/
 import { formatCurrency, toDate } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { format } from 'date-fns';
-import { Card, CardContent } from '@/components/ui/card';
 
 type CustomerStatementProps = {
   customer: Customer;

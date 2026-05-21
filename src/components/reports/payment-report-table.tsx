@@ -1,8 +1,9 @@
+
 'use client';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { format } from "date-fns";
-import type { Customer, StorageRecord } from "@/lib/definitions";
+import type { Customer } from "@/lib/definitions";
 import { formatCurrency } from '@/lib/utils';
 import { useMemo } from "react";
 import { Button } from "../ui/button";

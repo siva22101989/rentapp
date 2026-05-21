@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -8,11 +7,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { InflowReportTable } from './inflow-report-table';
 import { toDate } from '@/lib/utils';
 import { useDateFilter } from '@/firebase/provider';
-import { useAppUser } from '@/firebase/auth/use-user';
-import { useCollection } from '@/firebase/firestore/use-collection';
-import { useMemoFirebase } from '@/hooks/use-memo-firebase';
-import { collection } from 'firebase/firestore';
-import { useFirestore } from '@/firebase/provider';
 
 type InflowReportProps = {
     records: StorageRecord[];
@@ -76,10 +70,10 @@ export function InflowReport({ records, customers }: InflowReportProps) {
                 <div>
                     <InflowReportTable 
                         records={inflowRecords} 
+                        allRecords={records}
                         customers={customers}
                         title={title}
                         description={description}
-                        allRecords={records}
                     />
                 </div>
             </CardContent>

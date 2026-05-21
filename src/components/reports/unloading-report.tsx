@@ -1,26 +1,22 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
-import type { Customer, UnloadingRecord, Commodity } from "@/lib/definitions";
+import type { Customer, UnloadingRecord, Commodity, Lot, StorageRecord } from "@/lib/definitions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UnloadingReportTable } from './unloading-report-table';
 import { toDate } from '@/lib/utils';
 import { useDateFilter } from '@/firebase/provider';
-import { useAppUser } from '@/firebase/auth/use-user';
-import { useCollection } from '@/firebase/firestore/use-collection';
-import { useMemoFirebase } from '@/hooks/use-memo-firebase';
-import { collection } from 'firebase/firestore';
-import { useFirestore } from '@/firebase/provider';
 
 type UnloadingReportProps = {
     unloadingRecords: UnloadingRecord[];
     customers: Customer[];
     commodities: Commodity[];
+    lots: Lot[];
+    storageRecords: StorageRecord[];
 }
 
-export function UnloadingReport({ unloadingRecords, customers, commodities }: UnloadingReportProps) {
+export function UnloadingReport({ unloadingRecords, customers, commodities, lots, storageRecords }: UnloadingReportProps) {
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>('all');
     
     const { dateRange, financialYear } = useDateFilter();
@@ -77,8 +73,10 @@ export function UnloadingReport({ unloadingRecords, customers, commodities }: Un
                     <UnloadingReportTable 
                         records={filteredRecords} 
                         customers={customers}
-                        title={title}
                         commodities={commodities}
+                        lots={lots}
+                        storageRecords={storageRecords}
+                        title={title}
                     />
                 </div>
             </CardContent>

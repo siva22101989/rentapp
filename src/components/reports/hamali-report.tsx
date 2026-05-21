@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -221,9 +220,9 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses, w
     const renderReport = () => {
         switch(reportView) {
             case 'customer':
-                return <CustomerHamaliReportTable events={customerHamaliEvents} customers={customers} title={title} warehouseInfo={warehouseInfo} />;
+                return <CustomerHamaliReportTable events={customerHamaliEvents} customers={customers} allRecords={records} title={title} />;
             case 'worker':
-                return <WorkerHamaliReportTable events={workerAndProfitEvents} customers={customers} title={title} />;
+                return <WorkerHamaliReportTable events={workerAndProfitEvents} title={title} />;
             case 'difference':
                 return <HamaliProfitReportTable events={workerAndProfitEvents} customers={customers} title={title} />;
             default:

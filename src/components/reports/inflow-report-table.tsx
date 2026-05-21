@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from "react";
@@ -7,15 +6,16 @@ import { format } from "date-fns";
 import type { Customer, StorageRecord } from "@/lib/definitions";
 import { toDate } from '@/lib/utils';
 import { useMemo } from "react";
+import { ActionsMenu } from "@/components/dashboard/actions-menu";
 
 type ReportTableProps = {
     records: StorageRecord[];
+    allRecords: StorageRecord[];
     customers: Customer[];
     title: string;
-    description: string;
 }
 
-export function InflowReportTable({ records, customers, title }: ReportTableProps) {
+export function InflowReportTable({ records, allRecords, customers, title }: ReportTableProps) {
     const generatedDate = useMemo(() => format(new Date(), 'dd/MM/yy, h:mm a'), []);
 
     const getCustomerName = (customerId: string) => {
@@ -34,11 +34,12 @@ export function InflowReportTable({ records, customers, title }: ReportTableProp
                 <Table className="text-[13px]">
                     <TableHeader>
                         <TableRow className="border-b border-black">
-                            <TableHead className="text-black font-bold p-1 text-center uppercase text-[10px]">Date</TableHead>
-                            <TableHead className="text-black font-bold p-1 text-center uppercase text-[10px]">Bill No</TableHead>
-                            <TableHead className="text-black font-bold p-1 text-left uppercase text-[10px]">Customer Name</TableHead>
-                            <TableHead className="text-black font-bold p-1 text-center uppercase text-[10px]">Lot</TableHead>
-                            <TableHead className="text-black font-bold p-1 text-center uppercase text-[10px]">Bags In</TableHead>
+                            <TableHead className="font-bold text-black p-1 text-center uppercase text-[10px]">Date</TableHead>
+                            <TableHead className="font-bold text-black p-1 text-center uppercase text-[10px]">Bill No</TableHead>
+                            <TableHead className="font-bold text-black p-1 text-left uppercase text-[10px]">Customer Name</TableHead>
+                            <TableHead className="font-bold text-black p-1 text-center uppercase text-[10px]">Lot</TableHead>
+                            <TableHead className="font-bold text-black p-1 text-center uppercase text-[10px]">Bags In</TableHead>
+                            <TableHead className="font-bold text-black p-1 text-right uppercase text-[10px] print-hide">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -49,6 +50,9 @@ export function InflowReportTable({ records, customers, title }: ReportTableProp
                                 <TableCell className="p-1 font-bold whitespace-nowrap uppercase">{getCustomerName(record.customerId)}</TableCell>
                                 <TableCell className="p-1 text-center font-mono">{record.location}</TableCell>
                                 <TableCell className="p-1 text-center font-mono font-bold">{record.bagsIn}</TableCell>
+                                <TableCell className="p-1 text-right print-hide">
+                                    <ActionsMenu record={record} customers={customers} allRecords={allRecords} />
+                                </TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
@@ -56,6 +60,7 @@ export function InflowReportTable({ records, customers, title }: ReportTableProp
                         <TableRow className="font-bold bg-slate-50 border-t-2 border-black">
                             <TableCell colSpan={4} className="p-1 text-right uppercase text-[10px]">Total Received Bags</TableCell>
                             <TableCell className="p-1 text-center font-mono text-[14px]">{totalBagsIn}</TableCell>
+                            <TableCell className="print-hide" />
                         </TableRow>
                     </TableFooter>
                 </Table>

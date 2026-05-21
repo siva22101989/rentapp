@@ -1,20 +1,21 @@
-
 'use client';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { format } from "date-fns";
-import type { Customer } from "@/lib/definitions";
+import type { Customer, StorageRecord } from "@/lib/definitions";
 import { formatCurrency } from '@/lib/utils';
 import { useMemo } from "react";
 import type { CustomerHamaliEvent } from "./hamali-report";
+import { ActionsMenu } from "@/components/dashboard/actions-menu";
 
 type ReportTableProps = {
     events: CustomerHamaliEvent[];
     customers: Customer[];
+    allRecords: StorageRecord[];
     title: string;
 }
 
-export function CustomerHamaliReportTable({ events, customers, title }: ReportTableProps) {
+export function CustomerHamaliReportTable({ events, customers, allRecords, title }: ReportTableProps) {
     const generatedDate = useMemo(() => format(new Date(), 'dd/MM/yy, h:mm a'), []);
 
     const getCustomerName = (customerId: string) => {
@@ -40,32 +41,44 @@ export function CustomerHamaliReportTable({ events, customers, title }: ReportTa
                             <TableHead className="font-bold text-black p-1 text-center uppercase text-[9px]">Ref ID</TableHead>
                             <TableHead className="font-bold text-black p-1 text-right uppercase text-[9px]">Charge</TableHead>
                             <TableHead className="font-bold text-black p-1 text-right uppercase text-[9px]">Payment</TableHead>
+                            <TableHead className="font-bold text-black p-1 text-right uppercase text-[9px] print-hide">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {events.map((event, index) => (
-                            <TableRow key={index} className="h-7 border-b border-slate-100">
-                                <TableCell className="p-1 text-center whitespace-nowrap">{format(event.date, 'dd/MM/yy')}</TableCell>
-                                <TableCell className="p-1 font-medium uppercase whitespace-nowrap">{getCustomerName(event.customerId)}</TableCell>
-                                <TableCell className="p-1 text-center font-mono text-slate-400">{event.recordId}</TableCell>
-                                <TableCell className="p-1 text-right font-mono">
-                                    {event.type === 'charge' ? formatCurrency(event.amount) : ''}
-                                </TableCell>
-                                <TableCell className="p-1 text-right font-mono text-green-700">
-                                    {event.type === 'payment' ? formatCurrency(event.amount) : ''}
-                                </TableCell>
-                            </TableRow>
-                        ))}
+                        {events.map((event, index) => {
+                            const parentRecord = allRecords.find(r => r.id === event.recordId);
+                            
+                            return (
+                                <TableRow key={index} className="h-7 border-b border-slate-100">
+                                    <TableCell className="p-1 text-center whitespace-nowrap">{format(event.date, 'dd/MM/yy')}</TableCell>
+                                    <TableCell className="p-1 font-medium uppercase whitespace-nowrap">{getCustomerName(event.customerId)}</TableCell>
+                                    <TableCell className="p-1 text-center font-mono text-slate-400">{event.recordId}</TableCell>
+                                    <TableCell className="p-1 text-right font-mono">
+                                        {event.type === 'charge' ? formatCurrency(event.amount) : ''}
+                                    </TableCell>
+                                    <TableCell className="p-1 text-right font-mono text-green-700">
+                                        {event.type === 'payment' ? formatCurrency(event.amount) : ''}
+                                    </TableCell>
+                                    <TableCell className="p-1 text-right print-hide">
+                                        {parentRecord && (
+                                            <ActionsMenu record={parentRecord} customers={customers} allRecords={allRecords} />
+                                        )}
+                                    </TableCell>
+                                </TableRow>
+                            );
+                        })}
                     </TableBody>
                     <TableFooter>
                         <TableRow className="bg-slate-50 font-bold border-t-2 border-black">
                             <TableCell colSpan={3} className="p-1 text-right uppercase text-[10px]">Total Ledger Dues</TableCell>
                             <TableCell className="p-1 text-right font-mono">{formatCurrency(totalCharges)}</TableCell>
                             <TableCell className="p-1 text-right font-mono text-green-700">{formatCurrency(totalPayments)}</TableCell>
+                            <TableCell className="print-hide" />
                         </TableRow>
                          <TableRow className="bg-black text-white font-black">
                             <TableCell colSpan={4} className="p-1 text-right uppercase text-[10px]">Net Customer Pending</TableCell>
                             <TableCell className="p-1 text-right font-mono text-[14px]">{formatCurrency(totalCharges - totalPayments)}</TableCell>
+                            <TableCell className="print-hide" />
                         </TableRow>
                     </TableFooter>
                 </Table>

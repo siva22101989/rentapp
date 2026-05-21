@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo } from "react";
@@ -6,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFoo
 import { format } from "date-fns";
 import type { Customer, StorageRecord } from "@/lib/definitions";
 import { toDate, formatCurrency } from '@/lib/utils';
+import { ActionsMenu } from "@/components/dashboard/actions-menu";
 
 type MasterRegisterTableProps = {
     records: StorageRecord[];
@@ -63,6 +63,7 @@ export function MasterRegisterTable({ records, customers, title }: MasterRegiste
                             <TableHead className="font-bold text-black p-1 text-right uppercase text-[9px]">Billed</TableHead>
                             <TableHead className="font-bold text-black p-1 text-right uppercase text-[9px]">Paid</TableHead>
                             <TableHead className="font-bold text-black p-1 text-right uppercase text-[9px]">Due</TableHead>
+                            <TableHead className="font-bold text-black p-1 text-right uppercase text-[9px] print-hide">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -78,6 +79,9 @@ export function MasterRegisterTable({ records, customers, title }: MasterRegiste
                                 <TableCell className={`p-1 text-right font-mono font-bold ${record.balanceDue > 0.5 ? 'text-destructive' : ''}`}>
                                     {formatCurrency(record.balanceDue)}
                                 </TableCell>
+                                <TableCell className="p-1 text-right print-hide">
+                                    <ActionsMenu record={record} customers={customers} allRecords={records} />
+                                </TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
@@ -89,6 +93,7 @@ export function MasterRegisterTable({ records, customers, title }: MasterRegiste
                             <TableCell className="p-1 text-right font-mono">{formatCurrency(totals.billed)}</TableCell>
                             <TableCell className="p-1 text-right font-mono text-green-700">{formatCurrency(totals.paid)}</TableCell>
                             <TableCell className="p-1 text-right font-mono text-destructive">{formatCurrency(totals.due)}</TableCell>
+                            <TableCell className="print-hide" />
                         </TableRow>
                     </TableFooter>
                 </Table>

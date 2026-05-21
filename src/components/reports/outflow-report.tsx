@@ -1,13 +1,15 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
-import type { Customer, StorageRecord, Outflow, Commodity, Lot } from "@/lib/definitions";
+import type { Customer, StorageRecord, Outflow, Commodity, Lot, WarehouseInfo } from "@/lib/definitions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { OutflowReportTable, type OutflowEvent } from './outflow-report-table';
 import { toDate } from '@/lib/utils';
 import { useDateFilter } from '@/firebase/provider';
+import { useFirestore, useDoc, useAppUser } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 
 type OutflowReportProps = {
     records: StorageRecord[];
@@ -18,17 +20,37 @@ type OutflowReportProps = {
 
 export function OutflowReport({ records, customers, commodities, lots }: OutflowReportProps) {
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>('all');
-    
+    const firestore = useFirestore();
+    const appUser = useAppUser();
     const { dateRange, financialYear } = useDateFilter();
+
+    const warehouseInfoRef = useMemoFirebase(
+      () => (firestore && appUser?.warehouseId ? doc(firestore, 'warehouses', appUser.warehouseId) : null),
+      [firestore, appUser]
+    );
+    const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
     const outflowEvents = useMemo(() => {
         const events: OutflowEvent[] = [];
         records.forEach(record => {
             if (record.outflows && Array.isArray(record.outflows)) {
                 record.outflows.forEach(outflow => {
+                    const outflowDate = toDate(outflow.date);
+                    
+                    if (financialYear !== 'all-time' && dateRange) {
+                        if (dateRange.from && outflowDate < dateRange.from) return;
+                        if (dateRange.to) {
+                            const toDateObj = new Date(dateRange.to);
+                            toDateObj.setHours(23, 59, 59, 999);
+                            if (outflowDate > toDateObj) return;
+                        }
+                    }
+
+                    if (selectedCustomerId !== 'all' && record.customerId !== selectedCustomerId) return;
+
                     events.push({
                         ...outflow,
-                        date: toDate(outflow.date),
+                        date: outflowDate,
                         customerId: record.customerId,
                         recordId: record.id,
                         commodityDescription: record.commodityDescription,
@@ -38,24 +60,7 @@ export function OutflowReport({ records, customers, commodities, lots }: Outflow
             }
         });
 
-        let filteredEvents = events;
-
-        if (selectedCustomerId && selectedCustomerId !== 'all') {
-            filteredEvents = filteredEvents.filter(r => r.customerId === selectedCustomerId);
-        }
-
-        if (financialYear !== 'all-time' && dateRange) {
-            if (dateRange.from) {
-                filteredEvents = filteredEvents.filter(r => r.date >= dateRange.from!);
-            }
-            if (dateRange.to) {
-                const toDateObj = new Date(dateRange.to);
-                toDateObj.setHours(23, 59, 59, 999); // Include the whole day
-                filteredEvents = filteredEvents.filter(r => r.date <= toDateObj);
-            }
-        }
-
-        return filteredEvents.sort((a,b) => b.date.getTime() - a.date.getTime());
+        return events.sort((a,b) => b.date.getTime() - a.date.getTime());
     }, [records, selectedCustomerId, dateRange, financialYear]);
     
     const customer = customers.find(c => c.id === selectedCustomerId);
@@ -89,10 +94,11 @@ export function OutflowReport({ records, customers, commodities, lots }: Outflow
                     <OutflowReportTable 
                         events={outflowEvents} 
                         customers={customers}
-                        title={title}
                         allRecords={records}
                         commodities={commodities}
                         lots={lots}
+                        warehouseInfo={warehouseInfo}
+                        title={title}
                     />
                 </div>
             </CardContent>

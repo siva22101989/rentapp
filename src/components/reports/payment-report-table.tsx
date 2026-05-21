@@ -1,11 +1,13 @@
-
 'use client';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { format } from "date-fns";
-import type { Customer } from "@/lib/definitions";
+import type { Customer, StorageRecord } from "@/lib/definitions";
 import { formatCurrency } from '@/lib/utils';
 import { useMemo } from "react";
+import { Button } from "../ui/button";
+import { Eye } from "lucide-react";
+import Link from "next/link";
 
 export type PaymentEvent = {
     date: Date;
@@ -14,6 +16,7 @@ export type PaymentEvent = {
     recordId: string;
     amount: number;
     type: 'rent' | 'hamali' | 'other' | 'unloading' | 'discount';
+    isUnloading?: boolean;
 };
 
 type ReportTableProps = {
@@ -45,8 +48,9 @@ export function PaymentReportTable({ events, customers, title }: ReportTableProp
                             <TableHead className="font-bold text-black p-1 text-center uppercase text-[10px]">Date</TableHead>
                             <TableHead className="font-bold text-black p-1 text-left uppercase text-[10px]">Customer Name</TableHead>
                             <TableHead className="font-bold text-black p-1 text-center uppercase text-[10px]">Type</TableHead>
-                            <TableHead className="font-bold text-black p-1 text-center uppercase text-[10px]">Patti No</TableHead>
+                            <TableHead className="font-bold text-black p-1 text-center uppercase text-[10px]">Ref No</TableHead>
                             <TableHead className="font-bold text-black p-1 text-right uppercase text-[10px]">Amount Paid</TableHead>
+                            <TableHead className="font-bold text-black p-1 text-right uppercase text-[10px] print-hide">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -59,6 +63,13 @@ export function PaymentReportTable({ events, customers, title }: ReportTableProp
                                 <TableCell className="p-1 text-right font-mono font-bold text-green-700">
                                     {formatCurrency(event.amount)}
                                 </TableCell>
+                                <TableCell className="p-1 text-right print-hide">
+                                    <Button asChild variant="ghost" size="icon" className="h-8 w-8">
+                                        <Link href={event.isUnloading ? `/unloading/receipt/${event.recordId}` : `/inflow/receipt/${event.recordId}`} target="_blank">
+                                            <Eye className="h-4 w-4" />
+                                        </Link>
+                                    </Button>
+                                </TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
@@ -66,6 +77,7 @@ export function PaymentReportTable({ events, customers, title }: ReportTableProp
                         <TableRow className="bg-slate-50 font-bold border-t-2 border-black">
                             <TableCell colSpan={4} className="p-1 text-right uppercase text-[10px]">Total Cash Receipts</TableCell>
                             <TableCell className="p-1 text-right font-mono text-green-700 text-[14px]">{formatCurrency(totalPayments)}</TableCell>
+                            <TableCell className="print-hide" />
                         </TableRow>
                     </TableFooter>
                 </Table>

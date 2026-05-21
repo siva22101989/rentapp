@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo, useTransition } from 'react';
@@ -8,7 +7,7 @@ import { z } from 'zod';
 import { Loader2, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -188,7 +187,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                                 <FormItem><FormLabel className="text-xs font-semibold">Vehicle No.</FormLabel><FormControl><Input className="text-sm h-9" {...field} /></FormControl><FormMessage /></FormItem>
                             )} />
                             <FormField control={form.control} name="unloadingDate" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-semibold">Date</FormLabel><FormControl><Input type="date" className="text-sm h-9" {...field} /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel className="text-xs font-semibold">Date</FormLabel><FormControl><Input type="date" className="text-sm h-9" {...field} /></FormControl><FormMessage /></FormMessage>
                             )} />
                         </div>
                         <FormField control={form.control} name="bagsUnloaded" render={({ field }) => (

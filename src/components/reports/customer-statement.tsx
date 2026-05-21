@@ -176,11 +176,11 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
 
   return (
     <div ref={ref} className="bg-white p-6 printable-area text-slate-800 font-sans max-w-6xl mx-auto border shadow-sm rounded-xl">
-        <header className="mb-6 pb-4 border-b-2 border-primary flex justify-between items-center">
+        <header className="mb-6 pb-4 border-b-2 border-primary flex justify-between items-start">
             <div className="flex-1">
                 <h1 className="text-2xl font-black text-[#1e293b] tracking-tighter uppercase leading-none">{warehouseInfo?.name || "SRI LAKSHMI WAREHOUSE"}</h1>
-                <p className="text-[12px] font-black text-slate-400 uppercase tracking-[0.2em]">Audit Ledger • Statement of Account</p>
-                <div className="mt-1 text-[12px] text-slate-500 font-medium">
+                <p className="text-[12px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">Audit Ledger • Statement of Account</p>
+                <div className="mt-2 text-[12px] text-slate-500 font-medium">
                     <p>{warehouseInfo?.addressLine1}</p>
                     <p>{warehouseInfo?.addressLine2}</p>
                 </div>
@@ -192,40 +192,46 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             </div>
         </header>
 
-        {/* Professional Summary Ledger Blocks - Positioned below identification */}
+        {/* side-by-side ledger blocks directly below customer identity header */}
         <div className="grid grid-cols-2 gap-8 mb-8 text-[13px]">
             {/* Inventory Status Block */}
             <div className="bg-slate-50/80 border border-slate-200 rounded-lg overflow-hidden shadow-sm">
+                <div className="bg-slate-200/50 px-4 py-1.5 border-b border-slate-300">
+                    <span className="font-black text-slate-700 uppercase text-[10px] tracking-widest">Inventory Status</span>
+                </div>
                 <div className="flex justify-between items-center px-4 py-2 border-b border-slate-200">
-                    <span className="font-bold text-slate-600 tracking-tight">Total Bags In:</span>
+                    <span className="font-bold text-slate-600 tracking-tight uppercase text-[10px]">Total Bags In</span>
                     <span className="font-mono font-bold text-slate-800">{totals.totalBagsIn}</span>
                 </div>
                 <div className="flex justify-between items-center px-4 py-2 border-b border-slate-200">
-                    <span className="font-bold text-slate-600 tracking-tight">Total Bags Out:</span>
+                    <span className="font-bold text-slate-600 tracking-tight uppercase text-[10px]">Total Bags Out</span>
                     <span className="font-mono font-bold text-slate-800">{totals.totalBagsOut}</span>
                 </div>
                 <div className="flex justify-between items-center px-4 py-2 bg-slate-100/50">
-                    <span className="font-black text-slate-900 uppercase">Balance Stock:</span>
+                    <span className="font-black text-slate-900 uppercase text-[11px]">Balance Stock</span>
                     <span className="font-mono font-black text-slate-900 text-[15px]">{totals.balanceStock}</span>
                 </div>
             </div>
 
             {/* Financial Status Block */}
             <div className="bg-slate-50/80 border border-slate-200 rounded-lg overflow-hidden shadow-sm">
+                <div className="bg-slate-200/50 px-4 py-1.5 border-b border-slate-300">
+                    <span className="font-black text-slate-700 uppercase text-[10px] tracking-widest">Financial Status</span>
+                </div>
                 <div className="flex justify-between items-center px-4 py-1.5 border-b border-slate-200">
-                    <span className="font-bold text-slate-600 tracking-tight">Total Hamali:</span>
+                    <span className="font-bold text-slate-600 tracking-tight uppercase text-[10px]">Total Hamali</span>
                     <span className="font-mono font-bold text-slate-800">{formatCurrency(totals.totalHamali)}</span>
                 </div>
                 <div className="flex justify-between items-center px-4 py-1.5 border-b border-slate-200">
-                    <span className="font-bold text-slate-600 tracking-tight">Total Rent:</span>
+                    <span className="font-bold text-slate-600 tracking-tight uppercase text-[10px]">Total Rent</span>
                     <span className="font-mono font-bold text-slate-800">{formatCurrency(totals.totalRent)}</span>
                 </div>
                 <div className="flex justify-between items-center px-4 py-1.5 border-b border-slate-200">
-                    <span className="font-bold text-slate-600 tracking-tight">Total Paid:</span>
+                    <span className="font-bold text-slate-600 tracking-tight uppercase text-[10px]">Total Paid</span>
                     <span className="font-mono font-bold text-green-600">{formatCurrency(totals.totalCredit)}</span>
                 </div>
                 <div className="flex justify-between items-center px-4 py-2 bg-slate-100/50">
-                    <span className="font-black text-slate-900 uppercase">Balance Due:</span>
+                    <span className="font-black text-slate-900 uppercase text-[11px]">Balance Due</span>
                     <span className="font-mono font-black text-destructive text-[15px]">{formatCurrency(totals.finalBalance)}</span>
                 </div>
             </div>
@@ -250,7 +256,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                     {lineItems.map((item, index) => (
                         <TableRow key={index} className="border-b border-slate-100 hover:bg-slate-50 transition-colors h-8">
                             <TableCell className="p-2 text-center font-bold text-slate-500 whitespace-nowrap">{format(item.date, 'dd/MM/yy')}</TableCell>
-                            <TableCell className="p-2 text-left font-black text-slate-800 tracking-tighter uppercase">{item.description}</TableCell>
+                            <TableCell className="p-2 text-left font-black text-slate-800 uppercase tracking-tighter">{item.description}</TableCell>
                             <TableCell className="p-2 text-center font-mono font-bold text-slate-400">{item.billNo}</TableCell>
                             <TableCell className="p-2 text-center font-mono font-black text-sky-600">{item.bagsIn || ''}</TableCell>
                             <TableCell className="p-2 text-center font-mono font-black text-orange-600">{item.bagsOut || ''}</TableCell>

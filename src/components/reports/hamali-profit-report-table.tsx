@@ -64,14 +64,14 @@ export function HamaliProfitReportTable({ events, customers, title }: ReportTabl
                         const diff = customerCharge - event.payable;
                         return (
                         <TableRow key={index} className="h-8">
-                            <TableCell className="p-1">{format(event.date, 'dd/MM/yy')}</TableCell>
-                            <TableCell className="p-1 font-medium whitespace-nowrap">{getCustomerName(event.customerId)}</TableCell>
-                            <TableCell className="p-1 tracking-tight">{event.description}</TableCell>
-                            <TableCell className="p-1 font-mono text-slate-400">{event.recordId}</TableCell>
-                            <TableCell className="p-1 text-center font-mono">{event.bags || ''}</TableCell>
-                            <TableCell className="p-1 text-right font-mono">{formatCurrency(customerCharge)}</TableCell>
-                            <TableCell className="p-1 text-right font-mono">{formatCurrency(event.payable)}</TableCell>
-                            <TableCell className={`p-1 text-right font-mono font-bold ${diff >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+                            <TableCell className="p-1 text-[13px]">{format(event.date, 'dd/MM/yy')}</TableCell>
+                            <TableCell className="p-1 font-medium whitespace-nowrap text-[13px]">{getCustomerName(event.customerId)}</TableCell>
+                            <TableCell className="p-1 tracking-tight text-[13px]">{event.description}</TableCell>
+                            <TableCell className="p-1 font-mono text-slate-400 text-[13px]">{event.recordId}</TableCell>
+                            <TableCell className="p-1 text-center font-mono text-[13px]">{event.bags || ''}</TableCell>
+                            <TableCell className="p-1 text-right font-mono text-[13px]">{formatCurrency(customerCharge)}</TableCell>
+                            <TableCell className="p-1 text-right font-mono text-[13px]">{formatCurrency(event.payable)}</TableCell>
+                            <TableCell className={`p-1 text-right font-mono font-bold text-[13px] ${diff >= 0 ? 'text-green-600' : 'text-destructive'}`}>
                                 {formatCurrency(diff)}
                             </TableCell>
                         </TableRow>

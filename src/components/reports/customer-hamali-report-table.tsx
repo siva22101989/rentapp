@@ -48,15 +48,15 @@ export function CustomerHamaliReportTable({ events, customers, title, warehouseI
                 <TableBody>
                     {events.map((event, index) => (
                         <TableRow key={index} className="h-8 border-b border-slate-50">
-                            <TableCell>{format(event.date, 'dd/MM/yy')}</TableCell>
-                            <TableCell className="font-black whitespace-nowrap uppercase tracking-tighter">{getCustomerName(event.customerId)}</TableCell>
-                            <TableCell className="text-slate-600 italic tracking-tight">{event.description}</TableCell>
-                            <TableCell className="font-mono text-slate-400">{event.recordId}</TableCell>
-                            <TableCell className="text-center font-mono">{event.bags || ''}</TableCell>
-                            <TableCell className="text-right font-mono font-bold">
+                            <TableCell className="p-1 text-[13px]">{format(event.date, 'dd/MM/yy')}</TableCell>
+                            <TableCell className="p-1 font-black whitespace-nowrap uppercase tracking-tighter text-[13px]">{getCustomerName(event.customerId)}</TableCell>
+                            <TableCell className="p-1 text-slate-600 italic tracking-tight text-[13px]">{event.description}</TableCell>
+                            <TableCell className="p-1 font-mono text-slate-400 text-[13px]">{event.recordId}</TableCell>
+                            <TableCell className="p-1 text-center font-mono text-[13px]">{event.bags || ''}</TableCell>
+                            <TableCell className="p-1 text-right font-mono font-bold text-[13px]">
                                 {event.type === 'charge' ? formatCurrency(event.amount) : ''}
                             </TableCell>
-                            <TableCell className="text-right font-mono font-bold text-green-600">
+                            <TableCell className="p-1 text-right font-mono font-bold text-green-600 text-[13px]">
                                 {event.type === 'payment' ? formatCurrency(event.amount) : ''}
                             </TableCell>
                         </TableRow>

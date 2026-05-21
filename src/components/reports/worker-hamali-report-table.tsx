@@ -51,14 +51,14 @@ export function WorkerHamaliReportTable({ events, title }: ReportTableProps) {
                 <TableBody>
                     {events.map((event, index) => (
                         <TableRow key={index} className="h-8">
-                            <TableCell className="p-1">{format(event.date, 'dd/MM/yy')}</TableCell>
-                            <TableCell className="p-1 tracking-tight">{event.description}</TableCell>
-                            <TableCell className="p-1 font-mono text-slate-400">{event.recordId}</TableCell>
-                            <TableCell className="p-1 text-center font-mono">{event.bags || ''}</TableCell>
-                            <TableCell className="p-1 text-right font-mono">
+                            <TableCell className="p-1 text-[13px]">{format(event.date, 'dd/MM/yy')}</TableCell>
+                            <TableCell className="p-1 tracking-tight text-[13px]">{event.description}</TableCell>
+                            <TableCell className="p-1 font-mono text-slate-400 text-[13px]">{event.recordId}</TableCell>
+                            <TableCell className="p-1 text-center font-mono text-[13px]">{event.bags || ''}</TableCell>
+                            <TableCell className="p-1 text-right font-mono text-[13px]">
                                 {event.payable > 0 ? formatCurrency(event.payable) : ''}
                             </TableCell>
-                            <TableCell className="p-1 text-right font-mono text-green-600">
+                            <TableCell className="p-1 text-right font-mono text-green-600 text-[13px]">
                                  {event.paid > 0 ? formatCurrency(event.paid) : ''}
                             </TableCell>
                         </TableRow>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo, useTransition } from 'react';
@@ -7,7 +8,7 @@ import { z } from 'zod';
 import { Loader2, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -16,8 +17,8 @@ import { useFirestore } from '@/firebase/provider';
 import type { Customer, Commodity, Lot, StorageRecord, WarehouseInfo } from '@/lib/definitions';
 import { setDoc, doc, getDoc } from 'firebase/firestore';
 import { formatCurrency, cleanForFirestore } from '@/lib/utils';
-import { Separator } from '../ui/separator';
-import { Combobox } from '../ui/combobox';
+import { Separator } from '@/components/ui/separator';
+import { Combobox } from '@/components/ui/combobox';
 import { Checkbox } from '@/components/ui/checkbox';
 import { sendSms } from '@/lib/sms';
 import { useDoc } from '@/firebase/firestore/use-doc';
@@ -138,7 +139,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
     };
 
     return (
-        <Card>
+        <Card className="stylish-card">
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)}>
                     <CardHeader>

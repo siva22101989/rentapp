@@ -1,3 +1,4 @@
+
 'use client';
 import { useMemo } from "react";
 import type { Customer, StorageRecord, UnloadingRecord } from "@/lib/definitions";
@@ -43,16 +44,16 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, tit
             return summaryMap[id];
         };
 
-        // 1. Process All Storage Records (including estimated accrued rent)
+        // 1. Process Storage Records including ACCRUED RENT
         records.forEach(r => {
             const s = getSummary(r.customerId);
             
-            // Fixed Liabilities: Inflow Hamali + Khata + Rent from ALREADY processed outflows
+            // Fixed charges: Hamali + Khata + Rent from previous outflows
             const inflowHamali = r.hamaliPayable || 0; 
             const alreadyBilledRent = r.totalRentBilled || 0;
             const khata = r.khataAmount || 0;
             
-            // Accrued Liability: Rent on bags CURRENTLY in stock
+            // Accrued Rent on items still in Godown
             let accruedRent = 0;
             if (r.bagsStored > 0 && !r.storageEndDate) {
                 const { rent } = calculateFinalRent({ ...r, storageStartDate: toDate(r.storageStartDate) }, today, r.bagsStored);
@@ -70,7 +71,7 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, tit
             if (rDate > s.lastDate) s.lastDate = rDate;
         });
 
-        // 2. Process Unloading Records (Bags not yet moved to Godown)
+        // 2. Process Unloading Records (Items waiting to be moved to Godown)
         unloadingRecords.forEach(r => {
             const s = getSummary(r.customerId);
             const remainingBags = Math.max(0, (r.bagsUnloaded || 0) - (r.bagsSentToDrying || 0));
@@ -89,7 +90,6 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, tit
 
         return Object.entries(summaryMap).map(([customerId, data]) => {
             const balanceDue = data.totalBilled - data.amountPaid;
-            // Logical split: First clear hamali, then rent
             const hamaliPending = Math.max(0, data.totalHamaliLiability - data.amountPaid);
             const rentPending = Math.max(0, balanceDue - hamaliPending);
 
@@ -104,7 +104,7 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, tit
                 lastActivityDate: new Date(data.lastDate)
             } as CustomerPendingSummary;
         })
-        .filter(s => s.balanceDue > 0.5) // Filter out negligible balances
+        .filter(s => s.balanceDue > 0.5) 
         .sort((a, b) => b.lastActivityDate.getTime() - a.lastActivityDate.getTime());
 
     }, [records, unloadingRecords, customers]);

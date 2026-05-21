@@ -1,3 +1,4 @@
+
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,38 +39,39 @@ type NavItem = {
   icon: LucideIcon;
   description: string;
   roles: ('owner' | 'supervisor' | 'biller' | 'super-admin')[];
+  color: string;
 };
 
 const navItems: NavItem[] = [
-    { href: '/inflow', label: 'Inflow', icon: ArrowDownToDot, description: 'Record new items arriving for storage.', roles: ['owner', 'supervisor', 'biller', 'super-admin'] },
-    { href: '/unloading', label: 'Unloading Process', icon: ArrowDownFromLine, description: 'Manage goods unloaded from vehicles.', roles: ['owner', 'supervisor', 'biller', 'super-admin'] },
-    { href: '/drying', label: 'Drying Process', icon: Wind, description: 'Manage items in the drying plot and finalize into storage.', roles: ['owner', 'supervisor', 'biller', 'super-admin'] },
-    { href: '/outflow', label: 'Outflow', icon: ArrowUpFromDot, description: 'Process withdrawals and generate final bills.', roles: ['owner', 'supervisor', 'biller', 'super-admin'] },
-    { href: '/storage', label: 'Storage', icon: Archive, description: 'View all active inventory and stock.', roles: ['owner', 'supervisor', 'biller', 'super-admin'] },
-    { href: '/payments/pending', label: 'Payments', icon: IndianRupee, description: 'View and manage pending payments.', roles: ['owner', 'biller', 'super-admin'] },
-    { href: '/customers', label: 'Customers', icon: Users, description: 'Manage customer information.', roles: ['owner', 'supervisor', 'biller', 'super-admin'] },
-    { href: '/reports', label: 'Reports', icon: FileText, description: 'Generate detailed business reports.', roles: ['owner', 'supervisor', 'super-admin'] },
-    { href: '/expenses', label: 'Profit & Loss', icon: Scale, description: 'Track income, expenses, and profitability.', roles: ['owner', 'super-admin'] },
+    { href: '/inflow', label: 'Add Inflow', icon: ArrowDownToDot, description: 'Record new items arriving for storage.', roles: ['owner', 'supervisor', 'biller', 'super-admin'], color: 'text-emerald-600 bg-emerald-50' },
+    { href: '/unloading', label: 'Unloading', icon: ArrowDownFromLine, description: 'Manage goods unloaded from vehicles.', roles: ['owner', 'supervisor', 'biller', 'super-admin'], color: 'text-sky-600 bg-sky-50' },
+    { href: '/drying', label: 'Drying Plot', icon: Wind, description: 'Manage items in the drying plot.', roles: ['owner', 'supervisor', 'biller', 'super-admin'], color: 'text-amber-600 bg-amber-50' },
+    { href: '/outflow', label: 'Outflow', icon: ArrowUpFromDot, description: 'Process withdrawals and generate final bills.', roles: ['owner', 'supervisor', 'biller', 'super-admin'], color: 'text-orange-600 bg-orange-50' },
+    { href: '/storage', label: 'Inventory', icon: Archive, description: 'View all active inventory and stock.', roles: ['owner', 'supervisor', 'biller', 'super-admin'], color: 'text-indigo-600 bg-indigo-50' },
+    { href: '/payments/pending', label: 'Dues Management', icon: IndianRupee, description: 'View and manage pending payments.', roles: ['owner', 'biller', 'super-admin'], color: 'text-rose-600 bg-rose-50' },
+    { href: '/customers', label: 'Customers', icon: Users, description: 'Manage customer information.', roles: ['owner', 'supervisor', 'biller', 'super-admin'], color: 'text-violet-600 bg-violet-50' },
+    { href: '/reports', label: 'Audit Reports', icon: FileText, description: 'Generate detailed business reports.', roles: ['owner', 'supervisor', 'super-admin'], color: 'text-slate-600 bg-slate-50' },
+    { href: '/expenses', label: 'Profit & Loss', icon: Scale, description: 'Track income, expenses, and profitability.', roles: ['owner', 'super-admin'], color: 'text-cyan-600 bg-cyan-50' },
 ];
 
-function NavCard({ href, label, icon: Icon, description }: Omit<NavItem, 'roles'>) {
+function NavCard({ href, label, icon: Icon, description, color }: Omit<NavItem, 'roles'>) {
     return (
-        <Card className="flex flex-col h-full hover:bg-muted/50 transition-colors hover:border-primary/50">
-            <CardHeader className="p-4 pb-2">
+        <Card className="stylish-card h-full flex flex-col hover:border-primary/50 group">
+            <CardHeader className="p-5 pb-2">
                 <div className="flex justify-between items-start">
-                    <CardTitle className="text-sm font-bold">{label}</CardTitle>
-                    <Icon className="h-4 w-4 text-muted-foreground" />
+                    <div className={`p-2.5 rounded-xl ${color} transition-colors group-hover:scale-110 duration-200`}>
+                        <Icon className="h-5 w-5" />
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
                 </div>
+                <CardTitle className="text-base font-bold mt-4">{label}</CardTitle>
             </CardHeader>
-            <CardContent className="p-4 pt-0 flex-grow">
-                <p className="text-[11px] text-muted-foreground">{description}</p>
+            <CardContent className="p-5 pt-0 flex-grow">
+                <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
             </CardContent>
-            <CardFooter className="p-4">
-                <Button asChild size="sm" className="w-full text-xs h-8">
-                    <Link href={href}>
-                        Go to {label}
-                        <ArrowRight className="ml-2 h-3 w-3" />
-                    </Link>
+            <CardFooter className="p-5">
+                <Button asChild variant="secondary" size="sm" className="w-full text-xs h-9 font-bold tracking-tight">
+                    <Link href={href}>Launch Module</Link>
                 </Button>
             </CardFooter>
         </Card>
@@ -87,39 +89,48 @@ function DashboardHeader({ activeRecordsCount, occupancy, warehouseInfo, appUser
     }, []);
 
     return (
-        <Card className="mb-6">
-            <CardContent className="p-4 md:p-6 flex flex-col md:flex-row items-center gap-4 md:gap-6">
-                <div className="flex-1">
+        <Card className="stylish-card mb-8 border-none bg-primary text-primary-foreground overflow-hidden">
+            <CardContent className="p-0 flex flex-col md:flex-row items-stretch">
+                <div className="flex-1 p-6 md:p-8 space-y-4">
                     <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium text-primary flex items-center gap-2">
+                        <Badge variant="secondary" className="bg-white/10 text-white border-white/20 uppercase text-[10px] tracking-widest font-black px-3 py-1">
+                            {appUser?.role} Control
+                        </Badge>
+                        <span className="text-white/40 text-xs font-medium">|</span>
+                        <p className="text-sm font-bold flex items-center gap-2 text-white/80">
                             <Wheat size={16} />
                             {warehouseInfo?.name || 'Sri Lakshmi Warehouse'}
                         </p>
-                        {appUser?.role && (
-                            <Badge variant="outline" className="capitalize text-[10px] h-5">{appUser.role}</Badge>
-                        )}
                     </div>
-                    <h2 className="text-xl md:text-2xl font-bold mt-2">{greeting}</h2>
-                    <p className="text-sm text-muted-foreground mt-1 max-w-md">
-                        Currently managing {activeRecordsCount} active records. Total occupancy is {occupancy.toFixed(1)}%.
-                    </p>
+                    <div>
+                        <h2 className="text-3xl md:text-4xl font-black tracking-tighter">{greeting}</h2>
+                        <p className="text-white/70 text-sm font-medium mt-2 max-w-lg leading-relaxed">
+                            Overview of current Godown operations. You have <span className="text-white font-bold underline underline-offset-4">{activeRecordsCount} active records</span> under management today.
+                        </p>
+                    </div>
                 </div>
-                <div className="grid w-full grid-cols-2 items-center gap-4 md:w-auto">
-                    <Card className="p-3 bg-background/50">
-                        <div className="flex flex-row items-center gap-2 text-muted-foreground text-[10px] font-bold uppercase tracking-wider">
-                            <TrendingUp size={12} />
-                            Active Records
+                <div className="bg-black/10 p-6 md:p-8 flex flex-col justify-center gap-4 min-w-[300px]">
+                    <div className="space-y-1.5">
+                        <div className="flex justify-between items-end">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-white/60">Godown Occupancy</p>
+                            <p className="text-xl font-black">{occupancy.toFixed(1)}%</p>
                         </div>
-                        <p className="text-2xl font-bold mt-1">{activeRecordsCount}</p>
-                    </Card>
-                    <Card className="p-3 bg-background/50">
-                        <div className="flex flex-row items-center gap-2 text-muted-foreground text-[10px] font-bold uppercase tracking-wider">
-                            <Warehouse size={12} />
-                            Occupancy
+                        <Progress value={occupancy} className="h-2 bg-white/20" />
+                    </div>
+                    <div className="flex items-center gap-4 pt-2">
+                        <div className="flex-1">
+                             <p className="text-[10px] font-black uppercase tracking-widest text-white/60">Active Stack</p>
+                             <p className="text-2xl font-black">{activeRecordsCount}</p>
                         </div>
-                        <p className="text-2xl font-bold mt-1">{occupancy.toFixed(1)}%</p>
-                        <Progress value={occupancy} className="h-1 mt-2" />
-                    </Card>
+                        <div className="h-10 w-px bg-white/10" />
+                        <div className="flex-1">
+                             <p className="text-[10px] font-black uppercase tracking-widest text-white/60">System Status</p>
+                             <div className="flex items-center gap-2 mt-1">
+                                <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                                <span className="text-xs font-bold uppercase">Online</span>
+                             </div>
+                        </div>
+                    </div>
                 </div>
             </CardContent>
         </Card>
@@ -128,16 +139,16 @@ function DashboardHeader({ activeRecordsCount, occupancy, warehouseInfo, appUser
 
 function DashboardHeaderSkeleton() {
     return (
-         <Card className="mb-6">
-            <CardContent className="p-4 md:p-6 flex flex-col md:flex-row items-center gap-6">
-                <div className="flex-1 space-y-2">
-                    <Skeleton className="h-5 w-48" />
-                    <Skeleton className="h-8 w-64" />
-                    <Skeleton className="h-5 w-full max-w-md" />
+         <Card className="mb-8 stylish-card">
+            <CardContent className="p-6 md:p-8 flex flex-col md:flex-row items-center gap-8">
+                <div className="flex-1 space-y-4">
+                    <Skeleton className="h-6 w-32" />
+                    <Skeleton className="h-12 w-64" />
+                    <Skeleton className="h-4 w-full max-w-md" />
                 </div>
                 <div className="flex items-center gap-4">
-                    <Skeleton className="h-[80px] w-[130px]" />
-                    <Skeleton className="h-[80px] w-[130px]" />
+                    <Skeleton className="h-[100px] w-[140px]" />
+                    <Skeleton className="h-[100px] w-[140px]" />
                 </div>
             </CardContent>
         </Card>
@@ -203,7 +214,7 @@ export default function DashboardPage() {
             ) : (
                 <DashboardHeader activeRecordsCount={activeRecordsCount} occupancy={occupancy} warehouseInfo={warehouseInfo} appUser={appUser} />
             )}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mb-6">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 mb-8">
                 {accessibleNavItems.map((item) => (
                     <NavCard key={item.href} {...item} />
                 ))}

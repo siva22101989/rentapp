@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -30,7 +31,7 @@
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 221.2 83.2% 53.3%;
-    --radius: 0.5rem;
+    --radius: 0.75rem;
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
     --chart-3: 197 37% 24%;
@@ -72,7 +73,7 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 217.2 91.2% 59.8%;
-    --radius: 0.5rem;
+    --radius: 0.75rem;
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
@@ -97,12 +98,12 @@
     font-size: 16px;
   }
   body {
-    @apply bg-background text-foreground text-[15px];
+    @apply bg-background text-foreground text-[15px] antialiased;
     touch-action: manipulation;
   }
   
   .table-scroll-container {
-    @apply w-full overflow-x-auto;
+    @apply w-full overflow-x-auto rounded-lg border;
     -webkit-overflow-scrolling: touch;
   }
 
@@ -114,6 +115,10 @@
 
   input[type=number] {
     -moz-appearance: textfield;
+  }
+
+  .stylish-card {
+    @apply rounded-xl border bg-card text-card-foreground shadow-sm hover:shadow-md transition-shadow duration-200;
   }
 }
 

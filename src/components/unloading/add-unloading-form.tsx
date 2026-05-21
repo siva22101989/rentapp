@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo, useTransition } from 'react';
@@ -14,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase/provider';
-import type { Customer, Commodity, UnloadingRecord, WarehouseInfo, Lot, StorageRecord } from '@/lib/definitions';
+import type { Customer, Commodity, Lot, StorageRecord, WarehouseInfo } from '@/lib/definitions';
 import { setDoc, doc, getDoc } from 'firebase/firestore';
 import { formatCurrency, cleanForFirestore } from '@/lib/utils';
 import { Separator } from '../ui/separator';

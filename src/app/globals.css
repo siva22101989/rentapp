@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -102,13 +101,11 @@
     touch-action: manipulation;
   }
   
-  /* Responsive Table Handling */
   .table-scroll-container {
     @apply w-full overflow-x-auto;
     -webkit-overflow-scrolling: touch;
   }
 
-  /* Hide arrows from number inputs */
   input::-webkit-outer-spin-button,
   input::-webkit-inner-spin-button {
     -webkit-appearance: none;

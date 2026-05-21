@@ -17,17 +17,18 @@ export default function OutflowPage() {
   const appUser = useAppUser();
   const canAdd = appUser?.role !== 'super-admin';
 
-  const customersQuery = useMemoFirebase(
-    () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'customers'), where('warehouseId', '==', appUser.warehouseId)) : null),
-    [firestore, appUser]
-  );
-  const { data: customers, loading: loadingCustomers } = useCollection<Customer>(customersQuery);
-
+  // Fetch all records for the warehouse to filter in-memory for maximum stock visibility
   const allRecordsQuery = useMemoFirebase(
     () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'storageRecords'), where('warehouseId', '==', appUser.warehouseId)) : null),
     [firestore, appUser]
   );
   const { data: allRecords, loading: loadingRecords } = useCollection<StorageRecord>(allRecordsQuery);
+
+  const customersQuery = useMemoFirebase(
+    () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'customers'), where('warehouseId', '==', appUser.warehouseId)) : null),
+    [firestore, appUser]
+  );
+  const { data: customers, loading: loadingCustomers } = useCollection<Customer>(customersQuery);
 
   const commoditiesQuery = useMemoFirebase(
     () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'commodities'), where('warehouseId', '==', appUser.warehouseId)) : null),
@@ -37,22 +38,26 @@ export default function OutflowPage() {
 
   const activeRecords = useMemo(() => {
     if (!allRecords) return [];
-    // Filter for active stock in memory to handle missing fields correctly
-    return allRecords.filter(r => !r.storageEndDate && r.bagsStored > 0);
+    // Robust in-memory filter to ensure all active stock is visible regardless of schema variations
+    return allRecords.filter(r => {
+        const isWithdrawn = !!r.storageEndDate;
+        const currentStock = Number(r.bagsStored || 0);
+        return !isWithdrawn && currentStock > 0;
+    });
   }, [allRecords]);
 
   if (loadingCustomers || loadingRecords || loadingCommodities) {
-    return <AppLayout><div>Loading...</div></AppLayout>;
+    return <AppLayout><div className="p-8 text-center text-muted-foreground">Loading inventory data...</div></AppLayout>;
   }
 
   return (
     <AppLayout>
       <PageHeader
         title="Process Outflow"
-        description="Select one or more records to process for full withdrawal."
+        description="Select one or more records to process for withdrawal."
       />
       {canAdd ? (
-        <OutflowForm records={activeRecords || []} customers={customers || []} commodities={commodities || []} />
+        <OutflowForm records={activeRecords} customers={customers || []} commodities={commodities || []} />
       ) : (
         <Card><CardContent className="p-8 text-center text-muted-foreground">This function is not available for super-admins.</CardContent></Card>
       )}

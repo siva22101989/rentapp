@@ -19,10 +19,8 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
   const { lineItems, totals } = useMemo(() => {
     const events: any[] = [];
     
-    // 1. Process Unloading Records
     (unloadingRecords || []).forEach(unloading => {
         const totalHamali = unloading.totalHamali || 0;
-        
         if (totalHamali > 0) {
             events.push({
                 date: toDate(unloading.unloadingDate),
@@ -54,17 +52,14 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         });
     });
 
-    // 2. Process Storage Records
     (records || []).forEach(record => {
-        const inflowDebit = record.hamaliPayable || 0;
-        
         events.push({
             date: toDate(record.storageStartDate),
             description: `Inflow - ${record.commodityDescription}`,
             billNo: record.id,
             bagsIn: record.bagsIn,
             bagsOut: 0,
-            hamali: inflowDebit,
+            hamali: record.hamaliPayable || 0,
             rent: 0,
             credit: 0,
             sortDate: toDate(record.storageStartDate).getTime(),
@@ -146,30 +141,16 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
     const lineItems = sortedEvents.map(event => {
         const debit = (event.hamali || 0) + (event.rent || 0);
         const credit = event.credit || 0;
-        
         runningBalance += (debit - credit);
         totalBagsIn += (event.bagsIn || 0);
         totalBagsOut += (event.bagsOut || 0);
-        
         totalHamali += (event.hamali || 0);
         totalRent += (event.rent || 0);
         totalCredit += credit;
-        
         return { ...event, balance: runningBalance };
     });
     
-    return { 
-        lineItems, 
-        totals: { 
-            totalBagsIn,
-            totalBagsOut,
-            balanceStock: totalBagsIn - totalBagsOut,
-            totalHamali, 
-            totalRent, 
-            totalCredit, 
-            finalBalance: runningBalance
-        } 
-    };
+    return { lineItems, totals: { totalBagsIn, totalBagsOut, balanceStock: totalBagsIn - totalBagsOut, totalHamali, totalRent, totalCredit, finalBalance: runningBalance } };
   }, [records, unloadingRecords]);
   
   const timestamp = useMemo(() => format(new Date(), 'dd/MM/yyyy, h:mm a'), []);

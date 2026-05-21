@@ -89,9 +89,9 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
         }));
     }, [lots, lotOccupancy]);
       
-    const bagsUnloaded = form.watch('bagsUnloaded');
-    const customerHamaliPerBag = form.watch('customerHamaliPerBag');
-    const totalHamali = (Number(bagsUnloaded) || 0) * (Number(customerHamaliPerBag) || 0);
+    const bagsUnloadedValue = form.watch('bagsUnloaded');
+    const customerHamaliPerBagValue = form.watch('customerHamaliPerBag');
+    const totalHamali = (Number(bagsUnloadedValue) || 0) * (Number(customerHamaliPerBagValue) || 0);
 
     const selectedCustomerId = form.watch('customerId');
     const selectedCustomer = useMemo(() => customers.find(c => c.id === selectedCustomerId), [selectedCustomerId, customers]);
@@ -109,6 +109,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
 
                 const workRate = data.workerHamaliPerBag ?? data.customerHamaliPerBag;
                 const finalDate = new Date(data.unloadingDate);
+                const currentTotalHamali = data.bagsUnloaded * data.customerHamaliPerBag;
                 
                 const rawRecord = { 
                     ...data, 
@@ -117,7 +118,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                     unloadingDate: finalDate, 
                     status: 'Unloading' as const, 
                     bagsSentToDrying: 0, 
-                    totalHamali, 
+                    totalHamali: currentTotalHamali, 
                     workerHamaliPayable: data.bagsUnloaded * workRate 
                 };
                 
@@ -213,7 +214,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                     </CardContent>
                     <CardFooter>
                         <Button type="submit" disabled={isPending} className="w-full text-sm">
-                            {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : 'Add Record & Generate Bill'}
+                            {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Add Record & Generate Bill'}
                         </Button>
                     </CardFooter>
                 </form>

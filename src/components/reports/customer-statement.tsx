@@ -176,25 +176,25 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
 
   return (
     <div ref={ref} className="bg-white p-6 printable-area text-slate-800 font-sans max-w-6xl mx-auto border shadow-sm rounded-xl">
-        <header className="mb-6 pb-4 border-b-2 border-[#3498db] flex justify-between items-center">
+        <header className="mb-6 pb-4 border-b-2 border-primary flex justify-between items-center">
             <div className="flex-1">
-                <h1 className="text-2xl font-black text-[#1e293b] tracking-tighter uppercase leading-tight">{warehouseInfo?.name || "SRI LAKSHMI WAREHOUSE"}</h1>
+                <h1 className="text-2xl font-black text-[#1e293b] tracking-tighter uppercase leading-none">{warehouseInfo?.name || "SRI LAKSHMI WAREHOUSE"}</h1>
                 <p className="text-[12px] font-black text-slate-400 uppercase tracking-[0.2em]">Audit Ledger • Statement of Account</p>
                 <div className="mt-1 text-[12px] text-slate-500 font-medium">
                     <p>{warehouseInfo?.addressLine1}</p>
                     <p>{warehouseInfo?.addressLine2}</p>
                 </div>
             </div>
-            <div className="text-right bg-slate-900 text-white p-4 px-8 rounded-xl shadow-lg border-b-4 border-[#3498db] min-w-[350px]">
+            <div className="text-right bg-slate-900 text-white p-4 px-8 rounded-xl shadow-lg border-b-4 border-primary min-w-[350px]">
                 <p className="text-[10px] font-bold text-sky-400 uppercase tracking-[0.2em] mb-1">Customer Identification</p>
                 <p className="text-2xl font-black uppercase leading-tight tracking-tight text-white">{customer?.name || "Unnamed Customer"}</p>
                 <p className="text-[12px] text-slate-400 font-bold mt-1 uppercase">{customer?.village || 'Village: N/A'} • {customer?.phone}</p>
             </div>
         </header>
 
-        {/* High-Density Summary Ledger - Side-by-side blocks precisely matching reference */}
+        {/* Professional Summary Ledger Blocks - Positioned below identification */}
         <div className="grid grid-cols-2 gap-8 mb-8 text-[13px]">
-            {/* Left Box: Inventory Status */}
+            {/* Inventory Status Block */}
             <div className="bg-slate-50/80 border border-slate-200 rounded-lg overflow-hidden shadow-sm">
                 <div className="flex justify-between items-center px-4 py-2 border-b border-slate-200">
                     <span className="font-bold text-slate-600 tracking-tight">Total Bags In:</span>
@@ -204,24 +204,23 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                     <span className="font-bold text-slate-600 tracking-tight">Total Bags Out:</span>
                     <span className="font-mono font-bold text-slate-800">{totals.totalBagsOut}</span>
                 </div>
-                <div className="flex justify-between items-center px-4 py-2 border-b border-slate-200">
+                <div className="flex justify-between items-center px-4 py-2 bg-slate-100/50">
                     <span className="font-black text-slate-900 uppercase">Balance Stock:</span>
                     <span className="font-mono font-black text-slate-900 text-[15px]">{totals.balanceStock}</span>
                 </div>
-                <div className="h-[37px] bg-slate-50/50"></div> {/* Empty spacer to align height */}
             </div>
 
-            {/* Right Box: Financial Status */}
+            {/* Financial Status Block */}
             <div className="bg-slate-50/80 border border-slate-200 rounded-lg overflow-hidden shadow-sm">
-                <div className="flex justify-between items-center px-4 py-2 border-b border-slate-200">
+                <div className="flex justify-between items-center px-4 py-1.5 border-b border-slate-200">
                     <span className="font-bold text-slate-600 tracking-tight">Total Hamali:</span>
                     <span className="font-mono font-bold text-slate-800">{formatCurrency(totals.totalHamali)}</span>
                 </div>
-                <div className="flex justify-between items-center px-4 py-2 border-b border-slate-200">
+                <div className="flex justify-between items-center px-4 py-1.5 border-b border-slate-200">
                     <span className="font-bold text-slate-600 tracking-tight">Total Rent:</span>
                     <span className="font-mono font-bold text-slate-800">{formatCurrency(totals.totalRent)}</span>
                 </div>
-                <div className="flex justify-between items-center px-4 py-2 border-b border-slate-200">
+                <div className="flex justify-between items-center px-4 py-1.5 border-b border-slate-200">
                     <span className="font-bold text-slate-600 tracking-tight">Total Paid:</span>
                     <span className="font-mono font-bold text-green-600">{formatCurrency(totals.totalCredit)}</span>
                 </div>

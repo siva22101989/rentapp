@@ -87,7 +87,7 @@ const DailySummaryContent = ({ dailyData, selectedDate }: { dailyData: DailyData
                 </Card>
             </div>
 
-            {/* Detailed Transaction Tables at 13px */}
+            {/* Detailed Transaction Tables */}
             <div className="space-y-6 text-[13px]">
                 {dailyData.payments.length > 0 && (
                     <div className="space-y-2">
@@ -141,7 +141,7 @@ const DailySummaryContent = ({ dailyData, selectedDate }: { dailyData: DailyData
             <div className="mt-16 flex flex-col items-end text-center space-y-1">
                 <div className="w-80 border-t border-slate-400 pt-3">
                     <p className="text-[#1e293b] font-black text-[12px] uppercase tracking-wider">Authorized Auditor Signature</p>
-                    <p className="text-[#3498db] font-bold text-[10px] uppercase mt-1">SRI LAKSHMI WAREHOUSE</p>
+                    <p className="text-primary font-bold text-[10px] uppercase mt-1">SRI LAKSHMI WAREHOUSE</p>
                 </div>
                 <div className="text-[10px] text-slate-400 italic mt-6 space-y-0.5">
                     <p>Report digital validity verified on {timestamp}</p>

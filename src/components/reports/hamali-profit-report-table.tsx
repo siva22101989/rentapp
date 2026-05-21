@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -41,20 +42,20 @@ export function HamaliProfitReportTable({ events, customers, title }: ReportTabl
         <div className="bg-white p-4 rounded-lg">
              <div className="mb-4 text-center">
                 <h2 className="text-xl font-bold uppercase tracking-wide">SRI LAKSHMI WAREHOUSE</h2>
-                <p className="text-muted-foreground font-semibold uppercase">{title}</p>
+                <p className="text-muted-foreground font-semibold uppercase text-[14px]">{title}</p>
                 <p className="text-xs text-muted-foreground">Generated on: {generatedDate}</p>
             </div>
-            <Table className="text-xs">
+            <Table className="text-[13px]">
                 <TableHeader>
-                    <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Customer</TableHead>
-                        <TableHead>Description</TableHead>
-                        <TableHead>Storage ID</TableHead>
-                        <TableHead className="text-center">Bags</TableHead>
-                        <TableHead className="text-right">Cust. Charge</TableHead>
-                        <TableHead className="text-right">Worker Pay</TableHead>
-                        <TableHead className="text-right">Difference</TableHead>
+                    <TableRow className="bg-muted/50">
+                        <TableHead className="uppercase text-[10px] font-bold">Date</TableHead>
+                        <TableHead className="uppercase text-[10px] font-bold">Customer</TableHead>
+                        <TableHead className="uppercase text-[10px] font-bold">Description</TableHead>
+                        <TableHead className="uppercase text-[10px] font-bold">Storage ID</TableHead>
+                        <TableHead className="text-center uppercase text-[10px] font-bold">Bags</TableHead>
+                        <TableHead className="text-right uppercase text-[10px] font-bold">Cust. Charge</TableHead>
+                        <TableHead className="text-right uppercase text-[10px] font-bold">Worker Pay</TableHead>
+                        <TableHead className="text-right uppercase text-[10px] font-bold">Diff.</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -62,37 +63,40 @@ export function HamaliProfitReportTable({ events, customers, title }: ReportTabl
                         const customerCharge = event.charge || event.payable;
                         const diff = customerCharge - event.payable;
                         return (
-                        <TableRow key={index}>
-                            <TableCell>{format(event.date, 'dd/MM/yy')}</TableCell>
-                            <TableCell className="font-medium whitespace-nowrap">{getCustomerName(event.customerId)}</TableCell>
-                            <TableCell>{event.description}</TableCell>
-                            <TableCell className="font-mono">{event.recordId}</TableCell>
-                            <TableCell className="text-center font-mono">{event.bags || ''}</TableCell>
-                            <TableCell className="text-right font-mono">{formatCurrency(customerCharge)}</TableCell>
-                            <TableCell className="text-right font-mono">{formatCurrency(event.payable)}</TableCell>
-                            <TableCell className={`text-right font-mono font-bold ${diff >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+                        <TableRow key={index} className="h-8">
+                            <TableCell className="p-1">{format(event.date, 'dd/MM/yy')}</TableCell>
+                            <TableCell className="p-1 font-medium whitespace-nowrap">{getCustomerName(event.customerId)}</TableCell>
+                            <TableCell className="p-1 tracking-tight">{event.description}</TableCell>
+                            <TableCell className="p-1 font-mono text-slate-400">{event.recordId}</TableCell>
+                            <TableCell className="p-1 text-center font-mono">{event.bags || ''}</TableCell>
+                            <TableCell className="p-1 text-right font-mono">{formatCurrency(customerCharge)}</TableCell>
+                            <TableCell className="p-1 text-right font-mono">{formatCurrency(event.payable)}</TableCell>
+                            <TableCell className={`p-1 text-right font-mono font-bold ${diff >= 0 ? 'text-green-600' : 'text-destructive'}`}>
                                 {formatCurrency(diff)}
                             </TableCell>
                         </TableRow>
                     )})}
+                     {payableEvents.length === 0 && (
+                        <TableRow>
+                            <TableCell colSpan={8} className="text-center text-muted-foreground py-10 italic">No margin records found.</TableCell>
+                        </TableRow>
+                    )}
                 </TableBody>
                 <TableFooter>
-                    <TableRow className="bg-secondary/30">
-                        <TableCell colSpan={5} className="text-right font-bold">Totals</TableCell>
-                        <TableCell className="text-right font-mono font-bold">{formatCurrency(totalCustomerCharge)}</TableCell>
-                        <TableCell className="text-right font-mono font-bold">{formatCurrency(totalWorkerPayable)}</TableCell>
-                        <TableCell className={`text-right font-mono font-bold ${totalDifference >= 0 ? 'text-green-600' : 'text-destructive'}`}>{formatCurrency(totalDifference)}</TableCell>
+                    <TableRow className="bg-secondary/30 font-bold">
+                        <TableCell colSpan={5} className="p-2 text-right uppercase text-[10px]">Grand Totals</TableCell>
+                        <TableCell className="p-2 text-right font-mono">{formatCurrency(totalCustomerCharge)}</TableCell>
+                        <TableCell className="p-2 text-right font-mono">{formatCurrency(totalWorkerPayable)}</TableCell>
+                        <TableCell className={`p-2 text-right font-mono font-black ${totalDifference >= 0 ? 'text-green-600' : 'text-destructive'}`}>{formatCurrency(totalDifference)}</TableCell>
                     </TableRow>
                 </TableFooter>
             </Table>
             
-            <div className="mt-16 pt-8 flex flex-col items-end text-center space-y-2">
+            <div className="mt-16 pt-8 flex flex-col items-end text-center space-y-1">
                 <div className="w-72 border-t border-slate-400 pt-4">
                     <p className="text-[#1e293b] font-bold text-sm uppercase tracking-wider">AUTHORIZED MANAGER SIGNATURE</p>
                     <p className="text-primary font-bold text-xs uppercase mt-1">SRI LAKSHMI WAREHOUSE</p>
                 </div>
-                <p className="text-[10px] text-slate-400">Report validity verified on {generatedDate}</p>
-                <p className="text-[10px] text-slate-400 italic">This is a computer generated statement.</p>
             </div>
         </div>
     );

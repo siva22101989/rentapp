@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -27,63 +28,60 @@ export function PendingDuesReportTable({ summaries, title }: ReportTableProps) {
 
     return (
         <div className="bg-white p-6 rounded-xl border shadow-sm print:shadow-none print:border-none">
-            <div className="mb-8 text-center border-b pb-6">
-                <h2 className="text-2xl font-bold text-primary tracking-tight uppercase">SRI LAKSHMI WAREHOUSE</h2>
-                <p className="text-muted-foreground font-semibold text-lg uppercase tracking-wider mt-1">{title}</p>
-                <div className="flex justify-center gap-4 mt-2 text-xs text-muted-foreground">
+            <div className="mb-6 text-center border-b pb-4">
+                <h2 className="text-xl font-bold text-primary tracking-tight uppercase leading-none">SRI LAKSHMI WAREHOUSE</h2>
+                <p className="text-muted-foreground font-semibold text-base uppercase tracking-wider mt-1">{title}</p>
+                <div className="flex justify-center gap-4 mt-1 text-[11px] text-slate-400">
                     <span>Generated: {generatedDate}</span>
                 </div>
             </div>
 
-            <Table>
+            <Table className="text-[13px]">
                 <TableHeader>
                     <TableRow className="bg-slate-50/80 hover:bg-slate-50/80 border-b-2">
-                        <TableHead className="font-bold text-slate-900 py-4">Customer Name</TableHead>
-                        <TableHead className="text-right font-bold text-slate-900 py-4">Hamali Pending</TableHead>
-                        <TableHead className="text-right font-bold text-slate-900 py-4">Rent Pending</TableHead>
-                        <TableHead className="text-right font-bold text-slate-900 py-4">Total Billed</TableHead>
-                        <TableHead className="text-right font-bold text-slate-900 py-4">Amount Paid</TableHead>
-                        <TableHead className="text-right font-bold text-slate-900 py-4">Balance Due</TableHead>
+                        <TableHead className="font-bold text-slate-900 py-3 uppercase text-[10px]">Customer Name</TableHead>
+                        <TableHead className="text-right font-bold text-slate-900 py-3 uppercase text-[10px]">Hamali Pending</TableHead>
+                        <TableHead className="text-right font-bold text-slate-900 py-3 uppercase text-[10px]">Rent Pending</TableHead>
+                        <TableHead className="text-right font-bold text-slate-900 py-3 uppercase text-[10px]">Total Billed</TableHead>
+                        <TableHead className="text-right font-bold text-slate-900 py-3 uppercase text-[10px]">Amount Paid</TableHead>
+                        <TableHead className="text-right font-bold text-slate-900 py-3 uppercase text-[10px]">Balance Due</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {summaries.map((summary) => (
-                        <TableRow key={summary.customerId} className="hover:bg-slate-50/50 border-b border-slate-100">
-                            <TableCell className="font-bold text-slate-800 py-3">{summary.customerName}</TableCell>
-                            <TableCell className="text-right font-mono text-orange-600 font-medium">{formatCurrency(summary.hamaliPending)}</TableCell>
-                            <TableCell className="text-right font-mono text-blue-600 font-medium">{formatCurrency(summary.rentPending)}</TableCell>
-                            <TableCell className="text-right font-mono text-slate-600">{formatCurrency(summary.totalBilled)}</TableCell>
-                            <TableCell className="text-right font-mono text-green-600">{formatCurrency(summary.amountPaid)}</TableCell>
-                            <TableCell className="text-right font-mono font-bold text-destructive text-base">{formatCurrency(summary.balanceDue)}</TableCell>
+                        <TableRow key={summary.customerId} className="hover:bg-slate-50/50 border-b border-slate-100 h-8">
+                            <TableCell className="font-bold text-slate-800 p-1">{summary.customerName}</TableCell>
+                            <TableCell className="text-right font-mono text-orange-600 font-medium p-1">{formatCurrency(summary.hamaliPending)}</TableCell>
+                            <TableCell className="text-right font-mono text-blue-600 font-medium p-1">{formatCurrency(summary.rentPending)}</TableCell>
+                            <TableCell className="text-right font-mono text-slate-600 p-1">{formatCurrency(summary.totalBilled)}</TableCell>
+                            <TableCell className="text-right font-mono text-green-600 p-1">{formatCurrency(summary.amountPaid)}</TableCell>
+                            <TableCell className="text-right font-mono font-black text-destructive p-1">{formatCurrency(summary.balanceDue)}</TableCell>
                         </TableRow>
                     ))}
                      {summaries.length === 0 && (
                         <TableRow>
-                            <TableCell colSpan={6} className="text-center text-muted-foreground py-20 italic">
-                                All customer accounts are currently settled. No pending dues found.
+                            <TableCell colSpan={6} className="text-center text-muted-foreground py-10 italic">
+                                No pending dues found.
                             </TableCell>
                         </TableRow>
                     )}
                 </TableBody>
                 <TableFooter>
-                    <TableRow className="bg-slate-900 text-white hover:bg-slate-900 border-t-2 border-slate-900">
-                        <TableCell className="font-bold text-base py-4">Grand Total Portfolio</TableCell>
-                        <TableCell className="text-right font-mono font-bold text-orange-200 py-4">{formatCurrency(totals.hamali)}</TableCell>
-                        <TableCell className="text-right font-mono font-bold text-blue-200 py-4">{formatCurrency(totals.rent)}</TableCell>
-                        <TableCell className="text-right font-mono font-bold text-slate-300 py-4">{formatCurrency(totals.billed)}</TableCell>
-                        <TableCell className="text-right font-mono font-bold text-green-300 py-4">{formatCurrency(totals.paid)}</TableCell>
-                        <TableCell className="text-right font-bold text-white font-mono text-xl py-4">{formatCurrency(totals.total)}</TableCell>
+                    <TableRow className="bg-slate-900 text-white hover:bg-slate-900 border-t-2 border-slate-900 font-black">
+                        <TableCell className="p-3 uppercase text-[10px] tracking-tight">Grand Total Portfolio</TableCell>
+                        <TableCell className="text-right font-mono text-orange-200">{formatCurrency(totals.hamali)}</TableCell>
+                        <TableCell className="text-right font-mono text-blue-200">{formatCurrency(totals.rent)}</TableCell>
+                        <TableCell className="text-right font-mono text-slate-300">{formatCurrency(totals.billed)}</TableCell>
+                        <TableCell className="text-right font-mono text-green-300">{formatCurrency(totals.paid)}</TableCell>
+                        <TableCell className="text-right text-white font-mono text-[14px]">{formatCurrency(totals.total)}</TableCell>
                     </TableRow>
                 </TableFooter>
             </Table>
             
             <div className="mt-16 pt-8 flex flex-col items-end text-center space-y-2">
                 <div className="w-72 border-t border-slate-400 pt-4">
-                    <p className="text-[#1e293b] font-bold text-sm uppercase tracking-wider">AUTHORIZED MANAGER SIGNATURE</p>
-                    <p className="text-primary font-bold text-xs uppercase mt-1">SRI LAKSHMI WAREHOUSE</p>
+                    <p className="text-[#1e293b] font-bold text-[12px] uppercase tracking-wider">AUTHORIZED MANAGER SIGNATURE</p>
                 </div>
-                <p className="text-[10px] text-slate-400">Report validity verified on {generatedDate}</p>
-                <p className="text-[10px] text-slate-400 italic">This is a computer generated statement.</p>
             </div>
         </div>
     );

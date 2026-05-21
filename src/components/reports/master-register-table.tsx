@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo } from "react";
@@ -31,7 +32,11 @@ export function MasterRegisterTable({ records, customers, title }: MasterRegiste
                 totalPaid,
                 balanceDue: totalBilled - totalPaid
             };
-        }).sort((a, b) => toDate(b.storageStartDate).getTime() - toDate(a.storageStartDate).getTime());
+        }).sort((a, b) => {
+            const dateA = toDate(a.storageStartDate);
+            const dateB = toDate(b.storageStartDate);
+            return dateB.getTime() - dateA.getTime();
+        });
     }, [records]);
 
     const totals = useMemo(() => {
@@ -47,87 +52,78 @@ export function MasterRegisterTable({ records, customers, title }: MasterRegiste
     }, [processedRecords]);
 
     return (
-        <div className="bg-white p-4 rounded-lg overflow-x-auto">
-             <div className="mb-6 text-center">
-                <h2 className="text-2xl font-bold uppercase tracking-wide">SRI LAKSHMI WAREHOUSE</h2>
-                <p className="text-muted-foreground font-semibold uppercase tracking-wider">{title}</p>
-                <p className="text-xs text-muted-foreground">Generated on: {generatedDate}</p>
+        <div className="bg-white p-4 rounded-lg overflow-x-auto shadow-sm border">
+             <div className="mb-6 text-center border-b pb-4">
+                <h2 className="text-xl font-black uppercase tracking-tight">SRI LAKSHMI WAREHOUSE</h2>
+                <p className="text-muted-foreground font-semibold uppercase tracking-wider text-[14px]">{title}</p>
+                <p className="text-[10px] text-slate-400 mt-1">Generated: {generatedDate}</p>
             </div>
-            <Table className="text-xs">
+            <Table className="text-[13px] border-collapse">
                 <TableHeader>
-                    <TableRow className="bg-muted/50">
-                        <TableHead>Date</TableHead>
-                        <TableHead>Storage ID</TableHead>
-                        <TableHead className="min-w-[150px]">Customer</TableHead>
-                        <TableHead>Commodity</TableHead>
-                        <TableHead>Lot No</TableHead>
-                        <TableHead className="text-right">Bags In</TableHead>
-                        <TableHead className="text-right">Bags Out</TableHead>
-                        <TableHead className="text-right font-bold">Balance</TableHead>
-                        <TableHead className="text-right">Total Billed</TableHead>
-                        <TableHead className="text-right">Amount Paid</TableHead>
-                        <TableHead className="text-right font-bold">Amt Due</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="w-[50px] print-hide">Actions</TableHead>
+                    <TableRow className="bg-slate-900 hover:bg-slate-900">
+                        <TableHead className="text-white uppercase text-[9px] font-bold p-2 text-center border-r border-slate-700">Date</TableHead>
+                        <TableHead className="text-white uppercase text-[9px] font-bold p-2 text-center border-r border-slate-700">Serial</TableHead>
+                        <TableHead className="text-white uppercase text-[9px] font-bold p-2 text-left border-r border-slate-700 min-w-[140px]">Customer</TableHead>
+                        <TableHead className="text-white uppercase text-[9px] font-bold p-2 text-center border-r border-slate-700">Product</TableHead>
+                        <TableHead className="text-white uppercase text-[9px] font-bold p-2 text-center border-r border-slate-700">Lot</TableHead>
+                        <TableHead className="text-white uppercase text-[9px] font-bold p-2 text-right border-r border-slate-700">In</TableHead>
+                        <TableHead className="text-white uppercase text-[9px] font-bold p-2 text-right border-r border-slate-700">Out</TableHead>
+                        <TableHead className="text-white uppercase text-[9px] font-bold p-2 text-right border-r border-slate-700">Bal</TableHead>
+                        <TableHead className="text-white uppercase text-[9px] font-bold p-2 text-right border-r border-slate-700">Billed</TableHead>
+                        <TableHead className="text-white uppercase text-[9px] font-bold p-2 text-right border-r border-slate-700">Paid</TableHead>
+                        <TableHead className="text-white uppercase text-[9px] font-bold p-2 text-right border-r border-slate-700">Due</TableHead>
+                        <TableHead className="text-white uppercase text-[9px] font-bold p-2 text-center">Status</TableHead>
+                        <TableHead className="w-[40px] print-hide"></TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {processedRecords.length > 0 ? (
-                        processedRecords.map((record) => (
-                            <TableRow key={record.id}>
-                                <TableCell className="whitespace-nowrap">{format(toDate(record.storageStartDate), 'dd/MM/yy')}</TableCell>
-                                <TableCell className="font-medium">{record.id}</TableCell>
-                                <TableCell className="font-medium whitespace-nowrap">{getCustomerName(record.customerId)}</TableCell>
-                                <TableCell>{record.commodityDescription}</TableCell>
-                                <TableCell>{record.location}</TableCell>
-                                <TableCell className="text-right font-mono">{record.bagsIn}</TableCell>
-                                <TableCell className="text-right font-mono">{record.bagsOut}</TableCell>
-                                <TableCell className="text-right font-mono font-bold">{record.bagsStored}</TableCell>
-                                <TableCell className="text-right font-mono">{formatCurrency(record.totalBilled)}</TableCell>
-                                <TableCell className="text-right font-mono text-green-600">{formatCurrency(record.totalPaid)}</TableCell>
-                                <TableCell className={`text-right font-mono font-bold ${record.balanceDue > 0.5 ? 'text-destructive' : ''}`}>
+                        processedRecords.map((record) => {
+                            const date = toDate(record.storageStartDate);
+                            return (
+                            <TableRow key={record.id} className="h-8 border-b border-slate-100 hover:bg-slate-50">
+                                <TableCell className="text-center whitespace-nowrap p-1 text-slate-500 font-bold">{format(date, 'dd/MM/yy')}</TableCell>
+                                <TableCell className="text-center font-mono font-black text-slate-400 p-1">{record.id}</TableCell>
+                                <TableCell className="font-black whitespace-nowrap p-1 uppercase tracking-tighter">{getCustomerName(record.customerId)}</TableCell>
+                                <TableCell className="text-center p-1 font-bold text-slate-600">{record.commodityDescription}</TableCell>
+                                <TableCell className="text-center font-mono font-bold text-slate-500 p-1">{record.location}</TableCell>
+                                <TableCell className="text-right font-mono font-bold text-sky-600 p-1">{record.bagsIn}</TableCell>
+                                <TableCell className="text-right font-mono font-bold text-orange-600 p-1">{record.bagsOut}</TableCell>
+                                <TableCell className="text-right font-mono font-black text-primary p-1 bg-slate-50/50">{record.bagsStored}</TableCell>
+                                <TableCell className="text-right font-mono p-1">{formatCurrency(record.totalBilled)}</TableCell>
+                                <TableCell className="text-right font-mono text-green-600 font-bold p-1">{formatCurrency(record.totalPaid)}</TableCell>
+                                <TableCell className={`text-right font-mono font-black p-1 ${record.balanceDue > 0.5 ? 'text-destructive' : 'text-slate-400'}`}>
                                     {formatCurrency(record.balanceDue)}
                                 </TableCell>
-                                <TableCell>
-                                    <Badge variant={record.storageEndDate ? "secondary" : "default"} className={record.storageEndDate ? 'bg-zinc-100 text-zinc-800' : 'bg-green-100 text-green-800'}>
-                                        {record.storageEndDate ? 'Closed' : 'Active'}
+                                <TableCell className="text-center p-1">
+                                    <Badge variant="outline" className={`text-[9px] h-4 py-0 uppercase font-black ${record.storageEndDate ? 'bg-zinc-100 text-zinc-500' : 'bg-green-50 text-green-700 border-green-200'}`}>
+                                        {record.storageEndDate ? 'Closed' : 'Live'}
                                     </Badge>
                                 </TableCell>
-                                <TableCell className="text-right print-hide">
+                                <TableCell className="text-right print-hide p-1">
                                     <ActionsMenu record={record} customers={customers} allRecords={records} />
                                 </TableCell>
                             </TableRow>
-                        ))
+                        )})
                     ) : (
                         <TableRow>
-                            <TableCell colSpan={13} className="h-24 text-center text-muted-foreground">
-                                No records found for the selected period.
-                            </TableCell>
+                            <TableCell colSpan={13} className="h-20 text-center text-slate-300 font-black uppercase tracking-widest text-[11px] italic">No Audit History Found</TableCell>
                         </TableRow>
                     )}
                 </TableBody>
                 <TableFooter>
-                    <TableRow className="border-t-2 border-primary bg-muted/30 font-bold">
-                        <TableCell colSpan={5} className="text-right text-base">Grand Totals</TableCell>
-                        <TableCell className="text-right font-mono">{totals.bagsIn}</TableCell>
-                        <TableCell className="text-right font-mono">{totals.bagsOut}</TableCell>
-                        <TableCell className="text-right font-mono">{totals.bagsStored}</TableCell>
-                        <TableCell className="text-right font-mono">{formatCurrency(totals.billed)}</TableCell>
-                        <TableCell className="text-right font-mono text-green-600">{formatCurrency(totals.paid)}</TableCell>
-                        <TableCell className="text-right font-mono text-destructive">{formatCurrency(totals.due)}</TableCell>
+                    <TableRow className="border-t-2 border-slate-900 bg-slate-50 font-black">
+                        <TableCell colSpan={5} className="p-3 text-right uppercase text-[10px] tracking-tight">Grand Total Portfolio</TableCell>
+                        <TableCell className="text-right font-mono p-1 text-sky-700">{totals.bagsIn}</TableCell>
+                        <TableCell className="text-right font-mono p-1 text-orange-700">{totals.bagsOut}</TableCell>
+                        <TableCell className="text-right font-mono p-1 text-primary text-lg">{totals.bagsStored}</TableCell>
+                        <TableCell className="text-right font-mono p-1">{formatCurrency(totals.billed)}</TableCell>
+                        <TableCell className="text-right font-mono text-green-700 p-1">{formatCurrency(totals.paid)}</TableCell>
+                        <TableCell className="text-right font-mono text-destructive p-1 text-lg">{formatCurrency(totals.due)}</TableCell>
                         <TableCell colSpan={2}></TableCell>
                     </TableRow>
                 </TableFooter>
             </Table>
-            
-            <div className="mt-16 pt-8 flex flex-col items-end text-center space-y-2">
-                <div className="w-72 border-t border-slate-400 pt-4">
-                    <p className="text-[#1e293b] font-bold text-sm uppercase tracking-wider">AUTHORIZED MANAGER SIGNATURE</p>
-                    <p className="text-primary font-bold text-xs uppercase mt-1">SRI LAKSHMI WAREHOUSE</p>
-                </div>
-                <p className="text-[10px] text-slate-400">Report validity verified on {generatedDate}</p>
-                <p className="text-[10px] text-slate-400 italic">This is a computer generated statement.</p>
-            </div>
         </div>
     );
 }

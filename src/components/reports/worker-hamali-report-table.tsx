@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -33,56 +34,59 @@ export function WorkerHamaliReportTable({ events, title }: ReportTableProps) {
         <div className="bg-white p-4 rounded-lg">
              <div className="mb-4 text-center">
                 <h2 className="text-xl font-bold uppercase tracking-wide">SRI LAKSHMI WAREHOUSE</h2>
-                <p className="text-muted-foreground font-semibold uppercase">{title}</p>
+                <p className="text-muted-foreground font-semibold uppercase text-[14px]">{title}</p>
                 <p className="text-xs text-muted-foreground">Generated on: {generatedDate}</p>
             </div>
-            <Table className="text-xs">
+            <Table className="text-[13px]">
                 <TableHeader>
-                    <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Description</TableHead>
-                        <TableHead>Storage ID</TableHead>
-                        <TableHead className="text-center">Bags</TableHead>
-                        <TableHead className="text-right">Worker Payable</TableHead>
-                        <TableHead className="text-right">Paid</TableHead>
+                    <TableRow className="bg-muted/50">
+                        <TableHead className="uppercase text-[10px] font-bold">Date</TableHead>
+                        <TableHead className="uppercase text-[10px] font-bold">Description</TableHead>
+                        <TableHead className="uppercase text-[10px] font-bold">Ref ID</TableHead>
+                        <TableHead className="text-center uppercase text-[10px] font-bold">Bags</TableHead>
+                        <TableHead className="text-right uppercase text-[10px] font-bold">Worker Payable</TableHead>
+                        <TableHead className="text-right uppercase text-[10px] font-bold">Paid</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {events.map((event, index) => (
-                        <TableRow key={index}>
-                            <TableCell>{format(event.date, 'dd/MM/yy')}</TableCell>
-                            <TableCell>{event.description}</TableCell>
-                            <TableCell className="font-mono">{event.recordId}</TableCell>
-                            <TableCell className="text-center font-mono">{event.bags || ''}</TableCell>
-                            <TableCell className="text-right font-mono">
+                        <TableRow key={index} className="h-8">
+                            <TableCell className="p-1">{format(event.date, 'dd/MM/yy')}</TableCell>
+                            <TableCell className="p-1 tracking-tight">{event.description}</TableCell>
+                            <TableCell className="p-1 font-mono text-slate-400">{event.recordId}</TableCell>
+                            <TableCell className="p-1 text-center font-mono">{event.bags || ''}</TableCell>
+                            <TableCell className="p-1 text-right font-mono">
                                 {event.payable > 0 ? formatCurrency(event.payable) : ''}
                             </TableCell>
-                            <TableCell className="text-right font-mono text-green-600">
+                            <TableCell className="p-1 text-right font-mono text-green-600">
                                  {event.paid > 0 ? formatCurrency(event.paid) : ''}
                             </TableCell>
                         </TableRow>
                     ))}
+                     {events.length === 0 && (
+                        <TableRow>
+                            <TableCell colSpan={6} className="text-center text-muted-foreground py-10 italic">No worker transactions found.</TableCell>
+                        </TableRow>
+                    )}
                 </TableBody>
                 <TableFooter>
-                    <TableRow className="bg-secondary/30">
-                        <TableCell colSpan={4} className="text-right font-bold">Totals</TableCell>
-                        <TableCell className="text-right font-mono font-bold">{formatCurrency(totalPayable)}</TableCell>
-                        <TableCell className="text-right font-mono font-bold text-green-600">{formatCurrency(totalPaid)}</TableCell>
+                    <TableRow className="bg-secondary/30 font-bold">
+                        <TableCell colSpan={4} className="p-2 text-right uppercase text-[10px]">Totals</TableCell>
+                        <TableCell className="p-2 text-right font-mono">{formatCurrency(totalPayable)}</TableCell>
+                        <TableCell className="p-2 text-right font-mono text-green-600">{formatCurrency(totalPaid)}</TableCell>
                     </TableRow>
-                     <TableRow>
-                        <TableCell colSpan={5} className="text-right font-bold text-lg">Balance Pending to Workers</TableCell>
-                        <TableCell className="text-right font-mono font-bold text-lg text-destructive">{formatCurrency(balance)}</TableCell>
+                     <TableRow className="font-black border-t-2 border-primary">
+                        <TableCell colSpan={5} className="p-2 text-right uppercase text-[11px] text-slate-500">Balance Pending to Workers</TableCell>
+                        <TableCell className="p-2 text-right font-mono text-lg text-destructive">{formatCurrency(balance)}</TableCell>
                     </TableRow>
                 </TableFooter>
             </Table>
             
-            <div className="mt-16 pt-8 flex flex-col items-end text-center space-y-2">
+            <div className="mt-16 pt-8 flex flex-col items-end text-center space-y-1">
                 <div className="w-72 border-t border-slate-400 pt-4">
                     <p className="text-[#1e293b] font-bold text-sm uppercase tracking-wider">AUTHORIZED MANAGER SIGNATURE</p>
                     <p className="text-primary font-bold text-xs uppercase mt-1">SRI LAKSHMI WAREHOUSE</p>
                 </div>
-                <p className="text-[10px] text-slate-400">Report validity verified on {generatedDate}</p>
-                <p className="text-[10px] text-slate-400 italic">This is a computer generated statement.</p>
             </div>
         </div>
     );

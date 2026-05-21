@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, forwardRef } from 'react';
@@ -18,7 +19,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
   const { lineItems, totals } = useMemo(() => {
     const events: any[] = [];
     
-    // 1. Process Unloading Records (Preliminary entries before godown)
+    // 1. Process Unloading Records
     (unloadingRecords || []).forEach(unloading => {
         const totalHamali = unloading.totalHamali || 0;
         
@@ -53,7 +54,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         });
     });
 
-    // 2. Process Storage Records (Godown entries)
+    // 2. Process Storage Records
     (records || []).forEach(record => {
         const inflowDebit = record.hamaliPayable || 0;
         
@@ -133,7 +134,6 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         });
     });
     
-    // Sort all events chronologically
     const sortedEvents = events.sort((a, b) => a.sortDate - b.sortDate);
 
     let runningBalance = 0;
@@ -155,10 +155,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         totalRent += (event.rent || 0);
         totalCredit += credit;
         
-        return { 
-            ...event, 
-            balance: runningBalance
-        };
+        return { ...event, balance: runningBalance };
     });
     
     return { 
@@ -173,108 +170,115 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             finalBalance: runningBalance
         } 
     };
-  }, [customer, records, unloadingRecords]);
+  }, [records, unloadingRecords]);
   
   const timestamp = useMemo(() => format(new Date(), 'dd/MM/yyyy, h:mm a'), []);
 
   return (
-    <div ref={ref} className="bg-white p-4 printable-area text-slate-800 font-sans max-w-5xl mx-auto border shadow-sm">
-        {/* Header */}
-        <header className="mb-4 pb-2 border-b-2 border-[#3498db]">
-            <div className="flex justify-between items-start">
-                <div>
-                    <h1 className="text-xl font-black text-[#1e293b] tracking-tighter uppercase leading-tight">{warehouseInfo?.name || "Sri Lakshmi WareHouse"}</h1>
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none">Statement of Account</p>
+    <div ref={ref} className="bg-white p-6 printable-area text-slate-800 font-sans max-w-6xl mx-auto border shadow-sm rounded-xl">
+        <header className="mb-6 pb-4 border-b-2 border-[#3498db] flex justify-between items-center">
+            <div className="flex-1">
+                <h1 className="text-2xl font-black text-[#1e293b] tracking-tighter uppercase leading-tight">{warehouseInfo?.name || "SRI LAKSHMI WAREHOUSE"}</h1>
+                <p className="text-[12px] font-black text-slate-400 uppercase tracking-[0.2em]">Audit Ledger • Statement of Account</p>
+                <div className="mt-1 text-[12px] text-slate-500 font-medium">
+                    <p>{warehouseInfo?.addressLine1}</p>
+                    <p>{warehouseInfo?.addressLine2}</p>
                 </div>
-                <div className="text-right">
-                    <p className="text-[14px] font-black text-slate-900 uppercase leading-none">{customer?.name || "Unnamed Customer"}</p>
-                    <p className="text-[10px] text-slate-500 mt-1 leading-none">{customer?.village || 'N/A'} • {customer?.phone}</p>
-                </div>
+            </div>
+            <div className="text-right bg-slate-900 text-white p-4 px-8 rounded-xl shadow-lg border-b-4 border-[#3498db] min-w-[350px]">
+                <p className="text-[10px] font-bold text-sky-400 uppercase tracking-[0.2em] mb-1">Customer Identification</p>
+                <p className="text-2xl font-black uppercase leading-tight tracking-tight text-white">{customer?.name || "Unnamed Customer"}</p>
+                <p className="text-[12px] text-slate-400 font-bold mt-1 uppercase">{customer?.village || 'Village: N/A'} • {customer?.phone}</p>
             </div>
         </header>
 
-        {/* Summary Row */}
-        <div className="grid grid-cols-2 gap-4 mb-4">
-            <div className="bg-slate-50 border border-slate-200 rounded-lg p-2.5 space-y-1">
-                <h3 className="text-[9px] font-black text-slate-400 uppercase tracking-widest border-b pb-1 mb-1">Inventory Summary</h3>
-                <div className="flex justify-between items-center text-[10px]">
-                    <span className="text-slate-500">TOTAL BAGS IN</span>
-                    <span className="font-mono font-bold text-slate-900">{totals.totalBagsIn}</span>
+        {/* High-Density Summary Ledger - Side-by-side blocks precisely matching reference */}
+        <div className="grid grid-cols-2 gap-8 mb-8 text-[13px]">
+            {/* Left Box: Inventory Status */}
+            <div className="bg-slate-50/80 border border-slate-200 rounded-lg overflow-hidden shadow-sm">
+                <div className="flex justify-between items-center px-4 py-2 border-b border-slate-200">
+                    <span className="font-bold text-slate-600 tracking-tight">Total Bags In:</span>
+                    <span className="font-mono font-bold text-slate-800">{totals.totalBagsIn}</span>
                 </div>
-                <div className="flex justify-between items-center text-[10px]">
-                    <span className="text-slate-500">TOTAL BAGS OUT</span>
-                    <span className="font-mono font-bold text-slate-900">{totals.totalBagsOut}</span>
+                <div className="flex justify-between items-center px-4 py-2 border-b border-slate-200">
+                    <span className="font-bold text-slate-600 tracking-tight">Total Bags Out:</span>
+                    <span className="font-mono font-bold text-slate-800">{totals.totalBagsOut}</span>
                 </div>
-                <div className="flex justify-between items-center pt-1 border-t border-dashed">
-                    <span className="font-black text-slate-700 text-[10px]">BALANCE STOCK</span>
-                    <span className="font-black text-[12px] font-mono text-primary">{totals.balanceStock}</span>
+                <div className="flex justify-between items-center px-4 py-2 border-b border-slate-200">
+                    <span className="font-black text-slate-900 uppercase">Balance Stock:</span>
+                    <span className="font-mono font-black text-slate-900 text-[15px]">{totals.balanceStock}</span>
                 </div>
+                <div className="h-[37px] bg-slate-50/50"></div> {/* Empty spacer to align height */}
             </div>
-            <div className="bg-slate-50 border border-slate-200 rounded-lg p-2.5 space-y-1">
-                <h3 className="text-[9px] font-black text-slate-400 uppercase tracking-widest border-b pb-1 mb-1">Financial Standings</h3>
-                <div className="flex justify-between items-center text-[10px]">
-                    <span className="text-slate-500">HAMALI + RENT</span>
-                    <span className="font-mono font-bold text-slate-900">{formatCurrency(totals.totalHamali + totals.totalRent)}</span>
+
+            {/* Right Box: Financial Status */}
+            <div className="bg-slate-50/80 border border-slate-200 rounded-lg overflow-hidden shadow-sm">
+                <div className="flex justify-between items-center px-4 py-2 border-b border-slate-200">
+                    <span className="font-bold text-slate-600 tracking-tight">Total Hamali:</span>
+                    <span className="font-mono font-bold text-slate-800">{formatCurrency(totals.totalHamali)}</span>
                 </div>
-                <div className="flex justify-between items-center text-[10px]">
-                    <span className="text-slate-500">TOTAL PAID</span>
+                <div className="flex justify-between items-center px-4 py-2 border-b border-slate-200">
+                    <span className="font-bold text-slate-600 tracking-tight">Total Rent:</span>
+                    <span className="font-mono font-bold text-slate-800">{formatCurrency(totals.totalRent)}</span>
+                </div>
+                <div className="flex justify-between items-center px-4 py-2 border-b border-slate-200">
+                    <span className="font-bold text-slate-600 tracking-tight">Total Paid:</span>
                     <span className="font-mono font-bold text-green-600">{formatCurrency(totals.totalCredit)}</span>
                 </div>
-                <div className="flex justify-between items-center pt-1 border-t border-dashed">
-                    <span className="font-black text-slate-700 text-[10px]">TOTAL DUE</span>
-                    <span className="font-black text-[12px] font-mono text-destructive">{formatCurrency(totals.finalBalance)}</span>
+                <div className="flex justify-between items-center px-4 py-2 bg-slate-100/50">
+                    <span className="font-black text-slate-900 uppercase">Balance Due:</span>
+                    <span className="font-mono font-black text-destructive text-[15px]">{formatCurrency(totals.finalBalance)}</span>
                 </div>
             </div>
         </div>
 
-        {/* Ledger Table */}
-        <div className="overflow-hidden border border-slate-200 rounded-sm">
-            <Table className="w-full">
+        <div className="overflow-hidden border border-slate-200 rounded-xl shadow-sm">
+            <Table className="w-full text-[13px]">
                 <TableHeader>
-                    <TableRow className="bg-[#3498db] hover:bg-[#3498db] border-none h-8">
-                        <TableHead className="text-white font-black text-[9px] border-r border-sky-400/50 text-center uppercase p-1">Date</TableHead>
-                        <TableHead className="text-white font-black text-[9px] border-r border-sky-400/50 text-left uppercase p-1">Description</TableHead>
-                        <TableHead className="text-white font-black text-[9px] border-r border-sky-400/50 text-center uppercase p-1">Invoice</TableHead>
-                        <TableHead className="text-white font-black text-[9px] border-r border-sky-400/50 text-center uppercase p-1">Bags In</TableHead>
-                        <TableHead className="text-white font-black text-[9px] border-r border-sky-400/50 text-center uppercase p-1">Bags Out</TableHead>
-                        <TableHead className="text-white font-black text-[9px] border-r border-sky-400/50 text-right uppercase p-1">Hamali</TableHead>
-                        <TableHead className="text-white font-black text-[9px] border-r border-sky-400/50 text-right uppercase p-1">Rent</TableHead>
-                        <TableHead className="text-white font-black text-[9px] border-r border-sky-400/50 text-right uppercase p-1">Credit</TableHead>
-                        <TableHead className="text-white font-black text-[9px] text-right uppercase p-1">Balance</TableHead>
+                    <TableRow className="bg-[#3498db] hover:bg-[#3498db] border-none">
+                        <TableHead className="py-2 text-white font-black border-r border-sky-400/50 text-center uppercase text-[10px]">Date</TableHead>
+                        <TableHead className="py-2 text-white font-black border-r border-sky-400/50 text-left uppercase text-[10px]">Description</TableHead>
+                        <TableHead className="py-2 text-white font-black border-r border-sky-400/50 text-center uppercase text-[10px]">Invoice No</TableHead>
+                        <TableHead className="py-2 text-white font-black border-r border-sky-400/50 text-center uppercase text-[10px]">Bags In</TableHead>
+                        <TableHead className="py-2 text-white font-black border-r border-sky-400/50 text-center uppercase text-[10px]">Bags Out</TableHead>
+                        <TableHead className="py-2 text-white font-black border-r border-sky-400/50 text-right uppercase text-[10px]">Hamali</TableHead>
+                        <TableHead className="py-2 text-white font-black border-r border-sky-400/50 text-right uppercase text-[10px]">Rent</TableHead>
+                        <TableHead className="py-2 text-white font-black border-r border-sky-400/50 text-right uppercase text-[10px]">Credit</TableHead>
+                        <TableHead className="py-2 text-white font-black text-right uppercase text-[10px]">Balance</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {lineItems.map((item, index) => (
-                        <TableRow key={index} className="border-b border-slate-100 hover:bg-slate-50 transition-colors h-7">
-                            <TableCell className="text-center text-[10px] font-medium text-slate-500 whitespace-nowrap p-1">{format(item.date, 'dd/MM/yy')}</TableCell>
-                            <TableCell className="text-left text-[10px] font-bold text-slate-700 p-1">{item.description}</TableCell>
-                            <TableCell className="text-center text-[10px] font-mono text-slate-400 p-1">{item.billNo}</TableCell>
-                            <TableCell className="text-center text-[10px] font-mono font-bold text-sky-600 p-1">{item.bagsIn || ''}</TableCell>
-                            <TableCell className="text-center text-[10px] font-mono font-bold text-orange-600 p-1">{item.bagsOut || ''}</TableCell>
-                            <TableCell className="text-right text-[10px] font-mono text-slate-600 p-1">{item.hamali > 0 ? formatCurrency(item.hamali) : ''}</TableCell>
-                            <TableCell className="text-right text-[10px] font-mono text-slate-600 p-1">{item.rent > 0 ? formatCurrency(item.rent) : ''}</TableCell>
-                            <TableCell className="text-right text-[10px] font-mono text-green-600 font-bold p-1">{item.credit > 0 ? formatCurrency(item.credit) : ''}</TableCell>
-                            <TableCell className="text-right text-[10px] font-mono font-bold bg-slate-50/30 p-1">{formatCurrency(item.balance)}</TableCell>
+                        <TableRow key={index} className="border-b border-slate-100 hover:bg-slate-50 transition-colors h-8">
+                            <TableCell className="p-2 text-center font-bold text-slate-500 whitespace-nowrap">{format(item.date, 'dd/MM/yy')}</TableCell>
+                            <TableCell className="p-2 text-left font-black text-slate-800 tracking-tighter uppercase">{item.description}</TableCell>
+                            <TableCell className="p-2 text-center font-mono font-bold text-slate-400">{item.billNo}</TableCell>
+                            <TableCell className="p-2 text-center font-mono font-black text-sky-600">{item.bagsIn || ''}</TableCell>
+                            <TableCell className="p-2 text-center font-mono font-black text-orange-600">{item.bagsOut || ''}</TableCell>
+                            <TableCell className="p-2 text-right font-mono font-bold text-slate-600">{item.hamali > 0 ? formatCurrency(item.hamali) : ''}</TableCell>
+                            <TableCell className="p-2 text-right font-mono font-bold text-slate-600">{item.rent > 0 ? formatCurrency(item.rent) : ''}</TableCell>
+                            <TableCell className="p-2 text-right font-mono text-green-600 font-black">{item.credit > 0 ? formatCurrency(item.credit) : ''}</TableCell>
+                            <TableCell className="p-2 text-right font-mono font-black bg-slate-50/50">{formatCurrency(item.balance)}</TableCell>
                         </TableRow>
                     ))}
                     {lineItems.length === 0 && (
                         <TableRow>
-                            <TableCell colSpan={9} className="py-8 text-center text-slate-300 font-black uppercase tracking-widest text-[10px] italic">No Transactions</TableCell>
+                            <TableCell colSpan={9} className="py-12 text-center text-slate-300 font-black uppercase tracking-widest text-[11px] italic">No Ledger Transactions Found</TableCell>
                         </TableRow>
                     )}
                 </TableBody>
             </Table>
         </div>
 
-        {/* Footer */}
-        <footer className="mt-6 pt-2 border-t border-slate-100 flex justify-between items-end">
-            <div className="text-[9px] text-slate-400 italic leading-tight">
-                <p>Computer-generated statement. Please notify errors within 7 days.</p>
+        <footer className="mt-6 pt-4 border-t border-slate-200 flex justify-between items-end">
+            <div className="text-[10px] text-slate-400 font-bold italic leading-tight space-y-0.5">
+                <p>Digital Statement. Verified audit trail.</p>
                 <p>Generated on: {timestamp}</p>
             </div>
-            <div className="text-center min-w-[150px]">
-                <div className="h-6 border-b border-slate-300 mb-1"></div>
-                <p className="text-[10px] font-black text-slate-800 uppercase">Authorized Signature</p>
+            <div className="text-center min-w-[200px]">
+                <div className="h-10 border-b border-slate-300 mb-2"></div>
+                <p className="text-[12px] font-black text-slate-800 uppercase tracking-wider">Authorized Manager</p>
+                <p className="text-[10px] text-slate-400 font-bold uppercase">Sri Lakshmi WareHouse</p>
             </div>
         </footer>
     </div>

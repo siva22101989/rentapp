@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -94,10 +95,10 @@
     @apply border-border;
   }
   html {
-    font-size: 16px;
+    font-size: 20px;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground text-[0.75rem];
     touch-action: manipulation;
   }
   /* Hide arrows from number inputs */

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -27,31 +28,31 @@ export function UnloadingReportTable({ records, customers, title, commodities }:
         <div className="bg-white p-4 rounded-lg">
              <div className="mb-4 text-center">
                 <h2 className="text-xl font-bold uppercase tracking-wide">SRI LAKSHMI WAREHOUSE</h2>
-                <p className="text-muted-foreground font-semibold uppercase">{title}</p>
-                <p className="text-xs text-muted-foreground">Generated on: {generatedDate}</p>
+                <p className="text-muted-foreground font-semibold uppercase text-[14px]">{title}</p>
+                <p className="text-[11px] text-slate-400 mt-1">Generated: {generatedDate}</p>
             </div>
-            <Table>
+            <Table className="text-[13px]">
                 <TableHeader>
-                    <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Bill No</TableHead>
-                        <TableHead>Customer</TableHead>
-                        <TableHead>Lot No</TableHead>
-                        <TableHead>Commodity</TableHead>
-                        <TableHead className="text-right">Bags Unloaded</TableHead>
+                    <TableRow className="bg-muted/50">
+                        <TableHead className="uppercase text-[10px] font-bold">Date</TableHead>
+                        <TableHead className="uppercase text-[10px] font-bold">Bill No</TableHead>
+                        <TableHead className="uppercase text-[10px] font-bold">Customer</TableHead>
+                        <TableHead className="uppercase text-[10px] font-bold">Lot No</TableHead>
+                        <TableHead className="uppercase text-[10px] font-bold">Commodity</TableHead>
+                        <TableHead className="text-right uppercase text-[10px] font-bold">Bags Unloaded</TableHead>
                         <TableHead className="w-[50px] print-hide"></TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {records.map((record) => (
-                        <TableRow key={record.id}>
-                            <TableCell>{format(toDate(record.unloadingDate), 'dd/MM/yy')}</TableCell>
-                            <TableCell className="font-mono">{record.billNo || record.id}</TableCell>
-                            <TableCell className="font-medium">{getCustomerName(record.customerId)}</TableCell>
-                            <TableCell>{record.location || 'N/A'}</TableCell>
-                            <TableCell>{record.commodityDescription}</TableCell>
-                            <TableCell className="text-right font-mono">{record.bagsUnloaded}</TableCell>
-                            <TableCell className="text-right print-hide">
+                        <TableRow key={record.id} className="h-8">
+                            <TableCell className="p-1">{format(toDate(record.unloadingDate), 'dd/MM/yy')}</TableCell>
+                            <TableCell className="p-1 font-mono">{record.billNo || record.id}</TableCell>
+                            <TableCell className="p-1 font-medium">{getCustomerName(record.customerId)}</TableCell>
+                            <TableCell className="p-1">{record.location || 'N/A'}</TableCell>
+                            <TableCell className="p-1">{record.commodityDescription}</TableCell>
+                            <TableCell className="p-1 text-right font-mono">{record.bagsUnloaded}</TableCell>
+                            <TableCell className="p-1 text-right print-hide">
                                 <UnloadingTableActionsMenu 
                                     record={{...record, hamaliPending: 0}} 
                                     customers={customers} 
@@ -62,24 +63,24 @@ export function UnloadingReportTable({ records, customers, title, commodities }:
                             </TableCell>
                         </TableRow>
                     ))}
+                    {records.length === 0 && (
+                        <TableRow>
+                            <TableCell colSpan={7} className="text-center text-muted-foreground py-10 italic">No unloading records found.</TableCell>
+                        </TableRow>
+                    )}
                 </TableBody>
                 <TableFooter>
-                    <TableRow>
-                        <TableCell colSpan={5} className="text-right font-bold">Total Bags Unloaded</TableCell>
-                        <TableCell className="text-right font-mono font-bold">{totalBagsUnloaded}</TableCell>
+                    <TableRow className="bg-secondary/50 font-bold">
+                        <TableCell colSpan={5} className="p-2 text-right uppercase text-[10px]">Total Bags Unloaded</TableCell>
+                        <TableCell className="p-2 text-right font-mono">{totalBagsUnloaded}</TableCell>
                         <TableCell className="print-hide"></TableCell>
                     </TableRow>
                 </TableFooter>
             </Table>
-
+            
             <div className="mt-16 pt-8 flex flex-col items-end text-center space-y-1">
                 <div className="w-72 border-t border-slate-400 pt-4">
-                    <p className="text-[#1e293b] font-bold text-sm uppercase tracking-wider">AUTHORIZED MANAGER SIGNATURE</p>
-                    <p className="text-primary font-bold text-xs uppercase mt-1">SRI LAKSHMI WAREHOUSE</p>
-                </div>
-                <div className="text-[10px] text-slate-500 italic mt-4">
-                    <p>Report validity verified on {generatedDate}</p>
-                    <p>This is a computer generated statement.</p>
+                    <p className="text-[#1e293b] font-bold text-[12px] uppercase tracking-wider">Authorized Manager Signature</p>
                 </div>
             </div>
         </div>

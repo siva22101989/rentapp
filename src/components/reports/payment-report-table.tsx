@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -33,11 +34,11 @@ export function PaymentReportTable({ events, customers, title }: ReportTableProp
     
     const getTypeBadge = (type: PaymentEvent['type']) => {
         switch(type) {
-            case 'rent': return <Badge variant="default" className="bg-blue-100 text-blue-800">Rent</Badge>;
-            case 'hamali': return <Badge variant="default" className="bg-orange-100 text-orange-800">Storage Hamali</Badge>;
-            case 'unloading': return <Badge variant="default" className="bg-yellow-100 text-yellow-800">Unloading Hamali</Badge>;
-            case 'discount': return <Badge variant="default" className="bg-purple-100 text-purple-800">Discount</Badge>;
-            default: return <Badge variant="secondary">Other</Badge>;
+            case 'rent': return <Badge variant="default" className="bg-blue-100 text-blue-800 text-[9px] h-4 py-0">Rent</Badge>;
+            case 'hamali': return <Badge variant="default" className="bg-orange-100 text-orange-800 text-[9px] h-4 py-0">Hamali</Badge>;
+            case 'unloading': return <Badge variant="default" className="bg-yellow-100 text-yellow-800 text-[9px] h-4 py-0">Unloading</Badge>;
+            case 'discount': return <Badge variant="default" className="bg-purple-100 text-purple-800 text-[9px] h-4 py-0">Discount</Badge>;
+            default: return <Badge variant="secondary" className="text-[9px] h-4 py-0">Other</Badge>;
         }
     }
 
@@ -45,45 +46,43 @@ export function PaymentReportTable({ events, customers, title }: ReportTableProp
         <div className="bg-white p-4 rounded-lg">
              <div className="mb-4 text-center">
                 <h2 className="text-xl font-bold uppercase tracking-wide">SRI LAKSHMI WAREHOUSE</h2>
-                <p className="text-muted-foreground font-semibold uppercase">{title}</p>
+                <p className="text-muted-foreground font-semibold uppercase text-[14px]">{title}</p>
                 <p className="text-xs text-muted-foreground">Generated on: {generatedDate}</p>
             </div>
-            <Table>
+            <Table className="text-[13px]">
                 <TableHeader>
-                    <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Customer</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Description</TableHead>
-                        <TableHead>Reference ID</TableHead>
-                        <TableHead className="text-right">Amount Paid</TableHead>
+                    <TableRow className="bg-muted/50">
+                        <TableHead className="uppercase text-[10px] font-bold">Date</TableHead>
+                        <TableHead className="uppercase text-[10px] font-bold">Customer</TableHead>
+                        <TableHead className="uppercase text-[10px] font-bold">Type</TableHead>
+                        <TableHead className="uppercase text-[10px] font-bold">Description</TableHead>
+                        <TableHead className="uppercase text-[10px] font-bold">Ref ID</TableHead>
+                        <TableHead className="text-right uppercase text-[10px] font-bold">Amount Paid</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {events.map((event, index) => (
-                        <TableRow key={index}>
-                            <TableCell>{format(event.date, 'dd MMM yyyy')}</TableCell>
-                            <TableCell className="font-medium">{getCustomerName(event.customerId)}</TableCell>
-                            <TableCell>{getTypeBadge(event.type)}</TableCell>
-                            <TableCell>{event.description}</TableCell>
-                            <TableCell>{event.recordId}</TableCell>
-                            <TableCell className="text-right font-mono text-green-600">
+                        <TableRow key={index} className="h-8">
+                            <TableCell className="p-1">{format(event.date, 'dd/MM/yy')}</TableCell>
+                            <TableCell className="p-1 font-medium whitespace-nowrap">{getCustomerName(event.customerId)}</TableCell>
+                            <TableCell className="p-1">{getTypeBadge(event.type)}</TableCell>
+                            <TableCell className="p-1 tracking-tight">{event.description}</TableCell>
+                            <TableCell className="p-1 font-mono text-slate-400">{event.recordId}</TableCell>
+                            <TableCell className="p-1 text-right font-mono text-green-600 font-bold">
                                 {formatCurrency(event.amount)}
                             </TableCell>
                         </TableRow>
                     ))}
                     {events.length === 0 && (
                         <TableRow>
-                            <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                                No payments found for the selected criteria.
-                            </TableCell>
+                            <TableCell colSpan={6} className="text-center text-muted-foreground py-10 italic">No payments found.</TableCell>
                         </TableRow>
                     )}
                 </TableBody>
                 <TableFooter>
-                    <TableRow>
-                        <TableCell colSpan={5} className="text-right font-bold">Total Payments</TableCell>
-                        <TableCell className="text-right font-mono font-bold text-green-600">{formatCurrency(totalPayments)}</TableCell>
+                    <TableRow className="bg-secondary/30 font-bold">
+                        <TableCell colSpan={5} className="p-2 text-right uppercase text-[10px]">Total Cash Receipts</TableCell>
+                        <TableCell className="p-2 text-right font-mono text-green-700 text-lg">{formatCurrency(totalPayments)}</TableCell>
                     </TableRow>
                 </TableFooter>
             </Table>
@@ -92,10 +91,6 @@ export function PaymentReportTable({ events, customers, title }: ReportTableProp
                 <div className="w-72 border-t border-slate-400 pt-4">
                     <p className="text-[#1e293b] font-bold text-sm uppercase tracking-wider">AUTHORIZED MANAGER SIGNATURE</p>
                     <p className="text-primary font-bold text-xs uppercase mt-1">SRI LAKSHMI WAREHOUSE</p>
-                </div>
-                <div className="text-[10px] text-slate-500 italic mt-4">
-                    <p>Report validity verified on {generatedDate}</p>
-                    <p>This is a computer generated statement.</p>
                 </div>
             </div>
         </div>

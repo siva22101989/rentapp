@@ -21,7 +21,6 @@ import { Separator } from '../ui/separator';
 import { Combobox } from '../ui/combobox';
 import { Checkbox } from '@/components/ui/checkbox';
 import { sendSms } from '@/lib/sms';
-import { format } from 'date-fns';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 import { useAppUser } from '@/firebase/auth/use-user';
@@ -177,7 +176,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                             )} />
                             <FormField control={form.control} name="location" render={({ field }) => (
                                 <FormItem className="flex flex-col">
-                                    <FormLabel className="text-xs font-semibold">Lot No.</Label>
+                                    <FormLabel className="text-xs font-semibold">Lot No.</FormLabel>
                                     <Combobox options={lotOptions} value={field.value} onChange={field.onChange} placeholder="Select" modal={true} />
                                     <FormMessage />
                                 </FormItem>

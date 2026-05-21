@@ -16,7 +16,7 @@ export default function OutflowPage() {
   const appUser = useAppUser();
   const canAdd = appUser?.role !== 'super-admin';
 
-  // Fetch all warehouse records to avoid strict end-date filter issues
+  // Fetch all warehouse records to ensure we don't miss any due to incomplete fields
   const allRecordsQuery = useMemoFirebase(
     () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'storageRecords'), where('warehouseId', '==', appUser.warehouseId)) : null),
     [firestore, appUser]
@@ -35,21 +35,28 @@ export default function OutflowPage() {
   );
   const { data: commodities, loading: loadingCommodities } = useCollection<Commodity>(commoditiesQuery);
 
-  // Safter stock visibility filter: if it has bags stored, it's active for outflow
+  // In-memory filter for active stock: must have bagsStored > 0
   const activeRecords = useMemo(() => {
     if (!allRecords) return [];
     return allRecords.filter(r => Number(r.bagsStored || 0) > 0);
   }, [allRecords]);
 
   if (loadingCustomers || loadingRecords || loadingCommodities) {
-    return <AppLayout><div className="p-8 text-center text-muted-foreground">Loading active godown stock...</div></AppLayout>;
+    return (
+        <AppLayout>
+            <div className="flex h-64 items-center justify-center text-muted-foreground">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Loading active Godown stock...
+            </div>
+        </AppLayout>
+    );
   }
 
   return (
     <AppLayout>
       <PageHeader
         title="Process Outflow"
-        description="Select one or more records to process for withdrawal."
+        description="Select records to process for customer withdrawal."
       />
       {canAdd ? (
         <OutflowForm records={activeRecords} customers={customers || []} commodities={commodities || []} />
@@ -59,3 +66,5 @@ export default function OutflowPage() {
     </AppLayout>
   );
 }
+
+import { Loader2 } from "lucide-react";

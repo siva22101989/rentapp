@@ -1,4 +1,3 @@
-
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
@@ -39,7 +38,7 @@ export default function OutflowPage() {
   // Safter stock visibility filter: if it has bags stored, it's active for outflow
   const activeRecords = useMemo(() => {
     if (!allRecords) return [];
-    return allRecords.filter(r => Number(r.bagsStored || 0) > 0.5);
+    return allRecords.filter(r => Number(r.bagsStored || 0) > 0);
   }, [allRecords]);
 
   if (loadingCustomers || loadingRecords || loadingCommodities) {

@@ -156,7 +156,6 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             </div>
         </div>
 
-        {/* HIGH DENSITY SUMMARY BLOCKS */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <Card className="border-2 border-slate-200 shadow-none rounded-sm">
                 <CardContent className="p-3">

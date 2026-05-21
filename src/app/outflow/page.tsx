@@ -17,7 +17,7 @@ export default function OutflowPage() {
   const appUser = useAppUser();
   const canAdd = appUser?.role !== 'super-admin';
 
-  // Fetch all records for the warehouse to filter in-memory for maximum stock visibility
+  // Fetch all warehouse records to avoid strict end-date filter issues
   const allRecordsQuery = useMemoFirebase(
     () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'storageRecords'), where('warehouseId', '==', appUser.warehouseId)) : null),
     [firestore, appUser]
@@ -36,18 +36,14 @@ export default function OutflowPage() {
   );
   const { data: commodities, loading: loadingCommodities } = useCollection<Commodity>(commoditiesQuery);
 
+  // Safter stock visibility filter: if it has bags stored, it's active for outflow
   const activeRecords = useMemo(() => {
     if (!allRecords) return [];
-    // Robust in-memory filter to ensure all active stock is visible regardless of schema variations
-    return allRecords.filter(r => {
-        const isWithdrawn = !!r.storageEndDate;
-        const currentStock = Number(r.bagsStored || 0);
-        return !isWithdrawn && currentStock > 0;
-    });
+    return allRecords.filter(r => Number(r.bagsStored || 0) > 0.5);
   }, [allRecords]);
 
   if (loadingCustomers || loadingRecords || loadingCommodities) {
-    return <AppLayout><div className="p-8 text-center text-muted-foreground">Loading inventory data...</div></AppLayout>;
+    return <AppLayout><div className="p-8 text-center text-muted-foreground">Loading active godown stock...</div></AppLayout>;
   }
 
   return (

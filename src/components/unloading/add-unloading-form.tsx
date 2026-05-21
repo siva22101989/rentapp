@@ -167,7 +167,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                         <div className="grid grid-cols-2 gap-4">
                             <FormField control={form.control} name="commodityDescription" render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel className="text-xs font-semibold">Product</Label>
+                                    <FormLabel className="text-xs font-semibold">Product</FormLabel>
                                     <Select onValueChange={field.onChange} value={field.value}>
                                         <FormControl><SelectTrigger className="text-sm h-9"><SelectValue placeholder="Select" /></SelectTrigger></FormControl>
                                         <SelectContent>{commodities.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent>

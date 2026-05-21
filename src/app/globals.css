@@ -101,6 +101,13 @@
     @apply bg-background text-foreground text-[15px];
     touch-action: manipulation;
   }
+  
+  /* Responsive Table Handling */
+  .table-scroll-container {
+    @apply w-full overflow-x-auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
   /* Hide arrows from number inputs */
   input::-webkit-outer-spin-button,
   input::-webkit-inner-spin-button {

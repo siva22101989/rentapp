@@ -38,8 +38,8 @@ describe('toDate', () => {
 
   it('should handle numbers (Excel serial date)', () => {
     // Note: This is a simplified test. Excel date handling can be complex.
-    // 45211 corresponds to 2023-10-23
-    expect(toDate(45211)).toEqual(new Date(2023, 9, 23));
+    // 45211 corresponds to 2023-10-12
+    expect(toDate(45211)).toEqual(new Date(2023, 9, 12));
   });
 
   it('should return a new Date for null or undefined input', () => {

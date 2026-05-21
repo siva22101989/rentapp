@@ -192,9 +192,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             </div>
         </header>
 
-        {/* side-by-side ledger blocks directly below customer identity header */}
         <div className="grid grid-cols-2 gap-8 mb-8 text-[13px]">
-            {/* Inventory Status Block */}
             <div className="bg-slate-50/80 border border-slate-200 rounded-lg overflow-hidden shadow-sm">
                 <div className="bg-slate-200/50 px-4 py-1.5 border-b border-slate-300">
                     <span className="font-black text-slate-700 uppercase text-[10px] tracking-widest">Inventory Status</span>
@@ -213,7 +211,6 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 </div>
             </div>
 
-            {/* Financial Status Block */}
             <div className="bg-slate-50/80 border border-slate-200 rounded-lg overflow-hidden shadow-sm">
                 <div className="bg-slate-200/50 px-4 py-1.5 border-b border-slate-300">
                     <span className="font-black text-slate-700 uppercase text-[10px] tracking-widest">Financial Status</span>

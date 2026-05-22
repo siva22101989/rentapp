@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useMemo, useEffect } from 'react';
+import { useState, useTransition, useMemo } from 'react';
 import { Loader2, Hammer, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,7 +21,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { addDoc, collection, query, where } from 'firebase/firestore';
-import { cleanForFirestore, formatCurrency, toDate } from '@/lib/utils';
+import { cleanForFirestore, formatCurrency } from '@/lib/utils';
 import type { Expense, StorageRecord, UnloadingRecord } from '@/lib/definitions';
 import { format } from 'date-fns';
 import { useAppUser } from '@/firebase/auth/use-user';
@@ -47,7 +47,6 @@ export function RecordHamaliPaymentDialog({
   const firestore = useFirestore();
   const appUser = useAppUser();
 
-  // Fetch data to calculate global worker balance
   const recordsQuery = useMemoFirebase(
     () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'storageRecords'), where('warehouseId', '==', appUser.warehouseId)) : null),
     [firestore, appUser]
@@ -66,12 +65,15 @@ export function RecordHamaliPaymentDialog({
   );
   const { data: allExpenses } = useCollection<Expense>(expensesQuery);
 
-  // Calculate Net Pending Owed to Workers
   const netPending = useMemo(() => {
     if (!allRecords || !allUnloadingRecords || !allExpenses) return 0;
 
     const workerLiability = allRecords.reduce((acc, sr) => acc + (sr.workerHamaliPayable ?? sr.hamaliPayable), 0) +
-                           allUnloadingRecords.reduce((acc, ur) => acc + (ur.workerHamaliPayable ?? ur.totalHamali), 0);
+                           allUnloadingRecords.reduce((acc, ur) => {
+                               const bagsRemaining = ur.bagsUnloaded - (ur.bagsSentToDrying || 0);
+                               const proportion = ur.bagsUnloaded > 0 ? bagsRemaining / ur.bagsUnloaded : 0;
+                               return acc + ((ur.workerHamaliPayable ?? ur.totalHamali) * proportion);
+                           }, 0);
     
     const workerPaid = allExpenses
         .filter(e => e.category === 'Hamali Paid')
@@ -89,12 +91,9 @@ export function RecordHamaliPaymentDialog({
   });
 
   const onSubmit = (data: HamaliPaymentFormData) => {
-    if (!firestore || !appUser?.warehouseId) {
-      toast({ title: 'Error', description: 'Context missing.', variant: 'destructive' });
-      return;
-    }
+    if (!firestore || !appUser?.warehouseId) return;
 
-    if (data.amount > netPending + 0.5) { // Allow minor float tolerance
+    if (data.amount > netPending + 0.5) {
         form.setError('amount', { message: `Cannot exceed pending balance of ${formatCurrency(netPending)}` });
         return;
     }
@@ -102,21 +101,18 @@ export function RecordHamaliPaymentDialog({
     startTransition(async () => {
       try {
         const newExpense: Partial<Expense> = {
-          description: `Hamali Payment recorded on ${format(new Date(data.date), 'dd MMM yyyy')}`,
+          description: `Worker Hamali Payout recorded on ${format(new Date(data.date), 'dd MMM yyyy')}`,
           amount: data.amount,
           date: new Date(data.date),
           category: 'Hamali Paid' as const,
           warehouseId: appUser.warehouseId,
         };
         await addDoc(collection(firestore, 'expenses'), cleanForFirestore(newExpense));
-        
         toast({ title: 'Success', description: "Hamali payment recorded successfully." });
-
         setIsOpen(false);
         form.reset();
       } catch (error) {
-        console.error(error);
-        toast({ title: 'Error', description: 'Failed to record hamali payment.', variant: 'destructive' });
+        toast({ title: 'Error', description: 'Failed to record payment.', variant: 'destructive' });
       }
     });
   };
@@ -127,7 +123,7 @@ export function RecordHamaliPaymentDialog({
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         {children || (
-            <Button>
+            <Button className="font-bold h-9">
                 <Hammer className="mr-2 h-4 w-4" />
                 Record Hamali Payment
             </Button>
@@ -137,26 +133,24 @@ export function RecordHamaliPaymentDialog({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <DialogHeader>
-              <DialogTitle>Record Hamali Payment</DialogTitle>
-              <DialogDescription className="text-xs">
-                Enter the amount paid to workers. This will be capped by the total pending balance.
-              </DialogDescription>
+              <DialogTitle className="text-xl font-bold uppercase tracking-tight">Staff Payout Console</DialogTitle>
+              <DialogDescription className="text-xs">Manage cash distributions to your hamali team.</DialogDescription>
             </DialogHeader>
             
             <div className="grid gap-4 py-4">
-              <div className="p-4 rounded-xl border bg-secondary/30 text-center space-y-1">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Total Hamali Pending</p>
-                  <p className={`text-2xl font-black ${isBalanceEmpty ? 'text-slate-400' : 'text-primary'}`}>
+              <div className="p-5 rounded-2xl border-2 border-primary/20 bg-primary/5 text-center space-y-1">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">Total Hamali Pending</p>
+                  <p className={`text-3xl font-black ${isBalanceEmpty ? 'text-slate-400' : 'text-primary'}`}>
                       {formatCurrency(netPending)}
                   </p>
               </div>
 
               {isBalanceEmpty && (
-                  <Alert variant="default" className="bg-blue-50 border-blue-200">
-                      <AlertCircle className="h-4 w-4 text-blue-600" />
-                      <AlertTitle className="text-blue-800 text-xs font-bold uppercase">No Dues Pending</AlertTitle>
-                      <AlertDescription className="text-blue-700 text-[11px]">
-                          The worker ledger is currently clear. No payments are required at this time.
+                  <Alert variant="default" className="bg-emerald-50 border-emerald-200">
+                      <AlertCircle className="h-4 w-4 text-emerald-600" />
+                      <AlertTitle className="text-emerald-800 text-xs font-bold uppercase tracking-wider">No Dues Pending</AlertTitle>
+                      <AlertDescription className="text-emerald-700 text-[11px] font-medium leading-relaxed">
+                          All staff earnings have been settled. No further payments are required at this stage.
                       </AlertDescription>
                   </Alert>
               )}
@@ -166,9 +160,9 @@ export function RecordHamaliPaymentDialog({
                 name="date"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-xs font-semibold">Payment Date</FormLabel>
+                    <FormLabel className="text-xs font-black uppercase tracking-wider text-slate-500">Payout Date</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} disabled={isBalanceEmpty} className="h-9 text-sm" />
+                      <Input type="date" {...field} disabled={isBalanceEmpty} className="h-10 text-sm font-bold" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -179,7 +173,7 @@ export function RecordHamaliPaymentDialog({
                 name="amount"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-xs font-semibold">Amount Paid</FormLabel>
+                    <FormLabel className="text-xs font-black uppercase tracking-wider text-slate-500">Amount to Distribute</FormLabel>
                     <FormControl>
                       <Input 
                         type="number" 
@@ -188,7 +182,7 @@ export function RecordHamaliPaymentDialog({
                         {...field} 
                         value={field.value ?? ''} 
                         disabled={isBalanceEmpty}
-                        className="h-9 text-sm font-mono font-bold"
+                        className="h-12 text-lg font-mono font-black"
                       />
                     </FormControl>
                     <FormMessage />
@@ -197,12 +191,12 @@ export function RecordHamaliPaymentDialog({
               />
             </div>
             <DialogFooter>
-              <DialogClose asChild><Button variant="outline" type="button" className="text-sm h-9">Cancel</Button></DialogClose>
-              <Button type="submit" disabled={isPending || isBalanceEmpty} className="text-sm h-9">
+              <DialogClose asChild><Button variant="outline" type="button" className="text-xs font-bold uppercase h-10">Cancel</Button></DialogClose>
+              <Button type="submit" disabled={isPending || isBalanceEmpty} className="text-xs font-black uppercase tracking-widest h-10 shadow-lg shadow-primary/20">
                 {isPending ? (
                   <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
                 ) : (
-                  'Record Payment'
+                  'Confirm Payout'
                 )}
               </Button>
             </DialogFooter>

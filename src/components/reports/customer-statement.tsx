@@ -245,6 +245,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 <p><span className="font-bold uppercase text-[10px] text-slate-500">Customer:</span> <span className="font-bold">{customer?.name}</span></p>
                 <p><span className="font-bold uppercase text-[10px] text-slate-500">Father's Name:</span> {customer?.fatherName || 'N/A'}</p>
                 <p><span className="font-bold uppercase text-[10px] text-slate-500">Village:</span> {customer?.village || 'N/A'}</p>
+                <p><span className="font-bold uppercase text-[10px] text-slate-500">Phone No:</span> {customer?.phone || 'N/A'}</p>
             </div>
             <div className="sm:text-right text-[10px] text-slate-400 font-bold uppercase">
                 <p>Generation Date: {timestamp}</p>

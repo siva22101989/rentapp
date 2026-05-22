@@ -18,7 +18,7 @@ export default function OutflowPage() {
   const appUser = useAppUser();
   const canAdd = appUser?.role !== 'super-admin';
 
-  // Fetch all warehouse records to ensure we don't miss any due to Firestore 'null' field filtering issues
+  // Robust Fetch: Fetch all warehouse records to avoid issues with Firestore 'null' field filtering
   const allRecordsQuery = useMemoFirebase(
     () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'storageRecords'), where('warehouseId', '==', appUser.warehouseId)) : null),
     [firestore, appUser]
@@ -37,7 +37,7 @@ export default function OutflowPage() {
   );
   const { data: commodities, loading: loadingCommodities } = useCollection<Commodity>(commoditiesQuery);
 
-  // Robust in-memory filter for active stock: must have bagsStored > 0
+  // In-memory filter: ensure bagsStored > 0 to identify active Godown inventory
   const activeRecords = useMemo(() => {
     if (!allRecords) return [];
     return allRecords.filter(r => (Number(r.bagsStored) || 0) > 0);
@@ -48,7 +48,7 @@ export default function OutflowPage() {
         <AppLayout>
             <div className="flex h-64 items-center justify-center text-muted-foreground">
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Loading active inventory stock...
+                Loading active inventory...
             </div>
         </AppLayout>
     );

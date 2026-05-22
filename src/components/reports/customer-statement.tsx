@@ -26,6 +26,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 date: toDate(unloading.unloadingDate),
                 description: `Inflow - ${unloading.commodityDescription}`,
                 billNo: unloading.billNo || unloading.id,
+                lotNo: unloading.location || 'N/A',
                 bagsIn: unloading.bagsUnloaded,
                 bagsOut: 0,
                 hamali: totalHamali,
@@ -40,6 +41,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 date: toDate(payment.date),
                 description: `Payment Received`,
                 billNo: unloading.billNo || unloading.id,
+                lotNo: unloading.location || 'N/A',
                 bagsIn: 0,
                 bagsOut: 0,
                 hamali: 0,
@@ -55,6 +57,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             date: toDate(record.storageStartDate),
             description: `Inflow - ${record.commodityDescription}`,
             billNo: record.id,
+            lotNo: record.location || 'N/A',
             bagsIn: record.bagsIn,
             bagsOut: 0,
             hamali: record.hamaliPayable || 0,
@@ -68,6 +71,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 date: toDate(record.storageStartDate),
                 description: `Khata Income`,
                 billNo: record.id,
+                lotNo: record.location || 'N/A',
                 bagsIn: 0,
                 bagsOut: 0,
                 hamali: record.khataAmount,
@@ -83,6 +87,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                     date: toDate(outflow.date),
                     description: `Outflow`,
                     billNo: record.id, 
+                    lotNo: record.location || 'N/A',
                     bagsIn: 0,
                     bagsOut: outflow.bagsWithdrawn,
                     hamali: 0,
@@ -98,6 +103,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 date: toDate(payment.date),
                 description: payment.type === 'discount' ? `Discount` : `Payment`,
                 billNo: record.id,
+                lotNo: record.location || 'N/A',
                 bagsIn: 0,
                 bagsOut: 0,
                 hamali: 0,
@@ -131,7 +137,19 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         return { ...event, balance: runningBalance };
     });
     
-    return { lineItems, totals: { totalBagsIn, totalBagsOut, balanceStock: totalBagsIn - totalBagsOut, totalHamali, totalRent, totalCredit, finalBalance: runningBalance } };
+    return { 
+        lineItems, 
+        totals: { 
+            totalBagsIn, 
+            totalBagsOut, 
+            balanceStock: totalBagsIn - totalBagsOut, 
+            totalHamali, 
+            totalRent, 
+            totalCredit, 
+            totalBilled: totalHamali + totalRent,
+            finalBalance: runningBalance 
+        } 
+    };
   }, [records, unloadingRecords]);
   
   const timestamp = useMemo(() => format(new Date(), 'dd/MM/yy, h:mm a'), []);
@@ -172,7 +190,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-900 mb-2 border-b-2 border-slate-900 pb-1">Financial Summary</h3>
                 <div className="space-y-1 text-[13px] font-medium">
                     <div className="flex justify-between text-slate-600"><span>Total Hamali Charged:</span><span className="font-mono">{formatCurrency(totals.totalHamali)}</span></div>
-                    <div className="flex justify-between font-bold"><span>Total Billed (Rent + Hamali):</span><span className="font-mono">{formatCurrency(totals.totalHamali + totals.totalRent)}</span></div>
+                    <div className="flex justify-between font-bold"><span>Total Billed (Inc. Rent):</span><span className="font-mono">{formatCurrency(totals.totalBilled)}</span></div>
                     <div className="flex justify-between text-green-700 font-bold"><span>Total Payments Received:</span><span className="font-mono">{formatCurrency(totals.totalCredit)}</span></div>
                     <div className="flex justify-between items-center border-t border-slate-900 pt-1 mt-1 text-destructive font-black">
                         <span className="uppercase text-[11px]">Final Balance Due:</span>
@@ -188,9 +206,10 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                     <TableRow className="border-b border-black bg-slate-50">
                         <TableHead className="font-bold text-black border-r border-slate-200 text-center p-2 uppercase text-[10px]">Date</TableHead>
                         <TableHead className="font-bold text-black border-r border-slate-200 p-2 uppercase text-[10px]">Description</TableHead>
+                        <TableHead className="font-bold text-black border-r border-slate-200 text-center p-2 uppercase text-[10px]">Lot No</TableHead>
                         <TableHead className="font-bold text-black border-r border-slate-200 text-center p-2 uppercase text-[10px]">In</TableHead>
                         <TableHead className="font-bold text-black border-r border-slate-200 text-center p-2 uppercase text-[10px]">Out</TableHead>
-                        <TableHead className="font-bold text-black border-r border-slate-200 text-right p-2 uppercase text-[10px]">Charges</TableHead>
+                        <TableHead className="font-bold text-black border-r border-slate-200 text-right p-2 uppercase text-[10px]">Hamali Charges</TableHead>
                         <TableHead className="font-bold text-black border-r border-slate-200 text-right p-2 uppercase text-[10px]">Paid</TableHead>
                         <TableHead className="font-bold text-black text-right p-2 uppercase text-[10px]">Balance</TableHead>
                     </TableRow>
@@ -200,6 +219,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                         <TableRow key={index} className="border-b border-slate-100 h-8 hover:bg-slate-50/50">
                             <TableCell className="p-1 text-center whitespace-nowrap">{format(item.date, 'dd/MM/yy')}</TableCell>
                             <TableCell className="p-1 font-medium">{item.description}</TableCell>
+                            <TableCell className="p-1 text-center font-mono">{item.lotNo || 'N/A'}</TableCell>
                             <TableCell className="p-1 text-center font-mono">{item.bagsIn || ''}</TableCell>
                             <TableCell className="p-1 text-center font-mono">{item.bagsOut || ''}</TableCell>
                             <TableCell className="p-1 text-right font-mono">{(item.hamali || 0) + (item.rent || 0) > 0 ? formatCurrency((item.hamali || 0) + (item.rent || 0)) : ''}</TableCell>
@@ -210,10 +230,10 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 </TableBody>
                 <TableFooter>
                     <TableRow className="bg-slate-100 font-black border-t-2 border-black h-10">
-                        <TableCell colSpan={2} className="p-2 text-right uppercase text-[10px] tracking-tight">Audit Totals</TableCell>
+                        <TableCell colSpan={3} className="p-2 text-right uppercase text-[10px] tracking-tight">Audit Totals</TableCell>
                         <TableCell className="p-2 text-center font-mono">{totals.totalBagsIn}</TableCell>
                         <TableCell className="p-2 text-center font-mono">{totals.totalBagsOut}</TableCell>
-                        <TableCell className="p-2 text-right font-mono">{formatCurrency(totals.totalHamali + totals.totalRent)}</TableCell>
+                        <TableCell className="p-2 text-right font-mono">{formatCurrency(totals.totalBilled)}</TableCell>
                         <TableCell className="p-2 text-right font-mono text-green-800">{formatCurrency(totals.totalCredit)}</TableCell>
                         <TableCell className="p-2 text-right font-mono text-[14px]">{formatCurrency(totals.finalBalance)}</TableCell>
                     </TableRow>

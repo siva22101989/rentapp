@@ -72,6 +72,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
     }, [nextBillNo, form]);
     
     const customerOptions = customers.map(c => ({ value: c.id, label: c.name }));
+    
     const lotOccupancy = useMemo(() => {
         const occupancy: { [lotName: string]: number } = {};
         (storageRecords || []).forEach(record => {

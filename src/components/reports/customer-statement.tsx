@@ -173,28 +173,33 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <div className="border-2 border-slate-900 p-3 rounded-md bg-slate-50">
-                <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-900 mb-2 border-b-2 border-slate-900 pb-1">Stock Summary</h3>
-                <div className="space-y-1 text-[13px] font-medium">
-                    <div className="flex justify-between"><span>Bags In (Total Receipts):</span><span className="font-mono font-bold">{totals.totalBagsIn}</span></div>
-                    <div className="flex justify-between"><span>Bags Out (Total Withdrawals):</span><span className="font-mono font-bold">{totals.totalBagsOut}</span></div>
-                    <div className="flex justify-between items-center border-t border-slate-900 pt-1 mt-1 text-primary font-black">
-                        <span className="uppercase text-[11px]">Current Godown Stock:</span>
-                        <span className="font-mono text-xl">{totals.balanceStock}</span>
+        {/* Combined Unified Summary Box */}
+        <div className="border-2 border-slate-900 p-4 rounded-md bg-slate-50 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 md:gap-x-12">
+                {/* Stock Summary Section */}
+                <div>
+                    <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 border-b border-slate-200 pb-1">Stock Summary</h3>
+                    <div className="space-y-1 text-[13px] font-medium">
+                        <div className="flex justify-between"><span>Bags In (Receipts):</span><span className="font-mono font-bold">{totals.totalBagsIn}</span></div>
+                        <div className="flex justify-between"><span>Bags Out (Withdrawals):</span><span className="font-mono font-bold">{totals.totalBagsOut}</span></div>
+                        <div className="flex justify-between items-center border-t border-slate-300 pt-2 mt-2 text-primary font-black">
+                            <span className="uppercase text-[11px]">Godown Stock:</span>
+                            <span className="font-mono text-xl">{totals.balanceStock}</span>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div className="border-2 border-slate-900 p-3 rounded-md bg-slate-50">
-                <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-900 mb-2 border-b-2 border-slate-900 pb-1">Financial Summary</h3>
-                <div className="space-y-1 text-[13px] font-medium">
-                    <div className="flex justify-between text-slate-600"><span>Total Hamali Charged:</span><span className="font-mono">{formatCurrency(totals.totalHamali)}</span></div>
-                    <div className="flex justify-between font-bold"><span>Total Billed (Inc. Rent):</span><span className="font-mono">{formatCurrency(totals.totalBilled)}</span></div>
-                    <div className="flex justify-between text-green-700 font-bold"><span>Total Payments Received:</span><span className="font-mono">{formatCurrency(totals.totalCredit)}</span></div>
-                    <div className="flex justify-between items-center border-t border-slate-900 pt-1 mt-1 text-destructive font-black">
-                        <span className="uppercase text-[11px]">Final Balance Due:</span>
-                        <span className="font-mono text-xl">{formatCurrency(totals.finalBalance)}</span>
+                {/* Financial Summary Section */}
+                <div className="md:border-l-2 md:border-slate-200 md:pl-10">
+                    <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 border-b border-slate-200 pb-1">Financial Summary</h3>
+                    <div className="space-y-1 text-[13px] font-medium">
+                        <div className="flex justify-between text-slate-600"><span>Total Hamali Charged:</span><span className="font-mono">{formatCurrency(totals.totalHamali)}</span></div>
+                        <div className="flex justify-between text-slate-600"><span>Total Rent Billed:</span><span className="font-mono font-bold">{formatCurrency(totals.totalRent)}</span></div>
+                        <div className="flex justify-between text-green-700 font-bold border-t border-slate-200 pt-1 mt-1"><span>Total Payments:</span><span className="font-mono">{formatCurrency(totals.totalCredit)}</span></div>
+                        <div className="flex justify-between items-center border-t-2 border-slate-900 pt-2 mt-2 text-destructive font-black">
+                            <span className="uppercase text-[11px]">Final Balance Due:</span>
+                            <span className="font-mono text-xl">{formatCurrency(totals.finalBalance)}</span>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -32,7 +32,6 @@ import { useAppUser } from '@/firebase/auth/use-user';
 import { Checkbox } from '../ui/checkbox';
 import { sendSms } from '@/lib/sms';
 import { format } from 'date-fns';
-import { calculateFinalRent } from '@/lib/billing';
 
 const BulkPaymentSchema = z.object({
   customerId: z.string().min(1, 'Please select a customer.'),
@@ -63,10 +62,9 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
   );
   const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
-  // Correct Global Account Balance Calculation
+  // Correct Global Billed Ledger Balance Calculation
   const customerDuesMap = useMemo(() => {
     const duesMap: Record<string, { hLiability: number, rLiability: number, totalPaid: number }> = {};
-    const today = new Date();
 
     const getCust = (id: string) => {
         if (!duesMap[id]) duesMap[id] = { hLiability: 0, rLiability: 0, totalPaid: 0 };
@@ -76,13 +74,8 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
     storageRecords.forEach(rec => {
         const c = getCust(rec.customerId);
         c.hLiability += rec.hamaliPayable || 0;
-        
-        let accruedRent = 0;
-        if (rec.bagsStored > 0 && !rec.storageEndDate) {
-            const { rent } = calculateFinalRent({ ...rec, storageStartDate: toDate(rec.storageStartDate) }, today, rec.bagsStored);
-            accruedRent = rent;
-        }
-        c.rLiability += (rec.totalRentBilled || 0) + (rec.khataAmount || 0) + accruedRent;
+        // Only count BILLED rent and Khata to match the Customer Statement summary
+        c.rLiability += (rec.totalRentBilled || 0) + (rec.khataAmount || 0);
         c.totalPaid += (rec.payments || []).reduce((acc, p) => acc + p.amount, 0);
     });
 
@@ -127,7 +120,6 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
     const totalLiab = d.hLiability + d.rLiability;
     const balance = Math.max(0, totalLiab - d.totalPaid);
     
-    // Heuristic breakdown for UI
     const h = Math.max(0, d.hLiability - d.totalPaid);
     const r = Math.max(0, balance - h);
     return { totalHamaliDue: h, totalRentDue: r, totalDue: balance };
@@ -150,7 +142,6 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
         let cashToApply = data.paymentAmount;
         let discountToApply = data.discount || 0;
         const paymentDate = finalDate;
-        const today = new Date();
 
         const allCustomerRecords = [
             ...storageRecords.filter(r => r.customerId === data.customerId).map(r => ({ ...r, recordType: 'storage' as const, date: toDate(r.storageStartDate) })),
@@ -166,14 +157,7 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
             if (record.recordType === 'storage') {
                 const sr = record as any;
                 const totalPaidOnRecord = (sr.payments || []).reduce((acc: number, p: any) => acc + p.amount, 0);
-                
-                let accruedRent = 0;
-                if (sr.bagsStored > 0 && !sr.storageEndDate) {
-                    const { rent } = calculateFinalRent({ ...sr, storageStartDate: toDate(sr.storageStartDate) }, today, sr.bagsStored);
-                    accruedRent = rent;
-                }
-
-                const totalLiabOnRecord = (sr.hamaliPayable || 0) + (sr.totalRentBilled || 0) + (sr.khataAmount || 0) + accruedRent;
+                const totalLiabOnRecord = (sr.hamaliPayable || 0) + (sr.totalRentBilled || 0) + (sr.khataAmount || 0);
                 let recordDue = Math.max(0, totalLiabOnRecord - totalPaidOnRecord);
 
                 if (recordDue > 0) {
@@ -225,12 +209,12 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
             <form onSubmit={form.handleSubmit(onSubmit)}>
             <DialogHeader>
                 <DialogTitle>Bulk Customer Payment</DialogTitle>
-                <DialogDescription>Select a customer with pending dues. Manual date format: DD-MM-YYYY.</DialogDescription>
+                <DialogDescription>Select a customer with pending dues. Calculations match current Statement Ledger.</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
                 <FormField control={form.control} name="customerId" render={({ field }) => (
                     <FormItem className="flex flex-col">
-                        <FormLabel>Customer (Only those with Dues)</FormLabel>
+                        <FormLabel>Customer (Only those with Billed Dues)</FormLabel>
                         <Combobox options={customerOptions} value={field.value} onChange={field.onChange} placeholder="Select customer..." modal={true} />
                         <FormMessage />
                     </FormItem>
@@ -240,7 +224,7 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
                 <div className="p-4 rounded-lg bg-secondary border">
                     <div className="flex justify-between text-sm"><span>Hamali Pending</span><span>{formatCurrency(totalHamaliDue)}</span></div>
                     <div className="flex justify-between text-sm"><span>Rent Pending</span><span>{formatCurrency(totalRentDue)}</span></div>
-                    <div className="flex justify-between text-sm font-bold border-t pt-2 mt-2"><span>Total Due</span><span className="text-destructive">{formatCurrency(totalDue)}</span></div>
+                    <div className="flex justify-between text-sm font-bold border-t pt-2 mt-2"><span>Total Billed Due</span><span className="text-destructive">{formatCurrency(totalDue)}</span></div>
                     <div className="flex justify-between text-sm"><span>Discount</span><span className="text-green-600">- {formatCurrency(discountAmount)}</span></div>
                     <div className="flex justify-between text-sm font-bold border-t pt-1"><span>Final Payable</span><span className="text-destructive">{formatCurrency(totalPayable)}</span></div>
                 </div>
@@ -261,7 +245,7 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
                 )}
             </div>
             <DialogFooter>
-                <DialogClose asChild><Button variant="outline" type="button">Cancel</Button></DialogClose>
+                <DialogClose asChild><Button variant="outline" type="button" className="text-sm">Cancel</Button></DialogClose>
                 <Button type="submit" disabled={isPending || !selectedCustomerId}>Record Payment</Button>
             </DialogFooter>
             </form>

@@ -4,7 +4,6 @@ import { useMemo } from "react";
 import type { Customer, StorageRecord, UnloadingRecord } from "@/lib/definitions";
 import { PendingDuesReportTable } from "../reports/pending-dues-report-table";
 import { toDate } from "@/lib/utils";
-import { calculateFinalRent } from "@/lib/billing";
 
 export type CustomerPendingSummary = {
     customerId: string;
@@ -30,7 +29,6 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, tit
         }> = {};
         
         const customerMap = new Map(customers.map(c => [c.id, c.name]));
-        const today = new Date();
 
         const getSummary = (id: string) => {
             if (!summaryMap[id]) {
@@ -44,20 +42,16 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, tit
             return summaryMap[id];
         };
 
-        // 1. Process Storage Records
+        // 1. Process Storage Records (Billed Liabilities only to match Statement)
         records.forEach(r => {
             const s = getSummary(r.customerId);
             
-            // Liabilities
+            // Liabilities: Billed Hamali + Billed Rent (from outflows) + Khata
             const inflowHamali = r.hamaliPayable || 0; 
-            let accruedRent = 0;
-            if (r.bagsStored > 0 && !r.storageEndDate) {
-                const { rent } = calculateFinalRent({ ...r, storageStartDate: toDate(r.storageStartDate) }, today, r.bagsStored);
-                accruedRent = rent;
-            }
-            const rentLiability = (r.totalRentBilled || 0) + (r.khataAmount || 0) + accruedRent;
-
-            // Payments (Sum all regardless of type for net balance)
+            const billedRent = r.totalRentBilled || 0;
+            const khata = r.khataAmount || 0;
+            
+            const rentLiability = billedRent + khata;
             const paymentsPaid = (r.payments || []).reduce((acc, p) => acc + p.amount, 0);
 
             s.hLiability += inflowHamali;
@@ -86,7 +80,7 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, tit
             const totalLiability = data.hLiability + data.rLiability;
             const balanceDue = Math.max(0, totalLiability - data.totalPaid);
 
-            // Heuristic breakdown for display columns: Apply payments to Hamali first
+            // Heuristic breakdown for display: Apply payments to Hamali first
             const hamaliPending = Math.max(0, data.hLiability - data.totalPaid);
             const rentPending = Math.max(0, balanceDue - hamaliPending);
 

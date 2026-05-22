@@ -23,7 +23,6 @@ import { useAppUser } from '@/firebase/auth/use-user';
 import { doc } from 'firebase/firestore';
 import { sendSms } from '@/lib/sms';
 import { Checkbox } from '@/components/ui/checkbox';
-import { calculateFinalRent } from '@/lib/billing';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { ScrollArea } from '../ui/scroll-area';
 import { Badge } from '../ui/badge';
@@ -64,7 +63,6 @@ export function SendReminderSmsDialog({ customers, storageRecords, unloadingReco
 
   const dueSummaries: CustomerDueSummary[] = useMemo(() => {
     const duesMap: Record<string, { hLiability: number, rLiability: number, totalPaid: number }> = {};
-    const today = new Date();
 
     const getCust = (id: string) => {
         if (!duesMap[id]) duesMap[id] = { hLiability: 0, rLiability: 0, totalPaid: 0 };
@@ -74,13 +72,8 @@ export function SendReminderSmsDialog({ customers, storageRecords, unloadingReco
     storageRecords.forEach(rec => {
         const c = getCust(rec.customerId);
         c.hLiability += rec.hamaliPayable || 0;
-        
-        let accruedRent = 0;
-        if (rec.bagsStored > 0 && !rec.storageEndDate) {
-            const { rent } = calculateFinalRent({ ...rec, storageStartDate: toDate(rec.storageStartDate) }, today, rec.bagsStored);
-            accruedRent = rent;
-        }
-        c.rLiability += (rec.totalRentBilled || 0) + (rec.khataAmount || 0) + accruedRent;
+        // Match statement ledger logic: Billed liabilities only
+        c.rLiability += (rec.totalRentBilled || 0) + (rec.khataAmount || 0);
         c.totalPaid += (rec.payments || []).reduce((acc, p) => acc + p.amount, 0);
     });
 
@@ -101,7 +94,6 @@ export function SendReminderSmsDialog({ customers, storageRecords, unloadingReco
             
             if (totalDue < 0.5) return null; 
 
-            // Heuristic breakdown for SMS
             const hamaliDue = Math.max(0, d.hLiability - d.totalPaid);
             const rentDue = Math.max(0, totalDue - hamaliDue);
 

@@ -61,7 +61,6 @@ export function SendReminderSmsDialog({ customers, storageRecords, unloadingReco
   );
   const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
-  // 1. Calculate the accurate dues map (Account-wide aggregation)
   const dueSummaries: CustomerDueSummary[] = useMemo(() => {
     const duesMap: Record<string, { hLiability: number, hPaid: number, rLiability: number, rPaid: number }> = {};
     const today = new Date();
@@ -100,7 +99,7 @@ export function SendReminderSmsDialog({ customers, storageRecords, unloadingReco
             const hamaliDue = Math.max(0, d.hLiability - d.hPaid);
             const totalDue = rentDue + hamaliDue;
             
-            if (totalDue < 0.5) return null; // Skip those with no dues
+            if (totalDue < 0.5) return null; 
 
             return {
                 id: cust.id,
@@ -171,8 +170,6 @@ export function SendReminderSmsDialog({ customers, storageRecords, unloadingReco
         else failCount++;
 
         setProgress(((i + 1) / selectedList.length) * 100);
-        
-        // Minor delay between messages to prevent rate limiting
         await new Promise(r => setTimeout(r, 300));
     }
 
@@ -195,7 +192,7 @@ export function SendReminderSmsDialog({ customers, storageRecords, unloadingReco
             Send Reminders
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-hidden flex flex-col p-0">
+      <DialogContent className="sm:max-w-3xl max-h-[95vh] overflow-hidden flex flex-col p-0">
         <DialogHeader className="p-6 pb-2">
             <div className="flex items-center justify-between">
                 <div>
@@ -204,7 +201,7 @@ export function SendReminderSmsDialog({ customers, storageRecords, unloadingReco
                         Bulk Dues Reminders
                     </DialogTitle>
                     <DialogDescription className="text-sm">
-                        Select customers from the list below to send an automated SMS reminder about their outstanding balances.
+                        Select customers to send automated SMS reminders.
                     </DialogDescription>
                 </div>
                 {selectedIds.size > 0 && (
@@ -215,8 +212,8 @@ export function SendReminderSmsDialog({ customers, storageRecords, unloadingReco
             </div>
         </DialogHeader>
 
-        <div className="flex-1 overflow-hidden px-6">
-            <div className="border rounded-xl overflow-hidden bg-card shadow-inner h-[400px] flex flex-col">
+        <div className="flex-1 overflow-hidden px-6 pb-4">
+            <div className="border rounded-xl overflow-hidden bg-card shadow-inner flex flex-col h-full min-h-[300px] max-h-[500px]">
                 <Table className="text-[13px]">
                     <TableHeader className="bg-muted/50 sticky top-0 z-10 shadow-sm">
                         <TableRow>
@@ -237,7 +234,7 @@ export function SendReminderSmsDialog({ customers, storageRecords, unloadingReco
                     <Table className="text-[13px]">
                         <TableBody>
                             {dueSummaries.map((s) => (
-                                <TableRow key={s.id} className="hover:bg-muted/30 border-b last:border-0 h-10">
+                                <TableRow key={s.id} className="hover:bg-muted/30 border-b last:border-0 h-11">
                                     <TableCell className="w-[50px] text-center p-0">
                                         <Checkbox 
                                             checked={selectedIds.has(s.id)}
@@ -259,6 +256,7 @@ export function SendReminderSmsDialog({ customers, storageRecords, unloadingReco
                             )}
                         </TableBody>
                     </Table>
+                    <div className="h-4" /> {/* Bottom buffer */}
                 </ScrollArea>
             </div>
         </div>
@@ -273,7 +271,7 @@ export function SendReminderSmsDialog({ customers, storageRecords, unloadingReco
             </div>
         )}
 
-        <DialogFooter className="p-6 pt-4 border-t bg-slate-50/50 gap-2">
+        <DialogFooter className="p-6 pt-4 border-t bg-slate-50/50 gap-2 mt-auto">
             <Button variant="outline" onClick={() => setIsOpen(false)} disabled={isSending}>
                 Cancel
             </Button>

@@ -1,7 +1,8 @@
+
 'use client';
 
-import { useState, useTransition, useMemo, useEffect } from 'react';
-import { Loader2, MessageSquareWarning, CheckCircle2, AlertCircle, Users } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Loader2, MessageSquareWarning, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -62,18 +63,17 @@ export function SendReminderSmsDialog({ customers, storageRecords, unloadingReco
   const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
   const dueSummaries: CustomerDueSummary[] = useMemo(() => {
-    const duesMap: Record<string, { hLiability: number, hPaid: number, rLiability: number, rPaid: number }> = {};
+    const duesMap: Record<string, { hLiability: number, rLiability: number, totalPaid: number }> = {};
     const today = new Date();
 
     const getCust = (id: string) => {
-        if (!duesMap[id]) duesMap[id] = { hLiability: 0, hPaid: 0, rLiability: 0, rPaid: 0 };
+        if (!duesMap[id]) duesMap[id] = { hLiability: 0, rLiability: 0, totalPaid: 0 };
         return duesMap[id];
     }
 
     storageRecords.forEach(rec => {
         const c = getCust(rec.customerId);
         c.hLiability += rec.hamaliPayable || 0;
-        c.hPaid += (rec.payments || []).filter(p => p.type === 'hamali' || p.type === 'unloading').reduce((acc, p) => acc + p.amount, 0);
         
         let accruedRent = 0;
         if (rec.bagsStored > 0 && !rec.storageEndDate) {
@@ -81,25 +81,29 @@ export function SendReminderSmsDialog({ customers, storageRecords, unloadingReco
             accruedRent = rent;
         }
         c.rLiability += (rec.totalRentBilled || 0) + (rec.khataAmount || 0) + accruedRent;
-        c.rPaid += (rec.payments || []).filter(p => p.type === 'rent' || p.type === 'other' || !p.type || p.type === 'discount').reduce((acc, p) => acc + p.amount, 0);
+        c.totalPaid += (rec.payments || []).reduce((acc, p) => acc + p.amount, 0);
     });
 
     unloadingRecords.forEach(rec => {
         const c = getCust(rec.customerId);
         const remainingBags = Math.max(0, (rec.bagsUnloaded || 0) - (rec.bagsSentToDrying || 0));
         c.hLiability += remainingBags * (rec.hamaliPerBag || 0);
-        c.hPaid += (rec.payments || []).reduce((acc, p) => acc + p.amount, 0);
+        c.totalPaid += (rec.payments || []).reduce((acc, p) => acc + p.amount, 0);
     });
 
     return customers
         .map(cust => {
             const d = duesMap[cust.id];
             if (!d) return null;
-            const rentDue = Math.max(0, d.rLiability - d.rPaid);
-            const hamaliDue = Math.max(0, d.hLiability - d.hPaid);
-            const totalDue = rentDue + hamaliDue;
+            
+            const totalLiab = d.hLiability + d.rLiability;
+            const totalDue = Math.max(0, totalLiab - d.totalPaid);
             
             if (totalDue < 0.5) return null; 
+
+            // Heuristic breakdown for SMS
+            const hamaliDue = Math.max(0, d.hLiability - d.totalPaid);
+            const rentDue = Math.max(0, totalDue - hamaliDue);
 
             return {
                 id: cust.id,
@@ -213,7 +217,7 @@ export function SendReminderSmsDialog({ customers, storageRecords, unloadingReco
         </DialogHeader>
 
         <div className="flex-1 overflow-hidden px-6 pb-4">
-            <div className="border rounded-xl overflow-hidden bg-card shadow-inner flex flex-col h-full min-h-[300px] max-h-[500px]">
+            <div className="border rounded-xl overflow-hidden bg-card shadow-inner flex flex-col h-full min-h-[300px]">
                 <Table className="text-[13px]">
                     <TableHeader className="bg-muted/50 sticky top-0 z-10 shadow-sm">
                         <TableRow>
@@ -256,7 +260,7 @@ export function SendReminderSmsDialog({ customers, storageRecords, unloadingReco
                             )}
                         </TableBody>
                     </Table>
-                    <div className="h-4" /> {/* Bottom buffer */}
+                    <div className="h-4" />
                 </ScrollArea>
             </div>
         </div>

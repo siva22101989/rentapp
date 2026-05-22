@@ -24,9 +24,8 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, tit
         
         const summaryMap: Record<string, {
             hLiability: number,
-            hPaid: number,
             rLiability: number,
-            rPaid: number,
+            totalPaid: number,
             lastDate: number
         }> = {};
         
@@ -37,9 +36,8 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, tit
             if (!summaryMap[id]) {
                 summaryMap[id] = {
                     hLiability: 0,
-                    hPaid: 0,
                     rLiability: 0,
-                    rPaid: 0,
+                    totalPaid: 0,
                     lastDate: 0
                 };
             }
@@ -50,21 +48,21 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, tit
         records.forEach(r => {
             const s = getSummary(r.customerId);
             
+            // Liabilities
             const inflowHamali = r.hamaliPayable || 0; 
-            const hamaliPaid = (r.payments || []).filter(p => p.type === 'hamali' || p.type === 'unloading').reduce((acc, p) => acc + p.amount, 0);
-            
             let accruedRent = 0;
             if (r.bagsStored > 0 && !r.storageEndDate) {
                 const { rent } = calculateFinalRent({ ...r, storageStartDate: toDate(r.storageStartDate) }, today, r.bagsStored);
                 accruedRent = rent;
             }
             const rentLiability = (r.totalRentBilled || 0) + (r.khataAmount || 0) + accruedRent;
-            const rentPaid = (r.payments || []).filter(p => p.type === 'rent' || p.type === 'other' || !p.type || p.type === 'discount').reduce((acc, p) => acc + p.amount, 0);
+
+            // Payments (Sum all regardless of type for net balance)
+            const paymentsPaid = (r.payments || []).reduce((acc, p) => acc + p.amount, 0);
 
             s.hLiability += inflowHamali;
-            s.hPaid += hamaliPaid;
             s.rLiability += rentLiability;
-            s.rPaid += rentPaid;
+            s.totalPaid += paymentsPaid;
             
             const rDate = toDate(r.storageStartDate).getTime();
             if (rDate > s.lastDate) s.lastDate = rDate;
@@ -75,25 +73,28 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, tit
             const s = getSummary(r.customerId);
             const remainingBags = Math.max(0, (r.bagsUnloaded || 0) - (r.bagsSentToDrying || 0));
             const hLiability = remainingBags * (r.hamaliPerBag || 0);
-            const hPaid = (r.payments || []).reduce((acc, p) => acc + p.amount, 0);
+            const paymentsPaid = (r.payments || []).reduce((acc, p) => acc + p.amount, 0);
             
             s.hLiability += hLiability;
-            s.hPaid += hPaid;
+            s.totalPaid += paymentsPaid;
 
             const uDate = toDate(r.unloadingDate).getTime();
             if (uDate > s.lastDate) s.lastDate = uDate;
         });
 
         return Object.entries(summaryMap).map(([customerId, data]) => {
-            const hamaliPending = Math.max(0, data.hLiability - data.hPaid);
-            const rentPending = Math.max(0, data.rLiability - data.rPaid);
-            const balanceDue = hamaliPending + rentPending;
+            const totalLiability = data.hLiability + data.rLiability;
+            const balanceDue = Math.max(0, totalLiability - data.totalPaid);
+
+            // Heuristic breakdown for display columns: Apply payments to Hamali first
+            const hamaliPending = Math.max(0, data.hLiability - data.totalPaid);
+            const rentPending = Math.max(0, balanceDue - hamaliPending);
 
             return {
                 customerId,
                 customerName: customerMap.get(customerId) || 'Unknown',
-                totalBilled: data.hLiability + data.rLiability,
-                amountPaid: data.hPaid + data.rPaid,
+                totalBilled: totalLiability,
+                amountPaid: data.totalPaid,
                 balanceDue,
                 hamaliPending,
                 rentPending,

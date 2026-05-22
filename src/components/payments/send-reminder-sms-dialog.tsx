@@ -1,8 +1,7 @@
-
 'use client';
 
-import { useState, useTransition, useMemo } from 'react';
-import { Loader2, MessageSquareWarning } from 'lucide-react';
+import { useState, useTransition, useMemo, useEffect } from 'react';
+import { Loader2, MessageSquareWarning, CheckCircle2, AlertCircle, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -12,31 +11,22 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogClose,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import type { StorageRecord, Customer, UnloadingRecord, WarehouseInfo } from '@/lib/definitions';
 import { formatCurrency, toDate } from '@/lib/utils';
 import { useFirestore } from '@/firebase/provider';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
-import { Combobox } from '../ui/combobox';
-import { Separator } from '../ui/separator';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 import { useAppUser } from '@/firebase/auth/use-user';
 import { doc } from 'firebase/firestore';
 import { sendSms } from '@/lib/sms';
-import { Checkbox } from '../ui/checkbox';
+import { Checkbox } from '@/components/ui/checkbox';
 import { calculateFinalRent } from '@/lib/billing';
-
-const ReminderSmsSchema = z.object({
-  customerId: z.string().min(1, 'Please select a customer.'),
-});
-
-type ReminderSmsFormData = z.infer<typeof ReminderSmsSchema>;
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import { ScrollArea } from '../ui/scroll-area';
+import { Badge } from '../ui/badge';
+import { Progress } from '../ui/progress';
 
 type SendReminderSmsDialogProps = {
     customers: Customer[];
@@ -44,13 +34,26 @@ type SendReminderSmsDialogProps = {
     unloadingRecords: UnloadingRecord[];
 };
 
+type CustomerDueSummary = {
+    id: string;
+    name: string;
+    phone: string;
+    totalDue: number;
+    rentDue: number;
+    hamaliDue: number;
+};
+
 export function SendReminderSmsDialog({ customers, storageRecords, unloadingRecords }: SendReminderSmsDialogProps) {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [isSending, setIsSending] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [currentSendingIndex, setCurrentSendingIndex] = useState(0);
+  
   const firestore = useFirestore();
   const appUser = useAppUser();
-  const [showAllCustomers, setShowAllCustomers] = useState(false);
+
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const warehouseInfoRef = useMemoFirebase(
     () => (firestore && appUser?.warehouseId ? doc(firestore, 'warehouses', appUser.warehouseId) : null),
@@ -58,15 +61,8 @@ export function SendReminderSmsDialog({ customers, storageRecords, unloadingReco
   );
   const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
-  const form = useForm<ReminderSmsFormData>({
-    resolver: zodResolver(ReminderSmsSchema),
-    defaultValues: { customerId: '' },
-  });
-  
-  const selectedCustomerId = form.watch('customerId');
-  const selectedCustomer = useMemo(() => customers.find(c => c.id === selectedCustomerId), [customers, selectedCustomerId]);
-
-  const customerDuesMap = useMemo(() => {
+  // 1. Calculate the accurate dues map (Account-wide aggregation)
+  const dueSummaries: CustomerDueSummary[] = useMemo(() => {
     const duesMap: Record<string, { hLiability: number, hPaid: number, rLiability: number, rPaid: number }> = {};
     const today = new Date();
 
@@ -96,166 +92,203 @@ export function SendReminderSmsDialog({ customers, storageRecords, unloadingReco
         c.hPaid += (rec.payments || []).reduce((acc, p) => acc + p.amount, 0);
     });
 
-    return duesMap;
-  }, [storageRecords, unloadingRecords]);
+    return customers
+        .map(cust => {
+            const d = duesMap[cust.id];
+            if (!d) return null;
+            const rentDue = Math.max(0, d.rLiability - d.rPaid);
+            const hamaliDue = Math.max(0, d.hLiability - d.hPaid);
+            const totalDue = rentDue + hamaliDue;
+            
+            if (totalDue < 0.5) return null; // Skip those with no dues
 
-  const customersWithDues = useMemo(() => {
-    return customers.filter(c => {
-        const d = customerDuesMap[c.id];
-        if (!d) return false;
-        return ((d.hLiability - d.hPaid) + (d.rLiability - d.rPaid)) > 0.5;
-    });
-  }, [customers, customerDuesMap]);
+            return {
+                id: cust.id,
+                name: cust.name,
+                phone: cust.phone,
+                totalDue,
+                rentDue,
+                hamaliDue
+            };
+        })
+        .filter((s): s is CustomerDueSummary => s !== null)
+        .sort((a, b) => b.totalDue - a.totalDue);
+  }, [customers, storageRecords, unloadingRecords]);
 
-  const customerOptions = useMemo(() => {
-    const list = showAllCustomers ? customers : customersWithDues;
-    return list.map(c => ({ value: c.id, label: c.name }));
-  }, [showAllCustomers, customers, customersWithDues]);
-
-  const handleShowAllToggle = (checked: boolean) => {
-    setShowAllCustomers(checked);
-    if (!checked && selectedCustomer) {
-        const d = customerDuesMap[selectedCustomer.id];
-        const net = d ? (d.hLiability - d.hPaid) + (d.rLiability - d.rPaid) : 0;
-        if (net <= 0.5) form.setValue('customerId', '');
+  const toggleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(new Set(dueSummaries.map(s => s.id)));
+    } else {
+      setSelectedIds(new Set());
     }
   };
 
-  const { totalDue, totalHamaliDue, totalRentDue } = useMemo(() => {
-    if (!selectedCustomerId || !customerDuesMap[selectedCustomerId]) return { totalDue: 0, totalHamaliDue: 0, totalRentDue: 0 };
-    const d = customerDuesMap[selectedCustomerId];
-    const h = Math.max(0, d.hLiability - d.hPaid);
-    const r = Math.max(0, d.rLiability - d.rPaid);
-    return {
-        totalHamaliDue: h,
-        totalRentDue: r,
-        totalDue: h + r,
-    };
-  }, [selectedCustomerId, customerDuesMap]);
+  const toggleSelect = (id: string, checked: boolean) => {
+    const next = new Set(selectedIds);
+    if (checked) next.add(id);
+    else next.delete(id);
+    setSelectedIds(next);
+  };
 
-  const onSubmit = (data: ReminderSmsFormData) => {
-    if (!firestore || !warehouseInfo?.textbeeApiKey || !selectedCustomer?.phone) {
-      toast({ title: 'Error', description: 'SMS settings or customer phone number are missing.', variant: 'destructive' });
-      return;
-    }
-    if (totalDue <= 0) {
-      toast({ title: 'No Dues', description: 'This customer has no pending dues to remind them about.', variant: 'default' });
-      return;
+  const handleBulkSend = async () => {
+    if (!warehouseInfo?.textbeeApiKey) {
+        toast({ title: "Configuration Error", description: "Please set your textbee.dev API key in Settings > SMS first.", variant: "destructive" });
+        return;
     }
 
-    startTransition(async () => {
-        const defaultTemplate = 'Dear {customerName}, this is a reminder that you have an outstanding balance. Rent Due: {rentDue}, Hamali Due: {hamaliDue}, Total Due: {totalDue}. Please pay at your earliest convenience. Thank you. - {warehouseName}';
-        const template = warehouseInfo?.smsPendingDuesTemplate || defaultTemplate;
+    const selectedList = dueSummaries.filter(s => selectedIds.has(s.id));
+    if (selectedList.length === 0) return;
+
+    setIsSending(true);
+    setProgress(0);
+    setCurrentSendingIndex(0);
+
+    let successCount = 0;
+    let failCount = 0;
+
+    const defaultTemplate = 'Dear {customerName}, this is a reminder that you have an outstanding balance. Rent Due: {rentDue}, Hamali Due: {hamaliDue}, Total Due: {totalDue}. Please pay at your earliest convenience. Thank you. - {warehouseName}';
+    const template = warehouseInfo.smsPendingDuesTemplate || defaultTemplate;
+
+    for (let i = 0; i < selectedList.length; i++) {
+        const item = selectedList[i];
+        setCurrentSendingIndex(i + 1);
         
         const message = template
-            .replace('{customerName}', selectedCustomer.name)
-            .replace('{rentDue}', formatCurrency(totalRentDue))
-            .replace('{hamaliDue}', formatCurrency(totalHamaliDue))
-            .replace('{totalDue}', formatCurrency(totalDue))
-            .replace('{warehouseName}', warehouseInfo?.name || 'GrainDost');
+            .replace('{customerName}', item.name)
+            .replace('{rentDue}', formatCurrency(item.rentDue))
+            .replace('{hamaliDue}', formatCurrency(item.hamaliDue))
+            .replace('{totalDue}', formatCurrency(item.totalDue))
+            .replace('{warehouseName}', warehouseInfo.name || 'GrainDost');
 
         const result = await sendSms({
             apiKey: warehouseInfo.textbeeApiKey,
             deviceId: warehouseInfo.textbeeDeviceId,
-            to: selectedCustomer.phone,
+            to: item.phone,
             message,
         });
 
-        if (result.success) {
-            toast({ title: 'Reminder Sent!', description: `SMS sent to ${selectedCustomer.name}.` });
-            setIsOpen(false);
-            form.reset();
-        } else {
-            toast({ title: 'SMS Failed', description: result.message, variant: 'destructive' });
-        }
+        if (result.success) successCount++;
+        else failCount++;
+
+        setProgress(((i + 1) / selectedList.length) * 100);
+        
+        // Minor delay between messages to prevent rate limiting
+        await new Promise(r => setTimeout(r, 300));
+    }
+
+    setIsSending(false);
+    setIsOpen(false);
+    setSelectedIds(new Set());
+    
+    toast({
+        title: "Bulk Reminders Processed",
+        description: `Successfully sent: ${successCount}. Failed: ${failCount}.`,
+        variant: failCount > 0 ? "destructive" : "default",
     });
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={(val) => { if (!isSending) setIsOpen(val); }}>
       <DialogTrigger asChild>
          <Button variant="outline">
-            <MessageSquareWarning className="mr-2" />
-            Send Dues Reminder
+            <MessageSquareWarning className="mr-2 h-4 w-4" />
+            Send Reminders
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-sm">
-        <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)}>
-            <DialogHeader>
-                <DialogTitle>Send Pending Dues Reminder</DialogTitle>
-                <DialogDescription>
-                  Select a customer to send them an SMS reminder about their total outstanding balance.
-                </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-                <FormField
-                    control={form.control}
-                    name="customerId"
-                    render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                            <FormLabel>Customer (Only those with Dues)</FormLabel>
-                            <Combobox
-                                options={customerOptions}
-                                value={field.value}
-                                onChange={field.onChange}
-                                placeholder="Select a customer..."
-                                searchPlaceholder="Search customers..."
-                                emptyPlaceholder="No customer found."
-                                modal={true}
-                            />
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-
-                <div className="flex items-center space-x-2">
-                    <Checkbox
-                        id="showAllCustomers"
-                        checked={showAllCustomers}
-                        onCheckedChange={(checked) => handleShowAllToggle(Boolean(checked))}
-                    />
-                    <label
-                        htmlFor="showAllCustomers"
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                        Show all customers
-                    </label>
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-hidden flex flex-col p-0">
+        <DialogHeader className="p-6 pb-2">
+            <div className="flex items-center justify-between">
+                <div>
+                    <DialogTitle className="text-xl font-bold flex items-center gap-2">
+                        <Users className="h-5 w-5 text-primary" />
+                        Bulk Dues Reminders
+                    </DialogTitle>
+                    <DialogDescription className="text-sm">
+                        Select customers from the list below to send an automated SMS reminder about their outstanding balances.
+                    </DialogDescription>
                 </div>
-
-
-                {selectedCustomerId && (
-                <>
-                <Separator />
-                 <div className="p-4 rounded-lg bg-secondary border">
-                    <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Total Hamali Pending</span>
-                        <span className="font-medium">{formatCurrency(totalHamaliDue)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Total Rent Pending</span>
-                        <span className="font-medium">{formatCurrency(totalRentDue)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm font-bold border-t pt-2 mt-2">
-                        <span className="text-foreground">Total Due</span>
-                        <span className="text-destructive">{formatCurrency(totalDue)}</span>
-                    </div>
-                </div>
-                </>
+                {selectedIds.size > 0 && (
+                    <Badge variant="secondary" className="h-7 px-3 text-xs font-bold uppercase tracking-tight">
+                        {selectedIds.size} Selected
+                    </Badge>
                 )}
             </div>
-            <DialogFooter>
-                <DialogClose asChild><Button variant="outline" type="button">Cancel</Button></DialogClose>
-                <Button type="submit" disabled={isPending || !selectedCustomerId || totalDue <= 0}>
-                {isPending ? (
+        </DialogHeader>
+
+        <div className="flex-1 overflow-hidden px-6">
+            <div className="border rounded-xl overflow-hidden bg-card shadow-inner h-[400px] flex flex-col">
+                <Table className="text-[13px]">
+                    <TableHeader className="bg-muted/50 sticky top-0 z-10 shadow-sm">
+                        <TableRow>
+                            <TableHead className="w-[50px] text-center">
+                                <Checkbox 
+                                    checked={dueSummaries.length > 0 && selectedIds.size === dueSummaries.length}
+                                    onCheckedChange={(checked) => toggleSelectAll(Boolean(checked))}
+                                />
+                            </TableHead>
+                            <TableHead className="uppercase text-[10px] font-black text-slate-500">Customer Name</TableHead>
+                            <TableHead className="text-right uppercase text-[10px] font-black text-slate-500">Hamali Due</TableHead>
+                            <TableHead className="text-right uppercase text-[10px] font-black text-slate-500">Rent Due</TableHead>
+                            <TableHead className="text-right uppercase text-[10px] font-black text-slate-500">Total Due</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                </Table>
+                <ScrollArea className="flex-1">
+                    <Table className="text-[13px]">
+                        <TableBody>
+                            {dueSummaries.map((s) => (
+                                <TableRow key={s.id} className="hover:bg-muted/30 border-b last:border-0 h-10">
+                                    <TableCell className="w-[50px] text-center p-0">
+                                        <Checkbox 
+                                            checked={selectedIds.has(s.id)}
+                                            onCheckedChange={(checked) => toggleSelect(s.id, Boolean(checked))}
+                                        />
+                                    </TableCell>
+                                    <TableCell className="font-bold py-1">{s.name}</TableCell>
+                                    <TableCell className="text-right font-mono text-orange-600 py-1">{formatCurrency(s.hamaliDue)}</TableCell>
+                                    <TableCell className="text-right font-mono text-blue-600 py-1">{formatCurrency(s.rentDue)}</TableCell>
+                                    <TableCell className="text-right font-mono font-black text-destructive py-1">{formatCurrency(s.totalDue)}</TableCell>
+                                </TableRow>
+                            ))}
+                            {dueSummaries.length === 0 && (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="text-center py-20 text-muted-foreground italic">
+                                        No pending dues found for any customer.
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </ScrollArea>
+            </div>
+        </div>
+
+        {isSending && (
+            <div className="px-6 py-4 space-y-2 border-t bg-slate-50">
+                <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-primary">
+                    <span>Sending Reminders...</span>
+                    <span>{currentSendingIndex} of {selectedIds.size}</span>
+                </div>
+                <Progress value={progress} className="h-2" />
+            </div>
+        )}
+
+        <DialogFooter className="p-6 pt-4 border-t bg-slate-50/50 gap-2">
+            <Button variant="outline" onClick={() => setIsOpen(false)} disabled={isSending}>
+                Cancel
+            </Button>
+            <Button 
+                onClick={handleBulkSend} 
+                disabled={isSending || selectedIds.size === 0}
+                className="min-w-[180px]"
+            >
+                {isSending ? (
                     <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending...</>
                 ) : (
-                    'Send Reminder'
+                    <><MessageSquareWarning className="mr-2 h-4 w-4" /> Send {selectedIds.size} Reminders</>
                 )}
-                </Button>
-            </DialogFooter>
-            </form>
-        </Form>
+            </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

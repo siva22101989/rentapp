@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useMemo } from 'react';
@@ -29,6 +30,7 @@ import { useAppUser } from '@/firebase/auth/use-user';
 import { doc } from 'firebase/firestore';
 import { sendSms } from '@/lib/sms';
 import { Checkbox } from '../ui/checkbox';
+import { calculateFinalRent } from '@/lib/billing';
 
 const ReminderSmsSchema = z.object({
   customerId: z.string().min(1, 'Please select a customer.'),
@@ -64,31 +66,49 @@ export function SendReminderSmsDialog({ customers, storageRecords, unloadingReco
   const selectedCustomerId = form.watch('customerId');
   const selectedCustomer = useMemo(() => customers.find(c => c.id === selectedCustomerId), [customers, selectedCustomerId]);
 
-  const customersWithDues = useMemo(() => {
-    const customerDues: { [id: string]: number } = {};
+  const customerDuesMap = useMemo(() => {
+    const duesMap: Record<string, { hamali: number, rent: number, total: number }> = {};
+    const today = new Date();
 
     storageRecords.forEach(rec => {
-        if (!customerDues[rec.customerId]) customerDues[rec.customerId] = 0;
-        const hamaliPayable = rec.hamaliPayable || 0;
-        const totalRentBilled = rec.totalRentBilled || 0;
-        const hamaliPaid = (rec.payments || []).filter(p => p.type === 'hamali').reduce((acc, p) => acc + p.amount, 0);
-        const rentPaid = (rec.payments || []).filter(p => p.type === 'rent').reduce((acc, p) => acc + p.amount, 0);
-        const otherPaid = (rec.payments || []).filter(p => p.type === 'other' || !p.type || p.type === 'discount').reduce((acc, p) => acc + p.amount, 0);
+        if (!duesMap[rec.customerId]) duesMap[rec.customerId] = { hamali: 0, rent: 0, total: 0 };
         
-        const balance = (hamaliPayable + totalRentBilled) - (hamaliPaid + rentPaid + otherPaid);
-        customerDues[rec.customerId] += balance;
+        const hLiability = rec.hamaliPayable || 0;
+        const hPaid = (rec.payments || []).filter(p => p.type === 'hamali' || p.type === 'unloading').reduce((acc, p) => acc + p.amount, 0);
+        
+        let accruedRent = 0;
+        if (rec.bagsStored > 0 && !rec.storageEndDate) {
+            const { rent } = calculateFinalRent({ ...rec, storageStartDate: toDate(rec.storageStartDate) }, today, rec.bagsStored);
+            accruedRent = rent;
+        }
+        const rLiability = (rec.totalRentBilled || 0) + (rec.khataAmount || 0) + accruedRent;
+        const rPaid = (rec.payments || []).filter(p => p.type === 'rent' || p.type === 'other' || !p.type || p.type === 'discount').reduce((acc, p) => acc + p.amount, 0);
+
+        const hDue = Math.max(0, hLiability - hPaid);
+        const rDue = Math.max(0, rLiability - rPaid);
+
+        duesMap[rec.customerId].hamali += hDue;
+        duesMap[rec.customerId].rent += rDue;
+        duesMap[rec.customerId].total += (hDue + rDue);
     });
 
     unloadingRecords.forEach(rec => {
-        if (!customerDues[rec.customerId]) customerDues[rec.customerId] = 0;
-        const totalHamali = rec.totalHamali || 0;
+        if (!duesMap[rec.customerId]) duesMap[rec.customerId] = { hamali: 0, rent: 0, total: 0 };
+        const remainingBags = Math.max(0, (rec.bagsUnloaded || 0) - (rec.bagsSentToDrying || 0));
         const totalPaid = (rec.payments || []).reduce((acc, p) => acc + p.amount, 0);
-        const balance = totalHamali - totalPaid;
-        customerDues[rec.customerId] += balance;
+        const hLiability = remainingBags * (rec.hamaliPerBag || 0);
+        const hDue = Math.max(0, hLiability - totalPaid);
+        
+        duesMap[rec.customerId].hamali += hDue;
+        duesMap[rec.customerId].total += hDue;
     });
 
-    return customers.filter(c => customerDues[c.id] > 0.5);
-  }, [customers, storageRecords, unloadingRecords]);
+    return duesMap;
+  }, [storageRecords, unloadingRecords]);
+
+  const customersWithDues = useMemo(() => {
+    return customers.filter(c => (customerDuesMap[c.id]?.total || 0) > 0.5);
+  }, [customers, customerDuesMap]);
 
   const customerOptions = useMemo(() => {
     const list = showAllCustomers ? customers : customersWithDues;
@@ -97,46 +117,20 @@ export function SendReminderSmsDialog({ customers, storageRecords, unloadingReco
 
   const handleShowAllToggle = (checked: boolean) => {
     setShowAllCustomers(checked);
-    if (!checked && selectedCustomer && !customersWithDues.some(c => c.id === selectedCustomer.id)) {
+    if (!checked && selectedCustomer && (customerDuesMap[selectedCustomer.id]?.total || 0) <= 0.5) {
         form.setValue('customerId', '');
     }
   };
 
   const { totalDue, totalHamaliDue, totalRentDue } = useMemo(() => {
-    if (!selectedCustomerId) {
-        return { totalDue: 0, totalHamaliDue: 0, totalRentDue: 0 };
-    }
-
-    let hamaliDue = 0;
-    let rentDue = 0;
-
-    storageRecords
-        .filter(r => r.customerId === selectedCustomerId)
-        .forEach(rec => {
-            const hamaliPayable = rec.hamaliPayable || 0;
-            const totalRentBilled = rec.totalRentBilled || 0;
-            const hamaliPaid = (rec.payments || []).filter(p => p.type === 'hamali').reduce((acc, p) => acc + p.amount, 0);
-            const rentPaid = (rec.payments || []).filter(p => p.type === 'rent').reduce((acc, p) => acc + p.amount, 0);
-            const otherPaid = (rec.payments || []).filter(p => p.type === 'other' || !p.type || p.type === 'discount').reduce((acc, p) => acc + p.amount, 0);
-            
-            hamaliDue += Math.max(0, hamaliPayable - hamaliPaid);
-            rentDue += Math.max(0, totalRentBilled - rentPaid - otherPaid);
-        });
-
-    unloadingRecords
-        .filter(r => r.customerId === selectedCustomerId)
-        .forEach(rec => {
-            const totalHamali = rec.totalHamali || 0;
-            const totalPaid = (rec.payments || []).reduce((acc, p) => acc + p.amount, 0);
-            hamaliDue += Math.max(0, totalHamali - totalPaid);
-        });
-    
+    if (!selectedCustomerId) return { totalDue: 0, totalHamaliDue: 0, totalRentDue: 0 };
+    const dues = customerDuesMap[selectedCustomerId];
     return {
-        totalHamaliDue: hamaliDue,
-        totalRentDue: rentDue,
-        totalDue: hamaliDue + rentDue,
+        totalHamaliDue: dues?.hamali || 0,
+        totalRentDue: dues?.rent || 0,
+        totalDue: dues?.total || 0,
     };
-  }, [selectedCustomerId, storageRecords, unloadingRecords]);
+  }, [selectedCustomerId, customerDuesMap]);
 
   const onSubmit = (data: ReminderSmsFormData) => {
     if (!firestore || !warehouseInfo?.textbeeApiKey || !selectedCustomer?.phone) {

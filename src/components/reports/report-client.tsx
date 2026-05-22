@@ -1,8 +1,7 @@
-
 'use client';
 
 import { useState } from 'react';
-import type { Customer, StorageRecord, UnloadingRecord, WarehouseInfo } from "@/lib/definitions";
+import type { Customer, StorageRecord, UnloadingRecord, WarehouseInfo, Commodity, Lot } from "@/lib/definitions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CustomerStatement } from './customer-statement';
@@ -12,7 +11,7 @@ import { doc } from 'firebase/firestore';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 import { useAppUser } from '@/firebase/auth/use-user';
 
-export function ReportClient({ records, customers, unloadingRecords, initialCustomerId }: { records: StorageRecord[], customers: Customer[], unloadingRecords: UnloadingRecord[], initialCustomerId?: string }) {
+export function ReportClient({ records, customers, unloadingRecords, initialCustomerId, allRecords, commodities, lots }: { records: StorageRecord[], customers: Customer[], unloadingRecords: UnloadingRecord[], initialCustomerId?: string, allRecords: StorageRecord[], commodities: Commodity[], lots: Lot[] }) {
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>(initialCustomerId || '');
     const firestore = useFirestore();
     const appUser = useAppUser();
@@ -57,6 +56,10 @@ export function ReportClient({ records, customers, unloadingRecords, initialCust
                             records={statementRecords} 
                             unloadingRecords={statementUnloadingRecords} 
                             warehouseInfo={warehouseInfo}
+                            allRecords={allRecords}
+                            commodities={commodities}
+                            lots={lots}
+                            customers={customers}
                         />
                     </div>
                 ) : (

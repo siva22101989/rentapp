@@ -55,6 +55,7 @@ export function CustomReportGenerator({
     lendings, 
     otherIncomes,
     commodities,
+    lots,
     initialReport, 
     initialCustomerId,
 }: ReportGeneratorProps) {
@@ -122,15 +123,18 @@ export function CustomReportGenerator({
                             customers={customers} 
                             unloadingRecords={unloadingRecords} 
                             initialCustomerId={initialCustomerId}
+                            allRecords={records}
+                            commodities={commodities}
+                            lots={lots}
                         />;
             case 'hamali-register':
                 return <HamaliReport records={records} customers={customers} unloadingRecords={unloadingRecords} expenses={expenses} warehouseInfo={warehouseInfo} />;
             case 'inflow-register':
                 return <InflowReport records={records} customers={customers} />;
             case 'outflow-register':
-                return <OutflowReport records={records} customers={customers} commodities={commodities} lots={[]} />;
+                return <OutflowReport records={records} customers={customers} commodities={commodities} lots={lots} />;
             case 'unloading-register':
-                return <UnloadingReport unloadingRecords={unloadingRecords} customers={customers} commodities={commodities} />;
+                return <UnloadingReport unloadingRecords={unloadingRecords} customers={customers} commodities={commodities} lots={lots} storageRecords={records} />;
             default:
                 return (
                     <Card>

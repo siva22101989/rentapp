@@ -1,20 +1,36 @@
-
 'use client';
 
 import { useMemo, forwardRef } from 'react';
-import type { Customer, StorageRecord, UnloadingRecord, WarehouseInfo } from '@/lib/definitions';
+import type { Customer, StorageRecord, UnloadingRecord, WarehouseInfo, Commodity, Lot, PaymentType } from '@/lib/definitions';
 import { formatCurrency, toDate } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { format } from 'date-fns';
+import { ActionsMenu } from '@/components/dashboard/actions-menu';
+import { OutflowActionsMenu } from './outflow-actions-menu';
+import { PaymentActionsMenu } from './payment-actions-menu';
+import { UnloadingTableActionsMenu } from '../unloading/unloading-table-actions-menu';
 
 type CustomerStatementProps = {
   customer: Customer;
   records: StorageRecord[];
   unloadingRecords: UnloadingRecord[];
   warehouseInfo: WarehouseInfo | null;
+  allRecords: StorageRecord[];
+  commodities: Commodity[];
+  lots: Lot[];
+  customers: Customer[];
 };
 
-export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementProps>(({ customer, records, unloadingRecords, warehouseInfo }, ref) => {
+export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementProps>(({ 
+    customer, 
+    records, 
+    unloadingRecords, 
+    warehouseInfo,
+    allRecords,
+    commodities,
+    lots,
+    customers
+}, ref) => {
 
   const { lineItems, totals } = useMemo(() => {
     const events: any[] = [];
@@ -34,6 +50,8 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 rent: 0,
                 credit: 0,
                 sortDate: toDate(unloading.unloadingDate).getTime(),
+                recordType: 'unloading',
+                sourceRecord: unloading,
             });
         }
 
@@ -49,6 +67,11 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 rent: 0,
                 credit: payment.amount || 0,
                 sortDate: toDate(payment.date).getTime() + pIdx,
+                recordType: 'payment',
+                paymentType: 'unloading',
+                paymentIndex: pIdx,
+                sourceRecord: unloading,
+                paymentData: payment
             });
         });
     });
@@ -66,6 +89,8 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             rent: 0,
             credit: 0,
             sortDate: toDate(record.storageStartDate).getTime(),
+            recordType: 'storage',
+            sourceRecord: record,
         });
         
         if (record.khataAmount && record.khataAmount > 0) {
@@ -80,6 +105,8 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 rent: 0,
                 credit: 0,
                 sortDate: toDate(record.storageStartDate).getTime() + 2,
+                recordType: 'storage',
+                sourceRecord: record,
             });
         }
 
@@ -96,6 +123,10 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                     rent: outflow.rentBilled || 0,
                     credit: 0,
                     sortDate: toDate(outflow.date).getTime() + 3,
+                    recordType: 'outflow',
+                    sourceRecord: record,
+                    outflowData: outflow,
+                    outflowIndex: idx,
                 });
             });
         }
@@ -112,6 +143,11 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 rent: 0,
                 credit: payment.amount || 0,
                 sortDate: toDate(payment.date).getTime() + 5 + pIdx,
+                recordType: 'payment',
+                paymentType: 'storage',
+                paymentIndex: pIdx,
+                sourceRecord: record,
+                paymentData: payment
             });
         });
     });
@@ -154,6 +190,47 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
   }, [records, unloadingRecords]);
   
   const timestamp = useMemo(() => format(new Date(), 'dd/MM/yy, h:mm a'), []);
+
+  const renderActions = (item: any) => {
+      switch (item.recordType) {
+          case 'storage':
+              return <ActionsMenu record={item.sourceRecord} customers={customers} allRecords={allRecords} />;
+          case 'unloading':
+              return <UnloadingTableActionsMenu record={{...item.sourceRecord, hamaliPending: 0}} customers={customers} commodities={commodities} lots={lots} storageRecords={allRecords} />;
+          case 'outflow':
+              return (
+                  <OutflowActionsMenu 
+                    record={item.sourceRecord} 
+                    customer={customer} 
+                    warehouseInfo={warehouseInfo} 
+                    outflow={item.outflowData} 
+                    outflowIndex={item.outflowIndex} 
+                    deliveryOrderNo={`${item.billNo}-${item.outflowIndex + 1}`} 
+                    deliveryOrderDate={item.date} 
+                    commodities={commodities} 
+                    lots={lots} 
+                    allRecords={allRecords} 
+                  />
+              );
+          case 'payment':
+              return (
+                  <PaymentActionsMenu 
+                    event={{
+                        date: item.date,
+                        customerId: customer.id,
+                        description: item.description,
+                        recordId: item.sourceRecord.id || item.sourceRecord.billNo,
+                        amount: item.credit,
+                        type: (item.paymentData.type || 'other') as PaymentType,
+                        recordType: item.paymentType,
+                        paymentIndex: item.paymentIndex
+                    }} 
+                  />
+              );
+          default:
+              return null;
+      }
+  }
 
   return (
     <div ref={ref} className="bg-white p-4 sm:p-6 text-black font-sans text-sm printable-area border-2 border-black rounded-lg shadow-sm">
@@ -212,6 +289,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                         <TableHead className="font-bold text-black border-r border-slate-200 text-right p-2 uppercase text-[10px]">Hamali Charges</TableHead>
                         <TableHead className="font-bold text-black border-r border-slate-200 text-right p-2 uppercase text-[10px]">Paid</TableHead>
                         <TableHead className="font-bold text-black text-right p-2 uppercase text-[10px]">Balance</TableHead>
+                        <TableHead className="font-bold text-black text-right p-2 uppercase text-[10px] print-hide">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -226,6 +304,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                             <TableCell className="p-1 text-right font-mono">{(item.hamali || 0) + (item.rent || 0) > 0 ? formatCurrency((item.hamali || 0) + (item.rent || 0)) : ''}</TableCell>
                             <TableCell className="p-1 text-right font-mono text-green-700 font-bold">{item.credit > 0 ? formatCurrency(item.credit) : ''}</TableCell>
                             <TableCell className="p-1 text-right font-mono font-black">{formatCurrency(item.balance)}</TableCell>
+                            <TableCell className="p-1 text-right print-hide">{renderActions(item)}</TableCell>
                         </TableRow>
                     ))}
                 </TableBody>
@@ -237,6 +316,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                         <TableCell className="p-2 text-right font-mono">{formatCurrency(totals.totalHamali + totals.totalRent)}</TableCell>
                         <TableCell className="p-2 text-right font-mono text-green-800">{formatCurrency(totals.totalCredit)}</TableCell>
                         <TableCell className="p-2 text-right font-mono text-[14px]">{formatCurrency(totals.finalBalance)}</TableCell>
+                        <TableCell className="print-hide" />
                     </TableRow>
                 </TableFooter>
             </Table>

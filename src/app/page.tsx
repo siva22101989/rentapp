@@ -16,9 +16,7 @@ import {
   Wind,
   ArrowDownFromLine,
   ArrowRight,
-  TrendingUp,
   Warehouse,
-  Wheat,
 } from 'lucide-react';
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { doc, collection, query, where } from "firebase/firestore";
@@ -48,9 +46,9 @@ const navItems: NavItem[] = [
     { href: '/drying', label: 'Drying Plot', icon: Wind, description: 'Manage items in the drying plot.', roles: ['owner', 'supervisor', 'biller', 'super-admin'], color: 'text-amber-600 bg-amber-50' },
     { href: '/outflow', label: 'Outflow', icon: ArrowUpFromDot, description: 'Process withdrawals and generate final bills.', roles: ['owner', 'supervisor', 'biller', 'super-admin'], color: 'text-orange-600 bg-orange-50' },
     { href: '/storage', label: 'Inventory', icon: Archive, description: 'View all active inventory and stock.', roles: ['owner', 'supervisor', 'biller', 'super-admin'], color: 'text-indigo-600 bg-indigo-50' },
-    { href: '/payments/pending', label: 'Dues Management', icon: IndianRupee, description: 'View and manage pending payments.', roles: ['owner', 'biller', 'super-admin'], color: 'text-rose-600 bg-rose-50' },
+    { href: '/payments/pending', label: 'Pending Dues', icon: IndianRupee, description: 'View and manage pending payments.', roles: ['owner', 'biller', 'super-admin'], color: 'text-rose-600 bg-rose-50' },
     { href: '/customers', label: 'Customers', icon: Users, description: 'Manage customer information.', roles: ['owner', 'supervisor', 'biller', 'super-admin'], color: 'text-violet-600 bg-violet-50' },
-    { href: '/reports', label: 'Audit Reports', icon: FileText, description: 'Generate detailed business reports.', roles: ['owner', 'supervisor', 'super-admin'], color: 'text-slate-600 bg-slate-50' },
+    { href: '/reports', label: 'Reports', icon: FileText, description: 'Generate detailed business reports.', roles: ['owner', 'supervisor', 'super-admin'], color: 'text-slate-600 bg-slate-50' },
     { href: '/expenses', label: 'Profit & Loss', icon: Scale, description: 'Track income, expenses, and profitability.', roles: ['owner', 'super-admin'], color: 'text-cyan-600 bg-cyan-50' },
 ];
 
@@ -70,8 +68,8 @@ function NavCard({ href, label, icon: Icon, description, color }: Omit<NavItem, 
                 <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
             </CardContent>
             <CardFooter className="p-5">
-                <Button asChild variant="secondary" size="sm" className="w-full text-xs h-9 font-bold tracking-tight">
-                    <Link href={href}>Launch Module</Link>
+                <Button asChild variant="default" size="sm" className="w-full text-xs h-9 font-bold tracking-tight uppercase">
+                    <Link href={href}>{label}</Link>
                 </Button>
             </CardFooter>
         </Card>
@@ -119,7 +117,7 @@ function DashboardHeader({ activeRecordsCount, occupancy, warehouseInfo, appUser
                     </div>
                     <div className="flex items-center gap-4 pt-2">
                         <div className="flex-1">
-                             <p className="text-[10px] font-black uppercase tracking-widest text-white/60">Active Stack</p>
+                             <p className="text-[10px] font-black uppercase tracking-widest text-white/60">Active Records</p>
                              <p className="text-2xl font-black">{activeRecordsCount}</p>
                         </div>
                         <div className="h-10 w-px bg-white/10" />

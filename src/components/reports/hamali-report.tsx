@@ -208,7 +208,7 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses, w
                 viewTitle = 'Customer Ledger';
                 break;
             case 'worker':
-                viewTitle = 'Worker Ledger';
+                viewTitle = 'Hamali Ledger';
                 break;
             case 'difference':
                 viewTitle = 'Difference (Profit/Loss) Ledger';
@@ -244,7 +244,7 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses, w
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="customer">Customer Ledger</SelectItem>
-                            <SelectItem value="worker">Worker Ledger</SelectItem>
+                            <SelectItem value="worker">Hamali Ledger</SelectItem>
                             <SelectItem value="difference">Difference (Profit/Loss)</SelectItem>
                         </SelectContent>
                     </Select>

@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
-import type { Customer, StorageRecord, UnloadingRecord, Payment } from "@/lib/definitions";
+import type { Customer, StorageRecord, UnloadingRecord, PaymentType } from "@/lib/definitions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PaymentReportTable, type PaymentEvent } from './payment-report-table';
@@ -23,28 +24,31 @@ export function PaymentReport({ records, unloadingRecords, customers }: PaymentR
         const events: PaymentEvent[] = [];
 
         records.forEach(sr => {
-            (sr.payments || []).forEach(payment => {
+            (sr.payments || []).forEach((payment, pIndex) => {
                 events.push({
                     date: toDate(payment.date),
                     customerId: sr.customerId,
                     description: `Payment for Storage Record`,
                     recordId: sr.id,
                     amount: payment.amount,
-                    type: payment.type || 'other',
+                    type: (payment.type || 'other') as PaymentType,
+                    recordType: 'storage',
+                    paymentIndex: pIndex
                 });
             });
         });
 
         unloadingRecords.forEach(ur => {
-            (ur.payments || []).forEach(payment => {
+            (ur.payments || []).forEach((payment, pIndex) => {
                 events.push({
                     date: toDate(payment.date),
                     customerId: ur.customerId,
                     description: 'Payment for Unloading',
-                    recordId: ur.billNo || 'N/A',
+                    recordId: ur.billNo || ur.id,
                     amount: payment.amount,
                     type: 'unloading',
-                    isUnloading: true,
+                    recordType: 'unloading',
+                    paymentIndex: pIndex
                 });
             });
         });
@@ -77,7 +81,7 @@ export function PaymentReport({ records, unloadingRecords, customers }: PaymentR
             <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4 print-hide">
                 <div className="flex-1">
                     <CardTitle>Payment Register</CardTitle>
-                    <CardDescription>A log of all payments received.</CardDescription>
+                    <CardDescription>A log of all payments received. Numerical IDs only.</CardDescription>
                 </div>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto flex-wrap">
                     <Select onValueChange={setSelectedCustomerId} value={selectedCustomerId}>

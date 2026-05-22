@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -36,15 +37,16 @@ export function OutflowReportTable({ events, customers, allRecords, commodities,
     const totalRentBilled = events.reduce((acc, event) => acc + (event.rentBilled || 0), 0);
 
     return (
-        <div className="bg-white p-4 text-black font-sans text-sm printable-area">
-             <div className="mb-4 text-center border-b-2 border-black pb-2">
-                <h2 className="text-xl font-bold uppercase">{title}</h2>
+        <div className="bg-white p-4 text-black font-sans text-sm printable-area border shadow-sm rounded-lg">
+             <div className="mb-4 text-center border-b pb-2">
+                <h2 className="text-xl font-bold uppercase tracking-tight">SRI LAKSHMI WAREHOUSE</h2>
                 <p className="text-[10px] text-slate-500 uppercase">Generated: {generatedDate}</p>
+                <h3 className="font-bold text-center mt-2 uppercase text-[12px]">{title}</h3>
             </div>
             <div className="table-scroll-container border-y-2 border-black">
                 <Table className="text-[13px]">
                     <TableHeader>
-                        <TableRow className="border-b border-black">
+                        <TableRow className="border-b border-black bg-slate-50">
                             <TableHead className="font-bold text-black p-1 text-center uppercase text-[10px]">Date</TableHead>
                             <TableHead className="font-bold text-black p-1 text-center uppercase text-[10px]">Bill No</TableHead>
                             <TableHead className="font-bold text-black p-1 text-left uppercase text-[10px]">Customer Name</TableHead>
@@ -62,11 +64,10 @@ export function OutflowReportTable({ events, customers, allRecords, commodities,
                                 o.bagsWithdrawn === event.bagsWithdrawn
                             ) ?? -1;
 
-                            // Display Bill No strictly numerical
                             const displayBillNo = String(event.recordId).replace(/\D/g, '');
 
                             return (
-                                <TableRow key={index} className="h-7 border-b border-slate-100">
+                                <TableRow key={index} className="h-8 border-b border-slate-100 hover:bg-slate-50/50">
                                     <TableCell className="p-1 text-center whitespace-nowrap">{format(toDate(event.date), 'dd/MM/yy')}</TableCell>
                                     <TableCell className="p-1 text-center font-mono">{displayBillNo}</TableCell>
                                     <TableCell className="p-1 font-bold whitespace-nowrap uppercase">{getCustomerName(event.customerId)}</TableCell>
@@ -93,7 +94,7 @@ export function OutflowReportTable({ events, customers, allRecords, commodities,
                         })}
                     </TableBody>
                     <TableFooter>
-                        <TableRow className="bg-slate-50 font-bold border-t-2 border-black">
+                        <TableRow className="bg-slate-900 text-white font-black border-t-2 border-black h-10">
                             <TableCell colSpan={3} className="p-1 text-right uppercase text-[10px]">Total Withdrawal Summary</TableCell>
                             <TableCell className="p-1 text-center font-mono text-[14px]">{totalBagsWithdrawn}</TableCell>
                             <TableCell className="p-1 text-right font-mono">{formatCurrency(totalRentBilled)}</TableCell>

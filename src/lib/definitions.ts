@@ -30,10 +30,12 @@ export type Lot = {
   warehouseId?: string;
 };
 
+export type PaymentType = 'rent' | 'hamali' | 'other' | 'unloading' | 'discount' | 'repayment' | 'interest' | 'principal';
+
 export type Payment = {
   amount: number;
   date: Date | Timestamp;
-  type?: 'rent' | 'hamali' | 'other' | 'unloading' | 'discount' | 'repayment' | 'interest' | 'principal';
+  type?: PaymentType;
 };
 
 export type Outflow = {

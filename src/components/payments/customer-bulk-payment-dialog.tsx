@@ -63,34 +63,35 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
   );
   const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
-  // Accurate Dues Map for Filtering
+  // Accurate Dues Map for Filtering & Display (Account-wide Aggregation)
   const customerDuesMap = useMemo(() => {
-    const duesMap: Record<string, number> = {};
+    const duesMap: Record<string, { hLiability: number, hPaid: number, rLiability: number, rPaid: number }> = {};
     const today = new Date();
 
+    const getCust = (id: string) => {
+        if (!duesMap[id]) duesMap[id] = { hLiability: 0, hPaid: 0, rLiability: 0, rPaid: 0 };
+        return duesMap[id];
+    }
+
     storageRecords.forEach(rec => {
-        if (!duesMap[rec.customerId]) duesMap[rec.customerId] = 0;
-        
-        const hLiability = rec.hamaliPayable || 0;
-        const hPaid = (rec.payments || []).filter(p => p.type === 'hamali' || p.type === 'unloading').reduce((acc, p) => acc + p.amount, 0);
+        const c = getCust(rec.customerId);
+        c.hLiability += rec.hamaliPayable || 0;
+        c.hPaid += (rec.payments || []).filter(p => p.type === 'hamali' || p.type === 'unloading').reduce((acc, p) => acc + p.amount, 0);
         
         let accruedRent = 0;
         if (rec.bagsStored > 0 && !rec.storageEndDate) {
             const { rent } = calculateFinalRent({ ...rec, storageStartDate: toDate(rec.storageStartDate) }, today, rec.bagsStored);
             accruedRent = rent;
         }
-        const rLiability = (rec.totalRentBilled || 0) + (rec.khataAmount || 0) + accruedRent;
-        const rPaid = (rec.payments || []).filter(p => p.type === 'rent' || p.type === 'other' || !p.type || p.type === 'discount').reduce((acc, p) => acc + p.amount, 0);
-
-        duesMap[rec.customerId] += Math.max(0, hLiability - hPaid) + Math.max(0, rLiability - rPaid);
+        c.rLiability += (rec.totalRentBilled || 0) + (rec.khataAmount || 0) + accruedRent;
+        c.rPaid += (rec.payments || []).filter(p => p.type === 'rent' || p.type === 'other' || !p.type || p.type === 'discount').reduce((acc, p) => acc + p.amount, 0);
     });
 
     unloadingRecords.forEach(rec => {
-        if (!duesMap[rec.customerId]) duesMap[rec.customerId] = 0;
+        const c = getCust(rec.customerId);
         const remainingBags = Math.max(0, (rec.bagsUnloaded || 0) - (rec.bagsSentToDrying || 0));
-        const totalPaid = (rec.payments || []).reduce((acc, p) => acc + p.amount, 0);
-        const hLiability = remainingBags * (rec.hamaliPerBag || 0);
-        duesMap[rec.customerId] += Math.max(0, hLiability - totalPaid);
+        c.hLiability += remainingBags * (rec.hamaliPerBag || 0);
+        c.hPaid += (rec.payments || []).reduce((acc, p) => acc + p.amount, 0);
     });
 
     return duesMap;
@@ -98,7 +99,12 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
 
   const customerOptions = useMemo(() => {
     return customers
-        .filter(c => (customerDuesMap[c.id] || 0) > 0.5)
+        .filter(c => {
+            const d = customerDuesMap[c.id];
+            if (!d) return false;
+            const net = (d.hLiability - d.hPaid) + (d.rLiability - d.rPaid);
+            return net > 0.5;
+        })
         .map(c => ({ value: c.id, label: c.name }));
   }, [customers, customerDuesMap]);
 
@@ -117,37 +123,12 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
   const selectedCustomer = useMemo(() => customers.find(c => c.id === selectedCustomerId), [customers, selectedCustomerId]);
 
   const { totalDue, totalHamaliDue, totalRentDue } = useMemo(() => {
-    if (!selectedCustomerId) return { totalDue: 0, totalHamaliDue: 0, totalRentDue: 0 };
-
-    let hamaliDue = 0;
-    let rentDue = 0;
-    const today = new Date();
-
-    storageRecords.filter(r => r.customerId === selectedCustomerId).forEach(rec => {
-        const hLiability = rec.hamaliPayable || 0;
-        const hPaid = (rec.payments || []).filter(p => p.type === 'hamali' || p.type === 'unloading').reduce((acc, p) => acc + p.amount, 0);
-        
-        let accruedRent = 0;
-        if (rec.bagsStored > 0 && !rec.storageEndDate) {
-            const { rent } = calculateFinalRent({ ...rec, storageStartDate: toDate(rec.storageStartDate) }, today, rec.bagsStored);
-            accruedRent = rent;
-        }
-        const rLiability = (rec.totalRentBilled || 0) + (rec.khataAmount || 0) + accruedRent;
-        const rPaid = (rec.payments || []).filter(p => p.type === 'rent' || p.type === 'other' || !p.type || p.type === 'discount').reduce((acc, p) => acc + p.amount, 0);
-
-        hamaliDue += Math.max(0, hLiability - hPaid);
-        rentDue += Math.max(0, rLiability - rPaid);
-    });
-
-    unloadingRecords.filter(r => r.customerId === selectedCustomerId).forEach(rec => {
-        const remainingBags = Math.max(0, (rec.bagsUnloaded || 0) - (rec.bagsSentToDrying || 0));
-        const totalPaid = (rec.payments || []).reduce((acc, p) => acc + p.amount, 0);
-        const hLiability = remainingBags * (rec.hamaliPerBag || 0);
-        hamaliDue += Math.max(0, hLiability - totalPaid);
-    });
-    
-    return { totalHamaliDue: hamaliDue, totalRentDue: rentDue, totalDue: hamaliDue + rentDue };
-  }, [selectedCustomerId, storageRecords, unloadingRecords]);
+    if (!selectedCustomerId || !customerDuesMap[selectedCustomerId]) return { totalDue: 0, totalHamaliDue: 0, totalRentDue: 0 };
+    const d = customerDuesMap[selectedCustomerId];
+    const h = Math.max(0, d.hLiability - d.hPaid);
+    const r = Math.max(0, d.rLiability - d.rPaid);
+    return { totalHamaliDue: h, totalRentDue: r, totalDue: h + r };
+  }, [selectedCustomerId, customerDuesMap]);
 
   const totalPayable = Math.max(0, totalDue - discountAmount);
 

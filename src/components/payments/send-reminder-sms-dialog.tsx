@@ -67,47 +67,44 @@ export function SendReminderSmsDialog({ customers, storageRecords, unloadingReco
   const selectedCustomer = useMemo(() => customers.find(c => c.id === selectedCustomerId), [customers, selectedCustomerId]);
 
   const customerDuesMap = useMemo(() => {
-    const duesMap: Record<string, { hamali: number, rent: number, total: number }> = {};
+    const duesMap: Record<string, { hLiability: number, hPaid: number, rLiability: number, rPaid: number }> = {};
     const today = new Date();
 
+    const getCust = (id: string) => {
+        if (!duesMap[id]) duesMap[id] = { hLiability: 0, hPaid: 0, rLiability: 0, rPaid: 0 };
+        return duesMap[id];
+    }
+
     storageRecords.forEach(rec => {
-        if (!duesMap[rec.customerId]) duesMap[rec.customerId] = { hamali: 0, rent: 0, total: 0 };
-        
-        const hLiability = rec.hamaliPayable || 0;
-        const hPaid = (rec.payments || []).filter(p => p.type === 'hamali' || p.type === 'unloading').reduce((acc, p) => acc + p.amount, 0);
+        const c = getCust(rec.customerId);
+        c.hLiability += rec.hamaliPayable || 0;
+        c.hPaid += (rec.payments || []).filter(p => p.type === 'hamali' || p.type === 'unloading').reduce((acc, p) => acc + p.amount, 0);
         
         let accruedRent = 0;
         if (rec.bagsStored > 0 && !rec.storageEndDate) {
             const { rent } = calculateFinalRent({ ...rec, storageStartDate: toDate(rec.storageStartDate) }, today, rec.bagsStored);
             accruedRent = rent;
         }
-        const rLiability = (rec.totalRentBilled || 0) + (rec.khataAmount || 0) + accruedRent;
-        const rPaid = (rec.payments || []).filter(p => p.type === 'rent' || p.type === 'other' || !p.type || p.type === 'discount').reduce((acc, p) => acc + p.amount, 0);
-
-        const hDue = Math.max(0, hLiability - hPaid);
-        const rDue = Math.max(0, rLiability - rPaid);
-
-        duesMap[rec.customerId].hamali += hDue;
-        duesMap[rec.customerId].rent += rDue;
-        duesMap[rec.customerId].total += (hDue + rDue);
+        c.rLiability += (rec.totalRentBilled || 0) + (rec.khataAmount || 0) + accruedRent;
+        c.rPaid += (rec.payments || []).filter(p => p.type === 'rent' || p.type === 'other' || !p.type || p.type === 'discount').reduce((acc, p) => acc + p.amount, 0);
     });
 
     unloadingRecords.forEach(rec => {
-        if (!duesMap[rec.customerId]) duesMap[rec.customerId] = { hamali: 0, rent: 0, total: 0 };
+        const c = getCust(rec.customerId);
         const remainingBags = Math.max(0, (rec.bagsUnloaded || 0) - (rec.bagsSentToDrying || 0));
-        const totalPaid = (rec.payments || []).reduce((acc, p) => acc + p.amount, 0);
-        const hLiability = remainingBags * (rec.hamaliPerBag || 0);
-        const hDue = Math.max(0, hLiability - totalPaid);
-        
-        duesMap[rec.customerId].hamali += hDue;
-        duesMap[rec.customerId].total += hDue;
+        c.hLiability += remainingBags * (rec.hamaliPerBag || 0);
+        c.hPaid += (rec.payments || []).reduce((acc, p) => acc + p.amount, 0);
     });
 
     return duesMap;
   }, [storageRecords, unloadingRecords]);
 
   const customersWithDues = useMemo(() => {
-    return customers.filter(c => (customerDuesMap[c.id]?.total || 0) > 0.5);
+    return customers.filter(c => {
+        const d = customerDuesMap[c.id];
+        if (!d) return false;
+        return ((d.hLiability - d.hPaid) + (d.rLiability - d.rPaid)) > 0.5;
+    });
   }, [customers, customerDuesMap]);
 
   const customerOptions = useMemo(() => {
@@ -117,18 +114,22 @@ export function SendReminderSmsDialog({ customers, storageRecords, unloadingReco
 
   const handleShowAllToggle = (checked: boolean) => {
     setShowAllCustomers(checked);
-    if (!checked && selectedCustomer && (customerDuesMap[selectedCustomer.id]?.total || 0) <= 0.5) {
-        form.setValue('customerId', '');
+    if (!checked && selectedCustomer) {
+        const d = customerDuesMap[selectedCustomer.id];
+        const net = d ? (d.hLiability - d.hPaid) + (d.rLiability - d.rPaid) : 0;
+        if (net <= 0.5) form.setValue('customerId', '');
     }
   };
 
   const { totalDue, totalHamaliDue, totalRentDue } = useMemo(() => {
-    if (!selectedCustomerId) return { totalDue: 0, totalHamaliDue: 0, totalRentDue: 0 };
-    const dues = customerDuesMap[selectedCustomerId];
+    if (!selectedCustomerId || !customerDuesMap[selectedCustomerId]) return { totalDue: 0, totalHamaliDue: 0, totalRentDue: 0 };
+    const d = customerDuesMap[selectedCustomerId];
+    const h = Math.max(0, d.hLiability - d.hPaid);
+    const r = Math.max(0, d.rLiability - d.rPaid);
     return {
-        totalHamaliDue: dues?.hamali || 0,
-        totalRentDue: dues?.rent || 0,
-        totalDue: dues?.total || 0,
+        totalHamaliDue: h,
+        totalRentDue: r,
+        totalDue: h + r,
     };
   }, [selectedCustomerId, customerDuesMap]);
 

@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from "react";
@@ -47,7 +46,7 @@ export function InflowReportTable({ records, allRecords, customers, title }: Rep
                         {records.map((record) => (
                             <TableRow key={record.id} className="h-7 border-b border-slate-100">
                                 <TableCell className="p-1 text-center">{format(toDate(record.storageStartDate), 'dd/MM/yy')}</TableCell>
-                                <TableCell className="p-1 text-center font-mono">{record.id}</TableCell>
+                                <TableCell className="p-1 text-center font-mono">{record.id.replace(/\D/g, '')}</TableCell>
                                 <TableCell className="p-1 font-bold whitespace-nowrap uppercase">{getCustomerName(record.customerId)}</TableCell>
                                 <TableCell className="p-1 text-center font-mono">{record.location}</TableCell>
                                 <TableCell className="p-1 text-center font-mono font-bold">{record.bagsIn}</TableCell>

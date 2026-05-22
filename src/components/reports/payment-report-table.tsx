@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -48,7 +47,7 @@ export function PaymentReportTable({ events, customers, title }: ReportTableProp
                             <TableHead className="font-bold text-black p-1 text-center uppercase text-[10px]">Date</TableHead>
                             <TableHead className="font-bold text-black p-1 text-left uppercase text-[10px]">Customer Name</TableHead>
                             <TableHead className="font-bold text-black p-1 text-center uppercase text-[10px]">Type</TableHead>
-                            <TableHead className="font-bold text-black p-1 text-center uppercase text-[10px]">Ref No</TableHead>
+                            <TableHead className="font-bold text-black p-1 text-center uppercase text-[10px]">Bill No</TableHead>
                             <TableHead className="font-bold text-black p-1 text-right uppercase text-[10px]">Amount Paid</TableHead>
                             <TableHead className="font-bold text-black p-1 text-right uppercase text-[10px] print-hide">Actions</TableHead>
                         </TableRow>

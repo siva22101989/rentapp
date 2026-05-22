@@ -56,7 +56,7 @@ export function MasterRegisterTable({ records, customers, title }: MasterRegiste
                     <TableHeader>
                         <TableRow className="border-b border-black">
                             <TableHead className="font-bold text-black p-1 text-center uppercase text-[9px]">Date</TableHead>
-                            <TableHead className="font-bold text-black p-1 text-center uppercase text-[9px]">Serial</TableHead>
+                            <TableHead className="font-bold text-black p-1 text-center uppercase text-[9px]">Bill No</TableHead>
                             <TableHead className="font-bold text-black p-1 text-left uppercase text-[9px]">Customer Name</TableHead>
                             <TableHead className="font-bold text-black p-1 text-right uppercase text-[9px]">In</TableHead>
                             <TableHead className="font-bold text-black p-1 text-right uppercase text-[9px]">Out</TableHead>
@@ -70,7 +70,7 @@ export function MasterRegisterTable({ records, customers, title }: MasterRegiste
                         {processedRecords.map((record) => (
                             <TableRow key={record.id} className="h-7 border-b border-slate-100">
                                 <TableCell className="p-1 text-center whitespace-nowrap">{format(toDate(record.storageStartDate), 'dd/MM/yy')}</TableCell>
-                                <TableCell className="p-1 text-center font-mono text-slate-400">{record.id}</TableCell>
+                                <TableCell className="p-1 text-center font-mono text-slate-400">{record.id.replace(/\D/g, '')}</TableCell>
                                 <TableCell className="p-1 font-bold whitespace-nowrap uppercase tracking-tighter">{getCustomerName(record.customerId)}</TableCell>
                                 <TableCell className="p-1 text-right font-mono">{record.bagsIn}</TableCell>
                                 <TableCell className="p-1 text-right font-mono">{record.bagsOut}</TableCell>

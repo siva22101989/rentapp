@@ -1,4 +1,3 @@
-
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -65,7 +64,7 @@ function NavCard({ href, label, icon: Icon, description }: Omit<NavItem, 'roles'
             </div>
             <Button asChild variant="default" className="w-fit rounded-full bg-[#0070c1] hover:bg-[#005ea3] px-6 h-11 text-sm font-bold gap-2">
                 <Link href={href}>
-                    Go to {label} <ArrowRight className="h-4 w-4" />
+                    {label} <ArrowRight className="h-4 w-4" />
                 </Link>
             </Button>
         </Card>

@@ -82,7 +82,7 @@ export function UnloadingRecordsTable({ unloadingRecords, customers, commodities
                     return (
                     <TableRow key={record.id}>
                         <TableCell className="hidden md:table-cell">{unloadingDate ? format(unloadingDate, 'dd MMM yyyy') : 'N/A'}</TableCell>
-                        <TableCell>{record.billNo}</TableCell>
+                        <TableCell>{record.billNo?.replace(/\D/g, '')}</TableCell>
                         <TableCell className="font-medium">{getCustomerName(record.customerId)}</TableCell>
                         <TableCell>{record.location || 'N/A'}</TableCell>
                         <TableCell className="text-right hidden lg:table-cell">{record.bagsUnloaded}</TableCell>

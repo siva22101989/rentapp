@@ -61,7 +61,31 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
   );
   const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
-  const customerOptions = customers.map(c => ({ value: c.id, label: c.name }));
+  // Filter customers to only show those with a balance due
+  const customerOptions = useMemo(() => {
+    const customerDuesMap: Record<string, number> = {};
+
+    storageRecords.forEach(rec => {
+        if (!customerDuesMap[rec.customerId]) customerDuesMap[rec.customerId] = 0;
+        const hPaid = (rec.payments || []).filter(p => p.type === 'hamali' || p.type === 'unloading').reduce((acc, p) => acc + p.amount, 0);
+        const rPaid = (rec.payments || []).filter(p => p.type === 'rent').reduce((acc, p) => acc + p.amount, 0);
+        const oPaid = (rec.payments || []).filter(p => p.type === 'other' || !p.type || p.type === 'discount').reduce((acc, p) => acc + p.amount, 0);
+        
+        customerDuesMap[rec.customerId] += Math.max(0, (rec.hamaliPayable || 0) - hPaid);
+        customerDuesMap[rec.customerId] += Math.max(0, ((rec.totalRentBilled || 0) + (rec.khataAmount || 0)) - rPaid - oPaid);
+    });
+
+    unloadingRecords.forEach(rec => {
+        if (!customerDuesMap[rec.customerId]) customerDuesMap[rec.customerId] = 0;
+        const totalHamali = rec.totalHamali || 0;
+        const totalPaid = (rec.payments || []).reduce((acc, p) => acc + p.amount, 0);
+        customerDuesMap[rec.customerId] += Math.max(0, totalHamali - totalPaid);
+    });
+
+    return customers
+        .filter(c => (customerDuesMap[c.id] || 0) > 0.5)
+        .map(c => ({ value: c.id, label: c.name }));
+  }, [customers, storageRecords, unloadingRecords]);
 
   const form = useForm<PaymentFormData>({
     resolver: zodResolver(BulkPaymentSchema),
@@ -199,12 +223,12 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
             <form onSubmit={form.handleSubmit(onSubmit)}>
             <DialogHeader>
                 <DialogTitle>Bulk Customer Payment</DialogTitle>
-                <DialogDescription>Manual date format: DD-MM-YYYY.</DialogDescription>
+                <DialogDescription>Select a customer with pending dues. Manual date format: DD-MM-YYYY.</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
                 <FormField control={form.control} name="customerId" render={({ field }) => (
                     <FormItem className="flex flex-col">
-                        <FormLabel>Customer</FormLabel>
+                        <FormLabel>Customer (Only those with Dues)</FormLabel>
                         <Combobox options={customerOptions} value={field.value} onChange={field.onChange} placeholder="Select customer..." modal={true} />
                         <FormMessage />
                     </FormItem>

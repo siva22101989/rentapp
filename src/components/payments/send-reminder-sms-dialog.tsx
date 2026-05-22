@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useMemo } from 'react';
@@ -200,7 +199,7 @@ export function SendReminderSmsDialog({ customers, storageRecords, unloadingReco
                     name="customerId"
                     render={({ field }) => (
                         <FormItem className="flex flex-col">
-                            <FormLabel>Customer</FormLabel>
+                            <FormLabel>Customer (Only those with Dues)</FormLabel>
                             <Combobox
                                 options={customerOptions}
                                 value={field.value}

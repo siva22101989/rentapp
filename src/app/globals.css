@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -93,18 +92,37 @@
 @layer base {
   * {
     @apply border-border;
+    box-sizing: border-box;
   }
   html {
     font-size: 16px;
+    width: 100vw;
+    max-width: 100%;
+    overflow-x: hidden;
   }
   body {
     @apply bg-background text-foreground text-[15px] antialiased;
     touch-action: manipulation;
+    width: 100vw;
+    max-width: 100%;
+    overflow-x: hidden;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+
+  p, span, h1, h2, h3, h4, h5, h6, td, th {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
   }
   
   .table-scroll-container {
     @apply w-full overflow-x-auto rounded-lg border;
     -webkit-overflow-scrolling: touch;
+  }
+
+  input, textarea, select, button {
+    font-size: 16px !important; /* Prevents auto-zoom on mobile focus */
   }
 
   input::-webkit-outer-spin-button,

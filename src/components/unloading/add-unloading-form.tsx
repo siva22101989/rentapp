@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo, useTransition } from 'react';
@@ -39,7 +38,19 @@ const UnloadingRecordSchema = z.object({
 
 type UnloadingFormData = z.infer<typeof UnloadingRecordSchema>;
 
-export function AddUnloadingRecordForm({ customers, commodities, lots, storageRecords, nextBillNo }: { customers: Customer[], commodities: Commodity[], lots: Lot[], storageRecords: StorageRecord[], nextBillNo: string }) {
+export function AddUnloadingRecordForm({ 
+  customers, 
+  commodities, 
+  lots, 
+  storageRecords, 
+  nextBillNo 
+}: { 
+  customers: Customer[], 
+  commodities: Commodity[], 
+  lots: Lot[], 
+  storageRecords: StorageRecord[], 
+  nextBillNo: string 
+}) {
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
     const firestore = useFirestore();

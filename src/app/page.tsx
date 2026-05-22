@@ -1,7 +1,7 @@
 
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAppUser } from "@/firebase/auth/use-user";
 import type { LucideIcon } from 'lucide-react';
 import Link from 'next/link';
@@ -37,41 +37,37 @@ type NavItem = {
   icon: LucideIcon;
   description: string;
   roles: ('owner' | 'supervisor' | 'biller' | 'super-admin')[];
-  color: string;
 };
 
 const navItems: NavItem[] = [
-    { href: '/inflow', label: 'Add Inflow', icon: ArrowDownToDot, description: 'Record new items arriving for storage.', roles: ['owner', 'supervisor', 'biller', 'super-admin'], color: 'text-emerald-600 bg-emerald-50' },
-    { href: '/unloading', label: 'Unloading', icon: ArrowDownFromLine, description: 'Manage goods unloaded from vehicles.', roles: ['owner', 'supervisor', 'biller', 'super-admin'], color: 'text-sky-600 bg-sky-50' },
-    { href: '/drying', label: 'Drying Plot', icon: Wind, description: 'Manage items in the drying plot.', roles: ['owner', 'supervisor', 'biller', 'super-admin'], color: 'text-amber-600 bg-amber-50' },
-    { href: '/outflow', label: 'Outflow', icon: ArrowUpFromDot, description: 'Process withdrawals and generate final bills.', roles: ['owner', 'supervisor', 'biller', 'super-admin'], color: 'text-orange-600 bg-orange-50' },
-    { href: '/storage', label: 'Inventory', icon: Archive, description: 'View all active inventory and stock.', roles: ['owner', 'supervisor', 'biller', 'super-admin'], color: 'text-indigo-600 bg-indigo-50' },
-    { href: '/payments/pending', label: 'Pending Dues', icon: IndianRupee, description: 'View and manage pending payments.', roles: ['owner', 'biller', 'super-admin'], color: 'text-rose-600 bg-rose-50' },
-    { href: '/customers', label: 'Customers', icon: Users, description: 'Manage customer information.', roles: ['owner', 'supervisor', 'biller', 'super-admin'], color: 'text-violet-600 bg-violet-50' },
-    { href: '/reports', label: 'Reports', icon: FileText, description: 'Generate detailed business reports.', roles: ['owner', 'supervisor', 'super-admin'], color: 'text-slate-600 bg-slate-50' },
-    { href: '/expenses', label: 'Profit & Loss', icon: Scale, description: 'Track income, expenses, and profitability.', roles: ['owner', 'super-admin'], color: 'text-cyan-600 bg-cyan-50' },
+    { href: '/inflow', label: 'Add Inflow', icon: ArrowDownToDot, description: 'Record new items arriving for storage.', roles: ['owner', 'supervisor', 'biller', 'super-admin'] },
+    { href: '/unloading', label: 'Unloading', icon: ArrowDownFromLine, description: 'Manage goods unloaded from vehicles.', roles: ['owner', 'supervisor', 'biller', 'super-admin'] },
+    { href: '/drying', label: 'Drying Plot', icon: Wind, description: 'Manage items in the drying plot.', roles: ['owner', 'supervisor', 'biller', 'super-admin'] },
+    { href: '/outflow', label: 'Outflow', icon: ArrowUpFromDot, description: 'Process withdrawals and generate final bills.', roles: ['owner', 'supervisor', 'biller', 'super-admin'] },
+    { href: '/storage', label: 'Inventory', icon: Archive, description: 'View all active inventory and stock.', roles: ['owner', 'supervisor', 'biller', 'super-admin'] },
+    { href: '/payments/pending', label: 'Pending Dues', icon: IndianRupee, description: 'View and manage pending payments.', roles: ['owner', 'biller', 'super-admin'] },
+    { href: '/customers', label: 'Customers', icon: Users, description: 'Manage customer information.', roles: ['owner', 'supervisor', 'biller', 'super-admin'] },
+    { href: '/reports', label: 'Reports', icon: FileText, description: 'Generate detailed business reports.', roles: ['owner', 'supervisor', 'super-admin'] },
+    { href: '/expenses', label: 'Profit & Loss', icon: Scale, description: 'Track income, expenses, and profitability.', roles: ['owner', 'super-admin'] },
 ];
 
-function NavCard({ href, label, icon: Icon, description, color }: Omit<NavItem, 'roles'>) {
+function NavCard({ href, label, icon: Icon, description }: Omit<NavItem, 'roles'>) {
     return (
-        <Card className="stylish-card h-full flex flex-col hover:border-primary/50 group">
-            <CardHeader className="p-5 pb-2">
-                <div className="flex justify-between items-start">
-                    <div className={`p-2.5 rounded-xl ${color} transition-colors group-hover:scale-110 duration-200`}>
-                        <Icon className="h-5 w-5" />
-                    </div>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
+        <Card className="rounded-[24px] border-none bg-white shadow-sm hover:shadow-md transition-all p-6 flex flex-col justify-between h-[200px] group">
+            <div className="flex justify-between items-start">
+                <div className="space-y-1">
+                    <h3 className="text-xl font-bold text-slate-900">{label}</h3>
+                    <p className="text-[13px] text-muted-foreground leading-snug max-w-[200px]">{description}</p>
                 </div>
-                <CardTitle className="text-base font-bold mt-4">{label}</CardTitle>
-            </CardHeader>
-            <CardContent className="p-5 pt-0 flex-grow">
-                <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
-            </CardContent>
-            <CardFooter className="p-5">
-                <Button asChild variant="default" size="sm" className="w-full text-xs h-9 font-bold tracking-tight uppercase">
-                    <Link href={href}>{label}</Link>
-                </Button>
-            </CardFooter>
+                <div className="p-2 text-slate-900">
+                    <Icon className="h-6 w-6" />
+                </div>
+            </div>
+            <Button asChild variant="default" className="w-fit rounded-full bg-[#0070c1] hover:bg-[#005ea3] px-6 h-11 text-sm font-bold gap-2">
+                <Link href={href}>
+                    Go to {label} <ArrowRight className="h-4 w-4" />
+                </Link>
+            </Button>
         </Card>
     );
 }
@@ -212,7 +208,7 @@ export default function DashboardPage() {
             ) : (
                 <DashboardHeader activeRecordsCount={activeRecordsCount} occupancy={occupancy} warehouseInfo={warehouseInfo} appUser={appUser} />
             )}
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 mb-8">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
                 {accessibleNavItems.map((item) => (
                     <NavCard key={item.href} {...item} />
                 ))}

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, forwardRef } from 'react';
@@ -21,11 +20,12 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
     
     (unloadingRecords || []).forEach(unloading => {
         const totalHamali = unloading.totalHamali || 0;
+        const billNo = String(unloading.billNo || unloading.id).replace(/\D/g, '');
         if (totalHamali > 0) {
             events.push({
                 date: toDate(unloading.unloadingDate),
                 description: `Inflow - ${unloading.commodityDescription}`,
-                billNo: unloading.billNo || unloading.id,
+                billNo: billNo,
                 lotNo: unloading.location || 'N/A',
                 bagsIn: unloading.bagsUnloaded,
                 bagsOut: 0,
@@ -40,7 +40,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             events.push({
                 date: toDate(payment.date),
                 description: `Payment Received`,
-                billNo: unloading.billNo || unloading.id,
+                billNo: billNo,
                 lotNo: unloading.location || 'N/A',
                 bagsIn: 0,
                 bagsOut: 0,
@@ -53,10 +53,11 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
     });
 
     (records || []).forEach(record => {
+        const billNo = String(record.id).replace(/\D/g, '');
         events.push({
             date: toDate(record.storageStartDate),
             description: `Inflow - ${record.commodityDescription}`,
-            billNo: record.id,
+            billNo: billNo,
             lotNo: record.location || 'N/A',
             bagsIn: record.bagsIn,
             bagsOut: 0,
@@ -70,7 +71,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             events.push({
                 date: toDate(record.storageStartDate),
                 description: `Khata Income`,
-                billNo: record.id,
+                billNo: billNo,
                 lotNo: record.location || 'N/A',
                 bagsIn: 0,
                 bagsOut: 0,
@@ -86,7 +87,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 events.push({
                     date: toDate(outflow.date),
                     description: `Outflow`,
-                    billNo: record.id, 
+                    billNo: billNo, 
                     lotNo: record.location || 'N/A',
                     bagsIn: 0,
                     bagsOut: outflow.bagsWithdrawn,
@@ -102,7 +103,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             events.push({
                 date: toDate(payment.date),
                 description: payment.type === 'discount' ? `Discount` : `Payment`,
-                billNo: record.id,
+                billNo: billNo,
                 lotNo: record.location || 'N/A',
                 bagsIn: 0,
                 bagsOut: 0,

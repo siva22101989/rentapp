@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo, useTransition } from 'react';
@@ -63,12 +62,12 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
           bagsUnloaded: undefined,
           customerHamaliPerBag: undefined,
           workerHamaliPerBag: undefined,
-          billNo: nextBillNo,
+          billNo: String(nextBillNo).replace(/\D/g, ''),
         },
     });
 
     useEffect(() => {
-        if (nextBillNo) form.setValue('billNo', nextBillNo);
+        if (nextBillNo) form.setValue('billNo', String(nextBillNo).replace(/\D/g, ''));
     }, [nextBillNo, form]);
     
     const customerOptions = customers.map(c => ({ value: c.id, label: c.name }));
@@ -102,9 +101,10 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
 
         startTransition(async () => {
             try {
-                const existingSnap = await getDoc(doc(firestore, 'unloadingRecords', data.billNo));
+                const cleanBillNo = String(data.billNo).replace(/\D/g, '');
+                const existingSnap = await getDoc(doc(firestore, 'unloadingRecords', cleanBillNo));
                 if (existingSnap.exists()) {
-                    toast({ title: 'Duplicate Bill No', description: `Bill No #${data.billNo} already exists.`, variant: 'destructive' });
+                    toast({ title: 'Duplicate Bill No', description: `Bill No #${cleanBillNo} already exists.`, variant: 'destructive' });
                     return;
                 }
 
@@ -114,6 +114,7 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                 
                 const rawRecord = { 
                     ...data, 
+                    billNo: cleanBillNo,
                     hamaliPerBag: data.customerHamaliPerBag, 
                     warehouseId: appUser.warehouseId, 
                     unloadingDate: finalDate, 
@@ -123,16 +124,16 @@ export function AddUnloadingRecordForm({ customers, commodities, lots, storageRe
                     workerHamaliPayable: data.bagsUnloaded * workRate 
                 };
                 
-                await setDoc(doc(firestore, 'unloadingRecords', data.billNo), cleanForFirestore(rawRecord));
+                await setDoc(doc(firestore, 'unloadingRecords', cleanBillNo), cleanForFirestore(rawRecord));
 
                 if (sendSmsNotification && warehouseInfo?.textbeeApiKey && selectedCustomer?.phone) {
-                    const msg = `Dear ${selectedCustomer.name}, delivery received. Bill: ${data.billNo}.`;
+                    const msg = `Dear ${selectedCustomer.name}, delivery received. Bill: ${cleanBillNo}.`;
                     sendSms({ apiKey: warehouseInfo.textbeeApiKey, deviceId: warehouseInfo.textbeeDeviceId, to: selectedCustomer.phone, message: msg }).catch(console.error);
                 }
                 
                 toast({ title: 'Success', description: 'Record added.' });
                 form.reset();
-                window.open(`/unloading/receipt/${data.billNo}`, '_blank');
+                window.open(`/unloading/receipt/${cleanBillNo}`, '_blank');
             } catch (error) {
                 toast({ title: 'Error', description: 'Failed to add record.', variant: 'destructive' });
             }

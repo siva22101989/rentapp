@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -47,7 +46,7 @@ export function OutflowReportTable({ events, customers, allRecords, commodities,
                     <TableHeader>
                         <TableRow className="border-b border-black">
                             <TableHead className="font-bold text-black p-1 text-center uppercase text-[10px]">Date</TableHead>
-                            <TableHead className="font-bold text-black p-1 text-center uppercase text-[10px]">Patti No</TableHead>
+                            <TableHead className="font-bold text-black p-1 text-center uppercase text-[10px]">Bill No</TableHead>
                             <TableHead className="font-bold text-black p-1 text-left uppercase text-[10px]">Customer Name</TableHead>
                             <TableHead className="font-bold text-black p-1 text-center uppercase text-[10px]">Bags Out</TableHead>
                             <TableHead className="font-bold text-black p-1 text-right uppercase text-[10px]">Rent Billed</TableHead>
@@ -63,10 +62,13 @@ export function OutflowReportTable({ events, customers, allRecords, commodities,
                                 o.bagsWithdrawn === event.bagsWithdrawn
                             ) ?? -1;
 
+                            // Display Bill No strictly numerical
+                            const displayBillNo = String(event.recordId).replace(/\D/g, '');
+
                             return (
                                 <TableRow key={index} className="h-7 border-b border-slate-100">
                                     <TableCell className="p-1 text-center whitespace-nowrap">{format(toDate(event.date), 'dd/MM/yy')}</TableCell>
-                                    <TableCell className="p-1 text-center font-mono">{event.recordId}</TableCell>
+                                    <TableCell className="p-1 text-center font-mono">{displayBillNo}</TableCell>
                                     <TableCell className="p-1 font-bold whitespace-nowrap uppercase">{getCustomerName(event.customerId)}</TableCell>
                                     <TableCell className="p-1 text-center font-mono font-bold">{event.bagsWithdrawn}</TableCell>
                                     <TableCell className="p-1 text-right font-mono">{formatCurrency(event.rentBilled)}</TableCell>
@@ -78,7 +80,7 @@ export function OutflowReportTable({ events, customers, allRecords, commodities,
                                                 warehouseInfo={warehouseInfo}
                                                 outflow={parentRecord.outflows![outflowIndex]}
                                                 outflowIndex={outflowIndex}
-                                                deliveryOrderNo={`${parentRecord.id}-${outflowIndex + 1}`}
+                                                deliveryOrderNo={`${displayBillNo}-${outflowIndex + 1}`}
                                                 deliveryOrderDate={event.date}
                                                 commodities={commodities}
                                                 lots={lots}

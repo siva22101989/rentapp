@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useTransition, useState, useEffect, useMemo } from 'react';
@@ -41,10 +40,10 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
     const [lorryTractorNo, setLorryTractorNo] = useState('');
     const [storageStartDate, setStorageStartDate] = useState(new Date().toISOString().split('T')[0]);
 
-    const [storageId, setStorageId] = useState(nextId);
+    const [storageId, setStorageId] = useState(String(nextId).replace(/\D/g, ''));
 
     useEffect(() => {
-        setStorageId(nextId);
+        setStorageId(String(nextId).replace(/\D/g, ''));
     }, [nextId]);
 
     const warehouseInfoRef = useMemoFirebase(
@@ -94,16 +93,17 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
     
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        if (!firestore || !appUser?.warehouseId || !storageId || !selectedCustomerId || !selectedCommodity) {
+        const cleanId = String(storageId).replace(/\D/g, '');
+        if (!firestore || !appUser?.warehouseId || !cleanId || !selectedCustomerId || !selectedCommodity) {
             toast({ title: 'Error', description: 'Required fields missing.', variant: 'destructive' });
             return;
         }
 
         startTransition(async () => {
             try {
-                const existingSnap = await getDoc(doc(firestore, 'storageRecords', storageId));
+                const existingSnap = await getDoc(doc(firestore, 'storageRecords', cleanId));
                 if (existingSnap.exists()) {
-                    toast({ title: 'Duplicate ID', description: `ID #${storageId} already exists.`, variant: 'destructive' });
+                    toast({ title: 'Duplicate ID', description: `ID #${cleanId} already exists.`, variant: 'destructive' });
                     return;
                 }
 
@@ -146,21 +146,21 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                     rate1Year: commodityDetails?.rate1Year,
                 };
 
-                await setDoc(doc(firestore, "storageRecords", storageId), cleanForFirestore(rawRecord));
+                await setDoc(doc(firestore, "storageRecords", cleanId), cleanForFirestore(rawRecord));
 
                 if (sendSmsNotification && warehouseInfo?.textbeeApiKey && selectedCustomer?.phone) {
                     const msg = (warehouseInfo.smsInflowTemplate || `Dear {customerName}, inflow of {bags} bags of {commodity} recorded. Bill: {billNo}.`)
                         .replace('{customerName}', selectedCustomer.name)
                         .replace('{bags}', String(bags))
                         .replace('{commodity}', selectedCommodity)
-                        .replace('{billNo}', storageId)
+                        .replace('{billNo}', cleanId)
                         .replace('{date}', format(finalDate, 'dd/MM/yy'));
                     sendSms({ apiKey: warehouseInfo.textbeeApiKey, deviceId: warehouseInfo.textbeeDeviceId, to: selectedCustomer.phone, message: msg }).catch(console.error);
                 }
                 
                 toast({ title: 'Success', description: 'Record created.' });
                 resetForm();
-                window.open(`/inflow/receipt/${storageId}`, '_blank');
+                window.open(`/inflow/receipt/${cleanId}`, '_blank');
             } catch (error) {
                 toast({ title: 'Error', description: 'Failed to create record.', variant: 'destructive' });
             }

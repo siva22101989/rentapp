@@ -84,7 +84,7 @@ export function CustomerHamaliReportTable({ events, customers, title, warehouseI
                          {ledgerItems.length === 0 && (
                             <TableRow>
                                 <TableCell colSpan={9} className="text-center py-20 text-muted-foreground italic">
-                                    No customer hamali ledger records found for the selected period.
+                                    No customer ledger records found for the selected period.
                                 </TableCell>
                             </TableRow>
                         )}
@@ -102,7 +102,7 @@ export function CustomerHamaliReportTable({ events, customers, title, warehouseI
             
             <div className="mt-16 flex justify-end">
                 <div className="w-64 border-t-2 border-black text-center pt-2">
-                    <p className="font-black text-[12px] uppercase tracking-widest text-slate-800">Authorized Auditor Signature</p>
+                    <p className="font-black text-[12px] uppercase tracking-widest text-slate-800">Authorized Manager Signature</p>
                 </div>
             </div>
         </div>

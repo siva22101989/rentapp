@@ -33,11 +33,11 @@ export function WorkerHamaliReportTable({ events, title, warehouseInfo }: Report
     const totalPaid = events.reduce((acc, event) => acc + event.paid, 0);
     
     return (
-        <div className="bg-white p-4 text-black font-sans text-[13px] printable-area">
+        <div className="bg-white p-4 text-black font-sans text-[13px] printable-area border shadow-sm rounded-lg">
              <div className="mb-6 text-center border-b pb-4">
                 <h2 className="text-xl font-bold uppercase tracking-wide">{warehouseInfo?.name || "SRI LAKSHMI WAREHOUSE"}</h2>
                 <p className="text-muted-foreground font-semibold uppercase text-xs mt-1">{title}</p>
-                <p className="text-[10px] text-slate-400">Generated: {generatedDate}</p>
+                <p className="text-[10px] text-slate-400 mt-1 uppercase">Audit Generation: {generatedDate}</p>
             </div>
             <div className="table-scroll-container border-y-2 border-black">
                 <Table className="text-[13px]">
@@ -56,16 +56,16 @@ export function WorkerHamaliReportTable({ events, title, warehouseInfo }: Report
                         {ledgerItems.map((item, index) => (
                             <TableRow key={index} className="h-8 border-b border-slate-100 hover:bg-slate-50/50">
                                 <TableCell className="p-1 text-center whitespace-nowrap">{format(item.date, 'dd/MM/yy')}</TableCell>
-                                <TableCell className="p-1 font-medium">{item.description}</TableCell>
+                                <TableCell className="p-1 font-black whitespace-nowrap uppercase tracking-tighter">{item.description}</TableCell>
                                 <TableCell className="p-1 text-center font-mono text-slate-400">{item.recordId.replace(/\D/g, '')}</TableCell>
                                 <TableCell className="p-1 text-center font-mono">{item.bags || ''}</TableCell>
-                                <TableCell className="p-1 text-right font-mono">
+                                <TableCell className="p-1 text-right font-mono font-bold text-slate-900">
                                     {item.payable > 0 ? formatCurrency(item.payable) : ''}
                                 </TableCell>
-                                <TableCell className="p-1 text-right font-mono text-green-700">
+                                <TableCell className="p-1 text-right font-mono font-bold text-green-700">
                                      {item.paid > 0 ? formatCurrency(item.paid) : ''}
                                 </TableCell>
-                                <TableCell className="p-1 text-right font-mono font-bold">
+                                <TableCell className="p-1 text-right font-mono font-black">
                                     {formatCurrency(item.runningBalance)}
                                 </TableCell>
                             </TableRow>
@@ -79,19 +79,19 @@ export function WorkerHamaliReportTable({ events, title, warehouseInfo }: Report
                         )}
                     </TableBody>
                     <TableFooter>
-                        <TableRow className="bg-slate-50 font-bold border-t-2 border-black h-10">
-                            <TableCell colSpan={4} className="p-2 text-right uppercase text-[10px]">Total Dues for Period</TableCell>
-                            <TableCell className="p-2 text-right font-mono">{formatCurrency(totalPayable)}</TableCell>
-                            <TableCell className="p-2 text-right font-mono text-green-700">{formatCurrency(totalPaid)}</TableCell>
-                            <TableCell className="p-2 text-right font-mono text-destructive">{formatCurrency(totalPayable - totalPaid)}</TableCell>
+                        <TableRow className="bg-slate-900 text-white font-black border-t-2 border-black h-10">
+                            <TableCell colSpan={4} className="p-2 text-right uppercase text-[10px] tracking-widest">Grand Ledger Totals</TableCell>
+                            <TableCell className="p-2 text-right font-mono text-[13px]">{formatCurrency(totalPayable)}</TableCell>
+                            <TableCell className="p-2 text-right font-mono text-[13px]">{formatCurrency(totalPaid)}</TableCell>
+                            <TableCell className="p-2 text-right font-mono text-[14px] text-orange-400">{formatCurrency(totalPayable - totalPaid)}</TableCell>
                         </TableRow>
                     </TableFooter>
                 </Table>
             </div>
             
             <div className="mt-16 flex justify-end">
-                <div className="w-64 border-t border-black text-center pt-2">
-                    <p className="font-bold text-[12px] uppercase tracking-widest text-slate-800">Authorized Signature</p>
+                <div className="w-64 border-t-2 border-black text-center pt-2">
+                    <p className="font-black text-[12px] uppercase tracking-widest text-slate-800">Authorized Manager Signature</p>
                 </div>
             </div>
         </div>

@@ -194,7 +194,7 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses, w
         return filtered.sort((a,b) => a.date.getTime() - b.date.getTime());
     }, [records, unloadingRecords, expenses, dateRange, financialYear, customerMap]);
 
-    const title = reportView === 'customer' ? 'Customer Hamali Ledger' : 'Hamali Ledger';
+    const title = reportView === 'customer' ? 'Customer Ledger' : 'Hamali Ledger';
 
     return (
         <Card className="border-primary/20 shadow-md">

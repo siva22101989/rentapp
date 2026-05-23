@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">GrainDost</string>
+    <string name="title_activity_main">GrainDost</string>
+    <string name="package_name">com.graindost.app</string>
+    <string name="custom_url_scheme">com.graindost.app</string>
+</resources>

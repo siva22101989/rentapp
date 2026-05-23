@@ -1,22 +1,23 @@
 {
-  "name": "GrainDost Warehouse WMS",
+  "name": "GrainDost Warehouse Management",
   "short_name": "GrainDost",
-  "description": "Professional Warehouse Management System for Sri Lakshmi Warehouse.",
+  "description": "Professional Warehouse & Inventory Management System",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#221.2 83.2% 53.3%",
+  "theme_color": "#1d62f0",
   "icons": [
     {
-      "src": "https://placehold.co/192x192/0070c1/white?text=GD",
+      "src": "https://picsum.photos/seed/logo/192/192",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "https://placehold.co/512x512/0070c1/white?text=GrainDost",
+      "src": "https://picsum.photos/seed/logo/512/512",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }

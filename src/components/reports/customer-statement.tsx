@@ -34,6 +34,20 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
 
   const { lineItems, totals } = useMemo(() => {
     const events: any[] = [];
+
+    const getPaymentDesc = (type?: string, recordType?: 'storage' | 'unloading') => {
+        if (!type) return recordType === 'unloading' ? 'Hamali Payment' : 'Payment Received';
+        switch (type) {
+            case 'rent': return 'Rent Payment';
+            case 'hamali': return 'Hamali Payment';
+            case 'unloading': return 'Hamali Payment';
+            case 'discount': return 'Discount Applied';
+            case 'interest': return 'Interest Payment';
+            case 'principal': return 'Principal Repayment';
+            case 'other': return 'Misc Payment';
+            default: return 'Payment Received';
+        }
+    };
     
     (unloadingRecords || []).forEach(unloading => {
         const totalHamali = unloading.totalHamali || 0;
@@ -58,7 +72,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         (unloading.payments || []).forEach((payment, pIdx) => {
             events.push({
                 date: toDate(payment.date),
-                description: `Payment Received`,
+                description: getPaymentDesc(payment.type, 'unloading'),
                 billNo: billNo,
                 lotNo: unloading.location || 'N/A',
                 bagsIn: 0,
@@ -134,7 +148,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         (record.payments || []).forEach((payment, pIdx) => {
             events.push({
                 date: toDate(payment.date),
-                description: payment.type === 'discount' ? `Discount` : `Payment`,
+                description: getPaymentDesc(payment.type, 'storage'),
                 billNo: billNo,
                 lotNo: record.location || 'N/A',
                 bagsIn: 0,
@@ -287,7 +301,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                         <TableHead className="font-bold text-black border-r border-slate-200 text-center p-2 uppercase text-[10px]">Lot No</TableHead>
                         <TableHead className="font-bold text-black border-r border-slate-200 text-center p-2 uppercase text-[10px]">In</TableHead>
                         <TableHead className="font-bold text-black border-r border-slate-200 text-center p-2 uppercase text-[10px]">Out</TableHead>
-                        <TableHead className="font-bold text-black border-r border-slate-200 text-right p-2 uppercase text-[10px]">Hamali Charges</TableHead>
+                        <TableHead className="font-bold text-black border-r border-slate-200 text-right p-2 uppercase text-[10px]">Charges</TableHead>
                         <TableHead className="font-bold text-black border-r border-slate-200 text-right p-2 uppercase text-[10px]">Paid</TableHead>
                         <TableHead className="font-bold text-black text-right p-2 uppercase text-[10px]">Balance</TableHead>
                         <TableHead className="font-bold text-black text-right p-2 uppercase text-[10px] print-hide">Actions</TableHead>

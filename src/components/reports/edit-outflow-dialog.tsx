@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useEffect, useMemo } from 'react';
@@ -74,15 +73,16 @@ export function EditOutflowDialog({
   const [weight, setWeight] = useState<number | ''>('');
 
   const commodityOptions = useMemo(() => {
+    if (!isOpen) return [];
     const options = (commodities || []).map(c => ({ value: c.name, label: c.name }));
-    // Safety check: ensure current record value is in list
     if (record.commodityDescription && !options.find(o => o.value === record.commodityDescription)) {
         options.push({ value: record.commodityDescription, label: record.commodityDescription });
     }
     return options;
-  }, [commodities, record.commodityDescription]);
+  }, [commodities, record.commodityDescription, isOpen]);
   
   const lotOccupancy = useMemo(() => {
+    if (!isOpen) return {};
     const occupancy: { [lotName: string]: number } = {};
     (allRecords || []).forEach(r => {
         if (r.location && r.bagsStored > 0 && r.id !== record.id) {
@@ -90,9 +90,10 @@ export function EditOutflowDialog({
         }
     });
     return occupancy;
-  }, [allRecords, record.id]);
+  }, [allRecords, record.id, isOpen]);
 
   const lotOptions = useMemo(() => {
+    if (!isOpen) return [];
     const options = (lots || [])
         .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
         .map(lot => {
@@ -102,12 +103,11 @@ export function EditOutflowDialog({
                 label: `${lot.name} (${occupied} bags occupied)`
             })
         });
-    // Safety check: ensure current record value is in list
     if (record.location && !options.find(o => o.value === record.location)) {
         options.push({ value: record.location, label: `${record.location} (Current)` });
     }
     return options;
-  }, [lots, lotOccupancy, record.location]);
+  }, [lots, lotOccupancy, record.location, isOpen]);
 
   useEffect(() => {
     if (isOpen) {

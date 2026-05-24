@@ -86,7 +86,9 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
   );
   const { data: lots } = useCollection<Lot>(lotsQuery);
 
+  // PERFORMANCE OPTIMIZATION: Only calculate occupancy when the dialog is actually open
   const lotOccupancy = useMemo(() => {
+    if (!isOpen) return {};
     const occupancy: { [lotName: string]: number } = {};
     (allRecords || []).forEach(r => {
         if (r.location && r.bagsStored > 0 && r.id !== record.id) {
@@ -94,10 +96,10 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
         }
     });
     return occupancy;
-  }, [allRecords, record.id]);
+  }, [allRecords, record.id, isOpen]);
 
-  const customerOptions = customers.map(c => ({ value: c.id, label: c.name }));
-  const commodityOptions = (commodities || []).map(c => ({ value: c.name, label: c.name }));
+  const customerOptions = useMemo(() => customers.map(c => ({ value: c.id, label: c.name })), [customers]);
+  const commodityOptions = useMemo(() => (commodities || []).map(c => ({ value: c.name, label: c.name })), [commodities]);
 
   useEffect(() => {
     if (isOpen) {
@@ -130,6 +132,8 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
   }, [isOpen, record]);
   
   const calculatedHamali = useMemo(() => {
+    if (!isOpen) return { totalCustomerCharge: 0, day1CustomerHamali: 0, pavHamali: 0, cuppaHamali: 0, proportionalUnloadingHamali: 0, extraDryingDays: 0, unloadingRate: 0 };
+    
     const unloadingHamaliDetail = record.hamaliDetails?.find(d => d.description === 'Unloading Hamali');
     const unloadingRate = unloadingHamaliDetail?.rate || 0;
 
@@ -161,10 +165,11 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
         cuppaHamali,
         totalCustomerCharge,
         extraDryingDays,
+        unloadingRate,
         totalWorkerPayable: workerHamaliPerBag !== '' ? totalWorkerPayable : undefined,
     }
 
-  }, [bagsIn, bagsForDrying, customerHamaliPerBag, dryingStartDate, storageStartDate, pavHamaliPerBag, cuppaHamaliPerBag, workerHamaliPerBag, record.hamaliDetails]);
+  }, [bagsIn, bagsForDrying, customerHamaliPerBag, dryingStartDate, storageStartDate, pavHamaliPerBag, cuppaHamaliPerBag, workerHamaliPerBag, record.hamaliDetails, isOpen]);
 
 
   const onSubmit = (e: React.FormEvent) => {

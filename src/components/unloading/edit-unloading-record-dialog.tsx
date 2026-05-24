@@ -55,8 +55,8 @@ export function EditUnloadingRecordDialog({
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const firestore = useFirestore();
-  const customerOptions = customers.map(c => ({ value: c.id, label: c.name }));
-  const commodityOptions = (commodities || []).map(c => ({ value: c.name, label: c.name }));
+  const customerOptions = useMemo(() => customers.map(c => ({ value: c.id, label: c.name })), [customers]);
+  const commodityOptions = useMemo(() => (commodities || []).map(c => ({ value: c.name, label: c.name })), [commodities]);
 
   const [customerId, setCustomerId] = useState('');
   const [commodityDescription, setCommodityDescription] = useState('');
@@ -69,7 +69,9 @@ export function EditUnloadingRecordDialog({
   const [billNo, setBillNo] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // PERFORMANCE OPTIMIZATION: Only calculate occupancy when open
   const lotOccupancy = useMemo(() => {
+    if (!isOpen) return {};
     const occupancy: { [lotName: string]: number } = {};
     (storageRecords || []).forEach(r => {
         if (r.location && r.bagsStored > 0) {
@@ -77,9 +79,10 @@ export function EditUnloadingRecordDialog({
         }
     });
     return occupancy;
-  }, [storageRecords]);
+  }, [storageRecords, isOpen]);
 
   const lotOptions = useMemo(() => {
+    if (!isOpen) return [];
     return (lots || [])
         .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
         .map(lot => {
@@ -89,7 +92,7 @@ export function EditUnloadingRecordDialog({
                 label: `${lot.name} (${occupied} bags)`
             })
         });
-  }, [lots, lotOccupancy]);
+  }, [lots, lotOccupancy, isOpen]);
 
   useEffect(() => {
     if (isOpen) {

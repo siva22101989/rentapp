@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useMemo } from 'react';
@@ -62,8 +61,9 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
   );
   const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
-  // Correct Global Billed Ledger Balance Calculation
+  // PERFORMANCE OPTIMIZATION: Only calculate dues map when the dialog is open
   const customerDuesMap = useMemo(() => {
+    if (!isOpen) return {};
     const duesMap: Record<string, { hLiability: number, rLiability: number, totalPaid: number }> = {};
 
     const getCust = (id: string) => {
@@ -74,7 +74,6 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
     storageRecords.forEach(rec => {
         const c = getCust(rec.customerId);
         c.hLiability += rec.hamaliPayable || 0;
-        // Only count BILLED rent and Khata to match the Customer Statement summary
         c.rLiability += (rec.totalRentBilled || 0) + (rec.khataAmount || 0);
         c.totalPaid += (rec.payments || []).reduce((acc, p) => acc + p.amount, 0);
     });
@@ -87,9 +86,10 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
     });
 
     return duesMap;
-  }, [storageRecords, unloadingRecords]);
+  }, [storageRecords, unloadingRecords, isOpen]);
 
   const customerOptions = useMemo(() => {
+    if (!isOpen) return [];
     return customers
         .filter(c => {
             const d = customerDuesMap[c.id];
@@ -98,7 +98,7 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
             return net > 0.5;
         })
         .map(c => ({ value: c.id, label: c.name }));
-  }, [customers, customerDuesMap]);
+  }, [customers, customerDuesMap, isOpen]);
 
   const form = useForm<PaymentFormData>({
     resolver: zodResolver(BulkPaymentSchema),
@@ -204,14 +204,14 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
       <DialogTrigger asChild>
          <Button><UserPlus className="mr-2" />Bulk Customer Payment</Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-sm max-h-[80vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-sm max-h-[80vh] overflow-hidden flex flex-col p-0">
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)}>
-            <DialogHeader>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full">
+            <DialogHeader className="p-6 pb-2">
                 <DialogTitle>Bulk Customer Payment</DialogTitle>
                 <DialogDescription>Select a customer with pending dues. Calculations match current Statement Ledger.</DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
+            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
                 <FormField control={form.control} name="customerId" render={({ field }) => (
                     <FormItem className="flex flex-col">
                         <FormLabel>Customer (Only those with Billed Dues)</FormLabel>
@@ -244,9 +244,12 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
                 </>
                 )}
             </div>
-            <DialogFooter>
+            <DialogFooter className="p-6 pt-2 border-t">
                 <DialogClose asChild><Button variant="outline" type="button" className="text-sm">Cancel</Button></DialogClose>
-                <Button type="submit" disabled={isPending || !selectedCustomerId}>Record Payment</Button>
+                <Button type="submit" disabled={isPending || !selectedCustomerId}>
+                   {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                   Record Payment
+                </Button>
             </DialogFooter>
             </form>
         </Form>

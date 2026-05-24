@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -203,7 +204,7 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses, w
                     <CardTitle className="text-xl font-bold uppercase tracking-tight">{title}</CardTitle>
                     <CardDescription className="text-xs font-medium">Audit-ready ledgers for customer handling and worker payments.</CardDescription>
                 </div>
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto flex-wrap">
                     <Select onValueChange={(v) => setReportView(v as 'customer' | 'worker')} value={reportView}>
                         <SelectTrigger className='w-full sm:w-[200px] h-9 text-sm'>
                             <SelectValue />

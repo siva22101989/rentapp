@@ -25,7 +25,8 @@ import { LendingActionsMenu } from "@/components/lendings/lending-actions-menu";
 function calculateLoanBalances(loan: Borrowing | Lending) {
     let principal = loan.principal;
     let accruedInterest = 0;
-    let lastDate = toDate(loan.dateTaken || (loan as Lending).dateGiven);
+    const startDate = toDate(loan.dateTaken || (loan as Lending).dateGiven);
+    let lastDate = startDate;
     const monthlyRate = loan.interestRate / 100;
 
     // Sort payments by date to apply them sequentially
@@ -350,7 +351,7 @@ export default function ExpensesPage() {
       };
 
       const { rent: currentStockRent } = calculateFinalRent({ ...recordWithRates, storageStartDate: toDate(recordWithRates.storageStartDate) }, today, record.bagsStored);
-      const billedRent onOutflows = (record.outflows || []).reduce((acc, o) => acc + (o.rentBilled || 0), 0);
+      const billedRentOnOutflows = (record.outflows || []).reduce((acc, o) => acc + (o.rentBilled || 0), 0);
       const totalLiabilities = currentStockRent + billedRentOnOutflows + (record.hamaliPayable || 0) + (record.khataAmount || 0);
       const totalPaymentsReceived = (record.payments || []).reduce((acc, p) => acc + p.amount, 0);
 

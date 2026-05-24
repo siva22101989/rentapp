@@ -1,4 +1,3 @@
-
 'use client';
 
 import { FileText, MoreHorizontal, Trash2 } from "lucide-react";
@@ -36,7 +35,7 @@ export function ActionsMenu({ record, customers, allRecords }: { record: Storage
                 </EditStorageDialog>
                 {customer && (
                     <DropdownMenuItem asChild>
-                        <Link href={`/inflow/receipt/${record.id}`} target="_blank">
+                        <Link href={`/inflow/receipt?recordId=${record.id}`} target="_blank">
                             <FileText className="mr-2 h-4 w-4" />
                             View/Print Bill
                         </Link>

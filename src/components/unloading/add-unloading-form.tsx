@@ -145,7 +145,7 @@ export function AddUnloadingRecordForm({
                 
                 toast({ title: 'Success', description: 'Record added.' });
                 form.reset();
-                window.open(`/unloading/receipt/${cleanBillNo}`, '_blank');
+                window.open(`/unloading/receipt?unloadingId=${cleanBillNo}`, '_blank');
             } catch (error) {
                 toast({ title: 'Error', description: 'Failed to add record.', variant: 'destructive' });
             }

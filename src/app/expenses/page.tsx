@@ -1,4 +1,3 @@
-
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { AddExpenseDialog } from "@/components/expenses/add-expense-dialog";
@@ -29,7 +28,6 @@ function calculateLoanBalances(loan: Borrowing | Lending) {
     let lastDate = startDate;
     const monthlyRate = loan.interestRate / 100;
 
-    // Sort payments by date to apply them sequentially
     const allPayments = [...(loan.payments || []).map(p => ({...p, date: toDate(p.date)}))].sort((a,b) => a.date.getTime() - b.date.getTime());
 
     for (const payment of allPayments) {
@@ -41,12 +39,10 @@ function calculateLoanBalances(loan: Borrowing | Lending) {
         }
         
         let paymentAmount = payment.amount;
-        // Payments apply to interest first
         const interestPayment = Math.min(paymentAmount, accruedInterest);
         accruedInterest -= interestPayment;
         paymentAmount -= interestPayment;
 
-        // Remainder applies to principal
         if (paymentAmount > 0) {
             principal -= paymentAmount;
         }
@@ -54,7 +50,6 @@ function calculateLoanBalances(loan: Borrowing | Lending) {
         lastDate = dateOfPayment;
     }
 
-    // Calculate interest from last payment/start until today
     const today = new Date();
     const finalMonths = differenceInCalendarMonths(today, lastDate);
     if (finalMonths > 0) {
@@ -68,14 +63,10 @@ function calculateLoanBalances(loan: Borrowing | Lending) {
 }
 
 function IncomesTable({ incomes }: { incomes: OtherIncome[] }) {
-    if (incomes.length === 0) {
-      return null;
-    }
+    if (incomes.length === 0) return null;
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>Income History</CardTitle>
-        </CardHeader>
+        <CardHeader><CardTitle>Income History</CardTitle></CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
@@ -107,25 +98,10 @@ function IncomesTable({ incomes }: { incomes: OtherIncome[] }) {
 function ExpensesTable({ expenses }: { expenses: Expense[] }) {
   const appUser = useAppUser();
   const canEdit = appUser?.role === 'owner';
-
-  if (expenses.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Expense History</CardTitle>
-        </CardHeader>
-        <CardContent className="p-6 text-center text-muted-foreground">
-          No expenses recorded for the selected period.
-        </CardContent>
-      </Card>
-    );
-  }
-
+  if (expenses.length === 0) return null;
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Expense History</CardTitle>
-      </CardHeader>
+      <CardHeader><CardTitle>Expense History</CardTitle></CardHeader>
       <CardContent>
         <Table>
           <TableHeader>
@@ -146,11 +122,7 @@ function ExpensesTable({ expenses }: { expenses: Expense[] }) {
                 <TableCell>{expense.category}</TableCell>
                 <TableCell className="font-medium">{expense.description}</TableCell>
                 <TableCell className="text-right font-mono">{formatCurrency(expense.amount)}</TableCell>
-                {canEdit && (
-                  <TableCell>
-                    <ExpenseActionsMenu expense={expense} />
-                  </TableCell>
-                )}
+                {canEdit && <TableCell><ExpenseActionsMenu expense={expense} /></TableCell>}
               </TableRow>
             ))}
           </TableBody>
@@ -164,9 +136,7 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
     const appUser = useAppUser();
     const canEdit = appUser?.role === 'owner';
     const activeBorrowings = borrowings.filter(b => b.status !== 'Paid Off');
-  
     if (activeBorrowings.length === 0) return null;
-  
     return (
       <Card>
         <CardHeader><CardTitle>Active Borrowings (Loans Taken)</CardTitle></CardHeader>
@@ -206,9 +176,7 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
     const appUser = useAppUser();
     const canEdit = appUser?.role === 'owner';
     const activeLendings = lendings.filter(l => l.status !== 'Paid Off');
-  
     if (activeLendings.length === 0) return null;
-  
     return (
       <Card>
         <CardHeader><CardTitle>Active Lendings (Loans Given)</CardTitle></CardHeader>
@@ -250,252 +218,88 @@ export default function ExpensesPage() {
   const { dateRange, financialYear } = useDateFilter();
   const canEdit = appUser?.role === 'owner';
   
-  const warehouseInfoRef = useMemoFirebase(
-    () => (firestore && appUser?.warehouseId ? doc(firestore, 'warehouses', appUser.warehouseId) : null),
-    [firestore, appUser]
-  );
-  const { data: warehouseInfo, loading: loadingWarehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
+  const warehouseInfoRef = useMemoFirebase(() => (firestore && appUser?.warehouseId ? doc(firestore, 'warehouses', appUser.warehouseId) : null), [firestore, appUser]);
+  const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
+  const { data: allRecords } = useCollection<StorageRecord>(useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'storageRecords'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]));
+  const { data: allCommodities } = useCollection<Commodity>(useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'commodities'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]));
+  const { data: allExpenses } = useCollection<Expense>(useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'expenses'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]));
+  const { data: allUnloadingRecords } = useCollection<UnloadingRecord>(useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'unloadingRecords'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]));
+  const { data: borrowings } = useCollection<Borrowing>(useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'borrowings'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]));
+  const { data: lendings } = useCollection<Lending>(useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'lendings'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]));
+  const { data: otherIncomes } = useCollection<OtherIncome>(useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'otherIncomes'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]));
 
-  const recordsQuery = useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'storageRecords'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]);
-  const { data: allRecords, loading: loadingRecords } = useCollection<StorageRecord>(recordsQuery);
-
-  const commoditiesQuery = useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'commodities'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]);
-  const { data: allCommodities, loading: loadingCommodities } = useCollection<Commodity>(commoditiesQuery);
-
-  const expensesQuery = useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'expenses'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]);
-  const { data: allExpenses, loading: loadingExpenses } = useCollection<Expense>(expensesQuery);
-  
-  const unloadingRecordsQuery = useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'unloadingRecords'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]);
-  const { data: allUnloadingRecords, loading: loadingUnloading } = useCollection<UnloadingRecord>(unloadingRecordsQuery);
-
-  const borrowingsQuery = useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'borrowings'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]);
-  const { data: borrowings, loading: loadingBorrowings } = useCollection<Borrowing>(borrowingsQuery);
-  
-  const lendingsQuery = useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'lendings'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]);
-  const { data: lendings, loading: loadingLendings } = useCollection<Lending>(lendingsQuery);
-  
-  const otherIncomesQuery = useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'otherIncomes'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]);
-  const { data: otherIncomes, loading: loadingOtherIncomes } = useCollection<OtherIncome>(otherIncomesQuery);
-
-  const { 
-    periodIncome, 
-    periodExpenses, 
-    periodBalance, 
-    filteredExpenses, 
-    filteredIncomes, 
-    interestOnCapital, 
-    estimatedRent, 
-    activeBags, 
-    nextExpenseRefNo, 
-    nextIncomeRefNo,
-    totalBorrowed,
-    totalLent 
-  } = useMemo(() => {
-    if (!allRecords || !allExpenses || !allUnloadingRecords || !otherIncomes || !allCommodities || !borrowings || !lendings) {
-        return { periodIncome: 0, periodExpenses: 0, periodBalance: 0, filteredExpenses: [], filteredIncomes: [], interestOnCapital: 0, estimatedRent: 0, activeBags: 0, nextExpenseRefNo: '1001', nextIncomeRefNo: '1001', totalBorrowed: 0, totalLent: 0 };
-    }
-
+  const stats = useMemo(() => {
+    if (!allRecords || !allExpenses || !allUnloadingRecords || !otherIncomes || !allCommodities || !borrowings || !lendings) return null;
     const inRange = (date: Date) => {
         if (financialYear === 'all-time') return true;
         if (!dateRange) return false;
         if (dateRange.from && date < dateRange.from) return false;
         if (dateRange.to) {
             const to = new Date(dateRange.to);
-            to.setHours(23, 59, 59, 999); 
+            to.setHours(23, 59, 59, 999);
             if (date > to) return false;
         }
         return true;
     };
-
     let calculatedInterest = 0;
     const capital = warehouseInfo?.capitalInvestment || 0;
     const interestRate = warehouseInfo?.annualInterestRate || 0;
-
     if (financialYear !== 'all-time' && dateRange?.from && capital > 0 && interestRate > 0) {
-        const from = dateRange.from;
-        const to = dateRange.to ? new Date(dateRange.to) : new Date(); 
+        const to = dateRange.to ? new Date(dateRange.to) : new Date();
         to.setHours(23, 59, 59, 999);
-        const diffTime = to.getTime() - from.getTime();
-        if (diffTime > 0) {
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-            const dailyRate = (interestRate / 100) / 365;
-            calculatedInterest = capital * dailyRate * diffDays;
-        }
+        const diffDays = Math.ceil((to.getTime() - dateRange.from.getTime()) / (1000 * 60 * 60 * 24));
+        calculatedInterest = (capital * (interestRate / 100) / 365) * diffDays;
     }
-    
-    const filteredStoragePayments = allRecords.flatMap(r => r.payments || []).filter(p => inRange(toDate(p.date)));
-    const filteredUnloadingPayments = allUnloadingRecords.flatMap(r => r.payments || []).filter(p => inRange(toDate(p.date)));
-    const localFilteredOtherIncomes = otherIncomes.filter(i => inRange(toDate(i.date)));
-
-    const incomeFromRecords = filteredStoragePayments.reduce((acc, p) => acc + p.amount, 0) +
-                   filteredUnloadingPayments.reduce((acc, p) => acc + p.amount, 0);
-    const incomeFromOther = localFilteredOtherIncomes.reduce((acc, i) => acc + i.amount, 0);
-    const income = incomeFromRecords + incomeFromOther;
-
+    const incomeFromRecords = allRecords.flatMap(r => r.payments || []).filter(p => inRange(toDate(p.date))).reduce((acc, p) => acc + p.amount, 0) +
+                              allUnloadingRecords.flatMap(r => r.payments || []).filter(p => inRange(toDate(p.date))).reduce((acc, p) => acc + p.amount, 0);
+    const incomeFromOther = otherIncomes.filter(i => inRange(toDate(i.date))).reduce((acc, i) => acc + i.amount, 0);
+    const periodIncome = incomeFromRecords + incomeFromOther;
     const localFilteredExpenses = allExpenses.filter(e => inRange(toDate(e.date)));
-    const expensesFromDb = localFilteredExpenses.reduce((total, expense) => total + expense.amount, 0);
-    const totalExpenses = expensesFromDb + calculatedInterest;
-
+    const periodExpenses = localFilteredExpenses.reduce((t, e) => t + e.amount, 0) + calculatedInterest;
     const activeRecords = allRecords.filter(r => !r.storageEndDate && r.bagsStored > 0);
     const today = new Date();
-    const rentEstimate = activeRecords.reduce((total, record) => {
+    const estimatedRent = activeRecords.reduce((total, record) => {
       const commodity = allCommodities.find(c => c.name.trim().toLowerCase() === record.commodityDescription.trim().toLowerCase());
-      const recordWithRates: StorageRecord = {
-          ...record,
-          billingType: record.billingType || commodity?.billingType || 'slab',
-          monthlyRate: record.monthlyRate ?? commodity?.monthlyRate ?? 0,
-          minBillingMonths: record.minBillingMonths ?? commodity?.minBillingMonths ?? 0,
-          insuranceRate: record.insuranceRate ?? commodity?.insuranceRate ?? 0,
-          rate6Months: record.rate6Months ?? commodity?.rate6Months ?? 0,
-          rate1Year: record.rate1Year ?? commodity?.rate1Year ?? 0,
-      };
-
+      const recordWithRates: StorageRecord = { ...record, billingType: record.billingType || commodity?.billingType || 'slab', monthlyRate: record.monthlyRate ?? commodity?.monthlyRate ?? 0, minBillingMonths: record.minBillingMonths ?? commodity?.minBillingMonths ?? 0, insuranceRate: record.insuranceRate ?? commodity?.insuranceRate ?? 0, rate6Months: record.rate6Months ?? commodity?.rate6Months ?? 0, rate1Year: record.rate1Year ?? commodity?.rate1Year ?? 0 };
       const { rent: currentStockRent } = calculateFinalRent({ ...recordWithRates, storageStartDate: toDate(recordWithRates.storageStartDate) }, today, record.bagsStored);
-      const billedRentOnOutflows = (record.outflows || []).reduce((acc, o) => acc + (o.rentBilled || 0), 0);
-      const totalLiabilities = currentStockRent + billedRentOnOutflows + (record.hamaliPayable || 0) + (record.khataAmount || 0);
-      const totalPaymentsReceived = (record.payments || []).reduce((acc, p) => acc + p.amount, 0);
-
-      const recordDue = Math.max(0, totalLiabilities - totalPaymentsReceived);
-      return total + recordDue;
+      const totalLiabilities = currentStockRent + (record.outflows || []).reduce((acc, o) => acc + (o.rentBilled || 0), 0) + (record.hamaliPayable || 0) + (record.khataAmount || 0);
+      return total + Math.max(0, totalLiabilities - (record.payments || []).reduce((acc, p) => acc + p.amount, 0));
     }, 0);
-    
-    const totalActiveBags = activeRecords.reduce((acc, record) => acc + record.bagsStored, 0);
-
-    const getMaxRef = (list: any[]) => {
-      const max = list.reduce((max, item) => {
-        const val = parseInt(item.refNo?.replace(/[^0-9]/g, '') || '0', 10);
-        return isNaN(val) ? max : Math.max(max, val);
-      }, 0);
-      return String(Math.max(1001, max + 1));
-    };
-
-    const borrowedPrincipal = borrowings.filter(b => b.status !== 'Paid Off').reduce((acc, b) => acc + b.principal, 0);
-    const lentPrincipal = lendings.filter(l => l.status !== 'Paid Off').reduce((acc, l) => acc + l.principal, 0);
-
-    return {
-      periodIncome: income,
-      periodExpenses: totalExpenses,
-      periodBalance: income - totalExpenses,
-      filteredExpenses: localFilteredExpenses.sort((a,b) => toDate(b.date).getTime() - toDate(a.date).getTime()),
-      filteredIncomes: localFilteredOtherIncomes.sort((a,b) => toDate(b.date).getTime() - toDate(a.date).getTime()),
-      interestOnCapital: calculatedInterest,
-      estimatedRent: rentEstimate,
-      activeBags: totalActiveBags,
-      nextExpenseRefNo: getMaxRef(allExpenses),
-      nextIncomeRefNo: getMaxRef(otherIncomes),
-      totalBorrowed: borrowedPrincipal,
-      totalLent: lentPrincipal
-    };
+    const getMaxRef = (list: any[]) => String(Math.max(1001, list.reduce((max, item) => Math.max(max, parseInt(item.refNo?.replace(/\D/g, '') || '0', 10)), 0) + 1));
+    return { periodIncome, periodExpenses, periodBalance: periodIncome - periodExpenses, filteredExpenses: localFilteredExpenses.sort((a,b) => toDate(b.date).getTime() - toDate(a.date).getTime()), filteredIncomes: otherIncomes.filter(i => inRange(toDate(i.date))).sort((a,b) => toDate(b.date).getTime() - toDate(a.date).getTime()), interestOnCapital: calculatedInterest, estimatedRent, activeBags: activeRecords.reduce((acc, record) => acc + record.bagsStored, 0), nextExpenseRefNo: getMaxRef(allExpenses), nextIncomeRefNo: getMaxRef(otherIncomes), totalBorrowed: borrowings.filter(b => b.status !== 'Paid Off').reduce((acc, b) => acc + b.principal, 0), totalLent: lendings.filter(l => l.status !== 'Paid Off').reduce((acc, l) => acc + l.principal, 0) };
   }, [allRecords, allExpenses, allUnloadingRecords, otherIncomes, dateRange, warehouseInfo, financialYear, allCommodities, borrowings, lendings]);
 
-  if (loadingRecords || loadingExpenses || loadingUnloading || loadingWarehouseInfo || loadingBorrowings || loadingLendings || loadingOtherIncomes || loadingCommodities) {
-    return (
-      <AppLayout>
-        <div className="flex items-center justify-center p-12">Loading financials...</div>
-      </AppLayout>
-    );
-  }
+  if (!stats) return <AppLayout><div className="flex items-center justify-center p-12">Loading financials...</div></AppLayout>;
   
   return (
     <AppLayout>
       <div className="mb-4">
-        <div className="space-y-0.5">
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight font-headline">Profit & Loss</h1>
-          <p className="text-sm text-muted-foreground">
-            Track your operational finances and view profit/loss for the selected period.
-          </p>
-        </div>
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight font-headline">Profit & Loss</h1>
+        <p className="text-sm text-muted-foreground">Track operations and loans for the selected period.</p>
         {canEdit && (
             <div className="flex items-center gap-2 flex-wrap mt-4">
-                <AddIncomeDialog lendings={lendings || []} nextRefNo={nextIncomeRefNo} />
-                <AddExpenseDialog borrowings={borrowings || []} nextRefNo={nextExpenseRefNo} />
+                <AddIncomeDialog lendings={lendings || []} nextRefNo={stats.nextIncomeRefNo} />
+                <AddExpenseDialog borrowings={borrowings || []} nextRefNo={stats.nextExpenseRefNo} />
                 <Separator orientation="vertical" className="h-6" />
-                <AddLendingDialog />
-                <AddBorrowingDialog />
-                <Separator orientation="vertical" className="h-6" />
-                <ManageInvestmentDialog initialData={warehouseInfo} />
+                <AddLendingDialog /><AddBorrowingDialog />
+                <Separator orientation="vertical" className="h-6" /><ManageInvestmentDialog initialData={warehouseInfo} />
             </div>
         )}
       </div>
-
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
-        <Card className="stylish-card">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Income</CardTitle>
-                <TrendingUp className="h-4 w-4 text-green-500" />
-            </CardHeader>
-            <CardContent>
-                <div className="text-2xl font-bold text-green-600">{formatCurrency(periodIncome)}</div>
-            </CardContent>
-        </Card>
-        <Card className="stylish-card">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
-                 <TrendingDown className="h-4 w-4 text-red-500" />
-            </CardHeader>
-            <CardContent>
-                <div className="text-2xl font-bold text-destructive">{formatCurrency(periodExpenses)}</div>
-            </CardContent>
-        </Card>
-        <Card className="stylish-card">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Net Profit / Loss</CardTitle>
-                 <Scale className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-                <div className={`text-2xl font-bold ${periodBalance >= 0 ? 'text-primary' : 'text-destructive'}`}>{formatCurrency(periodBalance)}</div>
-            </CardContent>
-        </Card>
-         <Card className="stylish-card">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Outstanding Balance</CardTitle>
-                <IndianRupee className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-                <div className="text-2xl font-bold text-blue-600">{formatCurrency(estimatedRent)}</div>
-                <p className="text-[10px] text-muted-foreground">Owed on {activeBags} active bags.</p>
-            </CardContent>
-        </Card>
+        <Card className="stylish-card"><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Total Income</CardTitle><TrendingUp className="h-4 w-4 text-green-500" /></CardHeader><CardContent><div className="text-2xl font-bold text-green-600">{formatCurrency(stats.periodIncome)}</div></CardContent></Card>
+        <Card className="stylish-card"><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Total Expenses</CardTitle><TrendingDown className="h-4 w-4 text-red-500" /></CardHeader><CardContent><div className="text-2xl font-bold text-destructive">{formatCurrency(stats.periodExpenses)}</div></CardContent></Card>
+        <Card className="stylish-card"><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Net Profit / Loss</CardTitle><Scale className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className={`text-2xl font-bold ${stats.periodBalance >= 0 ? 'text-primary' : 'text-destructive'}`}>{formatCurrency(stats.periodBalance)}</div></CardContent></Card>
+        <Card className="stylish-card"><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Outstanding Balance</CardTitle><IndianRupee className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold text-blue-600">{formatCurrency(stats.estimatedRent)}</div><p className="text-[10px] text-muted-foreground">Owed on {stats.activeBags} active bags.</p></CardContent></Card>
       </div>
-
       <div className="grid gap-4 md:grid-cols-3 mb-8">
-         <Card className="stylish-card border-l-4 border-orange-500">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Interest on Capital</CardTitle>
-                <Banknote className="h-4 w-4 text-orange-500" />
-            </CardHeader>
-            <CardContent>
-                <div className="text-xl font-bold text-orange-600">{formatCurrency(interestOnCapital)}</div>
-                <p className="text-[10px] text-muted-foreground">Cost for the selected period.</p>
-            </CardContent>
-        </Card>
-        <Card className="stylish-card border-l-4 border-destructive">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Borrowed Principal</CardTitle>
-                <Landmark className="h-4 w-4 text-destructive" />
-            </CardHeader>
-            <CardContent>
-                <div className="text-xl font-bold text-destructive">{formatCurrency(totalBorrowed)}</div>
-                <p className="text-[10px] text-muted-foreground">Active loan liabilities.</p>
-            </CardContent>
-        </Card>
-        <Card className="stylish-card border-l-4 border-emerald-500">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Lent Principal</CardTitle>
-                <HandCoins className="h-4 w-4 text-emerald-500" />
-            </CardHeader>
-            <CardContent>
-                <div className="text-xl font-bold text-emerald-600">{formatCurrency(totalLent)}</div>
-                <p className="text-[10px] text-muted-foreground">Active funds receivable.</p>
-            </CardContent>
-        </Card>
+         <Card className="stylish-card border-l-4 border-orange-500"><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Interest on Capital</CardTitle><Banknote className="h-4 w-4 text-orange-500" /></CardHeader><CardContent><div className="text-xl font-bold text-orange-600">{formatCurrency(stats.interestOnCapital)}</div></CardContent></Card>
+        <Card className="stylish-card border-l-4 border-destructive"><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Borrowed Principal</CardTitle><Landmark className="h-4 w-4 text-destructive" /></CardHeader><CardContent><div className="text-xl font-bold text-destructive">{formatCurrency(stats.totalBorrowed)}</div></CardContent></Card>
+        <Card className="stylish-card border-l-4 border-emerald-500"><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Lent Principal</CardTitle><HandCoins className="h-4 w-4 text-emerald-500" /></CardHeader><CardContent><div className="text-xl font-bold text-emerald-600">{formatCurrency(stats.totalLent)}</div></CardContent></Card>
       </div>
-
       <div className="space-y-8">
-        <BorrowingsTable borrowings={borrowings || []} />
-        <LendingsTable lendings={lendings || []} />
-        <IncomesTable incomes={filteredIncomes} />
-        <ExpensesTable expenses={filteredExpenses} />
+        <BorrowingsTable borrowings={borrowings || []} /><LendingsTable lendings={lendings || []} />
+        <IncomesTable incomes={stats.filteredIncomes} /><ExpensesTable expenses={stats.filteredExpenses} />
       </div>
     </AppLayout>
   );

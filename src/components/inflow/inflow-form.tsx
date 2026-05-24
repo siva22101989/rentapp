@@ -160,7 +160,7 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                 
                 toast({ title: 'Success', description: 'Record created.' });
                 resetForm();
-                window.open(`/inflow/receipt/${cleanId}`, '_blank');
+                window.open(`/inflow/receipt?recordId=${cleanId}`, '_blank');
             } catch (error) {
                 toast({ title: 'Error', description: 'Failed to create record.', variant: 'destructive' });
             }

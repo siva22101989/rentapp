@@ -1,7 +1,7 @@
-
 'use client';
 
 import { MoreHorizontal, Pencil, Trash2, FileText } from "lucide-react";
+import Link from 'next/link';
 import { Button } from "../ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import type { UnloadingRecord, Customer, Commodity, Lot, StorageRecord } from "@/lib/definitions";
@@ -37,12 +37,12 @@ export function UnloadingTableActionsMenu({ record, customers, commodities, lots
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
                 {customer && (
-                    <ViewUnloadingReceiptDialog record={record} customer={customer}>
-                         <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                    <DropdownMenuItem asChild>
+                        <Link href={`/unloading/receipt?unloadingId=${record.id}`} target="_blank">
                             <FileText className="mr-2 h-4 w-4" />
                             View Receipt
-                        </DropdownMenuItem>
-                    </ViewUnloadingReceiptDialog>
+                        </Link>
+                    </DropdownMenuItem>
                 )}
 
                 <EditUnloadingRecordDialog 

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { MoreHorizontal, Pencil, Trash2, Eye } from "lucide-react";
@@ -15,8 +14,8 @@ export function PaymentActionsMenu({ event }: { event: PaymentEvent }) {
     const canEdit = appUser?.role === 'owner' || appUser?.role === 'super-admin';
     
     const receiptLink = event.recordType === 'storage' 
-        ? `/inflow/receipt/${event.recordId}` 
-        : `/unloading/receipt/${event.recordId}`;
+        ? `/inflow/receipt?recordId=${event.recordId}` 
+        : `/unloading/receipt?unloadingId=${event.recordId}`;
 
     return (
         <DropdownMenu>

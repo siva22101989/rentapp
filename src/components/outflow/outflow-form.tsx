@@ -168,7 +168,7 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
             return;
         }
 
-        let receiptWindow: Window | null = null;
+        let receiptUrl: string | null = null;
         if (!isMultiLotWithdrawal) {
             const [recordId] = withdrawalEntries[0];
             const queryParams = new URLSearchParams();
@@ -185,14 +185,14 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
 
             const { rent: rentForThisWithdrawal } = calculateFinalRent({ ...recordWithRates, storageStartDate: toDate(recordWithRates.storageStartDate) }, finalDate, bagsToWithdraw);
             
+            queryParams.set('recordId', recordId);
             queryParams.set('withdrawn', String(bagsToWithdraw));
             queryParams.set('rent', String(rentForThisWithdrawal));
             queryParams.set('paidNow', String(Number(amountPaidNow) || 0));
             queryParams.set('discount', String(Number(discount) || 0));
             queryParams.set('khata', String(Number(khataAmountInput) || 0));
             
-            const receiptUrl = `/outflow/receipt/${recordId}?${queryParams.toString()}`;
-            receiptWindow = window.open(receiptUrl, '_blank');
+            receiptUrl = `/outflow/receipt?${queryParams.toString()}`;
         }
 
         startTransition(async () => {
@@ -287,11 +287,11 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
 
                 toast({ title: 'Success', description: 'Withdrawal processed successfully.' });
                 resetForm();
+                if (receiptUrl) window.open(receiptUrl, '_blank');
 
             } catch (error) {
                 console.error("Outflow failed:", error);
                 toast({ title: 'Error', description: 'Failed to process outflow.', variant: 'destructive' });
-                if (receiptWindow) receiptWindow.close();
             }
         });
     }

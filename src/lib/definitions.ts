@@ -87,7 +87,7 @@ export type StorageRecord = {
   rate1Year?: number;
 };
 
-export const expenseCategories = ["Worker Salary", "Petrol", "Maintenance", "Utilities", "Current Bill", "Hamali Paid", "EMI for Godown", "Godown Expense", "Loan Repayment", "Home Expenses", "Other"] as const;
+export const expenseCategories = ["Worker Salary", "Petrol", "Maintenance", "Utilities", "Current Bill", "House Rent", "Hamali Paid", "EMI for Godown", "Godown Expense", "Loan Repayment", "Home Expenses", "Other"] as const;
 
 export type ExpenseCategory = typeof expenseCategories[number];
 

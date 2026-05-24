@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, forwardRef } from 'react';
@@ -45,6 +46,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             case 'interest': return 'Interest Payment';
             case 'principal': return 'Principal Repayment';
             case 'other': return 'Misc Payment';
+            case 'repayment': return 'Loan Repayment';
             default: return 'Payment Received';
         }
     };

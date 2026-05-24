@@ -1,3 +1,4 @@
+
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { AddExpenseDialog } from "@/components/expenses/add-expense-dialog";

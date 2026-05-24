@@ -158,7 +158,8 @@ export function InitiateDryingForm({ customers, unloadingRecords, storageRecords
         const selectedRecordOnSubmit = unloadingRecords.find(ur => ur.id === data.unloadingRecordId);
         if (!selectedRecordOnSubmit || !firestore || !appUser?.warehouseId) return;
 
-        startTransition(async () => {
+        // Run your asynchronous business logic cleanly
+        const submitData = async () => {
             try {
                 const commodityDetails = commodities.find(c => c.name === selectedRecordOnSubmit.commodityDescription);
                 if (!commodityDetails) {
@@ -230,6 +231,11 @@ export function InitiateDryingForm({ customers, unloadingRecords, storageRecords
                 console.error(error);
                 toast({ title: 'Error', description: 'Failed to create storage record.', variant: 'destructive' });
             }
+        };
+
+        // Wrap execution inside the synchronous startTransition block
+        startTransition(() => {
+            submitData();
         });
     };
 
@@ -293,3 +299,5 @@ export function InitiateDryingForm({ customers, unloadingRecords, storageRecords
             </CardFooter>
         </form>
     </Card>
+  );
+}

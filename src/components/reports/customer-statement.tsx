@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, forwardRef } from 'react';
@@ -207,6 +206,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
   const timestamp = useMemo(() => format(new Date(), 'dd/MM/yy, h:mm a'), []);
 
   const renderActions = (item: any) => {
+      const displayBillNo = String(item.billNo).replace(/\D/g, '');
       switch (item.recordType) {
           case 'storage':
               return <ActionsMenu record={item.sourceRecord} customers={customers} allRecords={allRecords} />;
@@ -220,7 +220,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                     warehouseInfo={warehouseInfo} 
                     outflow={item.outflowData} 
                     outflowIndex={item.outflowIndex} 
-                    deliveryOrderNo={`${item.billNo}-${item.outflowIndex + 1}`} 
+                    deliveryOrderNo={`${displayBillNo}-${item.outflowIndex + 1}`} 
                     deliveryOrderDate={item.date} 
                     commodities={commodities} 
                     lots={lots} 

@@ -3,7 +3,7 @@
 import { AppLayout } from "@/components/layout/app-layout";
 import { AddExpenseDialog } from "@/components/expenses/add-expense-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Scale, Banknote, IndianRupee } from "lucide-react";
+import { TrendingUp, TrendingDown, Scale, Banknote, IndianRupee, Landmark, HandCoins } from "lucide-react";
 import { formatCurrency, toDate } from "@/lib/utils";
 import { useMemo } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -115,6 +115,82 @@ function ExpensesTable({ expenses }: { expenses: Expense[] }) {
   );
 }
 
+function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
+    const appUser = useAppUser();
+    const canEdit = appUser?.role === 'owner';
+    const activeBorrowings = borrowings.filter(b => b.status !== 'Paid Off');
+  
+    if (activeBorrowings.length === 0) return null;
+  
+    return (
+      <Card>
+        <CardHeader><CardTitle>Active Borrowings (Loans Taken)</CardTitle></CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="uppercase text-[10px] font-bold">Lender</TableHead>
+                <TableHead className="uppercase text-[10px] font-bold">Date Taken</TableHead>
+                <TableHead className="text-right uppercase text-[10px] font-bold">Interest %</TableHead>
+                <TableHead className="text-right uppercase text-[10px] font-bold">Principal</TableHead>
+                {canEdit && <TableHead className="w-[50px]"></TableHead>}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {activeBorrowings.map((b) => (
+                <TableRow key={b.id} className="h-8 text-[13px]">
+                  <TableCell className="font-medium">{b.lenderName}</TableCell>
+                  <TableCell>{format(toDate(b.dateTaken), 'dd/MM/yy')}</TableCell>
+                  <TableCell className="text-right">{b.interestRate}%</TableCell>
+                  <TableCell className="text-right font-mono text-destructive">{formatCurrency(b.principal)}</TableCell>
+                  {canEdit && <TableCell><BorrowingActionsMenu borrowing={b} /></TableCell>}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    );
+}
+
+function LendingsTable({ lendings }: { lendings: Lending[] }) {
+    const appUser = useAppUser();
+    const canEdit = appUser?.role === 'owner';
+    const activeLendings = lendings.filter(l => l.status !== 'Paid Off');
+  
+    if (activeLendings.length === 0) return null;
+  
+    return (
+      <Card>
+        <CardHeader><CardTitle>Active Lendings (Loans Given)</CardTitle></CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="uppercase text-[10px] font-bold">Borrower</TableHead>
+                <TableHead className="uppercase text-[10px] font-bold">Date Given</TableHead>
+                <TableHead className="text-right uppercase text-[10px] font-bold">Interest %</TableHead>
+                <TableHead className="text-right uppercase text-[10px] font-bold">Principal</TableHead>
+                {canEdit && <TableHead className="w-[50px]"></TableHead>}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {activeLendings.map((l) => (
+                <TableRow key={l.id} className="h-8 text-[13px]">
+                  <TableCell className="font-medium">{l.borrowerName}</TableCell>
+                  <TableCell>{format(toDate(l.dateGiven), 'dd/MM/yy')}</TableCell>
+                  <TableCell className="text-right">{l.interestRate}%</TableCell>
+                  <TableCell className="text-right font-mono text-green-600">{formatCurrency(l.principal)}</TableCell>
+                  {canEdit && <TableCell><LendingActionsMenu lending={l} /></TableCell>}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    );
+}
+
 export default function ExpensesPage() {
   const firestore = useFirestore();
   const appUser = useAppUser();
@@ -148,9 +224,22 @@ export default function ExpensesPage() {
   const otherIncomesQuery = useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'otherIncomes'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]);
   const { data: otherIncomes, loading: loadingOtherIncomes } = useCollection<OtherIncome>(otherIncomesQuery);
 
-  const { periodIncome, periodExpenses, periodBalance, filteredExpenses, filteredIncomes, interestOnCapital, estimatedRent, activeBags, nextExpenseRefNo, nextIncomeRefNo } = useMemo(() => {
-    if (!allRecords || !allExpenses || !allUnloadingRecords || !otherIncomes || !allCommodities) {
-        return { periodIncome: 0, periodExpenses: 0, periodBalance: 0, filteredExpenses: [], filteredIncomes: [], interestOnCapital: 0, estimatedRent: 0, activeBags: 0, nextExpenseRefNo: '1001', nextIncomeRefNo: '1001' };
+  const { 
+    periodIncome, 
+    periodExpenses, 
+    periodBalance, 
+    filteredExpenses, 
+    filteredIncomes, 
+    interestOnCapital, 
+    estimatedRent, 
+    activeBags, 
+    nextExpenseRefNo, 
+    nextIncomeRefNo,
+    totalBorrowed,
+    totalLent 
+  } = useMemo(() => {
+    if (!allRecords || !allExpenses || !allUnloadingRecords || !otherIncomes || !allCommodities || !borrowings || !lendings) {
+        return { periodIncome: 0, periodExpenses: 0, periodBalance: 0, filteredExpenses: [], filteredIncomes: [], interestOnCapital: 0, estimatedRent: 0, activeBags: 0, nextExpenseRefNo: '1001', nextIncomeRefNo: '1001', totalBorrowed: 0, totalLent: 0 };
     }
 
     const inRange = (date: Date) => {
@@ -227,6 +316,9 @@ export default function ExpensesPage() {
       return String(Math.max(1001, max + 1));
     };
 
+    const borrowedPrincipal = borrowings.filter(b => b.status !== 'Paid Off').reduce((acc, b) => acc + b.principal, 0);
+    const lentPrincipal = lendings.filter(l => l.status !== 'Paid Off').reduce((acc, l) => acc + l.principal, 0);
+
     return {
       periodIncome: income,
       periodExpenses: totalExpenses,
@@ -237,9 +329,11 @@ export default function ExpensesPage() {
       estimatedRent: rentEstimate,
       activeBags: totalActiveBags,
       nextExpenseRefNo: getMaxRef(allExpenses),
-      nextIncomeRefNo: getMaxRef(otherIncomes)
+      nextIncomeRefNo: getMaxRef(otherIncomes),
+      totalBorrowed: borrowedPrincipal,
+      totalLent: lentPrincipal
     };
-  }, [allRecords, allExpenses, allUnloadingRecords, otherIncomes, dateRange, warehouseInfo, financialYear, allCommodities]);
+  }, [allRecords, allExpenses, allUnloadingRecords, otherIncomes, dateRange, warehouseInfo, financialYear, allCommodities, borrowings, lendings]);
 
   if (loadingRecords || loadingExpenses || loadingUnloading || loadingWarehouseInfo || loadingBorrowings || loadingLendings || loadingOtherIncomes || loadingCommodities) {
     return (
@@ -271,7 +365,7 @@ export default function ExpensesPage() {
         )}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 mb-6">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
         <Card className="stylish-card">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Income</CardTitle>
@@ -290,13 +384,13 @@ export default function ExpensesPage() {
                 <div className="text-2xl font-bold text-destructive">{formatCurrency(periodExpenses)}</div>
             </CardContent>
         </Card>
-         <Card className="stylish-card">
+        <Card className="stylish-card">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Interest on Capital</CardTitle>
-                <Banknote className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium">Net Profit / Loss</CardTitle>
+                 <Scale className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-bold text-orange-600">{formatCurrency(interestOnCapital)}</div>
+                <div className={`text-2xl font-bold ${periodBalance >= 0 ? 'text-primary' : 'text-destructive'}`}>{formatCurrency(periodBalance)}</div>
             </CardContent>
         </Card>
          <Card className="stylish-card">
@@ -309,17 +403,44 @@ export default function ExpensesPage() {
                 <p className="text-[10px] text-muted-foreground">Owed on {activeBags} active bags.</p>
             </CardContent>
         </Card>
-        <Card className="stylish-card">
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-3 mb-8">
+         <Card className="stylish-card border-l-4 border-orange-500">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Net Profit / Loss</CardTitle>
-                 <Scale className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium">Interest on Capital</CardTitle>
+                <Banknote className="h-4 w-4 text-orange-500" />
             </CardHeader>
             <CardContent>
-                <div className={`text-2xl font-bold ${periodBalance >= 0 ? 'text-primary' : 'text-destructive'}`}>{formatCurrency(periodBalance)}</div>
+                <div className="text-xl font-bold text-orange-600">{formatCurrency(interestOnCapital)}</div>
+                <p className="text-[10px] text-muted-foreground">Cost for the selected period.</p>
+            </CardContent>
+        </Card>
+        <Card className="stylish-card border-l-4 border-destructive">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Borrowed Principal</CardTitle>
+                <Landmark className="h-4 w-4 text-destructive" />
+            </CardHeader>
+            <CardContent>
+                <div className="text-xl font-bold text-destructive">{formatCurrency(totalBorrowed)}</div>
+                <p className="text-[10px] text-muted-foreground">Active loan liabilities.</p>
+            </CardContent>
+        </Card>
+        <Card className="stylish-card border-l-4 border-emerald-500">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Lent Principal</CardTitle>
+                <HandCoins className="h-4 w-4 text-emerald-500" />
+            </CardHeader>
+            <CardContent>
+                <div className="text-xl font-bold text-emerald-600">{formatCurrency(totalLent)}</div>
+                <p className="text-[10px] text-muted-foreground">Active funds receivable.</p>
             </CardContent>
         </Card>
       </div>
+
       <div className="space-y-8">
+        <BorrowingsTable borrowings={borrowings || []} />
+        <LendingsTable lendings={lendings || []} />
         <IncomesTable incomes={filteredIncomes} />
         <ExpensesTable expenses={filteredExpenses} />
       </div>

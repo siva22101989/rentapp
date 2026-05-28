@@ -26,8 +26,10 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
     const formattedEndDate = format(deliveryOrderDate, 'dd/MM/yyyy');
     
     const startDate = toDate(record.storageStartDate);
-    const totalMonths = differenceInMonths(deliveryOrderDate, startDate) + 1;
-    const rentPerBag = withdrawnBags > 0 ? finalRent / withdrawnBags : 0;
+    const totalMonths = Math.max(1, differenceInMonths(deliveryOrderDate, startDate) + 1);
+    
+    // Fallback calculation for rent per bag
+    const rentPerBag = withdrawnBags > 0 ? (finalRent / withdrawnBags) : 0;
 
     const hPaid = (record.payments || []).filter(p => p.type === 'hamali').reduce((acc, p) => acc + p.amount, 0);
     const hamaliPending = Math.max(0, (record.hamaliPayable || 0) - hPaid);
@@ -37,12 +39,12 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
     const balanceDue = grandTotal - paidNow;
 
     return (
-      <div ref={ref} className="bg-white p-4 sm:p-6 border-2 border-black font-sans text-lg text-black">
+      <div ref={ref} className="bg-white p-4 sm:p-6 border-2 border-black font-sans text-lg text-black printable-area">
           <div className="text-center mb-4">
               <h1 className="text-2xl font-bold tracking-wider">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</h1>
               <p className="text-sm">{warehouseInfo?.addressLine1 || 'Owk - Koilakuntla Road, OWK - 518 122,'}</p>
               <p className="text-sm">{warehouseInfo?.addressLine2 || 'Kurnool (Dt.), A.P.'} Cell: {warehouseInfo?.phone || ''}</p>
-              <h2 className="font-bold underline text-center mt-4 text-lg uppercase">Outflow Bill</h2>
+              <h2 className="font-bold underline text-center mt-4 text-lg uppercase">Outflow Bill (Patti)</h2>
           </div>
           
           <div className="grid grid-cols-2 gap-x-4 mb-4 text-base">
@@ -52,7 +54,7 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
                   <p><span className="font-bold">Village:</span> {customer.village || 'N/A'}</p>
               </div>
               <div className="text-right">
-                  <p>{totalMonths} month(s) stored</p>
+                  <p><span className="font-bold">Period:</span> {totalMonths} month(s)</p>
                   <p><span className="font-bold">Date:</span> {formattedEndDate}</p>
               </div>
           </div>
@@ -61,69 +63,74 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
               <h2 className="font-bold text-center mb-2 text-base uppercase">Particulars of Withdrawal</h2>
               <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-base">
                   <p><span className="font-bold">Storage ID:</span> {record.id}</p>
-                  <p><span className="font-bold">Start Date:</span> {formattedStartDate}</p>
-                  <p><span className="font-bold">End Date:</span> {formattedEndDate}</p>
-                  <p><span className="font-bold">Commodity:</span> {record.commodityDescription}</p>
-                  <p><span className="font-bold">Bags Withdrawn:</span> {withdrawnBags}</p>
+                  <p><span className="font-bold">Inflow Date:</span> {formattedStartDate}</p>
+                  <p><span className="font-bold">Product:</span> {record.commodityDescription}</p>
+                  <p><span className="font-bold">Bags Out:</span> {withdrawnBags}</p>
                   <p><span className="font-bold">Lot No.:</span> {record.location || 'N/A'}</p>
               </div>
           </div>
 
           <Table className="text-lg">
               <TableHeader>
-                  <TableRow>
-                      <TableHead className="text-black font-bold">PARTICULARS</TableHead>
-                      <TableHead className="text-center text-black font-bold">Bags</TableHead>
-                      <TableHead className="text-center text-black font-bold">Rate</TableHead>
-                      <TableHead className="text-right text-black font-bold">Amount</TableHead>
+                  <TableRow className="border-b-2 border-black">
+                      <TableHead className="text-black font-bold h-auto py-2">PARTICULARS</TableHead>
+                      <TableHead className="text-center text-black font-bold h-auto py-2">Bags</TableHead>
+                      <TableHead className="text-center text-black font-bold h-auto py-2">Rate</TableHead>
+                      <TableHead className="text-right text-black font-bold h-auto py-2">Amount</TableHead>
                   </TableRow>
               </TableHeader>
               <TableBody>
-                  <TableRow>
-                      <TableCell>1. Warehouse Rent</TableCell>
+                  <TableRow className="border-b border-slate-200">
+                      <TableCell className="py-3">1. Warehouse Storage Rent</TableCell>
                       <TableCell className="text-center">{withdrawnBags}</TableCell>
-                      <TableCell className="text-center font-mono">{rentPerBag.toFixed(2)}</TableCell>
-                      <TableCell className="text-right font-mono">{formatCurrency(finalRent)}</TableCell>
+                      <TableCell className="text-center font-mono">₹{rentPerBag.toFixed(2)}</TableCell>
+                      <TableCell className="text-right font-mono font-bold">{formatCurrency(finalRent)}</TableCell>
                   </TableRow>
-                  <TableRow>
-                      <TableCell>2. Handling/Hamali Charges</TableCell>
+                  <TableRow className="border-b border-slate-200">
+                      <TableCell className="py-3">2. Handling/Hamali Charges</TableCell>
                       <TableCell></TableCell><TableCell></TableCell>
                       <TableCell className="text-right font-mono">{hamaliPending > 0 ? formatCurrency(hamaliPending) : '-'}</TableCell>
                   </TableRow>
                   {record.khataAmount && record.khataAmount > 0 && (
-                      <TableRow>
-                          <TableCell>3. Khata (Weighbridge)</TableCell>
+                      <TableRow className="border-b border-slate-200">
+                          <TableCell className="py-3">3. Khata (Weighbridge)</TableCell>
                           <TableCell></TableCell><TableCell></TableCell>
                           <TableCell className="text-right font-mono">{formatCurrency(record.khataAmount)}</TableCell>
                       </TableRow>
                   )}
               </TableBody>
               <TableFooter>
-                  <TableRow className="font-bold border-t-2 border-black">
-                      <TableCell colSpan={3} className="text-right">GRAND TOTAL</TableCell>
-                      <TableCell className="text-right font-mono">{formatCurrency(grandTotal)}</TableCell>
+                  <TableRow className="font-bold border-t-2 border-black bg-slate-50">
+                      <TableCell colSpan={3} className="text-right py-3 uppercase">Gross Bill Amount</TableCell>
+                      <TableCell className="text-right font-mono text-xl">{formatCurrency(totalAmount)}</TableCell>
                   </TableRow>
-                  {paidNow > 0 && (
-                      <TableRow>
-                          <TableCell colSpan={3} className="text-right font-bold">Amount Paid Now</TableCell>
-                          <TableCell className="text-right font-mono text-green-600">-{formatCurrency(paidNow)}</TableCell>
+                  {discount > 0 && (
+                      <TableRow className="font-bold text-green-700">
+                          <TableCell colSpan={3} className="text-right py-2 uppercase">Less: Discount</TableCell>
+                          <TableCell className="text-right font-mono">-{formatCurrency(discount)}</TableCell>
                       </TableRow>
                   )}
-                  <TableRow>
-                      <TableCell colSpan={3} className="text-right font-bold text-destructive">Balance Due</TableCell>
-                      <TableCell className="text-right font-mono text-destructive">{formatCurrency(balanceDue)}</TableCell>
+                  {paidNow > 0 && (
+                      <TableRow className="font-bold text-blue-700">
+                          <TableCell colSpan={3} className="text-right py-2 uppercase">Cash Received Now</TableCell>
+                          <TableCell className="text-right font-mono">-{formatCurrency(paidNow)}</TableCell>
+                      </TableRow>
+                  )}
+                  <TableRow className="font-black border-t-2 border-black bg-slate-100">
+                      <TableCell colSpan={3} className="text-right py-3 text-destructive uppercase">Net Balance Outstanding</TableCell>
+                      <TableCell className="text-right font-mono text-destructive text-xl">{formatCurrency(balanceDue)}</TableCell>
                   </TableRow>
               </TableFooter>
           </Table>
           
-            <div className="mt-16 pt-8 flex flex-col items-end text-center space-y-1">
+            <div className="mt-20 pt-8 flex flex-col items-end text-center space-y-1">
                 <div className="w-72 border-t border-slate-400 pt-4">
                     <p className="text-[#1e293b] font-bold text-sm uppercase tracking-wider">AUTHORIZED MANAGER SIGNATURE</p>
                     <p className="text-primary font-bold text-xs uppercase mt-1">SRI LAKSHMI WAREHOUSE</p>
                 </div>
-                <div className="text-[10px] text-slate-500 italic mt-4">
-                    <p>Report validity verified on {generatedDate}</p>
-                    <p>This is a computer generated statement.</p>
+                <div className="text-[10px] text-slate-500 italic mt-8 text-right w-full">
+                    <p>Bill digital validity verified on {generatedDate}</p>
+                    <p>This is a computer generated statement. No physical signature is required.</p>
                 </div>
             </div>
       </div>

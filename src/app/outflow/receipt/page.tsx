@@ -25,11 +25,12 @@ export default function OutflowReceiptPage() {
   const [loadingCustomer, setLoadingCustomer] = useState(true);
   const [error, setError] = useState<string|null>(null);
 
-  const withdrawnBags = Number(searchParams.get('withdrawn')) || 0;
-  const finalRent = Number(searchParams.get('rent')) || 0;
-  const paidNow = Number(searchParams.get('paidNow')) || 0;
-  const discount = Number(searchParams.get('discount')) || 0;
-  const khataAmountFromForm = searchParams.get('khata') !== null ? Number(searchParams.get('khata')) : null;
+  // Parse numeric values with defaults
+  const withdrawnBags = parseFloat(searchParams.get('withdrawn') || '0') || 0;
+  const finalRent = parseFloat(searchParams.get('rent') || '0') || 0;
+  const paidNow = parseFloat(searchParams.get('paidNow') || '0') || 0;
+  const discount = parseFloat(searchParams.get('discount') || '0') || 0;
+  const khataAmountFromForm = searchParams.get('khata') !== null ? parseFloat(searchParams.get('khata') || '0') : null;
 
   useEffect(() => {
     if (!firestore || !recordId || !appUser?.warehouseId) {
@@ -38,7 +39,7 @@ export default function OutflowReceiptPage() {
     }
     const recordRef = doc(firestore, 'storageRecords', recordId);
     let attempts = 0;
-    const maxAttempts = 20;
+    const maxAttempts = 15;
     const intervalTime = 1000;
 
     const pollDocument = async () => {
@@ -99,7 +100,7 @@ export default function OutflowReceiptPage() {
         <div className="flex h-screen w-full items-center justify-center bg-gray-50">
             <div className="flex flex-col items-center gap-2">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="text-muted-foreground">Loading receipt...</p>
+                <p className="text-muted-foreground font-bold animate-pulse">Building your Patti Bill...</p>
             </div>
         </div>
     );
@@ -108,10 +109,10 @@ export default function OutflowReceiptPage() {
   if (error || !record || !customer) {
     return (
         <div className="flex h-screen w-full items-center justify-center bg-gray-50 p-4">
-            <div className="text-center">
-                <h1 className="text-xl font-bold text-destructive">404 - Not Found</h1>
-                <p className="text-muted-foreground mt-2">{error || "The requested receipt could not be found."}</p>
-                 <Button onClick={() => window.close()} className="mt-4">Close Window</Button>
+            <div className="text-center bg-white p-8 rounded-xl shadow-lg border">
+                <h1 className="text-2xl font-bold text-destructive">Bill Search Failed</h1>
+                <p className="text-muted-foreground mt-2 max-w-sm">{error || "The requested withdrawal receipt could not be located in our system."}</p>
+                 <Button onClick={() => window.close()} className="mt-6 w-full">Close Bill View</Button>
             </div>
         </div>
     );
@@ -137,7 +138,7 @@ export default function OutflowReceiptPage() {
 
   return (
     <div className="bg-gray-100 min-h-screen">
-       <PrintHeader title={`Outflow Bill #${deliveryOrderNo}`} filename={`outflow-bill-${deliveryOrderNo}.pdf`} />
+       <PrintHeader title={`Withdrawal Bill #${deliveryOrderNo}`} filename={`outflow-bill-${deliveryOrderNo}.pdf`} />
        <main className="p-4 sm:p-8 flex justify-center printable-area">
         <OutflowReceipt 
             record={cleanRecord} 

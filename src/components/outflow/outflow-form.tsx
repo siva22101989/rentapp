@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { Customer, StorageRecord, Payment, Outflow, WarehouseInfo, Commodity } from '@/lib/definitions';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertTriangle } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { calculateFinalRent } from '@/lib/billing';
 import { format } from 'date-fns';
@@ -22,10 +22,11 @@ import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 import { Checkbox } from '@/components/ui/checkbox';
 import { sendSms } from '@/lib/sms';
 import { useAppUser } from '@/firebase/auth/use-user';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
-function SubmitButton({ isPending }: { isPending: boolean }) {
+function SubmitButton({ isPending, disabled }: { isPending: boolean; disabled: boolean }) {
     return (
-      <Button type="submit" disabled={isPending} className="w-full text-sm">
+      <Button type="submit" disabled={isPending || disabled} className="w-full text-sm">
         {isPending ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -103,11 +104,17 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
             const record = records.find(r => r.id === recordId);
             if (record) {
                 let recordWithRates = { ...record };
+                // Robust matching: trim and case-insensitive
                 if (record.rate6Months === undefined || record.rate1Year === undefined) {
-                    const commodity = commodities.find(c => c.name === record.commodityDescription);
+                    const normalizedDesc = record.commodityDescription.trim().toLowerCase();
+                    const commodity = commodities.find(c => c.name.trim().toLowerCase() === normalizedDesc);
                     if (commodity) {
                         recordWithRates.rate6Months = commodity.rate6Months;
                         recordWithRates.rate1Year = commodity.rate1Year;
+                        recordWithRates.billingType = commodity.billingType;
+                        recordWithRates.monthlyRate = commodity.monthlyRate;
+                        recordWithRates.minBillingMonths = commodity.minBillingMonths;
+                        recordWithRates.insuranceRate = commodity.insuranceRate;
                     }
                 }
 
@@ -174,12 +181,19 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
             const queryParams = new URLSearchParams();
             const bagsToWithdraw = Number(withdrawals[recordId]);
             
-            let recordWithRates = { ...records.find(r => r.id === recordId)! };
-             if (recordWithRates.rate6Months === undefined || recordWithRates.rate1Year === undefined) {
-                const commodity = commodities.find(c => c.name === recordWithRates.commodityDescription);
+            const originalRecord = records.find(r => r.id === recordId)!;
+            let recordWithRates = { ...originalRecord };
+            const normalizedDesc = recordWithRates.commodityDescription.trim().toLowerCase();
+            const commodity = commodities.find(c => c.name.trim().toLowerCase() === normalizedDesc);
+            
+            if (recordWithRates.rate6Months === undefined || recordWithRates.rate1Year === undefined) {
                 if (commodity) {
                     recordWithRates.rate6Months = commodity.rate6Months;
                     recordWithRates.rate1Year = commodity.rate1Year;
+                    recordWithRates.billingType = commodity.billingType;
+                    recordWithRates.monthlyRate = commodity.monthlyRate;
+                    recordWithRates.minBillingMonths = commodity.minBillingMonths;
+                    recordWithRates.insuranceRate = commodity.insuranceRate;
                 }
             }
 
@@ -209,11 +223,17 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                     if (bagsToWithdraw <= 0) continue;
 
                     let recordWithRates = { ...record };
+                    const normalizedDesc = record.commodityDescription.trim().toLowerCase();
+                    const commodity = commodities.find(c => c.name.trim().toLowerCase() === normalizedDesc);
+
                     if (record.rate6Months === undefined || record.rate1Year === undefined) {
-                        const commodity = commodities.find(c => c.name === record.commodityDescription);
                         if (commodity) {
                             recordWithRates.rate6Months = commodity.rate6Months;
                             recordWithRates.rate1Year = commodity.rate1Year;
+                            recordWithRates.billingType = commodity.billingType;
+                            recordWithRates.monthlyRate = commodity.monthlyRate;
+                            recordWithRates.minBillingMonths = commodity.minBillingMonths;
+                            recordWithRates.insuranceRate = commodity.insuranceRate;
                         }
                     }
 
@@ -235,6 +255,16 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                         totalRentBilled: (record.totalRentBilled || 0) + rentForThisWithdrawal,
                         outflows: arrayUnion(cleanForFirestore(newOutflow)),
                     };
+
+                    // Sync rates to record for history permanence
+                    if (record.rate6Months === undefined && commodity) {
+                        updateData.rate6Months = commodity.rate6Months;
+                        updateData.rate1Year = commodity.rate1Year;
+                        updateData.billingType = commodity.billingType;
+                        updateData.monthlyRate = commodity.monthlyRate;
+                        updateData.minBillingMonths = commodity.minBillingMonths;
+                        updateData.insuranceRate = commodity.insuranceRate;
+                    }
 
                     if (!isMultiLotWithdrawal && khataAmount !== record.khataAmount) {
                         updateData.khataAmount = khataAmount;
@@ -384,6 +414,17 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                                     />
                             </div>
                             <Separator />
+
+                            {totalRent === 0 && totalBags > 0 && (
+                                <Alert variant="destructive" className="bg-destructive/5">
+                                    <AlertTriangle className="h-4 w-4" />
+                                    <AlertTitle>Rate Sync Warning</AlertTitle>
+                                    <AlertDescription className="text-xs">
+                                        Calculated rent is ₹0.00. This usually happens if the commodity rates are not configured or if the name has trailing spaces. Please verify "Crops & Rates" in Settings.
+                                    </AlertDescription>
+                                </Alert>
+                            )}
+
                             <div className="space-y-4">
                                 <h4 className="text-xs font-bold uppercase">Billing Summary</h4>
                                 <div className="space-y-2 text-xs">
@@ -391,7 +432,7 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                                         <span className="text-muted-foreground">Total Bags to Withdraw</span>
                                         <span className="font-mono font-bold">{totalBags}</span>
                                     </div>
-                                    <div className="flex justify-between items-center text-blue-600">
+                                    <div className={`flex justify-between items-center ${totalRent > 0 ? 'text-blue-600' : 'text-destructive font-bold'}`}>
                                         <span>Calculated Rent Due</span>
                                         <span className="font-mono">{formatCurrency(totalRent)}</span>
                                     </div>
@@ -478,7 +519,7 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                     )}
                 </CardContent>
                 <CardFooter>
-                    <SubmitButton isPending={isPending} />
+                    <SubmitButton isPending={isPending} disabled={withdrawalEntries.length === 0} />
                 </CardFooter>
             </Card>
         </form>

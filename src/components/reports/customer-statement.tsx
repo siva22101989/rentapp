@@ -333,6 +333,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                         <TableHead className="font-bold text-black border-r border-slate-200 text-center p-2 uppercase text-[9px]">Date</TableHead>
                         <TableHead className="font-bold text-black border-r border-slate-200 p-2 uppercase text-[9px]">Description</TableHead>
                         <TableHead className="font-bold text-black border-r border-slate-200 text-center p-2 uppercase text-[9px]">Ref ID</TableHead>
+                        <TableHead className="font-bold text-black border-r border-slate-200 text-center p-2 uppercase text-[9px]">Lot</TableHead>
                         <TableHead className="font-bold text-black border-r border-slate-200 text-center p-2 uppercase text-[9px]">In</TableHead>
                         <TableHead className="font-bold text-black border-r border-slate-200 text-center p-2 uppercase text-[9px]">Out</TableHead>
                         <TableHead className="font-bold text-black border-r border-slate-200 text-right p-2 uppercase text-[9px]">Hamali (+)</TableHead>
@@ -348,6 +349,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                             <TableCell className="p-1 text-center whitespace-nowrap">{format(item.date, 'dd/MM/yy')}</TableCell>
                             <TableCell className="p-1 font-medium">{item.description}</TableCell>
                             <TableCell className="p-1 text-center font-mono text-slate-400">{item.billNo}</TableCell>
+                            <TableCell className="p-1 text-center font-mono text-slate-600">{item.lotNo || '-'}</TableCell>
                             <TableCell className="p-1 text-center font-mono">{item.bagsIn || ''}</TableCell>
                             <TableCell className="p-1 text-center font-mono">{item.bagsOut || ''}</TableCell>
                             <TableCell className="p-1 text-right font-mono">{item.hamali > 0 ? formatCurrency(item.hamali) : ''}</TableCell>
@@ -360,7 +362,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 </TableBody>
                 <TableFooter>
                     <TableRow className="bg-slate-100 font-black border-t-2 border-black h-10">
-                        <TableCell colSpan={3} className="p-2 text-right uppercase text-[9px] tracking-tight">Totals</TableCell>
+                        <TableCell colSpan={4} className="p-2 text-right uppercase text-[9px] tracking-tight">Totals</TableCell>
                         <TableCell className="p-2 text-center font-mono">{totals.totalBagsIn}</TableCell>
                         <TableCell className="p-2 text-center font-mono">{totals.totalBagsOut}</TableCell>
                         <TableCell className="p-2 text-right font-mono">{formatCurrency(totals.totalHamaliBilled)}</TableCell>

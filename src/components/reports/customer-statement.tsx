@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, forwardRef } from 'react';
@@ -83,7 +84,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 date: toDate(payment.date),
                 description: getPaymentDesc(payment.type, 'unloading'),
                 billNo: billNo,
-                lotNo: '', // Payments don't need a lot reference
+                lotNo: '', 
                 bagsIn: 0,
                 bagsOut: 0,
                 hamali: 0,
@@ -147,7 +148,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 events.push({
                     date: toDate(outflow.date),
                     description: `Outflow Withdrawal`,
-                    billNo: `${billNo}-${idx + 1}`, // Updated to show Patti No
+                    billNo: `${billNo}-${idx + 1}`,
                     lotNo: record.location || 'N/A',
                     bagsIn: 0,
                     bagsOut: outflow.bagsWithdrawn,
@@ -173,7 +174,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 date: toDate(payment.date),
                 description: getPaymentDesc(payment.type, 'storage'),
                 billNo: billNo,
-                lotNo: '', // Payments don't need a lot reference
+                lotNo: '', 
                 bagsIn: 0,
                 bagsOut: 0,
                 hamali: 0,
@@ -349,7 +350,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                             <TableCell className="p-1 text-center whitespace-nowrap">{format(item.date, 'dd/MM/yy')}</TableCell>
                             <TableCell className="p-1 font-medium">{item.description}</TableCell>
                             <TableCell className="p-1 text-center font-mono text-slate-400">{item.billNo}</TableCell>
-                            <TableCell className="p-1 text-center font-mono text-slate-600">{item.lotNo || '-'}</TableCell>
+                            <TableCell className="p-1 text-center font-mono text-slate-600">{item.lotNo}</TableCell>
                             <TableCell className="p-1 text-center font-mono">{item.bagsIn || ''}</TableCell>
                             <TableCell className="p-1 text-center font-mono">{item.bagsOut || ''}</TableCell>
                             <TableCell className="p-1 text-right font-mono">{item.hamali > 0 ? formatCurrency(item.hamali) : ''}</TableCell>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -34,7 +35,7 @@ export function OutflowReport({ records, customers, commodities, lots }: Outflow
         const events: OutflowEvent[] = [];
         records.forEach(record => {
             if (record.outflows && Array.isArray(record.outflows)) {
-                record.outflows.forEach(outflow => {
+                record.outflows.forEach((outflow, index) => {
                     const outflowDate = toDate(outflow.date);
                     
                     if (financialYear !== 'all-time' && dateRange) {
@@ -55,6 +56,7 @@ export function OutflowReport({ records, customers, commodities, lots }: Outflow
                         recordId: record.id,
                         commodityDescription: record.commodityDescription,
                         location: record.location,
+                        outflowIndex: index,
                     });
                 });
             }

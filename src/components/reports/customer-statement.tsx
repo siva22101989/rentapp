@@ -83,7 +83,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 date: toDate(payment.date),
                 description: getPaymentDesc(payment.type, 'unloading'),
                 billNo: billNo,
-                lotNo: unloading.location || 'N/A',
+                lotNo: '', // Payments don't need a lot reference
                 bagsIn: 0,
                 bagsOut: 0,
                 hamali: 0,
@@ -147,7 +147,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 events.push({
                     date: toDate(outflow.date),
                     description: `Outflow Withdrawal`,
-                    billNo: billNo, 
+                    billNo: `${billNo}-${idx + 1}`, // Updated to show Patti No
                     lotNo: record.location || 'N/A',
                     bagsIn: 0,
                     bagsOut: outflow.bagsWithdrawn,
@@ -173,7 +173,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 date: toDate(payment.date),
                 description: getPaymentDesc(payment.type, 'storage'),
                 billNo: billNo,
-                lotNo: record.location || 'N/A',
+                lotNo: '', // Payments don't need a lot reference
                 bagsIn: 0,
                 bagsOut: 0,
                 hamali: 0,
@@ -229,13 +229,13 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
   const timestamp = useMemo(() => format(new Date(), 'dd/MM/yy, h:mm a'), []);
 
   const renderActions = (item: any) => {
-      const displayBillNo = String(item.billNo).replace(/\D/g, '');
       switch (item.recordType) {
           case 'storage':
               return <ActionsMenu record={item.sourceRecord} customers={customers} allRecords={allRecords} />;
           case 'unloading':
               return <UnloadingTableActionsMenu record={{...item.sourceRecord, hamaliPending: 0}} customers={customers} commodities={commodities} lots={lots} storageRecords={allRecords} />;
           case 'outflow':
+              const originalBillNo = String(item.sourceRecord.id).replace(/\D/g, '');
               return (
                   <OutflowActionsMenu 
                     record={item.sourceRecord} 
@@ -243,7 +243,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                     warehouseInfo={warehouseInfo} 
                     outflow={item.outflowData} 
                     outflowIndex={item.outflowIndex} 
-                    deliveryOrderNo={`${displayBillNo}-${item.outflowIndex + 1}`} 
+                    deliveryOrderNo={`${originalBillNo}-${item.outflowIndex + 1}`} 
                     deliveryOrderDate={item.date} 
                     commodities={commodities} 
                     lots={lots} 

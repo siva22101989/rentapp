@@ -34,6 +34,8 @@ const EditUnloadingSchema = z.object({
   customerHamaliPerBag: z.coerce.number().nonnegative('Customer hamali rate must be non-negative.'),
   workerHamaliPerBag: z.coerce.number().nonnegative('Worker hamali rate must be non-negative.').optional(),
   billNo: z.string().min(1, 'Bill No is required.'),
+  totalHamali: z.coerce.number().nonnegative().optional(),
+  workerHamaliPayable: z.coerce.number().nonnegative().optional(),
 });
 
 export function EditUnloadingRecordDialog({ 
@@ -67,9 +69,13 @@ export function EditUnloadingRecordDialog({
   const [customerHamaliPerBag, setCustomerHamaliPerBag] = useState<number | ''>('');
   const [workerHamaliPerBag, setWorkerHamaliPerBag] = useState<number | ''>('');
   const [billNo, setBillNo] = useState('');
+  
+  // Manual Totals
+  const [totalHamali, setTotalHamali] = useState<number | ''>('');
+  const [workerHamaliTotal, setWorkerHamaliTotal] = useState<number | ''>('');
+
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // PERFORMANCE OPTIMIZATION: Only calculate occupancy when open
   const lotOccupancy = useMemo(() => {
     if (!isOpen) return {};
     const occupancy: { [lotName: string]: number } = {};
@@ -109,6 +115,11 @@ export function EditUnloadingRecordDialog({
       setCustomerHamaliPerBag(record.hamaliPerBag || '');
       setWorkerHamaliPerBag(workerRate || '');
       setBillNo(record.billNo || '');
+      
+      // Load current totals
+      setTotalHamali(record.totalHamali ?? '');
+      setWorkerHamaliTotal(record.workerHamaliPayable ?? '');
+      
       setErrors({});
     }
   }, [isOpen, record]);
@@ -137,6 +148,8 @@ export function EditUnloadingRecordDialog({
       customerHamaliPerBag: Number(customerHamaliPerBag),
       workerHamaliPerBag: Number(workerHamaliPerBag),
       billNo,
+      totalHamali: Number(totalHamali),
+      workerHamaliPayable: Number(workerHamaliTotal),
     };
 
     const result = EditUnloadingSchema.safeParse(dataToValidate);
@@ -155,15 +168,12 @@ export function EditUnloadingRecordDialog({
 
     startTransition(async () => {
       try {
-        const totalHamali = result.data.bagsUnloaded * result.data.customerHamaliPerBag;
-        const workerHamaliPayable = result.data.bagsUnloaded * (result.data.workerHamaliPerBag ?? result.data.customerHamaliPerBag);
-        
         const updateData = {
           ...result.data,
           hamaliPerBag: result.data.customerHamaliPerBag,
           unloadingDate: finalDate,
-          totalHamali,
-          workerHamaliPayable,
+          totalHamali: result.data.totalHamali, // Use manual amount
+          workerHamaliPayable: result.data.workerHamaliPayable, // Use manual amount
         };
         await updateUnloadingRecord(firestore, record.id, result.data.billNo, updateData);
         toast({ title: 'Success', description: 'Unloading record updated.' });
@@ -183,13 +193,13 @@ export function EditUnloadingRecordDialog({
           <DialogHeader>
             <DialogTitle>Edit Unloading Record</DialogTitle>
             <DialogDescription>
-              Adjust details for Bill No. {record.billNo}.
+              Adjust details for Bill No. {record.billNo}. Hamali totals are now manually editable.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4 pr-2">
             <div className="space-y-2">
                 <Label htmlFor="edit-bill-no">Bill No.</Label>
-                <Input id="edit-bill-no" className="font-mono font-bold" value={billNo} onChange={e => setBillNo(e.target.value)} />
+                <Input id="edit-bill-no" className="font-mono font-bold h-9" value={billNo} onChange={e => setBillNo(e.target.value)} />
             </div>
             <div className="space-y-2">
                 <Label htmlFor="customerId">Customer</Label>
@@ -201,7 +211,6 @@ export function EditUnloadingRecordDialog({
                     searchPlaceholder="Search customers..."
                     modal={true}
                 />
-                {errors.customerId && <p className="text-xs text-destructive">{errors.customerId}</p>}
             </div>
              <div className="space-y-2">
                 <Label htmlFor="commodityDescription">Commodity</Label>
@@ -213,44 +222,50 @@ export function EditUnloadingRecordDialog({
                     searchPlaceholder="Search products..."
                     modal={true}
                 />
-                {errors.commodityDescription && <p className="text-xs text-destructive">{errors.commodityDescription}</p>}
             </div>
             <div className="space-y-2">
                 <Label htmlFor="location">Storage Location (Lot No.)</Label>
                 <Select onValueChange={setLocation} value={location}>
-                    <SelectTrigger id="location"><SelectValue placeholder="Select a lot..." /></SelectTrigger>
+                    <SelectTrigger id="location" className="h-9"><SelectValue placeholder="Select a lot..." /></SelectTrigger>
                     <SelectContent>
                         {lotOptions.map(opt => (
                             <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                         ))}
                     </SelectContent>
                 </Select>
-                {errors.location && <p className="text-xs text-destructive">{errors.location}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="lorryTractorNo">Lorry/Tractor No.</Label>
-              <Input id="lorryTractorNo" value={lorryTractorNo || ''} onChange={(e) => setLorryTractorNo(e.target.value)} />
+              <Input id="lorryTractorNo" className="h-9" value={lorryTractorNo || ''} onChange={(e) => setLorryTractorNo(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="unloadingDate">Unloading Date (DD-MM-YYYY)</Label>
-              <Input id="unloadingDate" placeholder="DD-MM-YYYY" value={unloadingDate} onChange={e => setUnloadingDate(e.target.value)} />
+              <Input id="unloadingDate" placeholder="DD-MM-YYYY" className="h-9" value={unloadingDate} onChange={e => setUnloadingDate(e.target.value)} />
               {errors.unloadingDate && <p className="text-xs text-destructive">{errors.unloadingDate}</p>}
             </div>
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="bagsUnloaded">Bags Unloaded</Label>
-                <Input id="bagsUnloaded" type="number" value={bagsUnloaded} onChange={e => setBagsUnloaded(e.target.value === '' ? '' : Number(e.target.value))} />
-                {errors.bagsUnloaded && <p className="text-xs text-destructive">{errors.bagsUnloaded}</p>}
+                <Input id="bagsUnloaded" type="number" className="h-9" value={bagsUnloaded} onChange={e => setBagsUnloaded(e.target.value === '' ? '' : Number(e.target.value))} />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <Label htmlFor="customerHamaliPerBag">Customer Rate</Label>
-                    <Input id="customerHamaliPerBag" type="number" step="0.01" value={customerHamaliPerBag} onChange={e => setCustomerHamaliPerBag(e.target.value === '' ? '' : Number(e.target.value))} />
-                    {errors.customerHamaliPerBag && <p className="text-xs text-destructive">{errors.customerHamaliPerBag}</p>}
+                    <Input id="customerHamaliPerBag" type="number" step="0.01" className="h-9" value={customerHamaliPerBag} onChange={e => setCustomerHamaliPerBag(e.target.value === '' ? '' : Number(e.target.value))} />
                 </div>
                  <div className="space-y-2">
                     <Label htmlFor="workerHamaliPerBag">Worker Rate</Label>
-                    <Input id="workerHamaliPerBag" type="number" step="0.01" value={workerHamaliPerBag} onChange={e => setWorkerHamaliPerBag(e.target.value === '' ? '' : Number(e.target.value))} />
+                    <Input id="workerHamaliPerBag" type="number" step="0.01" className="h-9" value={workerHamaliPerBag} onChange={e => setWorkerHamaliPerBag(e.target.value === '' ? '' : Number(e.target.value))} />
+                </div>
+              </div>
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <Label htmlFor="totalHamali" className="font-bold text-primary">Customer Total Hamali</Label>
+                    <Input id="totalHamali" type="number" step="0.01" className="h-9 border-primary/50" value={totalHamali} onChange={e => setTotalHamali(e.target.value === '' ? '' : Number(e.target.value))} />
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="workerHamaliTotal" className="font-bold text-orange-600">Worker Total Payable</Label>
+                    <Input id="workerHamaliTotal" type="number" step="0.01" className="h-9 border-orange-400" value={workerHamaliTotal} onChange={e => setWorkerHamaliTotal(e.target.value === '' ? '' : Number(e.target.value))} />
                 </div>
               </div>
             </div>

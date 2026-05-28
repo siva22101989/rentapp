@@ -34,6 +34,8 @@ const UnloadingRecordSchema = z.object({
   customerHamaliPerBag: z.coerce.number().nonnegative('Rate must be non-negative.'),
   workerHamaliPerBag: z.coerce.number().nonnegative('Worker rate must be non-negative.').optional(),
   billNo: z.string().min(1, 'Bill No is required.'),
+  totalHamaliManual: z.coerce.number().nonnegative().optional(),
+  workerHamaliManual: z.coerce.number().nonnegative().optional(),
 });
 
 type UnloadingFormData = z.infer<typeof UnloadingRecordSchema>;
@@ -75,6 +77,8 @@ export function AddUnloadingRecordForm({
           customerHamaliPerBag: undefined,
           workerHamaliPerBag: undefined,
           billNo: String(nextBillNo).replace(/\D/g, ''),
+          totalHamaliManual: undefined,
+          workerHamaliManual: undefined,
         },
     });
 
@@ -82,6 +86,19 @@ export function AddUnloadingRecordForm({
         if (nextBillNo) form.setValue('billNo', String(nextBillNo).replace(/\D/g, ''));
     }, [nextBillNo, form]);
     
+    // Auto-calc logic for the form
+    const bagsVal = form.watch('bagsUnloaded');
+    const custRate = form.watch('customerHamaliPerBag');
+    const workRate = form.watch('workerHamaliPerBag');
+
+    useEffect(() => {
+        const b = Number(bagsVal) || 0;
+        const c = Number(custRate) || 0;
+        const w = Number(workRate) || c;
+        form.setValue('totalHamaliManual', b * c);
+        form.setValue('workerHamaliManual', b * w);
+    }, [bagsVal, custRate, workRate, form]);
+
     const customerOptions = customers.map(c => ({ value: c.id, label: c.name }));
     
     const lotOccupancy = useMemo(() => {
@@ -101,10 +118,6 @@ export function AddUnloadingRecordForm({
         }));
     }, [lots, lotOccupancy]);
       
-    const bagsUnloadedValue = form.watch('bagsUnloaded');
-    const customerHamaliPerBagValue = form.watch('customerHamaliPerBag');
-    const totalHamali = (Number(bagsUnloadedValue) || 0) * (Number(customerHamaliPerBagValue) || 0);
-
     const selectedCustomerId = form.watch('customerId');
     const selectedCustomer = useMemo(() => customers.find(c => c.id === selectedCustomerId), [selectedCustomerId, customers]);
 
@@ -120,9 +133,7 @@ export function AddUnloadingRecordForm({
                     return;
                 }
 
-                const workRate = data.workerHamaliPerBag ?? data.customerHamaliPerBag;
                 const finalDate = new Date(data.unloadingDate);
-                const currentTotalHamali = data.bagsUnloaded * data.customerHamaliPerBag;
                 
                 const rawRecord = { 
                     ...data, 
@@ -132,8 +143,8 @@ export function AddUnloadingRecordForm({
                     unloadingDate: finalDate, 
                     status: 'Unloading' as UnloadingStatus, 
                     bagsSentToDrying: 0, 
-                    totalHamali: currentTotalHamali, 
-                    workerHamaliPayable: data.bagsUnloaded * workRate 
+                    totalHamali: data.totalHamaliManual || 0, 
+                    workerHamaliPayable: data.workerHamaliManual || 0 
                 };
                 
                 await setDoc(doc(firestore, 'unloadingRecords', cleanBillNo), cleanForFirestore(rawRecord));
@@ -158,7 +169,7 @@ export function AddUnloadingRecordForm({
                 <form onSubmit={form.handleSubmit(onSubmit)}>
                     <CardHeader>
                         <CardTitle className="text-lg font-bold">New Unloading Record</CardTitle>
-                        <CardDescription className="text-xs">Identified by numeric Bill No.</CardDescription>
+                        <CardDescription className="text-xs">Identified by numeric Bill No. Hamali totals can be overridden.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <FormField control={form.control} name="billNo" render={({ field }) => (
@@ -216,11 +227,17 @@ export function AddUnloadingRecordForm({
                                 <FormItem><FormLabel className="text-xs font-semibold">Worker Rate</FormLabel><FormControl><Input type="number" step="0.01" className="text-sm h-9" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                             )} />
                         </div>
-                        <Separator />
-                        <div className="flex justify-between text-primary font-bold text-sm">
-                            <span className="text-xs uppercase text-muted-foreground">Total Hamali</span>
-                            <span className="font-mono">{formatCurrency(totalHamali)}</span>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                            <FormField control={form.control} name="totalHamaliManual" render={({ field }) => (
+                                <FormItem><FormLabel className="text-xs font-bold text-primary">Cust Total Hamali</FormLabel><FormControl><Input type="number" step="0.01" className="text-sm h-9 border-primary/50" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                            )} />
+                            <FormField control={form.control} name="workerHamaliManual" render={({ field }) => (
+                                <FormItem><FormLabel className="text-xs font-bold text-orange-600">Worker Total Pay</FormLabel><FormControl><Input type="number" step="0.01" className="text-sm h-9 border-orange-400" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                            )} />
                         </div>
+
+                        <Separator />
                         <div className="flex items-center space-x-2 pt-2">
                             <Checkbox id="smsU" checked={sendSmsNotification} onCheckedChange={(c) => setSendSmsNotification(Boolean(c))} disabled={!warehouseInfo?.textbeeApiKey || !selectedCustomer?.phone} />
                             <label htmlFor="smsU" className="text-xs font-medium cursor-pointer">Send SMS</label>

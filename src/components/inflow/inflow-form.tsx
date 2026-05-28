@@ -31,6 +31,11 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
     const [bags, setBags] = useState<number | ''>('');
     const [customerRate, setCustomerRate] = useState<number | ''>('');
     const [workerRate, setWorkerRate] = useState<number | ''>('');
+    
+    // New Manual Override States
+    const [hamaliPayableOverride, setHamaliPayableOverride] = useState<number | ''>('');
+    const [workerPayableOverride, setWorkerPayableOverride] = useState<number | ''>('');
+
     const [hamaliPaid, setHamaliPaid] = useState<number | ''>('');
     const [selectedCustomerId, setSelectedCustomerId] = useState('');
     const [selectedCommodity, setSelectedCommodity] = useState('');
@@ -45,6 +50,15 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
     useEffect(() => {
         setStorageId(String(nextId).replace(/\D/g, ''));
     }, [nextId]);
+
+    // Sync manual fields when rate or bags change (Auto-calculate)
+    useEffect(() => {
+        const b = Number(bags) || 0;
+        const cR = Number(customerRate) || 0;
+        const wR = Number(workerRate) || cR;
+        setHamaliPayableOverride(b * cR);
+        setWorkerPayableOverride(b * wR);
+    }, [bags, customerRate, workerRate]);
 
     const warehouseInfoRef = useMemoFirebase(
       () => (firestore && appUser?.warehouseId ? doc(firestore, 'warehouses', appUser.warehouseId) : null),
@@ -75,12 +89,13 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
     }, [lots, lotOccupancy]);
 
     const selectedCustomer = useMemo(() => customers.find(c => c.id === selectedCustomerId), [selectedCustomerId, customers]);
-    const customerHamali = useMemo(() => (Number(bags) || 0) * (Number(customerRate) || 0), [bags, customerRate]);
 
     const resetForm = () => {
         setBags('');
         setCustomerRate('');
         setWorkerRate('');
+        setHamaliPayableOverride('');
+        setWorkerPayableOverride('');
         setHamaliPaid('');
         setSelectedCustomerId('');
         setSelectedCommodity('');
@@ -109,9 +124,10 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
 
                 const finalDate = new Date(storageStartDate);
                 const custRate = Number(customerRate) || 0;
-                const workRate = Number(workerRate) || custRate;
-                const hPayable = (Number(bags) || 0) * custRate;
-                const wPayable = (Number(bags) || 0) * workRate;
+                
+                // Use override values
+                const hPayable = Number(hamaliPayableOverride) || 0;
+                const wPayable = Number(workerPayableOverride) || hPayable;
 
                 const payments: Payment[] = [];
                 if (Number(hamaliPaid) > 0) payments.push({ amount: Number(hamaliPaid), date: finalDate, type: 'hamali' });
@@ -221,7 +237,7 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1.5">
-                            <Label className="text-xs font-semibold">Cust Hamali Rate</Label>
+                            <Label className="text-xs font-semibold">Cust Rate</Label>
                             <Input type="number" step="0.01" value={customerRate} onChange={e => setCustomerRate(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
                         </div>
                         <div className="space-y-1.5">
@@ -229,6 +245,18 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                             <Input type="number" step="0.01" value={workerRate} onChange={e => setWorkerRate(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
                         </div>
                     </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-bold text-primary">Total Cust Hamali</Label>
+                            <Input type="number" step="0.01" value={hamaliPayableOverride} onChange={e => setHamaliPayableOverride(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9 border-primary/50" />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-bold text-orange-600">Total Worker Payable</Label>
+                            <Input type="number" step="0.01" value={workerPayableOverride} onChange={e => setWorkerPayableOverride(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9 border-orange-400" />
+                        </div>
+                    </div>
+
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                             <Label className="text-xs font-semibold">Paid Now</Label>
@@ -242,8 +270,8 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                      <Separator />
                      <div className="space-y-2 text-sm">
                         <div className="flex justify-between font-bold">
-                            <span className="text-destructive uppercase text-[10px]">Net Hamali Pending</span>
-                            <span className="font-mono text-destructive">{formatCurrency(customerHamali - (Number(hamaliPaid) || 0))}</span>
+                            <span className="text-destructive uppercase text-[10px]">Net Balance (Customer)</span>
+                            <span className="font-mono text-destructive">{formatCurrency((Number(hamaliPayableOverride) || 0) - (Number(hamaliPaid) || 0))}</span>
                         </div>
                     </div>
                      <div className="flex items-center space-x-2 pt-2">

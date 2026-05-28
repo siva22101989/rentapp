@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, forwardRef } from 'react';
@@ -51,10 +50,16 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         }
     };
     
+    let totalHamaliBilled = 0;
+    let totalHamaliPaid = 0;
+    let totalRentBilled = 0;
+    let totalRentPaid = 0;
+
     (unloadingRecords || []).forEach(unloading => {
         const totalHamali = unloading.totalHamali || 0;
         const billNo = String(unloading.billNo || unloading.id).replace(/\D/g, '');
         if (totalHamali > 0) {
+            totalHamaliBilled += totalHamali;
             events.push({
                 date: toDate(unloading.unloadingDate),
                 description: `Inflow - ${unloading.commodityDescription}`,
@@ -72,6 +77,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         }
 
         (unloading.payments || []).forEach((payment, pIdx) => {
+            totalHamaliPaid += payment.amount;
             events.push({
                 date: toDate(payment.date),
                 description: getPaymentDesc(payment.type, 'unloading'),
@@ -94,6 +100,8 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
 
     (records || []).forEach(record => {
         const billNo = String(record.id).replace(/\D/g, '');
+        totalHamaliBilled += record.hamaliPayable || 0;
+        
         events.push({
             date: toDate(record.storageStartDate),
             description: `Inflow - ${record.commodityDescription}`,
@@ -110,6 +118,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         });
         
         if (record.khataAmount && record.khataAmount > 0) {
+            totalRentBilled += record.khataAmount;
             events.push({
                 date: toDate(record.storageStartDate),
                 description: `Khata Income`,
@@ -128,6 +137,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
 
         if (Array.isArray(record.outflows)) {
             record.outflows.forEach((outflow, idx) => {
+                totalRentBilled += outflow.rentBilled || 0;
                 events.push({
                     date: toDate(outflow.date),
                     description: `Outflow`,
@@ -148,6 +158,10 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         }
 
         (record.payments || []).forEach((payment, pIdx) => {
+            const isHamali = payment.type === 'hamali' || payment.type === 'unloading';
+            if (isHamali) totalHamaliPaid += payment.amount;
+            else totalRentPaid += payment.amount;
+
             events.push({
                 date: toDate(payment.date),
                 description: getPaymentDesc(payment.type, 'storage'),
@@ -173,8 +187,6 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
     let runningBalance = 0;
     let totalBagsIn = 0;
     let totalBagsOut = 0;
-    let totalHamali = 0;
-    let totalRent = 0;
     let totalCredit = 0;
 
     const lineItems = sortedEvents.map(event => {
@@ -184,8 +196,6 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         
         totalBagsIn += (event.bagsIn || 0);
         totalBagsOut += (event.bagsOut || 0);
-        totalHamali += (event.hamali || 0);
-        totalRent += (event.rent || 0);
         totalCredit += credit;
 
         return { ...event, balance: runningBalance };
@@ -197,8 +207,12 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             totalBagsIn, 
             totalBagsOut, 
             balanceStock: totalBagsIn - totalBagsOut, 
-            totalHamali, 
-            totalRent, 
+            totalHamaliBilled, 
+            totalHamaliPaid,
+            hamaliBalance: totalHamaliBilled - totalHamaliPaid,
+            totalRentBilled, 
+            totalRentPaid,
+            rentBalance: totalRentBilled - totalRentPaid,
             totalCredit, 
             finalBalance: runningBalance 
         } 
@@ -281,11 +295,22 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                     </div>
                 </div>
 
-                <div className="space-y-1.5 md:pl-2">
-                    <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Financial Summary</h3>
-                    <div className="flex justify-between text-[13px]"><span>Total Hamali Charged:</span><span className="font-mono">{formatCurrency(totals.totalHamali)}</span></div>
-                    <div className="flex justify-between text-[13px]"><span>Total Rent Billed:</span><span className="font-mono font-bold">{formatCurrency(totals.totalRent)}</span></div>
-                    <div className="flex justify-between text-green-700 font-bold border-t border-slate-200 pt-1 mt-1 text-[13px]"><span>Total Payments:</span><span className="font-mono">{formatCurrency(totals.totalCredit)}</span></div>
+                <div className="space-y-2 md:pl-2">
+                    <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Financial Summary</h3>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[12px]">
+                        <div className="space-y-0.5 border-r pr-2">
+                            <p className="uppercase text-[9px] font-bold text-slate-400">Hamali Breakdown</p>
+                            <div className="flex justify-between"><span>Billed:</span><span className="font-mono">{formatCurrency(totals.totalHamaliBilled)}</span></div>
+                            <div className="flex justify-between text-green-700"><span>Paid:</span><span className="font-mono">{formatCurrency(totals.totalHamaliPaid)}</span></div>
+                            <div className="flex justify-between font-bold border-t pt-0.5 text-orange-600"><span>Bal:</span><span className="font-mono">{formatCurrency(totals.hamaliBalance)}</span></div>
+                        </div>
+                        <div className="space-y-0.5">
+                            <p className="uppercase text-[9px] font-bold text-slate-400">Rent Breakdown</p>
+                            <div className="flex justify-between"><span>Billed:</span><span className="font-mono">{formatCurrency(totals.totalRentBilled)}</span></div>
+                            <div className="flex justify-between text-green-700"><span>Paid:</span><span className="font-mono">{formatCurrency(totals.totalRentPaid)}</span></div>
+                            <div className="flex justify-between font-bold border-t pt-0.5 text-blue-600"><span>Bal:</span><span className="font-mono">{formatCurrency(totals.rentBalance)}</span></div>
+                        </div>
+                    </div>
                     <div className="flex justify-between items-center border-t-2 border-slate-900 pt-1.5 mt-1.5 text-destructive font-black">
                         <span className="uppercase text-[11px]">Final Balance Due:</span>
                         <span className="font-mono text-lg">{formatCurrency(totals.finalBalance)}</span>
@@ -331,7 +356,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                         <TableCell colSpan={4} className="p-2 text-right uppercase text-[10px] tracking-tight">Audit Totals</TableCell>
                         <TableCell className="p-2 text-center font-mono">{totals.totalBagsIn}</TableCell>
                         <TableCell className="p-2 text-center font-mono">{totals.totalBagsOut}</TableCell>
-                        <TableCell className="p-2 text-right font-mono">{formatCurrency(totals.totalHamali + totals.totalRent)}</TableCell>
+                        <TableCell className="p-2 text-right font-mono">{formatCurrency(totals.totalHamaliBilled + totals.totalRentBilled)}</TableCell>
                         <TableCell className="p-2 text-right font-mono text-green-800">{formatCurrency(totals.totalCredit)}</TableCell>
                         <TableCell className="p-2 text-right font-mono text-[14px]">{formatCurrency(totals.finalBalance)}</TableCell>
                         <TableCell className="print-hide" />

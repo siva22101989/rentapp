@@ -44,7 +44,7 @@ export function CustomerHamaliReportTable({ events, customers, title, warehouseI
              <div className="mb-6 text-center border-b pb-4">
                 <h2 className="text-xl font-bold uppercase tracking-tight leading-none">{warehouseInfo?.name || "SRI LAKSHMI WAREHOUSE"}</h2>
                 <p className="text-muted-foreground font-semibold uppercase text-xs mt-1">{title}</p>
-                <p className="text-[10px] text-slate-400 mt-1">Audit Generation: {generatedDate}</p>
+                <p className="text-[10px] text-slate-400 mt-1 uppercase">Audit Generation: {generatedDate}</p>
             </div>
             
             <div className="table-scroll-container border-y-2 border-black">

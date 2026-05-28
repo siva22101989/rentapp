@@ -134,13 +134,14 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses, w
 
         records.forEach(sr => {
             const payable = sr.workerHamaliPayable ?? sr.hamaliPayable;
+            const custName = customerMap.get(sr.customerId) || 'Unknown';
             if (payable > 0 || sr.hamaliPayable > 0) {
                 events.push({
                     date: toDate(sr.storageStartDate),
-                    description: `${customerMap.get(sr.customerId) || 'Unknown'} - ${sr.inflowType === 'Plot' ? 'Drying' : 'Direct'}`,
+                    description: `${custName} - ${sr.inflowType === 'Plot' ? 'Drying' : 'Direct'}`,
                     recordId: sr.id,
                     customerId: sr.customerId,
-                    customerName: customerMap.get(sr.customerId),
+                    customerName: custName,
                     payable: payable,
                     charge: sr.hamaliPayable,
                     paid: 0,
@@ -151,16 +152,17 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses, w
 
         unloadingRecords.forEach(ur => {
             const bagsRemaining = ur.bagsUnloaded - (ur.bagsSentToDrying || 0);
+            const custName = customerMap.get(ur.customerId) || 'Unknown';
             if (bagsRemaining > 0 && ur.totalHamali > 0) {
                 const proportion = ur.bagsUnloaded > 0 ? bagsRemaining / ur.bagsUnloaded : 0;
                 const workerPayable = (ur.workerHamaliPayable ?? ur.totalHamali) * proportion;
 
                 events.push({
                     date: toDate(ur.unloadingDate),
-                    description: `${customerMap.get(ur.customerId) || 'Unknown'} - Unloading`,
+                    description: `${custName} - Unloading`,
                     recordId: ur.billNo || ur.id,
                     customerId: ur.customerId,
-                    customerName: customerMap.get(ur.customerId),
+                    customerName: custName,
                     charge: ur.totalHamali * proportion,
                     payable: workerPayable,
                     paid: 0,

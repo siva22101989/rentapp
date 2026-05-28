@@ -45,8 +45,8 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             case 'discount': return 'Discount Applied';
             case 'interest': return 'Interest Payment';
             case 'principal': return 'Principal Repayment';
-            case 'other': return 'Misc Payment';
             case 'repayment': return 'Loan Repayment';
+            case 'other': return 'Misc Payment';
             default: return 'Payment Received';
         }
     };
@@ -236,7 +236,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                         date: item.date,
                         customerId: customer.id,
                         description: item.description,
-                        recordId: item.sourceRecord.id || item.sourceRecord.billNo,
+                        recordId: String(item.sourceRecord.id || item.sourceRecord.billNo),
                         amount: item.credit,
                         type: (item.paymentData.type || 'other') as PaymentType,
                         recordType: item.paymentType,

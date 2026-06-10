@@ -58,13 +58,13 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
 
     // 1. Process Unloading Records
     (unloadingRecords || []).forEach(unloading => {
-        const totalHamali = unloading.totalHamali || 0;
-        const billNo = String(unloading.billNo || unloading.id).replace(/\D/g, '');
+        const totalHamali = Number(unloading.totalHamali) || 0;
+        const billNo = String(unloading.billNo || unloading.id || '').replace(/\D/g, '');
         if (totalHamali > 0) {
             totalHamaliBilled += totalHamali;
             events.push({
                 date: toDate(unloading.unloadingDate),
-                description: `Inflow (Unloading) - ${unloading.commodityDescription}`,
+                description: `Inflow (Unloading) - ${unloading.commodityDescription || 'Misc'}`,
                 billNo: billNo,
                 lotNo: unloading.location || 'N/A',
                 bagsIn: unloading.bagsUnloaded,
@@ -79,7 +79,8 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         }
 
         (unloading.payments || []).forEach((payment, pIdx) => {
-            totalHamaliPaid += payment.amount;
+            const amt = Number(payment.amount) || 0;
+            totalHamaliPaid += amt;
             events.push({
                 date: toDate(payment.date),
                 description: getPaymentDesc(payment.type, 'unloading'),
@@ -89,7 +90,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 bagsOut: 0,
                 hamali: 0,
                 rent: 0,
-                credit: payment.amount || 0,
+                credit: amt,
                 sortDate: toDate(payment.date).getTime() + pIdx,
                 recordType: 'payment',
                 paymentType: 'unloading',
@@ -102,18 +103,19 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
 
     // 2. Process Storage Records
     (records || []).forEach(record => {
-        const billNo = String(record.id).replace(/\D/g, '');
-        totalHamaliBilled += record.hamaliPayable || 0;
+        const billNo = String(record.id || '').replace(/\D/g, '');
+        const hamaliBilledOnInflow = Number(record.hamaliPayable) || 0;
+        totalHamaliBilled += hamaliBilledOnInflow;
         
         // Inflow Event
         events.push({
             date: toDate(record.storageStartDate),
-            description: `Inflow (Storage) - ${record.commodityDescription}`,
+            description: `Inflow (Storage) - ${record.commodityDescription || 'Misc'}`,
             billNo: billNo,
             lotNo: record.location || 'N/A',
             bagsIn: record.bagsIn,
             bagsOut: 0,
-            hamali: record.hamaliPayable || 0,
+            hamali: hamaliBilledOnInflow,
             rent: 0,
             credit: 0,
             sortDate: toDate(record.storageStartDate).getTime(),
@@ -123,7 +125,8 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         
         // Khata Event (Rent Category)
         if (record.khataAmount && record.khataAmount > 0) {
-            totalRentBilled += record.khataAmount;
+            const khata = Number(record.khataAmount);
+            totalRentBilled += khata;
             events.push({
                 date: toDate(record.storageStartDate),
                 description: `Khata Income (Weighbridge)`,
@@ -132,7 +135,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 bagsIn: 0,
                 bagsOut: 0,
                 hamali: 0,
-                rent: record.khataAmount,
+                rent: khata,
                 credit: 0,
                 sortDate: toDate(record.storageStartDate).getTime() + 2,
                 recordType: 'storage',
@@ -143,7 +146,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         // Outflow Events (Rent Category)
         if (Array.isArray(record.outflows)) {
             record.outflows.forEach((outflow, idx) => {
-                const rentVal = outflow.rentBilled || 0;
+                const rentVal = Number(outflow.rentBilled) || 0;
                 totalRentBilled += rentVal;
                 events.push({
                     date: toDate(outflow.date),
@@ -166,9 +169,10 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
 
         // Payments
         (record.payments || []).forEach((payment, pIdx) => {
+            const amt = Number(payment.amount) || 0;
             const isHamali = payment.type === 'hamali' || payment.type === 'unloading';
-            if (isHamali) totalHamaliPaid += payment.amount;
-            else totalRentPaid += payment.amount;
+            if (isHamali) totalHamaliPaid += amt;
+            else totalRentPaid += amt;
 
             events.push({
                 date: toDate(payment.date),
@@ -179,7 +183,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 bagsOut: 0,
                 hamali: 0,
                 rent: 0,
-                credit: payment.amount || 0,
+                credit: amt,
                 sortDate: toDate(payment.date).getTime() + 5 + pIdx,
                 recordType: 'payment',
                 paymentType: 'storage',
@@ -198,12 +202,12 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
     let totalCredit = 0;
 
     const lineItems = sortedEvents.map(event => {
-        const debit = (event.hamali || 0) + (event.rent || 0);
-        const credit = event.credit || 0;
+        const debit = (Number(event.hamali) || 0) + (Number(event.rent) || 0);
+        const credit = Number(event.credit) || 0;
         runningBalance += (debit - credit);
         
-        totalBagsIn += (event.bagsIn || 0);
-        totalBagsOut += (event.bagsOut || 0);
+        totalBagsIn += (Number(event.bagsIn) || 0);
+        totalBagsOut += (Number(event.bagsOut) || 0);
         totalCredit += credit;
 
         return { ...event, balance: runningBalance };
@@ -217,12 +221,12 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             balanceStock: totalBagsIn - totalBagsOut, 
             totalHamaliBilled, 
             totalHamaliPaid,
-            hamaliBalance: totalHamaliBilled - totalHamaliPaid,
+            hamaliBalance: Math.max(0, totalHamaliBilled - totalHamaliPaid),
             totalRentBilled, 
             totalRentPaid,
-            rentBalance: totalRentBilled - totalRentPaid,
+            rentBalance: Math.max(0, totalRentBilled - totalRentPaid),
             totalCredit, 
-            finalBalance: runningBalance 
+            finalBalance: Math.max(0, runningBalance)
         } 
     };
   }, [records, unloadingRecords]);
@@ -230,13 +234,14 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
   const timestamp = useMemo(() => format(new Date(), 'dd/MM/yy, h:mm a'), []);
 
   const renderActions = (item: any) => {
+      if (!item.sourceRecord) return null;
       switch (item.recordType) {
           case 'storage':
               return <ActionsMenu record={item.sourceRecord} customers={customers} allRecords={allRecords} />;
           case 'unloading':
               return <UnloadingTableActionsMenu record={{...item.sourceRecord, hamaliPending: 0}} customers={customers} commodities={commodities} lots={lots} storageRecords={allRecords} />;
           case 'outflow':
-              const originalBillNo = String(item.sourceRecord.id).replace(/\D/g, '');
+              const originalBillNo = String(item.sourceRecord.id || '').replace(/\D/g, '');
               return (
                   <OutflowActionsMenu 
                     record={item.sourceRecord} 
@@ -258,7 +263,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                         date: item.date,
                         customerId: customer.id,
                         description: item.description,
-                        recordId: String(item.sourceRecord.id || item.sourceRecord.billNo),
+                        recordId: String(item.sourceRecord.id || item.sourceRecord.billNo || ''),
                         amount: item.credit,
                         type: (item.paymentData.type || 'other') as PaymentType,
                         recordType: item.paymentType,

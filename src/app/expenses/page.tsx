@@ -23,11 +23,11 @@ import { BorrowingActionsMenu } from "@/components/borrowings/borrowing-actions-
 import { LendingActionsMenu } from "@/components/lendings/lending-actions-menu";
 
 function calculateLoanBalances(loan: Borrowing | Lending) {
-    let principal = loan.principal;
+    let principal = Number(loan.principal) || 0;
     let accruedInterest = 0;
     const startDate = toDate(loan.dateTaken || (loan as Lending).dateGiven);
     let lastDate = startDate;
-    const monthlyRate = loan.interestRate / 100;
+    const monthlyRate = (Number(loan.interestRate) || 0) / 100;
 
     const allPayments = [...(loan.payments || []).map(p => ({...p, date: toDate(p.date)}))].sort((a,b) => a.date.getTime() - b.date.getTime());
 
@@ -39,7 +39,7 @@ function calculateLoanBalances(loan: Borrowing | Lending) {
             accruedInterest += principal * monthlyRate * months;
         }
         
-        let paymentAmount = payment.amount;
+        let paymentAmount = Number(payment.amount) || 0;
         const interestPayment = Math.min(paymentAmount, accruedInterest);
         accruedInterest -= interestPayment;
         paymentAmount -= interestPayment;
@@ -86,7 +86,7 @@ function IncomesTable({ incomes }: { incomes: OtherIncome[] }) {
                   <TableCell className="font-mono">{income.refNo || '-'}</TableCell>
                   <TableCell>{income.category}</TableCell>
                   <TableCell className="font-medium">{income.description}</TableCell>
-                  <TableCell className="text-right font-mono text-green-600">{formatCurrency(income.amount)}</TableCell>
+                  <TableCell className="text-right font-mono text-green-600">{formatCurrency(Number(income.amount) || 0)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -122,7 +122,7 @@ function ExpensesTable({ expenses }: { expenses: Expense[] }) {
                 <TableCell className="font-mono">{expense.refNo || '-'}</TableCell>
                 <TableCell>{expense.category}</TableCell>
                 <TableCell className="font-medium">{expense.description}</TableCell>
-                <TableCell className="text-right font-mono">{formatCurrency(expense.amount)}</TableCell>
+                <TableCell className="text-right font-mono">{formatCurrency(Number(expense.amount) || 0)}</TableCell>
                 {canEdit && <TableCell><ExpenseActionsMenu expense={expense} /></TableCell>}
               </TableRow>
             ))}
@@ -243,34 +243,36 @@ export default function ExpensesPage() {
         return true;
     };
     let calculatedInterest = 0;
-    const capital = warehouseInfo?.capitalInvestment || 0;
-    const interestRate = warehouseInfo?.annualInterestRate || 0;
+    const capital = Number(warehouseInfo?.capitalInvestment) || 0;
+    const interestRate = Number(warehouseInfo?.annualInterestRate) || 0;
     if (financialYear !== 'all-time' && dateRange?.from && capital > 0 && interestRate > 0) {
         const to = dateRange.to ? new Date(dateRange.to) : new Date();
         to.setHours(23, 59, 59, 999);
         const diffDays = Math.ceil((to.getTime() - dateRange.from.getTime()) / (1000 * 60 * 60 * 24));
         calculatedInterest = (capital * (interestRate / 100) / 365) * diffDays;
     }
-    const incomeFromRecords = allRecords.flatMap(r => r.payments || []).filter(p => inRange(toDate(p.date))).reduce((acc, p) => acc + p.amount, 0) +
-                              allUnloadingRecords.flatMap(r => r.payments || []).filter(p => inRange(toDate(p.date))).reduce((acc, p) => acc + p.amount, 0);
-    const incomeFromOther = otherIncomes.filter(i => inRange(toDate(i.date))).reduce((acc, i) => acc + i.amount, 0);
+    const incomeFromRecords = allRecords.flatMap(r => r.payments || []).filter(p => inRange(toDate(p.date))).reduce((acc, p) => acc + (Number(p.amount) || 0), 0) +
+                              allUnloadingRecords.flatMap(r => r.payments || []).filter(p => inRange(toDate(p.date))).reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
+    const incomeFromOther = otherIncomes.filter(i => inRange(toDate(i.date))).reduce((acc, i) => acc + (Number(i.amount) || 0), 0);
     const periodIncome = incomeFromRecords + incomeFromOther;
     const localFilteredExpenses = allExpenses.filter(e => inRange(toDate(e.date)));
-    const periodExpenses = localFilteredExpenses.reduce((t, e) => t + e.amount, 0) + calculatedInterest;
-    const activeRecords = allRecords.filter(r => !r.storageEndDate && r.bagsStored > 0);
+    const periodExpenses = localFilteredExpenses.reduce((t, e) => t + (Number(e.amount) || 0), 0) + calculatedInterest;
+    const activeRecords = allRecords.filter(r => !r.storageEndDate && (Number(r.bagsStored) || 0) > 0);
     const today = new Date();
     const estimatedRent = activeRecords.reduce((total, record) => {
-      const commodity = allCommodities.find(c => c.name.trim().toLowerCase() === record.commodityDescription.trim().toLowerCase());
+      const normalizedDesc = (record.commodityDescription || '').trim().toLowerCase();
+      const commodity = allCommodities.find(c => (c.name || '').trim().toLowerCase() === normalizedDesc);
+      
       const recordWithRates: StorageRecord = { ...record, billingType: record.billingType || commodity?.billingType || 'slab', monthlyRate: record.monthlyRate ?? commodity?.monthlyRate ?? 0, minBillingMonths: record.minBillingMonths ?? commodity?.minBillingMonths ?? 0, insuranceRate: record.insuranceRate ?? commodity?.insuranceRate ?? 0, rate6Months: record.rate6Months ?? commodity?.rate6Months ?? 0, rate1Year: record.rate1Year ?? commodity?.rate1Year ?? 0 };
-      const { rent: currentStockRent } = calculateFinalRent({ ...recordWithRates, storageStartDate: toDate(recordWithRates.storageStartDate) }, today, record.bagsStored);
-      const totalLiabilities = currentStockRent + (record.outflows || []).reduce((acc, o) => acc + (o.rentBilled || 0), 0) + (record.hamaliPayable || 0) + (record.khataAmount || 0);
-      return total + Math.max(0, totalLiabilities - (record.payments || []).reduce((acc, p) => acc + p.amount, 0));
+      const { rent: currentStockRent } = calculateFinalRent({ ...recordWithRates, storageStartDate: toDate(recordWithRates.storageStartDate) }, today, Number(record.bagsStored) || 0);
+      const totalLiabilities = currentStockRent + (record.outflows || []).reduce((acc, o) => acc + (Number(o.rentBilled) || 0), 0) + (Number(record.hamaliPayable) || 0) + (Number(record.khataAmount) || 0);
+      return total + Math.max(0, totalLiabilities - (record.payments || []).reduce((acc, p) => acc + (Number(p.amount) || 0), 0));
     }, 0);
     const getMaxRef = (list: any[]) => String(Math.max(1001, list.reduce((max, item) => Math.max(max, parseInt(item.refNo?.replace(/\D/g, '') || '0', 10)), 0) + 1));
-    return { periodIncome, periodExpenses, periodBalance: periodIncome - periodExpenses, filteredExpenses: localFilteredExpenses.sort((a,b) => toDate(b.date).getTime() - toDate(a.date).getTime()), filteredIncomes: otherIncomes.filter(i => inRange(toDate(i.date))).sort((a,b) => toDate(b.date).getTime() - toDate(a.date).getTime()), interestOnCapital: calculatedInterest, estimatedRent, activeBags: activeRecords.reduce((acc, record) => acc + record.bagsStored, 0), nextExpenseRefNo: getMaxRef(allExpenses), nextIncomeRefNo: getMaxRef(otherIncomes), totalBorrowed: borrowings.filter(b => b.status !== 'Paid Off').reduce((acc, b) => acc + b.principal, 0), totalLent: lendings.filter(l => l.status !== 'Paid Off').reduce((acc, l) => acc + l.principal, 0) };
+    return { periodIncome, periodExpenses, periodBalance: periodIncome - periodExpenses, filteredExpenses: localFilteredExpenses.sort((a,b) => toDate(b.date).getTime() - toDate(a.date).getTime()), filteredIncomes: otherIncomes.filter(i => inRange(toDate(i.date))).sort((a,b) => toDate(b.date).getTime() - toDate(a.date).getTime()), interestOnCapital: calculatedInterest, estimatedRent, activeBags: activeRecords.reduce((acc, record) => acc + (Number(record.bagsStored) || 0), 0), nextExpenseRefNo: getMaxRef(allExpenses), nextIncomeRefNo: getMaxRef(otherIncomes), totalBorrowed: borrowings.filter(b => b.status !== 'Paid Off').reduce((acc, b) => acc + (Number(b.principal) || 0), 0), totalLent: lendings.filter(l => l.status !== 'Paid Off').reduce((acc, l) => acc + (Number(l.principal) || 0), 0) };
   }, [allRecords, allExpenses, allUnloadingRecords, otherIncomes, dateRange, warehouseInfo, financialYear, allCommodities, borrowings, lendings]);
 
-  if (!stats) return <AppLayout><div className="flex items-center justify-center p-12">Loading financials...</div></AppLayout>;
+  if (!stats) return <AppLayout><div className="flex items-center justify-center p-12 text-muted-foreground font-bold animate-pulse">Synchronizing financials...</div></AppLayout>;
   
   return (
     <AppLayout>

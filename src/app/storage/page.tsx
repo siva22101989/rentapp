@@ -45,21 +45,22 @@ export default function StoragePage() {
     let totalOutflow = 0;
 
     for (const record of allRecords) {
-        const bagsOutFromOutflows = (record.outflows || []).reduce((s, o) => s + o.bagsWithdrawn, 0);
-        const bagsOutForRecord = record.bagsOut ?? bagsOutFromOutflows;
-        const bagsInForRecord = record.bagsIn ?? (record.bagsStored + bagsOutForRecord);
+        const bagsOutFromOutflows = (record.outflows || []).reduce((s, o) => s + (Number(o.bagsWithdrawn) || 0), 0);
+        const bagsOutForRecord = Number(record.bagsOut) || bagsOutFromOutflows;
+        const bagsInForRecord = Number(record.bagsIn) || (Number(record.bagsStored || 0) + bagsOutForRecord);
 
         totalInflow += bagsInForRecord;
         totalOutflow += bagsOutForRecord;
     }
 
-    const activeRecords = allRecords.filter(r => !r.storageEndDate && r.bagsStored > 0);
-    const balanceStock = activeRecords.reduce((acc, record) => acc + record.bagsStored, 0);
+    const activeRecords = allRecords.filter(r => !r.storageEndDate && (Number(r.bagsStored) || 0) > 0);
+    const balanceStock = activeRecords.reduce((acc, record) => acc + (Number(record.bagsStored) || 0), 0);
 
     const today = new Date();
     const estimatedRent = activeRecords.reduce((total, record) => {
-      // Robust commodity fallback matching
-      const commodity = allCommodities.find(c => c.name.trim().toLowerCase() === record.commodityDescription.trim().toLowerCase());
+      // Robust commodity fallback matching: case-insensitive and safe for nulls
+      const normalizedDesc = (record.commodityDescription || '').trim().toLowerCase();
+      const commodity = allCommodities.find(c => (c.name || '').trim().toLowerCase() === normalizedDesc);
       
       const recordWithRates: StorageRecord = {
           ...record,
@@ -71,12 +72,10 @@ export default function StoragePage() {
           rate1Year: record.rate1Year ?? commodity?.rate1Year ?? 0,
       };
 
-      // Accurate Outstanding Balance Calculation:
-      // (Rent on currently held bags) + (Billed Rent on past outflows) + (Hamali + Khata) - (Total Paid)
-      const { rent: currentStockRent } = calculateFinalRent({ ...recordWithRates, storageStartDate: toDate(recordWithRates.storageStartDate) }, today, record.bagsStored);
-      const billedRentOnOutflows = (record.outflows || []).reduce((acc, o) => acc + (o.rentBilled || 0), 0);
-      const totalLiabilities = currentStockRent + billedRentOnOutflows + (record.hamaliPayable || 0) + (record.khataAmount || 0);
-      const totalPaymentsReceived = (record.payments || []).reduce((acc, p) => acc + p.amount, 0);
+      const { rent: currentStockRent } = calculateFinalRent({ ...recordWithRates, storageStartDate: toDate(recordWithRates.storageStartDate) }, today, Number(record.bagsStored) || 0);
+      const billedRentOnOutflows = (record.outflows || []).reduce((acc, o) => acc + (Number(o.rentBilled) || 0), 0);
+      const totalLiabilities = currentStockRent + billedRentOnOutflows + (Number(record.hamaliPayable) || 0) + (Number(record.khataAmount) || 0);
+      const totalPaymentsReceived = (record.payments || []).reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
 
       const recordDue = Math.max(0, totalLiabilities - totalPaymentsReceived);
       return total + recordDue;
@@ -95,7 +94,7 @@ export default function StoragePage() {
           title="Storage Records"
           description="View and manage all storage records."
         />
-        <div className="flex items-center justify-center p-12">Loading storage data...</div>
+        <div className="flex items-center justify-center p-12 text-muted-foreground">Loading inventory dashboard...</div>
       </AppLayout>
     );
   }
@@ -108,7 +107,7 @@ export default function StoragePage() {
       />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
-        <Card>
+        <Card className="stylish-card">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Inflow</CardTitle>
                 <ArrowDown className="h-4 w-4 text-muted-foreground" />
@@ -118,7 +117,7 @@ export default function StoragePage() {
                 <p className="text-xs text-muted-foreground">Historically received</p>
             </CardContent>
         </Card>
-        <Card>
+        <Card className="stylish-card">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Outflow</CardTitle>
                 <ArrowUp className="h-4 w-4 text-muted-foreground" />
@@ -128,7 +127,7 @@ export default function StoragePage() {
                 <p className="text-xs text-muted-foreground">Historically withdrawn</p>
             </CardContent>
         </Card>
-        <Card>
+        <Card className="stylish-card">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Balance Stock</CardTitle>
                 <Warehouse className="h-4 w-4 text-muted-foreground" />
@@ -138,7 +137,7 @@ export default function StoragePage() {
                 <p className="text-xs text-muted-foreground">Currently in godown</p>
             </CardContent>
         </Card>
-        <Card>
+        <Card className="stylish-card">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Outstanding Balance</CardTitle>
                 <IndianRupee className="h-4 w-4 text-muted-foreground" />

@@ -24,13 +24,13 @@ type CustomerStatementProps = {
 
 export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementProps>(({ 
     customer, 
-    records, 
-    unloadingRecords, 
+    records = [], 
+    unloadingRecords = [], 
     warehouseInfo,
-    allRecords,
-    commodities,
-    lots,
-    customers
+    allRecords = [],
+    commodities = [],
+    lots = [],
+    customers = []
 }, ref) => {
 
   const { lineItems, totals } = useMemo(() => {
@@ -67,7 +67,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 description: `Inflow (Unloading) - ${unloading.commodityDescription || 'Misc'}`,
                 billNo: billNo,
                 lotNo: unloading.location || 'N/A',
-                bagsIn: unloading.bagsUnloaded,
+                bagsIn: Number(unloading.bagsUnloaded) || 0,
                 bagsOut: 0,
                 hamali: totalHamali,
                 rent: 0,
@@ -113,7 +113,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             description: `Inflow (Storage) - ${record.commodityDescription || 'Misc'}`,
             billNo: billNo,
             lotNo: record.location || 'N/A',
-            bagsIn: record.bagsIn,
+            bagsIn: Number(record.bagsIn) || 0,
             bagsOut: 0,
             hamali: hamaliBilledOnInflow,
             rent: 0,
@@ -154,7 +154,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                     billNo: `${billNo}-${idx + 1}`,
                     lotNo: record.location || 'N/A',
                     bagsIn: 0,
-                    bagsOut: outflow.bagsWithdrawn,
+                    bagsOut: Number(outflow.bagsWithdrawn) || 0,
                     hamali: 0,
                     rent: rentVal,
                     credit: 0,
@@ -194,7 +194,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         });
     });
     
-    const sortedEvents = events.sort((a, b) => a.sortDate - b.sortDate);
+    const sortedEvents = (events || []).sort((a, b) => (a.sortDate || 0) - (b.sortDate || 0));
 
     let runningBalance = 0;
     let totalBagsIn = 0;
@@ -265,7 +265,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                         description: item.description,
                         recordId: String(item.sourceRecord.id || item.sourceRecord.billNo || ''),
                         amount: item.credit,
-                        type: (item.paymentData.type || 'other') as PaymentType,
+                        type: (item.paymentData?.type || 'other') as PaymentType,
                         recordType: item.paymentType,
                         paymentIndex: item.paymentIndex
                     }} 
@@ -355,7 +355,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                             <TableCell className="p-1 text-center whitespace-nowrap">{format(item.date, 'dd/MM/yy')}</TableCell>
                             <TableCell className="p-1 font-medium">{item.description}</TableCell>
                             <TableCell className="p-1 text-center font-mono text-slate-400">{item.billNo}</TableCell>
-                            <TableCell className="p-1 text-center font-mono text-slate-600">{item.lotNo}</TableCell>
+                            <TableCell className="p-1 text-center font-mono text-slate-600">{item.lotNo || ''}</TableCell>
                             <TableCell className="p-1 text-center font-mono">{item.bagsIn || ''}</TableCell>
                             <TableCell className="p-1 text-center font-mono">{item.bagsOut || ''}</TableCell>
                             <TableCell className="p-1 text-right font-mono">{item.hamali > 0 ? formatCurrency(item.hamali) : ''}</TableCell>

@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useEffect, useState, useTransition, useMemo } from 'react';
-import { useFirestore } from '@/firebase/provider';
+import { useFirestore, useAppUser } from '@/firebase';
 import { doc, arrayUnion, writeBatch, Timestamp } from 'firebase/firestore';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -37,7 +38,7 @@ function SubmitButton({ isPending, disabled }: { isPending: boolean; disabled: b
     );
 }
 
-export function OutflowForm({ records, customers, commodities }: { records: StorageRecord[], customers: Customer[], commodities: Commodity[] }) {
+export function OutflowForm({ records = [], customers = [], commodities = [] }: { records: StorageRecord[], customers: Customer[], commodities: Commodity[] }) {
     const { toast } = useToast();
     const firestore = useFirestore();
     const appUser = useAppUser();
@@ -63,19 +64,19 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
     );
     const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
-    const customerOptions = customers.map(c => ({ value: c.id, label: c.name }));
+    const customerOptions = useMemo(() => (customers || []).map(c => ({ value: c.id, label: c.name })), [customers]);
 
     const filteredRecords = useMemo(() => 
-        selectedCustomerId ? records.filter(r => r.customerId === selectedCustomerId) : [],
+        selectedCustomerId ? (records || []).filter(r => r.customerId === selectedCustomerId) : [],
         [records, selectedCustomerId]
     );
 
     const selectedCustomer = useMemo(() => 
-        customers.find(c => c.id === selectedCustomerId)
+        (customers || []).find(c => c.id === selectedCustomerId)
     , [customers, selectedCustomerId]);
 
     const withdrawalEntries = useMemo(() => 
-        Object.entries(withdrawals).filter(([, bags]) => Number(bags) > 0),
+        Object.entries(withdrawals || {}).filter(([, bags]) => Number(bags) > 0),
         [withdrawals]
     );
 
@@ -97,26 +98,25 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
         const wDate = new Date(withdrawalDateStr);
         if (isNaN(wDate.getTime())) return;
 
-        const currentWithdrawalEntries = Object.entries(withdrawals).filter(([, bags]) => Number(bags) > 0);
+        const currentWithdrawalEntries = Object.entries(withdrawals || {}).filter(([, bags]) => Number(bags) > 0);
 
         currentWithdrawalEntries.forEach(([recordId, bags]) => {
-            const bagsToWithdraw = Number(bags);
-            const record = records.find(r => r.id === recordId);
+            const bagsToWithdraw = Number(bags) || 0;
+            const record = (records || []).find(r => r.id === recordId);
             if (record) {
                 let recordWithRates: StorageRecord = { ...record };
                 
-                // Robust matching: trim and case-insensitive
                 const normalizedDesc = (record.commodityDescription || '').trim().toLowerCase();
-                const commodity = commodities.find(c => (c.name || '').trim().toLowerCase() === normalizedDesc);
+                const commodity = (commodities || []).find(c => (c.name || '').trim().toLowerCase() === normalizedDesc);
 
                 if (record.rate6Months === undefined || record.rate1Year === undefined || record.monthlyRate === undefined) {
                     if (commodity) {
-                        recordWithRates.rate6Months = commodity.rate6Months;
-                        recordWithRates.rate1Year = commodity.rate1Year;
-                        recordWithRates.billingType = commodity.billingType;
-                        recordWithRates.monthlyRate = commodity.monthlyRate;
-                        recordWithRates.minBillingMonths = commodity.minBillingMonths;
-                        recordWithRates.insuranceRate = commodity.insuranceRate;
+                        recordWithRates.rate6Months = commodity.rate6Months ?? 0;
+                        recordWithRates.rate1Year = commodity.rate1Year ?? 0;
+                        recordWithRates.billingType = commodity.billingType || 'slab';
+                        recordWithRates.monthlyRate = commodity.monthlyRate ?? 0;
+                        recordWithRates.minBillingMonths = commodity.minBillingMonths ?? 0;
+                        recordWithRates.insuranceRate = commodity.insuranceRate ?? 0;
                     }
                 }
 
@@ -124,10 +124,10 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                 runningRent += (rent || 0);
                 
                 if (!processedRecords.has(recordId)) {
-                    const hamaliPaid = (record.payments || []).filter(p => p.type === 'hamali').reduce((acc, p) => acc + (p.amount || 0), 0);
-                    const pendingHamali = (record.hamaliPayable || 0) - hamaliPaid;
+                    const hamaliPaid = (record.payments || []).filter(p => p.type === 'hamali' || p.type === 'unloading').reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
+                    const pendingHamali = (Number(record.hamaliPayable) || 0) - hamaliPaid;
                     runningHamali += Math.max(0, pendingHamali);
-                    runningKhata += (record.khataAmount || 0);
+                    runningKhata += (Number(record.khataAmount) || 0);
                     processedRecords.add(recordId);
                 }
                 runningBags += bagsToWithdraw;
@@ -194,21 +194,21 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                 let firstReceiptUrl: string | null = null;
 
                 for (const record of recordsToProcess) {
-                    const bagsToWithdraw = Number(withdrawals[record.id]);
+                    const bagsToWithdraw = Number(withdrawals[record.id]) || 0;
                     if (bagsToWithdraw <= 0) continue;
 
                     let recordWithRates: StorageRecord = { ...record };
                     const normalizedDesc = (record.commodityDescription || '').trim().toLowerCase();
-                    const commodity = commodities.find(c => (c.name || '').trim().toLowerCase() === normalizedDesc);
+                    const commodity = (commodities || []).find(c => (c.name || '').trim().toLowerCase() === normalizedDesc);
 
                     if (record.rate6Months === undefined || record.rate1Year === undefined || record.monthlyRate === undefined) {
                         if (commodity) {
-                            recordWithRates.rate6Months = commodity.rate6Months;
-                            recordWithRates.rate1Year = commodity.rate1Year;
-                            recordWithRates.billingType = commodity.billingType;
-                            recordWithRates.monthlyRate = commodity.monthlyRate;
-                            recordWithRates.minBillingMonths = commodity.minBillingMonths;
-                            recordWithRates.insuranceRate = commodity.insuranceRate;
+                            recordWithRates.rate6Months = commodity.rate6Months ?? 0;
+                            recordWithRates.rate1Year = commodity.rate1Year ?? 0;
+                            recordWithRates.billingType = commodity.billingType || 'slab';
+                            recordWithRates.monthlyRate = commodity.monthlyRate ?? 0;
+                            recordWithRates.minBillingMonths = commodity.minBillingMonths ?? 0;
+                            recordWithRates.insuranceRate = commodity.insuranceRate ?? 0;
                         }
                     }
 
@@ -222,37 +222,36 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                     };
 
                     const currentBagsOut = Number(record.bagsOut) || 0;
-                    const currentBagsStored = Number(record.bagsStored) || (Number(record.bagsIn) - currentBagsOut);
+                    const currentBagsStored = Number(record.bagsStored) || (Number(record.bagsIn || 0) - currentBagsOut);
                     
                     const newBagsOut = currentBagsOut + bagsToWithdraw;
                     const newBagsStored = currentBagsStored - bagsToWithdraw;
 
-                    if (newBagsStored < 0) {
+                    if (newBagsStored < -0.001) {
                         throw new Error(`Insufficient stock for Record #${record.id}. Requested: ${bagsToWithdraw}, Available: ${currentBagsStored}`);
                     }
 
                     const updateData: any = {
                         bagsOut: newBagsOut,
-                        bagsStored: newBagsStored,
+                        bagsStored: Math.max(0, newBagsStored),
                         totalRentBilled: (Number(record.totalRentBilled) || 0) + (rentForThisWithdrawal || 0),
                         outflows: arrayUnion(cleanForFirestore(newOutflow)),
                     };
 
-                    // Sync rates to record for history permanence if missing
                     if (record.rate6Months === undefined && commodity) {
-                        updateData.rate6Months = commodity.rate6Months || 0;
-                        updateData.rate1Year = commodity.rate1Year || 0;
+                        updateData.rate6Months = commodity.rate6Months ?? 0;
+                        updateData.rate1Year = commodity.rate1Year ?? 0;
                         updateData.billingType = commodity.billingType || 'slab';
-                        updateData.monthlyRate = commodity.monthlyRate || 0;
-                        updateData.minBillingMonths = commodity.minBillingMonths || 0;
-                        updateData.insuranceRate = commodity.insuranceRate || 0;
+                        updateData.monthlyRate = commodity.monthlyRate ?? 0;
+                        updateData.minBillingMonths = commodity.minBillingMonths ?? 0;
+                        updateData.insuranceRate = commodity.insuranceRate ?? 0;
                     }
 
                     if (!isMultiLotWithdrawal) {
                         updateData.khataAmount = khataAmount;
                     }
 
-                    if (newBagsStored <= 0) {
+                    if (newBagsStored <= 0.001) {
                         updateData.storageEndDate = Timestamp.fromDate(finalDate);
                         updateData.billingCycle = 'Completed';
                     } else {
@@ -269,7 +268,6 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                     const recordRef = doc(firestore, 'storageRecords', record.id);
                     batch.update(recordRef, cleanForFirestore(updateData));
 
-                    // Build receipt URL for the first (or only) record
                     if (!firstReceiptUrl) {
                         const queryParams = new URLSearchParams();
                         queryParams.set('recordId', record.id);
@@ -284,7 +282,6 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                 
                 await batch.commit();
 
-                // SMS Notification
                 if (sendSmsNotification && warehouseInfo?.textbeeApiKey && selectedCustomer?.phone) {
                     const defaultTemplate = `Dear {customerName}, withdrawal of {bags} bags of {commodity} recorded. Patti: {billNo},\nRent: {rent},\nTotal: {total}.\nThank you. - {warehouseName}.`;
                     const template = warehouseInfo?.smsOutflowTemplate || defaultTemplate;
@@ -294,21 +291,21 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
 
                     if (withdrawalEntries.length === 1) {
                         const rId = withdrawalEntries[0][0];
-                        const r = records.find(r => r.id === rId);
+                        const r = (records || []).find(r => r.id === rId);
                         if (r) {
-                            commodityName = r.commodityDescription;
+                            commodityName = r.commodityDescription || 'Stock';
                             billIdentifier = `${r.id}-${(r.outflows?.length || 0) + 1}`;
                         }
                     }
                     
                     const message = template
-                        .replace('{customerName}', selectedCustomer.name)
+                        .replace('{customerName}', selectedCustomer?.name || 'Customer')
                         .replace('{bags}', String(totalBags))
                         .replace('{commodity}', commodityName)
                         .replace('{billNo}', billIdentifier)
                         .replace('{rent}', formatCurrency(totalRent))
                         .replace('{total}', formatCurrency(totalPayable))
-                        .replace('{warehouseName}', warehouseInfo?.name || 'Sri Lakshmi Warehouse');
+                        .replace('{warehouseName}', warehouseInfo?.name || 'Warehouse');
 
                     sendSms({ apiKey: warehouseInfo.textbeeApiKey, deviceId: warehouseInfo.textbeeDeviceId, to: selectedCustomer.phone, message }).catch(console.error);
                 }
@@ -321,7 +318,7 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                 console.error("Outflow failed:", error);
                 toast({ 
                     title: 'System Error', 
-                    description: error.message || 'Failed to process outflow. Check console for details.', 
+                    description: error.message || 'Failed to process outflow.', 
                     variant: 'destructive' 
                 });
             }
@@ -353,7 +350,7 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                         <div className="text-[11px] text-muted-foreground p-3 border rounded-xl bg-slate-50 space-y-0.5 -mt-2">
                             <p><strong>Father's Name:</strong> {selectedCustomer.fatherName || 'N/A'}</p>
                             <p><strong>Village:</strong> {selectedCustomer.village || 'N/A'}</p>
-                            <p><strong>Phone:</strong> {selectedCustomer.phone}</p>
+                            <p><strong>Phone:</strong> {selectedCustomer.phone || 'N/A'}</p>
                         </div>
                     )}
 
@@ -375,16 +372,16 @@ export function OutflowForm({ records, customers, commodities }: { records: Stor
                                             <TableCell className="font-mono font-bold text-primary">{record.id}</TableCell>
                                             <TableCell className="font-medium">{record.commodityDescription}</TableCell>
                                             <TableCell className="font-mono text-slate-500">{record.location}</TableCell>
-                                            <TableCell className="text-right font-mono font-black">{record.bagsStored}</TableCell>
+                                            <TableCell className="text-right font-mono font-black">{Number(record.bagsStored) || 0}</TableCell>
                                             <TableCell className="p-1">
                                                 <Input
                                                     type="number"
                                                     step="0.01"
                                                     placeholder="0"
                                                     min="0"
-                                                    max={record.bagsStored}
+                                                    max={Number(record.bagsStored) || 0}
                                                     value={withdrawals[record.id] || ''}
-                                                    onChange={(e) => handleWithdrawalChange(record.id, e.target.value, record.bagsStored)}
+                                                    onChange={(e) => handleWithdrawalChange(record.id, e.target.value, Number(record.bagsStored) || 0)}
                                                     className="text-right font-mono font-black h-9 border-none focus-visible:ring-0 bg-secondary/50 rounded-lg"
                                                 />
                                             </TableCell>

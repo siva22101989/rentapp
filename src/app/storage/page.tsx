@@ -46,21 +46,20 @@ export default function StoragePage() {
 
     for (const record of allRecords) {
         const bagsOutFromOutflows = (record.outflows || []).reduce((s, o) => s + (Number(o.bagsWithdrawn) || 0), 0);
-        const bagsOutForRecord = Number(record.bagsOut) || bagsOutFromOutflows;
-        const bagsInForRecord = Number(record.bagsIn) || (Number(record.bagsStored || 0) + bagsOutForRecord);
+        const bagsOutForRecord = Number(record.bagsOut) ?? bagsOutFromOutflows;
+        const bagsInForRecord = Number(record.bagsIn) ?? (Number(record.bagsStored || 0) + bagsOutForRecord);
 
         totalInflow += bagsInForRecord;
         totalOutflow += bagsOutForRecord;
     }
 
-    const activeRecords = allRecords.filter(r => !r.storageEndDate && (Number(r.bagsStored) || 0) > 0);
+    const activeRecords = (allRecords || []).filter(r => !r.storageEndDate && (Number(r.bagsStored) || 0) > 0);
     const balanceStock = activeRecords.reduce((acc, record) => acc + (Number(record.bagsStored) || 0), 0);
 
     const today = new Date();
     const estimatedRent = activeRecords.reduce((total, record) => {
-      // Robust commodity fallback matching: case-insensitive and safe for nulls
       const normalizedDesc = (record.commodityDescription || '').trim().toLowerCase();
-      const commodity = allCommodities.find(c => (c.name || '').trim().toLowerCase() === normalizedDesc);
+      const commodity = (allCommodities || []).find(c => (c.name || '').trim().toLowerCase() === normalizedDesc);
       
       const recordWithRates: StorageRecord = {
           ...record,
@@ -74,7 +73,7 @@ export default function StoragePage() {
 
       const { rent: currentStockRent } = calculateFinalRent({ ...recordWithRates, storageStartDate: toDate(recordWithRates.storageStartDate) }, today, Number(record.bagsStored) || 0);
       const billedRentOnOutflows = (record.outflows || []).reduce((acc, o) => acc + (Number(o.rentBilled) || 0), 0);
-      const totalLiabilities = currentStockRent + billedRentOnOutflows + (Number(record.hamaliPayable) || 0) + (Number(record.khataAmount) || 0);
+      const totalLiabilities = (Number(currentStockRent) || 0) + billedRentOnOutflows + (Number(record.hamaliPayable) || 0) + (Number(record.khataAmount) || 0);
       const totalPaymentsReceived = (record.payments || []).reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
 
       const recordDue = Math.max(0, totalLiabilities - totalPaymentsReceived);

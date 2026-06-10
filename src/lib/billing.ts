@@ -37,6 +37,7 @@ export function getRecordStatus(record: StorageRecord): RecordStatusInfo {
 /**
  * Calculates the rent for a given number of bags for a storage record.
  * Handles both Monthly and Slab (stacked) billing types.
+ * Robustness: handles missing or invalid record data gracefully.
  */
 export function calculateFinalRent(
     record: StorageRecord, 
@@ -47,6 +48,10 @@ export function calculateFinalRent(
     monthsStored: number;
     rentPerBag: number;
 } {
+  if (!record || !calculationDate || !bagsToCalculate || bagsToCalculate <= 0) {
+      return { rent: 0, monthsStored: 0, rentPerBag: 0 };
+  }
+
   const startDate = startOfDay(toDate(record.storageStartDate));
   const endDate = startOfDay(calculationDate);
   
@@ -55,30 +60,28 @@ export function calculateFinalRent(
   }
 
   // Calculate billing months: partial months count as one full month.
-  // Standard logic: (Total months passed) + 1 for the current month.
   const billingMonths = differenceInMonths(endDate, startDate) + 1;
 
   let rentPerBag = 0;
 
   // 1. Monthly Billing Logic
   if (record.billingType === 'monthly') {
-    const monthlyRate = record.monthlyRate || 0;
-    const minMonths = record.minBillingMonths || 0;
+    const monthlyRate = Number(record.monthlyRate) || 0;
+    const minMonths = Number(record.minBillingMonths) || 0;
     const effectiveMonths = Math.max(billingMonths, minMonths);
     
     rentPerBag = effectiveMonths * monthlyRate;
     
     // Add annual insurance if applicable
     if (record.insuranceRate && record.insuranceRate > 0) {
-        // Insurance is charged per year, rounding up
         const yearsStored = Math.ceil(billingMonths / 12);
-        rentPerBag += (record.insuranceRate * yearsStored);
+        rentPerBag += (Number(record.insuranceRate) * yearsStored);
     }
   } 
-  // 2. Slab (Stacked) Billing Logic
+  // 2. Slab (Stacked) Billing Logic (Default)
   else {
-    const slab6Months = record.rate6Months ?? 0;
-    const slab1Year = record.rate1Year ?? 0;
+    const slab6Months = Number(record.rate6Months) || 0;
+    const slab1Year = Number(record.rate1Year) || 0;
     
     if (billingMonths <= 0) {
         rentPerBag = 0;
@@ -101,8 +104,8 @@ export function calculateFinalRent(
   const totalRent = rentPerBag * bagsToCalculate;
 
   return { 
-      rent: Math.max(0, totalRent),
+      rent: Math.max(0, totalRent) || 0,
       monthsStored: billingMonths,
-      rentPerBag
+      rentPerBag: rentPerBag || 0
   };
 }

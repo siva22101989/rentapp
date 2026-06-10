@@ -1,5 +1,6 @@
+
 export function generateStaticParams() {
-  return [{ unloadingId: 'p' }];
+  return []; // Empty for static export compatibility
 }
 
 export default function Placeholder() {

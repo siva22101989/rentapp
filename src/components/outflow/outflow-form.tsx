@@ -29,10 +29,10 @@ function SubmitButton({ isPending, disabled }: { isPending: boolean; disabled: b
         {isPending ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Synchronizing Ledger...
+            Processing Patti...
           </>
         ) : (
-          'Process Withdrawal and Generate Bill'
+          'Generate Withdrawal Bill (Patti)'
         )}
       </Button>
     );

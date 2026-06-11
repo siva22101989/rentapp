@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo } from 'react';
@@ -87,7 +86,6 @@ const DailySummaryContent = ({ dailyData, selectedDate }: { dailyData: DailyData
                 </Card>
             </div>
 
-            {/* Detailed Transaction Tables */}
             <div className="space-y-6 text-[13px]">
                 {dailyData.payments.length > 0 && (
                     <div className="space-y-2">
@@ -197,8 +195,11 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
             }
         });
 
-        data.unloadings = unloadingRecords.filter(r => isSameDay(toDate(r.unloadingDate), date));
         unloadingRecords.forEach(r => {
+            if (isSameDay(toDate(r.unloadingDate), date)) {
+                data.unloadings.push(r);
+                data.summary.totalInflowBags += (Number(r.bagsUnloaded) || 0);
+            }
             if (Array.isArray(r.payments)) {
                 r.payments.forEach(p => {
                     if (isSameDay(toDate(p.date), date)) {

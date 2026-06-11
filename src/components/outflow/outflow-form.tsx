@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useTransition, useMemo } from 'react';
@@ -51,13 +50,12 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
 
     const customerOptions = useMemo(() => (customers || []).map(c => ({ value: c.id, label: c.name })), [customers]);
 
-    // Enhanced Filter: calculate current balance bags robustly
     const filteredRecordsWithBalance = useMemo(() => {
         if (!selectedCustomerId) return [];
         return (records || [])
             .filter(r => r.customerId === selectedCustomerId)
             .map(r => {
-                const bagsOut = (r.outflows || []).reduce((acc, o) => acc + (Number(o.bagsWithdrawn) || 0), 0);
+                const bagsOut = Array.isArray(r.outflows) ? r.outflows.reduce((acc, o) => acc + (Number(o.bagsWithdrawn) || 0), 0) : (Number(r.bagsOut) || 0);
                 const initialInflow = Number(r.bagsIn) || (Number(r.bagsStored || 0) + bagsOut);
                 const currentBalance = initialInflow - bagsOut;
                 return { ...r, currentBalance, initialInflow };
@@ -217,15 +215,6 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
                         totalRentBilled: (Number(record.totalRentBilled) || 0) + (rentForThisWithdrawal || 0),
                         outflows: arrayUnion(cleanForFirestore(newOutflow)),
                     };
-
-                    if (record.rate6Months === undefined && commodity) {
-                        updateData.rate6Months = commodity.rate6Months ?? 0;
-                        updateData.rate1Year = commodity.rate1Year ?? 0;
-                        updateData.billingType = commodity.billingType || 'slab';
-                        updateData.monthlyRate = commodity.monthlyRate ?? 0;
-                        updateData.minBillingMonths = commodity.minBillingMonths ?? 0;
-                        updateData.insuranceRate = commodity.insuranceRate ?? 0;
-                    }
 
                     if (!isMultiLotWithdrawal) {
                         updateData.khataAmount = khataAmount;

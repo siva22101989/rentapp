@@ -1,4 +1,3 @@
-
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
@@ -18,7 +17,6 @@ export default function OutflowPage() {
   const appUser = useAppUser();
   const canAdd = appUser?.role !== 'super-admin';
 
-  // Robust Fetch: Fetch all warehouse records to avoid issues with Firestore 'null' field filtering
   const allRecordsQuery = useMemoFirebase(
     () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'storageRecords'), where('warehouseId', '==', appUser.warehouseId)) : null),
     [firestore, appUser]
@@ -37,10 +35,15 @@ export default function OutflowPage() {
   );
   const { data: commodities, loading: loadingCommodities } = useCollection<Commodity>(commoditiesQuery);
 
-  // In-memory filter: ensure bagsStored > 0 to identify active Godown inventory
   const activeRecords = useMemo(() => {
     if (!allRecords) return [];
-    return allRecords.filter(r => (Number(r.bagsStored) || 0) > 0);
+    return allRecords.filter(r => {
+        // Robust stock calculation: Inflow - Outflows
+        const bagsOut = Array.isArray(r.outflows) ? r.outflows.reduce((acc, o) => acc + (Number(o.bagsWithdrawn) || 0), 0) : (Number(r.bagsOut) || 0);
+        const initialIn = Number(r.bagsIn) || (Number(r.bagsStored || 0) + bagsOut);
+        const balance = initialIn - bagsOut;
+        return balance > 0.5; // Factor in float tolerance
+    });
   }, [allRecords]);
 
   if (loadingCustomers || loadingRecords || loadingCommodities) {
@@ -48,7 +51,7 @@ export default function OutflowPage() {
         <AppLayout>
             <div className="flex h-64 items-center justify-center text-muted-foreground">
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Loading active inventory...
+                Synchronizing available stock...
             </div>
         </AppLayout>
     );
@@ -58,7 +61,7 @@ export default function OutflowPage() {
     <AppLayout>
       <PageHeader
         title="Process Outflow"
-        description="Select records to process for customer withdrawal."
+        description="Select active inventory to process for customer withdrawal."
       />
       {canAdd ? (
         <OutflowForm records={activeRecords} customers={customers || []} commodities={commodities || []} />

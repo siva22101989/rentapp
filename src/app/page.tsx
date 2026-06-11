@@ -46,7 +46,7 @@ const navItems: NavItem[] = [
     { href: '/storage', label: 'Inventory', icon: Archive, description: 'View all active inventory and stock.', roles: ['owner', 'supervisor', 'biller', 'super-admin'] },
     { href: '/payments/pending', label: 'Pending Dues', icon: IndianRupee, description: 'View and manage pending payments.', roles: ['owner', 'biller', 'super-admin'] },
     { href: '/customers', label: 'Customers', icon: Users, description: 'Manage customer information.', roles: ['owner', 'supervisor', 'biller', 'super-admin'] },
-    { href: '/reports', label: 'Reports', icon: FileText, description: 'Generate detailed business reports.', roles: ['owner', 'supervisor', 'super-admin'] },
+    { href: '/reports', label: 'Reports', icon: FileText, description: 'Generate detailed business reports.', roles: ['owner', 'supervisor', 'biller', 'super-admin'] },
     { href: '/expenses', label: 'Profit & Loss', icon: Scale, description: 'Track income, expenses, and profitability.', roles: ['owner', 'super-admin'] },
 ];
 
@@ -181,10 +181,20 @@ export default function DashboardPage() {
             return { activeRecordsCount: 0, occupancy: 0 };
         }
 
-        const activeRecords = allRecords.filter(r => !r.storageEndDate && r.bagsStored > 0);
+        const activeRecords = allRecords.filter(r => {
+            const bagsOut = Array.isArray(r.outflows) ? r.outflows.reduce((acc, o) => acc + (Number(o.bagsWithdrawn) || 0), 0) : (Number(r.bagsOut) || 0);
+            const initialIn = Number(r.bagsIn) || (Number(r.bagsStored || 0) + bagsOut);
+            const balance = initialIn - bagsOut;
+            return !r.storageEndDate && balance > 0.5;
+        });
         const activeRecordsCount = activeRecords.length;
 
-        const totalBagsInStock = activeRecords.reduce((acc, record) => acc + record.bagsStored, 0);
+        const totalBagsInStock = activeRecords.reduce((acc, r) => {
+            const bagsOut = Array.isArray(r.outflows) ? r.outflows.reduce((acc, o) => acc + (Number(o.bagsWithdrawn) || 0), 0) : (Number(r.bagsOut) || 0);
+            const initialIn = Number(r.bagsIn) || (Number(r.bagsStored || 0) + bagsOut);
+            return acc + (initialIn - bagsOut);
+        }, 0);
+
         const totalCapacity = allLots.reduce((acc, lot) => acc + (lot.capacity || 0), 0);
         
         const occupancy = totalCapacity > 0 ? (totalBagsInStock / totalCapacity) * 100 : 0;

@@ -18,7 +18,7 @@ export function WorkerHamaliReportTable({ events, title, warehouseInfo }: Report
     
     let runningBalance = 0;
     const ledgerItems = useMemo(() => {
-        return events.map(event => {
+        return (events || []).map(event => {
             const payable = Number(event.payable) || 0;
             const paid = Number(event.paid) || 0;
             runningBalance += (payable - paid);
@@ -29,9 +29,9 @@ export function WorkerHamaliReportTable({ events, title, warehouseInfo }: Report
         });
     }, [events]);
 
-    const totalPayable = events.reduce((acc, event) => acc + (Number(event.payable) || 0), 0);
-    const totalPaid = events.reduce((acc, event) => acc + (Number(event.paid) || 0), 0);
-    const totalBags = events.reduce((acc, event) => acc + (Number(event.bags) || 0), 0);
+    const totalPayable = (events || []).reduce((acc, event) => acc + (Number(event.payable) || 0), 0);
+    const totalPaid = (events || []).reduce((acc, event) => acc + (Number(event.paid) || 0), 0);
+    const totalBags = (events || []).reduce((acc, event) => acc + (Number(event.bags) || 0), 0);
     
     return (
         <div className="bg-white p-4 text-black font-sans text-[13px] printable-area border shadow-sm rounded-lg">

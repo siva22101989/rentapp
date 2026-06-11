@@ -114,7 +114,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             description: `Inflow (Storage) - ${record.commodityDescription || 'Misc'}`,
             billNo: billNo,
             lotNo: record.location || 'N/A',
-            bagsIn: Number(record.bagsIn) || 0,
+            bagsIn: Number(record.bagsIn) || (Number(record.bagsStored || 0) + (Number(record.bagsOut) || 0)),
             bagsOut: 0,
             hamali: hamaliBilledOnInflow,
             rent: 0,
@@ -144,10 +144,12 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             });
         }
 
-        // Outflow Events (Rent Category)
-        if (Array.isArray(record.outflows)) {
-            record.outflows.forEach((outflow, idx) => {
+        // Outflow Events (Rent Category) - ROBUST ARRAY CHECK
+        const outflows = record.outflows;
+        if (outflows && Array.isArray(outflows)) {
+            outflows.forEach((outflow, idx) => {
                 const rentVal = Number(outflow.rentBilled) || 0;
+                const withdrawn = Number(outflow.bagsWithdrawn) || 0;
                 totalRentBilled += rentVal;
                 events.push({
                     date: toDate(outflow.date),
@@ -155,7 +157,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                     billNo: `${billNo}-${idx + 1}`,
                     lotNo: record.location || 'N/A',
                     bagsIn: 0,
-                    bagsOut: Number(outflow.bagsWithdrawn) || 0,
+                    bagsOut: withdrawn,
                     hamali: 0,
                     rent: rentVal,
                     credit: 0,
@@ -168,9 +170,10 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             });
         }
 
-        // Payments
-        if (Array.isArray(record.payments)) {
-            record.payments.forEach((payment, pIdx) => {
+        // Payments - ROBUST ARRAY CHECK
+        const payments = record.payments;
+        if (payments && Array.isArray(payments)) {
+            payments.forEach((payment, pIdx) => {
                 const amt = Number(payment.amount) || 0;
                 const isHamali = payment.type === 'hamali' || payment.type === 'unloading';
                 if (isHamali) totalHamaliPaid += amt;

@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -41,7 +40,7 @@ const navItems: NavItem[] = [
     { href: '/storage', label: 'Storage', icon: Archive, roles: ['owner', 'supervisor', 'biller'] },
     { href: '/payments/pending', label: 'Payments', icon: IndianRupee, roles: ['owner', 'biller'] },
     { href: '/customers', label: 'Customers', icon: Users, roles: ['owner', 'supervisor', 'biller'] },
-    { href: '/reports', label: 'Reports', icon: FileText, roles: ['owner', 'supervisor'] },
+    { href: '/reports', label: 'Reports', icon: FileText, roles: ['owner', 'supervisor', 'biller'] },
     { href: '/expenses', label: 'Profit & Loss', icon: Scale, roles: ['owner'] },
     { href: '/hamali', label: 'Hamali Payments', icon: Hammer, roles: ['owner'] },
 ];

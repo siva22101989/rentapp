@@ -42,6 +42,7 @@ export type Outflow = {
   bagsWithdrawn: number;
   rentBilled: number;
   discount?: number;
+  pattiNo?: string; // NEW: Numerical Patti Bill Number
 };
 
 export type HamaliChargeItem = {

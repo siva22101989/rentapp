@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -60,16 +59,14 @@ export function OutflowReportTable({ events, customers, allRecords, commodities,
                         {events.map((event, index) => {
                             const parentRecord = allRecords.find(r => r.id === event.recordId);
                             const customer = customers.find(c => c.id === event.customerId);
-                            
-                            const displayBillNo = String(event.recordId).replace(/\D/g, '');
-                            const pattiNo = `${displayBillNo}-${event.outflowIndex + 1}`;
+                            const pattiNo = event.pattiNo || String(index + 1001);
 
                             return (
                                 <TableRow key={index} className="h-8 border-b border-slate-100 hover:bg-slate-50/50">
                                     <TableCell className="p-1 text-center whitespace-nowrap">{format(toDate(event.date), 'dd/MM/yy')}</TableCell>
                                     <TableCell className="p-1 text-center font-mono font-bold text-blue-600">{pattiNo}</TableCell>
                                     <TableCell className="p-1 font-bold whitespace-nowrap uppercase">{getCustomerName(event.customerId)}</TableCell>
-                                    <TableCell className="p-1 text-center font-mono font-bold">{event.bagsWithdrawn}</TableCell>
+                                    <TableCell className="p-1 text-center font-mono font-bold text-orange-600">{event.bagsWithdrawn}</TableCell>
                                     <TableCell className="p-1 text-right font-mono">{formatCurrency(event.rentBilled)}</TableCell>
                                     <TableCell className="p-1 text-right print-hide">
                                         {parentRecord && customer && (
@@ -94,7 +91,7 @@ export function OutflowReportTable({ events, customers, allRecords, commodities,
                     <TableFooter>
                         <TableRow className="bg-slate-900 text-white font-black border-t-2 border-black h-10">
                             <TableCell colSpan={3} className="p-1 text-right uppercase text-[10px]">Total Withdrawal Summary</TableCell>
-                            <TableCell className="p-1 text-center font-mono text-[14px]">{totalBagsWithdrawn}</TableCell>
+                            <TableCell className="p-1 text-center font-mono text-[14px] text-orange-200">{totalBagsWithdrawn}</TableCell>
                             <TableCell className="p-1 text-right font-mono">{formatCurrency(totalRentBilled)}</TableCell>
                             <TableCell className="print-hide" />
                         </TableRow>

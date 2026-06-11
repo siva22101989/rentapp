@@ -112,9 +112,9 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         const billNo = String(record.id || '').replace(/\D/g, '');
         const hamaliBilledOnInflow = Number(record.hamaliPayable) || 0;
         
-        // Reconstruct true inflow for historical accuracy
-        const bagsOutFromHistory = (Array.isArray(record.outflows)) ? record.outflows.reduce((s, o) => s + (Number(o.bagsWithdrawn) || 0), 0) : 0;
-        const inflowBags = Number(record.bagsIn) || (Number(record.bagsStored || 0) + bagsOutFromHistory);
+        // Accurate historical bag calculation
+        const bagsOutFromOutflows = Array.isArray(record.outflows) ? record.outflows.reduce((s, o) => s + (Number(o.bagsWithdrawn) || 0), 0) : (Number(record.bagsOut) || 0);
+        const inflowBags = Number(record.bagsIn) || (Number(record.bagsStored || 0) + bagsOutFromOutflows);
         
         totalHamaliBilled += hamaliBilledOnInflow;
         totalBagsIn += inflowBags;
@@ -166,7 +166,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 events.push({
                     date: toDate(outflow.date),
                     description: `Outflow Withdrawal`,
-                    billNo: `${billNo}-${idx + 1}`,
+                    billNo: outflow.pattiNo || `${billNo}-${idx + 1}`,
                     lotNo: record.location || 'N/A',
                     bagsIn: 0,
                     bagsOut: withdrawn,
@@ -241,49 +241,6 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
   
   const timestamp = useMemo(() => format(new Date(), 'dd/MM/yy, h:mm a'), []);
 
-  const renderActions = (item: any) => {
-      if (!item.sourceRecord) return null;
-      switch (item.recordType) {
-          case 'storage':
-              return <ActionsMenu record={item.sourceRecord} customers={customers} allRecords={allRecords} />;
-          case 'unloading':
-              return <UnloadingTableActionsMenu record={{...item.sourceRecord, hamaliPending: 0}} customers={customers} commodities={commodities} lots={lots} storageRecords={allRecords} />;
-          case 'outflow':
-              const originalBillNo = String(item.sourceRecord.id || '').replace(/\D/g, '');
-              return (
-                  <OutflowActionsMenu 
-                    record={item.sourceRecord} 
-                    customer={customer} 
-                    warehouseInfo={warehouseInfo} 
-                    outflow={item.outflowData} 
-                    outflowIndex={item.outflowIndex} 
-                    deliveryOrderNo={`${originalBillNo}-${item.outflowIndex + 1}`} 
-                    deliveryOrderDate={item.date} 
-                    commodities={commodities} 
-                    lots={lots} 
-                    allRecords={allRecords} 
-                  />
-              );
-          case 'payment':
-              return (
-                  <PaymentActionsMenu 
-                    event={{
-                        date: item.date,
-                        customerId: customer.id,
-                        description: item.description,
-                        recordId: String(item.sourceRecord.id || item.sourceRecord.billNo || ''),
-                        amount: item.credit,
-                        type: (item.paymentData?.type || 'other') as PaymentType,
-                        recordType: item.paymentType,
-                        paymentIndex: item.paymentIndex
-                    }} 
-                  />
-              );
-          default:
-              return null;
-      }
-  }
-
   return (
     <div ref={ref} className="bg-white p-4 sm:p-6 text-black font-sans text-sm printable-area border-2 border-black rounded-lg shadow-sm">
         <div className="text-center mb-6 border-b-2 border-black pb-2">
@@ -309,7 +266,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 <div className="space-y-1.5 border-b md:border-b-0 md:border-r border-slate-200 pb-3 md:pb-0 md:pr-6">
                     <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Stock Summary</h3>
                     <div className="flex justify-between text-[13px]"><span>Bags In (Total History):</span><span className="font-mono font-bold">{totals.totalBagsIn}</span></div>
-                    <div className="flex justify-between text-[13px]"><span>Bags Out (Total History):</span><span className="font-mono font-bold">{totals.totalBagsOut}</span></div>
+                    <div className="flex justify-between text-[13px]"><span>Bags Out (Total History):</span><span className="font-mono font-bold text-orange-600">{totals.totalBagsOut}</span></div>
                     <div className="flex justify-between items-center border-t border-slate-300 pt-1.5 mt-1.5 text-primary font-black">
                         <span className="uppercase text-[11px]">Current Godown Stock:</span>
                         <span className="font-mono text-lg">{totals.balanceStock}</span>
@@ -365,12 +322,17 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                             <TableCell className="p-1 text-center font-mono text-slate-400">{item.billNo}</TableCell>
                             <TableCell className="p-1 text-center font-mono text-slate-600">{item.lotNo || ''}</TableCell>
                             <TableCell className="p-1 text-center font-mono">{item.bagsIn || ''}</TableCell>
-                            <TableCell className="p-1 text-center font-mono">{item.bagsOut || ''}</TableCell>
+                            <TableCell className="p-1 text-center font-mono text-orange-600">{item.bagsOut || ''}</TableCell>
                             <TableCell className="p-1 text-right font-mono">{item.hamali > 0 ? formatCurrency(item.hamali) : ''}</TableCell>
                             <TableCell className="p-1 text-right font-mono">{item.rent > 0 ? formatCurrency(item.rent) : ''}</TableCell>
                             <TableCell className="p-1 text-right font-mono text-green-700 font-bold">{item.credit > 0 ? formatCurrency(item.credit) : ''}</TableCell>
                             <TableCell className="p-1 text-right font-mono font-black">{formatCurrency(item.balance)}</TableCell>
-                            <TableCell className="p-1 text-right print-hide">{renderActions(item)}</TableCell>
+                            <TableCell className="p-1 text-right print-hide">
+                                {item.recordType === 'storage' && <ActionsMenu record={item.sourceRecord} customers={customers} allRecords={allRecords} />}
+                                {item.recordType === 'unloading' && <UnloadingTableActionsMenu record={{...item.sourceRecord, hamaliPending: 0}} customers={customers} commodities={commodities} lots={lots} storageRecords={allRecords} />}
+                                {item.recordType === 'outflow' && <OutflowActionsMenu record={item.sourceRecord} customer={customer} warehouseInfo={warehouseInfo} outflow={item.outflowData} outflowIndex={item.outflowIndex} deliveryOrderNo={item.billNo} deliveryOrderDate={item.date} commodities={commodities} lots={lots} allRecords={allRecords} />}
+                                {item.recordType === 'payment' && <PaymentActionsMenu event={{ date: item.date, customerId: customer.id, description: item.description, recordId: String(item.sourceRecord.id || item.sourceRecord.billNo || ''), amount: item.credit, type: (item.paymentData?.type || 'other') as PaymentType, recordType: item.paymentType, paymentIndex: item.paymentIndex }} />}
+                            </TableCell>
                         </TableRow>
                     ))}
                 </TableBody>
@@ -378,7 +340,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                     <TableRow className="bg-slate-100 font-black border-t-2 border-black h-10">
                         <TableCell colSpan={4} className="p-2 text-right uppercase text-[9px] tracking-tight">Totals</TableCell>
                         <TableCell className="p-2 text-center font-mono">{totals.totalBagsIn}</TableCell>
-                        <TableCell className="p-2 text-center font-mono">{totals.totalBagsOut}</TableCell>
+                        <TableCell className="p-2 text-center font-mono text-orange-600">{totals.totalBagsOut}</TableCell>
                         <TableCell className="p-2 text-right font-mono">{formatCurrency(totals.totalHamaliBilled)}</TableCell>
                         <TableCell className="p-2 text-right font-mono">{formatCurrency(totals.totalRentBilled)}</TableCell>
                         <TableCell className="p-2 text-right font-mono text-green-800">{formatCurrency(totals.totalCredit)}</TableCell>

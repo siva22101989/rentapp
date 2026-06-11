@@ -1,4 +1,3 @@
-
 import {
   collection,
   doc,
@@ -139,7 +138,8 @@ export const deleteOutflowEvent = async (db: Firestore, recordId: string, outflo
         const outflowToDelete = outflows[outflowIndex];
         const newOutflows = outflows.filter((_, index) => index !== outflowIndex);
         const newBagsOut = (record.bagsOut || 0) - outflowToDelete.bagsWithdrawn;
-        const newBagsStored = (record.bagsIn || 0) - newBagsOut;
+        const currentBagsIn = Number(record.bagsIn) || (Number(record.bagsStored) + (record.bagsOut || 0));
+        const newBagsStored = currentBagsIn - newBagsOut;
         const newTotalRentBilled = (record.totalRentBilled || 0) - outflowToDelete.rentBilled;
         transaction.update(recordRef, cleanForFirestore({
             outflows: newOutflows,
@@ -147,7 +147,6 @@ export const deleteOutflowEvent = async (db: Firestore, recordId: string, outflo
             bagsStored: newBagsStored,
             totalRentBilled: newTotalRentBilled,
             storageEndDate: null,
-            billingCycle: record.billingCycle || '6-Month Initial',
         }));
     });
 };
@@ -163,10 +162,23 @@ export const editOutflowEvent = async (db: Firestore, recordId: string, outflowI
         const oldOutflow = outflows[outflowIndex];
         const bagDiff = newData.bagsWithdrawn - oldOutflow.bagsWithdrawn;
         const rentDiff = newData.rentBilled - oldOutflow.rentBilled;
-        outflows[outflowIndex] = { ...oldOutflow, date: newData.date, bagsWithdrawn: newData.bagsWithdrawn, rentBilled: newData.rentBilled, discount: newData.discount };
-        const newBagsOut = (record.bagsOut || 0) + bagDiff;
-        const newBagsStored = (record.bagsIn || 0) - newBagsOut;
-        if (newBagsStored < 0) throw new Error("Insufficient stock");
+        
+        outflows[outflowIndex] = { 
+            ...oldOutflow, 
+            date: newData.date, 
+            bagsWithdrawn: newData.bagsWithdrawn, 
+            rentBilled: newData.rentBilled, 
+            discount: newData.discount,
+            pattiNo: newData.pattiNo || oldOutflow.pattiNo 
+        };
+
+        const currentBagsOut = Number(record.bagsOut) || 0;
+        const newBagsOut = currentBagsOut + bagDiff;
+        const currentBagsIn = Number(record.bagsIn) || (Number(record.bagsStored) + currentBagsOut);
+        const newBagsStored = currentBagsIn - newBagsOut;
+
+        if (newBagsStored < -0.001) throw new Error("Insufficient stock for update");
+
         const updateData: any = {
             outflows: cleanForFirestore(outflows),
             bagsOut: newBagsOut,
@@ -176,12 +188,11 @@ export const editOutflowEvent = async (db: Firestore, recordId: string, outflowI
         if (newData.khataAmount !== undefined) updateData.khataAmount = newData.khataAmount;
         if (newData.commodityDescription !== undefined) updateData.commodityDescription = newData.commodityDescription;
         if (newData.location !== undefined) updateData.location = newData.location;
-        if (newBagsStored <= 0) {
+        if (newBagsStored <= 0.001) {
             updateData.storageEndDate = Timestamp.fromDate(newData.date);
             updateData.billingCycle = 'Completed';
         } else {
             updateData.storageEndDate = null;
-            updateData.billingCycle = record.billingCycle || '6-Month Initial';
         }
         transaction.update(recordRef, updateData);
     });

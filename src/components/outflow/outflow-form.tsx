@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { Customer, StorageRecord, Payment, Outflow, WarehouseInfo, Commodity } from '@/lib/definitions';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, AlertTriangle } from 'lucide-react';
+import { Loader2, AlertTriangle, Sparkles } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { calculateFinalRent } from '@/lib/billing';
 import { format } from 'date-fns';
@@ -20,7 +20,7 @@ import { useDoc } from '@/firebase/firestore/use-doc';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 import { Checkbox } from '@/components/ui/checkbox';
 import { sendSms } from '@/lib/sms';
-import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { Badge } from '../ui/badge';
 
 export function OutflowForm({ records = [], customers = [], commodities = [] }: { records: StorageRecord[], customers: Customer[], commodities: Commodity[] }) {
     const { toast } = useToast();
@@ -48,6 +48,20 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
     );
     const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
+    // Patti Number Sequence Calculation
+    const nextPattiNo = useMemo(() => {
+        let max = 1000;
+        records.forEach(r => {
+            if (Array.isArray(r.outflows)) {
+                r.outflows.forEach(o => {
+                    const num = parseInt(o.pattiNo || '0', 10);
+                    if (!isNaN(num) && num > max) max = num;
+                });
+            }
+        });
+        return String(max + 1);
+    }, [records]);
+
     const customerOptions = useMemo(() => (customers || []).map(c => ({ value: c.id, label: c.name })), [customers]);
 
     const filteredRecordsWithBalance = useMemo(() => {
@@ -55,8 +69,7 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
         return (records || [])
             .filter(r => r.customerId === selectedCustomerId)
             .map(r => {
-                // ROBUST HISTORICAL CALCULATION
-                const bagsOut = (Array.isArray(r.outflows)) ? r.outflows.reduce((acc, o) => acc + (Number(o.bagsWithdrawn) || 0), 0) : (Number(r.bagsOut) || 0);
+                const bagsOut = Array.isArray(r.outflows) ? r.outflows.reduce((acc, o) => acc + (Number(o.bagsWithdrawn) || 0), 0) : (Number(r.bagsOut) || 0);
                 const initialInflow = Number(r.bagsIn) || (Number(r.bagsStored || 0) + bagsOut);
                 const currentBalance = Math.max(0, initialInflow - bagsOut);
                 return { ...r, currentBalance, initialInflow };
@@ -165,7 +178,7 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
                 const discountAmount = !isMultiLotWithdrawal ? (Number(discount) || 0) : 0;
                 const khataAmount = !isMultiLotWithdrawal ? (Number(khataAmountInput) || 0) : totalKhataFromRecords;
                 
-                let firstReceiptUrl: string | null = null;
+                let firstRecordId = '';
 
                 for (const record of filteredRecordsWithBalance) {
                     const bagsToWithdraw = Number(withdrawals[record.id]) || 0;
@@ -188,16 +201,17 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
 
                     const { rent: rentForThisWithdrawal } = calculateFinalRent({ ...recordWithRates, storageStartDate: toDate(recordWithRates.storageStartDate) }, finalDate, bagsToWithdraw);
                     
-                    const newOutflow: Partial<Outflow> = {
+                    const newOutflow: Outflow = {
                         date: finalDate,
                         bagsWithdrawn: bagsToWithdraw,
                         rentBilled: rentForThisWithdrawal || 0,
                         discount: isMultiLotWithdrawal ? 0 : discountAmount,
+                        pattiNo: nextPattiNo, // USE THE GLOBAL PATTI NO
                     };
 
                     const currentBagsOut = Number(record.bagsOut) || 0;
                     const newBagsOut = currentBagsOut + bagsToWithdraw;
-                    const newBagsStored = Math.max(0, Number(record.initialInflow) - newBagsOut);
+                    const newBagsStored = Math.max(0, (Number(record.bagsIn) || (Number(record.bagsStored) + currentBagsOut)) - newBagsOut);
 
                     const updateData: any = {
                         bagsOut: newBagsOut,
@@ -215,7 +229,6 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
                         updateData.billingCycle = 'Completed';
                     } else {
                         updateData.storageEndDate = null;
-                        updateData.billingCycle = record.billingCycle || '6-Month Initial';
                     }
                     
                     const paidNow = Number(amountPaidNow) || 0;
@@ -227,30 +240,30 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
                     const recordRef = doc(firestore, 'storageRecords', record.id);
                     batch.update(recordRef, cleanForFirestore(updateData));
 
-                    if (!firstReceiptUrl) {
-                        const qp = new URLSearchParams();
-                        qp.set('recordId', record.id);
-                        qp.set('withdrawn', String(bagsToWithdraw));
-                        qp.set('rent', String(rentForThisWithdrawal || 0));
-                        qp.set('paidNow', String(isMultiLotWithdrawal ? 0 : paidNow));
-                        qp.set('discount', String(isMultiLotWithdrawal ? 0 : discountAmount));
-                        qp.set('khata', String(khataAmount));
-                        firstReceiptUrl = `/outflow/receipt?${qp.toString()}`;
-                    }
+                    if (!firstRecordId) firstRecordId = record.id;
                 }
                 
                 await batch.commit();
 
                 if (sendSmsNotification && warehouseInfo?.textbeeApiKey && selectedCustomer?.phone) {
-                    const template = warehouseInfo?.smsOutflowTemplate || `Dear {customerName}, withdrawal of {bags} bags recorded. Bill: {billNo}. Thank you.`;
-                    let billIdentifier = withdrawalEntries.length === 1 ? `${withdrawalEntries[0][0]}-${(filteredRecordsWithBalance.find(r => r.id === withdrawalEntries[0][0])?.outflows?.length || 0) + 1}` : 'Multi-Lot';
-                    const msg = template.replace('{customerName}', selectedCustomer.name).replace('{bags}', String(totalBags)).replace('{billNo}', billIdentifier);
+                    const template = warehouseInfo?.smsOutflowTemplate || `Dear {customerName}, withdrawal of {bags} bags recorded. Patti: {billNo}. Thank you.`;
+                    const msg = template.replace('{customerName}', selectedCustomer.name).replace('{bags}', String(totalBags)).replace('{billNo}', nextPattiNo);
                     sendSms({ apiKey: warehouseInfo.textbeeApiKey, deviceId: warehouseInfo.textbeeDeviceId, to: selectedCustomer.phone, message: msg }).catch(console.error);
                 }
 
-                toast({ title: 'Success', description: `Withdrawal processed for ${totalBags} bags.` });
+                toast({ title: 'Success', description: `Withdrawal Patti #${nextPattiNo} processed.` });
+                
+                // Open Receipt
+                const qp = new URLSearchParams();
+                qp.set('recordId', firstRecordId);
+                qp.set('withdrawn', String(totalBags));
+                qp.set('rent', String(totalRent));
+                qp.set('paidNow', String(isMultiLotWithdrawal ? 0 : amountPaidNow));
+                qp.set('discount', String(isMultiLotWithdrawal ? 0 : discount));
+                qp.set('khata', String(khataAmountInput));
+                window.open(`/outflow/receipt?${qp.toString()}`, '_blank');
+
                 resetForm();
-                if (firstReceiptUrl) window.open(firstReceiptUrl, '_blank');
 
             } catch (error: any) {
                 console.error("Outflow failed:", error);
@@ -264,8 +277,19 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
         <form onSubmit={handleSubmit} className="w-full max-w-3xl">
             <Card className="stylish-card border-primary/20 shadow-lg">
                 <CardHeader className="bg-secondary/30">
-                <CardTitle className="text-xl font-bold tracking-tight">Generate Withdrawal Bill (Patti)</CardTitle>
-                <CardDescription className="text-xs font-medium">Select active godown records to process a customer withdrawal.</CardDescription>
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <CardTitle className="text-xl font-bold tracking-tight">Generate Outflow Patti</CardTitle>
+                            <CardDescription className="text-xs font-medium text-slate-500">Numerical bills are automatically sequenced.</CardDescription>
+                        </div>
+                        <div className="text-right">
+                             <Label className="text-[9px] uppercase font-black text-primary/60 tracking-widest">Next Patti No</Label>
+                             <div className="flex items-center gap-1.5 justify-end">
+                                <Sparkles className="h-3 w-3 text-primary" />
+                                <span className="font-mono font-black text-lg text-primary">{nextPattiNo}</span>
+                             </div>
+                        </div>
+                    </div>
                 </CardHeader>
                 <CardContent className="space-y-4 pt-6">
                     <div className="space-y-1.5">

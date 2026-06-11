@@ -112,14 +112,13 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         const billNo = String(record.id || '').replace(/\D/g, '');
         const hamaliBilledOnInflow = Number(record.hamaliPayable) || 0;
         
-        // Accurate historical bag calculation
+        // Robust historical-aware stock calculation
         const bagsOutFromOutflows = Array.isArray(record.outflows) ? record.outflows.reduce((s, o) => s + (Number(o.bagsWithdrawn) || 0), 0) : (Number(record.bagsOut) || 0);
         const inflowBags = Number(record.bagsIn) || (Number(record.bagsStored || 0) + bagsOutFromOutflows);
         
         totalHamaliBilled += hamaliBilledOnInflow;
         totalBagsIn += inflowBags;
         
-        // Inflow Event
         events.push({
             date: toDate(record.storageStartDate),
             description: `Inflow (Storage) - ${record.commodityDescription || 'Misc'}`,
@@ -135,7 +134,6 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             sourceRecord: record,
         });
         
-        // Khata Event (Rent Category)
         if (record.khataAmount && record.khataAmount > 0) {
             const khata = Number(record.khataAmount);
             totalRentBilled += khata;
@@ -143,7 +141,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 date: toDate(record.storageStartDate),
                 description: `Khata Income (Weighbridge)`,
                 billNo: billNo,
-                lotNo: record.location || 'N/A',
+                lotNo: '', 
                 bagsIn: 0,
                 bagsOut: 0,
                 hamali: 0,
@@ -155,7 +153,6 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             });
         }
 
-        // Outflow Events (Withdrawals)
         if (Array.isArray(record.outflows)) {
             record.outflows.forEach((outflow, idx) => {
                 const rentVal = Number(outflow.rentBilled) || 0;
@@ -182,7 +179,6 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             });
         }
 
-        // Payments
         if (Array.isArray(record.payments)) {
             record.payments.forEach((payment, pIdx) => {
                 const amt = Number(payment.amount) || 0;

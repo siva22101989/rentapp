@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { Customer, StorageRecord, Payment, Outflow, WarehouseInfo, Commodity } from '@/lib/definitions';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, AlertTriangle, Sparkles } from 'lucide-react';
+import { Loader2, Sparkles } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { calculateFinalRent } from '@/lib/billing';
 import { format } from 'date-fns';
@@ -20,7 +20,6 @@ import { useDoc } from '@/firebase/firestore/use-doc';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 import { Checkbox } from '@/components/ui/checkbox';
 import { sendSms } from '@/lib/sms';
-import { Badge } from '../ui/badge';
 
 export function OutflowForm({ records = [], customers = [], commodities = [] }: { records: StorageRecord[], customers: Customer[], commodities: Commodity[] }) {
     const { toast } = useToast();
@@ -48,7 +47,7 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
     );
     const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
-    // Patti Number Sequence Calculation
+    // Global Patti Number Calculation
     const nextPattiNo = useMemo(() => {
         let max = 1000;
         records.forEach(r => {
@@ -86,7 +85,6 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
         [withdrawals]
     );
 
-    const isMultiLotWithdrawal = useMemo(() => withdrawalEntries.length > 1, [withdrawalEntries]);
     const totalPayable = totalRent + totalPendingHamali + (Number(khataAmountInput) || 0) - (Number(discount) || 0);
 
     useEffect(() => {
@@ -109,7 +107,6 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
             const record = filteredRecordsWithBalance.find(r => r.id === recordId);
             if (record) {
                 let recordWithRates: StorageRecord = { ...record };
-                
                 const normalizedDesc = (record.commodityDescription || '').trim().toLowerCase();
                 const commodity = (commodities || []).find(c => (c.name || '').trim().toLowerCase() === normalizedDesc);
 
@@ -175,14 +172,23 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
         startTransition(async () => {
             try {
                 const batch = writeBatch(firestore);
-                const discountAmount = !isMultiLotWithdrawal ? (Number(discount) || 0) : 0;
-                const khataAmount = !isMultiLotWithdrawal ? (Number(khataAmountInput) || 0) : totalKhataFromRecords;
-                
+                const discountAmountTotal = Number(discount) || 0;
+                const khataAmountTotal = Number(khataAmountInput) || 0;
+                const paidNowTotal = Number(amountPaidNow) || 0;
+
+                let remainingDiscount = discountAmountTotal;
+                let remainingKhata = khataAmountTotal;
+                let remainingPayment = paidNowTotal;
+
                 let firstRecordId = '';
 
-                for (const record of filteredRecordsWithBalance) {
-                    const bagsToWithdraw = Number(withdrawals[record.id]) || 0;
-                    if (bagsToWithdraw <= 0) continue;
+                // Step 1: Filter entries
+                const entriesToProcess = filteredRecordsWithBalance.filter(r => (Number(withdrawals[r.id]) || 0) > 0);
+
+                for (let i = 0; i < entriesToProcess.length; i++) {
+                    const record = entriesToProcess[i];
+                    const bagsToWithdraw = Number(withdrawals[record.id]);
+                    const isLast = i === entriesToProcess.length - 1;
 
                     let recordWithRates: StorageRecord = { ...record };
                     const normalizedDesc = (record.commodityDescription || '').trim().toLowerCase();
@@ -201,12 +207,19 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
 
                     const { rent: rentForThisWithdrawal } = calculateFinalRent({ ...recordWithRates, storageStartDate: toDate(recordWithRates.storageStartDate) }, finalDate, bagsToWithdraw);
                     
+                    // Distribute Discount, Khata, and Payment (simplistic: put all on first, or distribute)
+                    // For audit accuracy, applying to the first record or proportionally is best.
+                    // Here we apply full values to the first record for simplicity in patti-tracking.
+                    const d = i === 0 ? discountAmountTotal : 0;
+                    const k = i === 0 ? khataAmountTotal : 0;
+                    const p = i === 0 ? paidNowTotal : 0;
+
                     const newOutflow: Outflow = {
                         date: finalDate,
                         bagsWithdrawn: bagsToWithdraw,
                         rentBilled: rentForThisWithdrawal || 0,
-                        discount: isMultiLotWithdrawal ? 0 : discountAmount,
-                        pattiNo: nextPattiNo, // USE THE GLOBAL PATTI NO
+                        discount: d,
+                        pattiNo: nextPattiNo,
                     };
 
                     const currentBagsOut = Number(record.bagsOut) || 0;
@@ -220,9 +233,7 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
                         outflows: arrayUnion(cleanForFirestore(newOutflow)),
                     };
 
-                    if (!isMultiLotWithdrawal) {
-                        updateData.khataAmount = khataAmount;
-                    }
+                    if (i === 0) updateData.khataAmount = k;
 
                     if (newBagsStored <= 0.001) {
                         updateData.storageEndDate = Timestamp.fromDate(finalDate);
@@ -231,43 +242,38 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
                         updateData.storageEndDate = null;
                     }
                     
-                    const paidNow = Number(amountPaidNow) || 0;
-                    if (!isMultiLotWithdrawal && paidNow > 0) {
-                        const newPayment: Partial<Payment> = { amount: paidNow, date: finalDate, type: 'rent' };
+                    if (p > 0) {
+                        const newPayment: Partial<Payment> = { amount: p, date: finalDate, type: 'rent' };
                         updateData.payments = arrayUnion(cleanForFirestore(newPayment));
                     }
                     
-                    const recordRef = doc(firestore, 'storageRecords', record.id);
-                    batch.update(recordRef, cleanForFirestore(updateData));
-
+                    batch.update(doc(firestore, 'storageRecords', record.id), cleanForFirestore(updateData));
                     if (!firstRecordId) firstRecordId = record.id;
                 }
                 
                 await batch.commit();
 
                 if (sendSmsNotification && warehouseInfo?.textbeeApiKey && selectedCustomer?.phone) {
-                    const template = warehouseInfo?.smsOutflowTemplate || `Dear {customerName}, withdrawal of {bags} bags recorded. Patti: {billNo}. Thank you.`;
-                    const msg = template.replace('{customerName}', selectedCustomer.name).replace('{bags}', String(totalBags)).replace('{billNo}', nextPattiNo);
+                    const msg = `Dear ${selectedCustomer.name}, withdrawal of ${totalBags} bags processed. Patti No: ${nextPattiNo}. Total: ${formatCurrency(totalPayable)}.`;
                     sendSms({ apiKey: warehouseInfo.textbeeApiKey, deviceId: warehouseInfo.textbeeDeviceId, to: selectedCustomer.phone, message: msg }).catch(console.error);
                 }
 
                 toast({ title: 'Success', description: `Withdrawal Patti #${nextPattiNo} processed.` });
                 
-                // Open Receipt
                 const qp = new URLSearchParams();
                 qp.set('recordId', firstRecordId);
                 qp.set('withdrawn', String(totalBags));
                 qp.set('rent', String(totalRent));
-                qp.set('paidNow', String(isMultiLotWithdrawal ? 0 : amountPaidNow));
-                qp.set('discount', String(isMultiLotWithdrawal ? 0 : discount));
-                qp.set('khata', String(khataAmountInput));
+                qp.set('paidNow', String(paidNowTotal));
+                qp.set('discount', String(discountAmountTotal));
+                qp.set('khata', String(khataAmountTotal));
                 window.open(`/outflow/receipt?${qp.toString()}`, '_blank');
 
                 resetForm();
 
             } catch (error: any) {
                 console.error("Outflow failed:", error);
-                toast({ title: 'Error', description: error.message || 'Failed to process outflow.', variant: 'destructive' });
+                toast({ title: 'Error', description: 'Failed to process outflow.', variant: 'destructive' });
             }
         });
     }
@@ -343,7 +349,7 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
                                     )) : (
                                         <TableRow>
                                             <TableCell colSpan={5} className="text-center h-24 text-muted-foreground italic">
-                                                No active godown inventory found for this depositor.
+                                                No active inventory found.
                                             </TableCell>
                                         </TableRow>
                                     )}
@@ -410,7 +416,6 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
                                         step="0.01"
                                         value={discount}
                                         onChange={e => setDiscount(e.target.value === '' ? '' : Number(e.target.value))}
-                                        disabled={isMultiLotWithdrawal}
                                         className="h-10 font-mono font-bold text-green-600"
                                     />
                                 </div>
@@ -434,7 +439,6 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
                                         step="0.01"
                                         value={amountPaidNow}
                                         onChange={e => setAmountPaidNow(e.target.value === '' ? '' : Number(e.target.value))}
-                                        disabled={isMultiLotWithdrawal}
                                         className="h-12 text-lg font-mono font-black bg-white shadow-inner border-primary/30"
                                     />
                                 </div>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -138,7 +137,7 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses, w
             if (payable > 0 || sr.hamaliPayable > 0) {
                 events.push({
                     date: toDate(sr.storageStartDate),
-                    description: `${custName} - ${sr.inflowType === 'Plot' ? 'Drying' : 'Direct'}`,
+                    description: `${custName} - ${sr.inflowType === 'Plot' ? 'Drying' : 'Direct Inflow'}`,
                     recordId: sr.id,
                     customerId: sr.customerId,
                     customerName: custName,

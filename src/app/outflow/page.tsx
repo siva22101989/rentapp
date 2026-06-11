@@ -38,11 +38,12 @@ export default function OutflowPage() {
   const activeRecords = useMemo(() => {
     if (!allRecords) return [];
     return allRecords.filter(r => {
-        // Robust stock calculation: Inflow - Outflows
+        // Robust historical-aware stock calculation
         const bagsOut = Array.isArray(r.outflows) ? r.outflows.reduce((acc, o) => acc + (Number(o.bagsWithdrawn) || 0), 0) : (Number(r.bagsOut) || 0);
+        // Factor in historical records where bagsIn might be missing but bagsStored exists
         const initialIn = Number(r.bagsIn) || (Number(r.bagsStored || 0) + bagsOut);
         const balance = initialIn - bagsOut;
-        return balance > 0.5; // Factor in float tolerance
+        return !r.storageEndDate && balance > 0.5;
     });
   }, [allRecords]);
 

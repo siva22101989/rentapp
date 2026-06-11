@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -49,11 +50,13 @@ export function OutflowReport({ records, customers, commodities, lots }: Outflow
 
                     if (selectedCustomerId !== 'all' && record.customerId !== selectedCustomerId) return;
 
-                    const pattiNo = outflow.pattiNo || `legacy-${record.id}-${index}`;
+                    // Strictly numerical Patti identification
+                    const pattiNo = String(outflow.pattiNo || record.id).replace(/\D/g, '');
                     
                     if (!events[pattiNo]) {
                         events[pattiNo] = {
                             ...outflow,
+                            pattiNo,
                             date: outflowDate,
                             customerId: record.customerId,
                             recordId: record.id,

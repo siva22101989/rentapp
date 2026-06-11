@@ -48,11 +48,12 @@ export function UnloadingReportTable({ records, customers, commodities, lots, st
                         {records.map((record) => {
                             const totalPaid = (record.payments || []).reduce((acc, p) => acc + p.amount, 0);
                             const hamaliPending = Math.max(0, (record.totalHamali || 0) - totalPaid);
+                            const cleanBillNo = String(record.billNo || record.id).replace(/\D/g, ''); // Strictly Numerical
                             
                             return (
                                 <TableRow key={record.id} className="h-8 border-b border-slate-100">
                                     <TableCell className="p-1 text-center">{format(toDate(record.unloadingDate), 'dd/MM/yy')}</TableCell>
-                                    <TableCell className="p-1 text-center font-mono">{record.billNo || record.id}</TableCell>
+                                    <TableCell className="p-1 text-center font-mono">{cleanBillNo}</TableCell>
                                     <TableCell className="p-1 font-medium uppercase whitespace-nowrap">{getCustomerName(record.customerId)}</TableCell>
                                     <TableCell className="p-1 text-center">{record.commodityDescription}</TableCell>
                                     <TableCell className="p-1 text-right font-mono font-bold">{record.bagsUnloaded}</TableCell>

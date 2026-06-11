@@ -62,7 +62,8 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
     // 1. Process Unloading Records
     (unloadingRecords || []).forEach(unloading => {
         const totalHamali = Number(unloading.totalHamali) || 0;
-        const billNo = String(unloading.billNo || unloading.id || '').replace(/\D/g, '');
+        const rawId = String(unloading.billNo || unloading.id || '');
+        const cleanId = rawId.replace(/\D/g, ''); // Strictly Numerical
         const bags = Number(unloading.bagsUnloaded) || 0;
         
         if (totalHamali > 0 || bags > 0) {
@@ -71,7 +72,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             events.push({
                 date: toDate(unloading.unloadingDate),
                 description: `Inflow (Unloading) - ${unloading.commodityDescription || 'Misc'}`,
-                billNo: billNo,
+                billNo: cleanId,
                 lotNo: unloading.location || 'N/A',
                 bagsIn: bags,
                 bagsOut: 0,
@@ -91,7 +92,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 events.push({
                     date: toDate(payment.date),
                     description: getPaymentDesc(payment.type, 'unloading'),
-                    billNo: billNo,
+                    billNo: cleanId,
                     lotNo: '', 
                     bagsIn: 0,
                     bagsOut: 0,
@@ -111,7 +112,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
 
     // 2. Process Storage Records
     (records || []).forEach(record => {
-        const billNo = String(record.id || '').replace(/\D/g, '');
+        const cleanId = String(record.id || '').replace(/\D/g, ''); // Strictly Numerical
         const hamaliBilledOnInflow = Number(record.hamaliPayable) || 0;
         
         const historicalBagsOut = Array.isArray(record.outflows) 
@@ -126,7 +127,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         events.push({
             date: toDate(record.storageStartDate),
             description: `Inflow (Godown) - ${record.commodityDescription || 'Misc'}`,
-            billNo: billNo,
+            billNo: cleanId,
             lotNo: record.location || 'N/A',
             bagsIn: inflowBags,
             bagsOut: 0,
@@ -144,7 +145,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             events.push({
                 date: toDate(record.storageStartDate),
                 description: `Khata Income (Weighbridge)`,
-                billNo: billNo,
+                billNo: cleanId,
                 lotNo: '', 
                 bagsIn: 0,
                 bagsOut: 0,
@@ -160,7 +161,8 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         // Process Outflows for Grouping
         if (Array.isArray(record.outflows)) {
             record.outflows.forEach((outflow, idx) => {
-                const pNo = outflow.pattiNo || `legacy-${record.id}-${idx}`;
+                // Remove text prefixes and keep it strictly numerical
+                const pNo = String(outflow.pattiNo || record.id).replace(/\D/g, ''); 
                 const rentVal = Number(outflow.rentBilled) || 0;
                 const withdrawn = Number(outflow.bagsWithdrawn) || 0;
                 
@@ -208,7 +210,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 events.push({
                     date: toDate(payment.date),
                     description: getPaymentDesc(payment.type, 'storage'),
-                    billNo: billNo,
+                    billNo: cleanId,
                     lotNo: '', 
                     bagsIn: 0,
                     bagsOut: 0,

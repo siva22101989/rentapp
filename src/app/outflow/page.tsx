@@ -17,6 +17,7 @@ export default function OutflowPage() {
   const appUser = useAppUser();
   const canAdd = appUser?.role !== 'super-admin';
 
+  // 1. Fetch ALL records for ID calculation (to prevent repeats)
   const allRecordsQuery = useMemoFirebase(
     () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'storageRecords'), where('warehouseId', '==', appUser.warehouseId)) : null),
     [firestore, appUser]
@@ -35,12 +36,11 @@ export default function OutflowPage() {
   );
   const { data: commodities, loading: loadingCommodities } = useCollection<Commodity>(commoditiesQuery);
 
+  // 2. Extract Active Records for selection
   const activeRecords = useMemo(() => {
     if (!allRecords) return [];
     return allRecords.filter(r => {
-        // Robust historical-aware stock calculation
         const bagsOut = Array.isArray(r.outflows) ? r.outflows.reduce((acc, o) => acc + (Number(o.bagsWithdrawn) || 0), 0) : (Number(r.bagsOut) || 0);
-        // Factor in historical records where bagsIn might be missing but bagsStored exists
         const initialIn = Number(r.bagsIn) || (Number(r.bagsStored || 0) + bagsOut);
         const balance = initialIn - bagsOut;
         return !r.storageEndDate && balance > 0.5;
@@ -52,7 +52,7 @@ export default function OutflowPage() {
         <AppLayout>
             <div className="flex h-64 items-center justify-center text-muted-foreground">
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Synchronizing available stock...
+                Synchronizing global inventory...
             </div>
         </AppLayout>
     );
@@ -62,10 +62,15 @@ export default function OutflowPage() {
     <AppLayout>
       <PageHeader
         title="Process Outflow"
-        description="Select active inventory to process for customer withdrawal."
+        description="Withdraw items from Godown. Every entry generates a unique numerical ID."
       />
       {canAdd ? (
-        <OutflowForm records={activeRecords} customers={customers || []} commodities={commodities || []} />
+        <OutflowForm 
+            activeRecords={activeRecords} 
+            allRecords={allRecords || []} 
+            customers={customers || []} 
+            commodities={commodities || []} 
+        />
       ) : (
         <Card><CardContent className="p-8 text-center text-muted-foreground">This function is not available for super-admins.</CardContent></Card>
       )}

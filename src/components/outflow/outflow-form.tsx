@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useTransition, useMemo } from 'react';
@@ -22,12 +21,12 @@ import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 import { Checkbox } from '@/components/ui/checkbox';
 import { sendSms } from '@/lib/sms';
 
-export function OutflowForm({ records = [], customers = [], commodities = [] }: { records: StorageRecord[], customers: Customer[], commodities: Commodity[] }) {
+export function OutflowForm({ activeRecords = [], allRecords = [], customers = [], commodities = [] }: { activeRecords: StorageRecord[], allRecords: StorageRecord[], customers: Customer[], commodities: Commodity[] }) {
     const { toast } = useToast();
     const firestore = useFirestore();
     const appUser = useAppUser();
     const [isPending, startTransition] = useTransition();
-    const [sendSmsNotification, setSendSmsNotification] = useState(true);
+    const [sendSmsNotification, setSendSmsNotification] = useState(false);
     
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
     const [withdrawals, setWithdrawals] = useState<Record<string, number | ''>>({});
@@ -48,10 +47,10 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
     );
     const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
-    // Global Numerical ID Sequence Calculation
-    const nextOutflowNo = useMemo(() => {
+    // 1. Calculate TRUE Global Max ID (scans all records ever processed)
+    const nextStartingId = useMemo(() => {
         let max = 1000;
-        records.forEach(r => {
+        allRecords.forEach(r => {
             if (Array.isArray(r.outflows)) {
                 r.outflows.forEach(o => {
                     const num = parseInt(o.pattiNo || '0', 10);
@@ -59,14 +58,14 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
                 });
             }
         });
-        return String(max + 1);
-    }, [records]);
+        return max + 1;
+    }, [allRecords]);
 
     const customerOptions = useMemo(() => (customers || []).map(c => ({ value: c.id, label: c.name })), [customers]);
 
     const filteredRecordsWithBalance = useMemo(() => {
         if (!selectedCustomerId) return [];
-        return (records || [])
+        return (activeRecords || [])
             .filter(r => r.customerId === selectedCustomerId)
             .map(r => {
                 const bagsOut = Array.isArray(r.outflows) ? r.outflows.reduce((acc, o) => acc + (Number(o.bagsWithdrawn) || 0), 0) : (Number(r.bagsOut) || 0);
@@ -75,7 +74,7 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
                 return { ...r, currentBalance, initialInflow };
             })
             .filter(r => r.currentBalance > 0.1);
-    }, [records, selectedCustomerId]);
+    }, [activeRecords, selectedCustomerId]);
 
     const selectedCustomer = useMemo(() => 
         (customers || []).find(c => c.id === selectedCustomerId)
@@ -166,25 +165,25 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
         }
 
         if (!firestore || withdrawalEntries.length === 0) {
-            toast({ title: 'Input Required', description: 'Please enter the number of bags to withdraw.', variant: 'destructive' });
+            toast({ title: 'Input Required', description: 'Please enter bags for withdrawal.', variant: 'destructive' });
             return;
         }
 
         startTransition(async () => {
             try {
                 const batch = writeBatch(firestore);
+                let currentIncrementalId = nextStartingId;
+                
                 const discountTotal = Number(discount) || 0;
                 const khataTotal = Number(khataAmountInput) || 0;
                 const paymentTotal = Number(amountPaidNow) || 0;
 
-                const currentOutflowId = nextOutflowNo;
-
-                // Identify all records to be updated
                 const entriesToProcess = filteredRecordsWithBalance.filter(r => (Number(withdrawals[r.id]) || 0) > 0);
 
                 for (let i = 0; i < entriesToProcess.length; i++) {
                     const record = entriesToProcess[i];
                     const bagsToWithdraw = Number(withdrawals[record.id]);
+                    const uniqueNumericalId = String(currentIncrementalId++); // Guarantee uniqueness per row
 
                     let recordWithRates: StorageRecord = { ...record };
                     const normalizedDesc = (record.commodityDescription || '').trim().toLowerCase();
@@ -212,7 +211,7 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
                         bagsWithdrawn: bagsToWithdraw,
                         rentBilled: rent || 0,
                         discount: d,
-                        pattiNo: currentOutflowId,
+                        pattiNo: uniqueNumericalId, 
                     };
 
                     const currentBagsOut = Number(record.bagsOut) || 0;
@@ -246,20 +245,12 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
                 await batch.commit();
 
                 if (sendSmsNotification && warehouseInfo?.textbeeApiKey && selectedCustomer?.phone) {
-                    const msg = `Dear ${selectedCustomer.name}, withdrawal of ${totalBags} bags processed. Outflow No: ${currentOutflowId}. Total: ${formatCurrency(totalPayable)}.`;
+                    const msg = `Dear ${selectedCustomer.name}, withdrawal of ${totalBags} bags processed. Unique IDs starting from ${nextStartingId}. Total: ${formatCurrency(totalPayable)}.`;
                     sendSms({ apiKey: warehouseInfo.textbeeApiKey, deviceId: warehouseInfo.textbeeDeviceId, to: selectedCustomer.phone, message: msg }).catch(console.error);
                 }
 
-                toast({ title: 'Success', description: `Outflow Bill #${currentOutflowId} processed.` });
-                
-                // Open consolidated receipt
-                const qp = new URLSearchParams();
-                qp.set('pattiNo', currentOutflowId);
-                qp.set('paidNow', String(paymentTotal));
-                window.open(`/outflow/receipt?${qp.toString()}`, '_blank');
-
+                toast({ title: 'Success', description: 'Outflow withdrawals processed with unique IDs.' });
                 resetForm();
-
             } catch (error: any) {
                 console.error("Outflow failed:", error);
                 toast({ title: 'Error', description: 'Failed to process outflow batch.', variant: 'destructive' });
@@ -274,14 +265,14 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
                 <CardHeader className="bg-secondary/30">
                     <div className="flex justify-between items-start">
                         <div>
-                            <CardTitle className="text-xl font-bold tracking-tight text-slate-900">Generate Outflow Bill</CardTitle>
-                            <CardDescription className="text-xs font-medium text-slate-500">Multi-lot support enabled. Bills are globally sequenced.</CardDescription>
+                            <CardTitle className="text-xl font-bold tracking-tight">Generate Unique Outflow IDs</CardTitle>
+                            <CardDescription className="text-xs font-medium text-slate-500">Every lot withdrawal in the batch will receive its own numerical ID.</CardDescription>
                         </div>
                         <div className="text-right">
-                             <Label className="text-[9px] uppercase font-black text-primary/60 tracking-widest">Next Outflow ID</Label>
+                             <Label className="text-[9px] uppercase font-black text-primary/60 tracking-widest">Starting ID</Label>
                              <div className="flex items-center gap-1.5 justify-end">
                                 <Sparkles className="h-3 w-3 text-primary" />
-                                <span className="font-mono font-black text-lg text-primary">{nextOutflowNo}</span>
+                                <span className="font-mono font-black text-lg text-primary">{nextStartingId}</span>
                              </div>
                         </div>
                     </div>
@@ -305,7 +296,7 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
                                     <TableRow className="text-xs uppercase font-black">
                                         <TableHead className="w-[120px]">Storage ID</TableHead>
                                         <TableHead>Lot</TableHead>
-                                        <TableHead className="text-right">Godown Balance</TableHead>
+                                        <TableHead className="text-right">Balance</TableHead>
                                         <TableHead className="w-[120px] text-right">Withdraw</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -362,18 +353,18 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
                             <Separator />
 
                             <div className="space-y-4 p-4 rounded-2xl bg-secondary/10 border">
-                                <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Outflow Billing Summary (Batch)</h4>
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Auto-Generated Batch Summary</h4>
                                 <div className="space-y-3 text-sm">
                                     <div className="flex justify-between items-center">
-                                        <span className="text-muted-foreground font-medium">Bags for Outflow</span>
+                                        <span className="text-muted-foreground font-medium">Bags to Withdraw</span>
                                         <span className="font-mono font-black text-lg">{totalBags}</span>
                                     </div>
                                     <div className="flex justify-between items-center text-primary">
-                                        <span className="font-medium">Total Storage Rent (Accrued)</span>
+                                        <span className="font-medium">Calculated Rent</span>
                                         <span className="font-mono font-black">{formatCurrency(totalRent)}</span>
                                     </div>
                                      <div className="flex justify-between items-center text-orange-600">
-                                        <span className="font-medium">Unpaid Handling (Hamali)</span>
+                                        <span className="font-medium">Unpaid Hamali</span>
                                         <span className="font-mono font-black">{formatCurrency(totalPendingHamali)}</span>
                                     </div>
                                 </div>
@@ -417,12 +408,12 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
                                 </div>
                                 
                                 <div className="space-y-1.5 p-5 bg-primary/5 rounded-2xl border-2 border-primary/20">
-                                    <Label htmlFor="amountPaidNow" className="text-xs font-black uppercase tracking-widest text-primary">Cash Collected (Total Bill)</Label>
+                                    <Label htmlFor="amountPaidNow" className="text-xs font-black uppercase tracking-widest text-primary">Cash Collected</Label>
                                     <Input
                                         id="amountPaidNow"
                                         name="amountPaidNow"
                                         type="number"
-                                        placeholder="Enter total amount paid..."
+                                        placeholder="Enter amount paid..."
                                         step="0.01"
                                         value={amountPaidNow}
                                         onChange={e => setAmountPaidNow(e.target.value === '' ? '' : Number(e.target.value))}
@@ -430,26 +421,12 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
                                     />
                                 </div>
                             </div>
-                             <div className="flex items-center space-x-2 pt-4 bg-slate-50 p-4 rounded-xl">
-                                <Checkbox 
-                                    id="sendSmsOutflow" 
-                                    checked={sendSmsNotification}
-                                    onCheckedChange={(checked) => setSendSmsNotification(Boolean(checked))}
-                                    disabled={!warehouseInfo?.textbeeApiKey || !selectedCustomer?.phone}
-                                />
-                                <label
-                                    htmlFor="sendSmsOutflow"
-                                    className="text-xs font-black uppercase tracking-wider cursor-pointer"
-                                >
-                                    Transmit SMS Receipt
-                                </label>
-                            </div>
                         </>
                     )}
                 </CardContent>
                 <CardFooter className="pb-8">
                     <Button type="submit" disabled={isPending || withdrawalEntries.length === 0} className="w-full h-12 font-black uppercase tracking-widest">
-                        {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Confirm Outflow & Generate Bill'}
+                        {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Confirm Outflow & Generate Bills'}
                     </Button>
                 </CardFooter>
             </Card>

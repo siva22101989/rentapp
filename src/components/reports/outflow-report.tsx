@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -31,6 +30,7 @@ export function OutflowReport({ records, customers, commodities, lots }: Outflow
     );
     const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
+    // DE-MERGED EVENT LOGIC: Treat every outflow item as a unique numerical event
     const individualOutflowEvents = useMemo(() => {
         const events: OutflowEvent[] = [];
         
@@ -50,6 +50,7 @@ export function OutflowReport({ records, customers, commodities, lots }: Outflow
 
                     if (selectedCustomerId !== 'all' && record.customerId !== selectedCustomerId) return;
 
+                    // Strictly numerical ID display
                     const displayId = String(outflow.pattiNo || record.id).replace(/\D/g, '');
                     
                     events.push({
@@ -75,15 +76,15 @@ export function OutflowReport({ records, customers, commodities, lots }: Outflow
     const title = `Outflow Register ${customer ? `for ${customer.name}` : ''}`;
 
     return (
-        <Card>
+        <Card className="border-primary/20 shadow-md">
             <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4 print-hide">
                 <div className="flex-1">
-                    <CardTitle>Outflow Register</CardTitle>
-                    <CardDescription>A log of all items withdrawn from storage. Displays each lot withdrawal individually.</CardDescription>
+                    <CardTitle>Outflow Register (Numerical Log)</CardTitle>
+                    <CardDescription>A demerged log of all withdrawals. Every lot is listed with its own unique numerical ID.</CardDescription>
                 </div>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto flex-wrap">
                     <Select onValueChange={setSelectedCustomerId} value={selectedCustomerId}>
-                        <SelectTrigger className="w-full sm:w-auto">
+                        <SelectTrigger className="w-full sm:w-[200px] h-9 text-sm">
                             <SelectValue placeholder="All Customers" />
                         </SelectTrigger>
                         <SelectContent>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -33,8 +34,8 @@ export function OutflowReportTable({ events, customers, allRecords, commodities,
         return customers.find(c => c.id === customerId)?.name ?? 'Unknown';
     }
 
-    const totalBagsWithdrawn = events.reduce((acc, event) => acc + (event.bagsWithdrawn || 0), 0);
-    const totalRentBilled = events.reduce((acc, event) => acc + (event.rentBilled || 0), 0);
+    const totalBagsWithdrawn = events.reduce((acc, event) => acc + (Number(event.bagsWithdrawn) || 0), 0);
+    const totalRentBilled = events.reduce((acc, event) => acc + (Number(event.rentBilled) || 0), 0);
 
     return (
         <div className="bg-white p-4 text-black font-sans text-sm printable-area border shadow-sm rounded-lg">

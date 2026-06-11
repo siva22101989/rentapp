@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, forwardRef } from 'react';
@@ -178,9 +179,9 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                         credit: 0,
                         sortDate: toDate(outflow.date).getTime() + 3,
                         recordType: 'outflow',
-                        sourceRecord: record, // Placeholder
-                        outflowData: outflow, // Placeholder
-                        outflowIndex: idx, // Placeholder
+                        sourceRecord: record,
+                        outflowData: outflow,
+                        outflowIndex: idx,
                         allSourceRecords: [record],
                         allOutflowData: [{ record, outflow, index: idx }],
                         allLots: new Set(record.location ? [record.location] : []),
@@ -228,7 +229,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
     // Add grouped patti entries to events
     Object.values(pattiGroups).forEach(patti => {
         const lotArr = Array.from(patti.allLots);
-        const lotDisplay = lotArr.length > 1 ? 'Multiple' : (lotArr[0] || 'N/A');
+        const lotDisplay = lotArr.length > 1 ? 'Multiple' : (lotArr[0] as string || 'N/A');
         
         events.push({
             ...patti,

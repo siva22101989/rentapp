@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo } from 'react';
@@ -203,11 +204,11 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
         const customerMap = new Map(customers.map(c => [c.id, c.name]));
 
         // Process Inflows
-        data.inflows = records.filter(r => isSameDay(toDate(r.storageStartDate), date));
+        data.inflows = (records || []).filter(r => isSameDay(toDate(r.storageStartDate), date));
         data.summary.totalInflowBags = data.inflows.reduce((sum, r) => sum + (Number(r.bagsIn) || 0), 0);
 
         // Process Outflows and Storage Payments
-        records.forEach(r => {
+        (records || []).forEach(r => {
             if (Array.isArray(r.outflows)) {
                 r.outflows.forEach((outflow, idx) => {
                     const oDate = toDate(outflow.date);
@@ -244,7 +245,7 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
         });
 
         // Process Unloadings and Unloading Payments
-        unloadingRecords.forEach(r => {
+        (unloadingRecords || []).forEach(r => {
             if (isSameDay(toDate(r.unloadingDate), date)) {
                 data.unloadings.push(r);
                 data.summary.totalInflowBags += (Number(r.bagsUnloaded) || 0);
@@ -265,11 +266,11 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
         });
 
         // Process Other Incomes
-        data.otherIncomes = otherIncomes.filter(i => isSameDay(toDate(i.date), date));
+        data.otherIncomes = (otherIncomes || []).filter(i => isSameDay(toDate(i.date), date));
         data.summary.totalIncome += data.otherIncomes.reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
 
         // Process Expenses
-        data.expenses = expenses.filter(e => isSameDay(toDate(e.date), date));
+        data.expenses = (expenses || []).filter(e => isSameDay(toDate(e.date), date));
         data.summary.totalExpenses = data.expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
 
         data.summary.netBalance = data.summary.totalIncome - data.summary.totalExpenses;

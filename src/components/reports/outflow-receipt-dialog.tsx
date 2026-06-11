@@ -10,19 +10,17 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { OutflowReceipt } from '../outflow/outflow-receipt';
-import type { Customer, StorageRecord, WarehouseInfo, Outflow } from '@/lib/definitions';
+import type { Customer, StorageRecord, WarehouseInfo } from '@/lib/definitions';
 
 type OutflowReceiptDialogProps = {
-  record: StorageRecord;
+  records: StorageRecord[];
   customer: Customer;
   warehouseInfo: WarehouseInfo | null;
-  outflow: Outflow;
+  pattiNo: string;
   children: React.ReactNode;
-  deliveryOrderNo: string;
-  deliveryOrderDate: Date;
 }
 
-export function OutflowReceiptDialog({ record, customer, warehouseInfo, outflow, children, deliveryOrderNo, deliveryOrderDate }: OutflowReceiptDialogProps) {
+export function OutflowReceiptDialog({ records, customer, warehouseInfo, pattiNo, children }: OutflowReceiptDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
@@ -41,19 +39,14 @@ export function OutflowReceiptDialog({ record, customer, warehouseInfo, outflow,
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Outflow Bill</DialogTitle>
+          <DialogTitle>Outflow Bill (Consolidated)</DialogTitle>
         </DialogHeader>
         <div className="max-h-[70vh] overflow-y-auto p-2 printable-area">
             <OutflowReceipt
-                record={record}
+                records={records}
                 customer={customer}
                 warehouseInfo={warehouseInfo}
-                withdrawnBags={outflow.bagsWithdrawn}
-                finalRent={outflow.rentBilled}
-                paidNow={0} 
-                discount={outflow.discount || 0}
-                deliveryOrderNo={deliveryOrderNo}
-                deliveryOrderDate={deliveryOrderDate}
+                pattiNo={pattiNo}
             />
         </div>
       </DialogContent>

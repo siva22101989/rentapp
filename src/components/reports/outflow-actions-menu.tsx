@@ -2,12 +2,14 @@
 'use client';
 
 import { MoreHorizontal, FileText, Trash2, Pencil } from "lucide-react";
+import Link from 'next/link';
 import { Button } from "../ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import type { Customer, StorageRecord, Outflow, WarehouseInfo, Commodity, Lot } from "@/lib/definitions";
 import { OutflowReceiptDialog } from "./outflow-receipt-dialog";
 import { DeleteOutflowDialog } from "./delete-outflow-dialog";
 import { EditOutflowDialog } from "./edit-outflow-dialog";
+import { useMemo } from "react";
 
 type ActionsMenuProps = {
   record: StorageRecord;
@@ -35,6 +37,15 @@ export function OutflowActionsMenu({
     allRecords
 }: ActionsMenuProps) {
 
+    // Find all records that belong to this Patti for the consolidated view
+    const pattiRecords = useMemo(() => {
+        if (!deliveryOrderNo) return [record];
+        return allRecords.filter(r => 
+            Array.isArray(r.outflows) && 
+            r.outflows.some(o => String(o.pattiNo) === String(deliveryOrderNo))
+        );
+    }, [allRecords, deliveryOrderNo, record]);
+
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -45,12 +56,10 @@ export function OutflowActionsMenu({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
                 <OutflowReceiptDialog
-                    record={record}
+                    records={pattiRecords}
                     customer={customer}
                     warehouseInfo={warehouseInfo}
-                    outflow={outflow}
-                    deliveryOrderNo={deliveryOrderNo}
-                    deliveryOrderDate={deliveryOrderDate}
+                    pattiNo={deliveryOrderNo}
                 >
                     <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                         <FileText className="mr-2 h-4 w-4" />

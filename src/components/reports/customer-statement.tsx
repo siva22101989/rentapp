@@ -57,7 +57,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
     let totalBagsIn = 0;
     let totalBagsOut = 0;
 
-    // 1. Process Unloading Records (Historical + New)
+    // 1. Process Unloading Records
     (unloadingRecords || []).forEach(unloading => {
         const totalHamali = Number(unloading.totalHamali) || 0;
         const billNo = String(unloading.billNo || unloading.id || '').replace(/\D/g, '');
@@ -107,17 +107,17 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         }
     });
 
-    // 2. Process Storage Records (Godown)
+    // 2. Process Storage Records
     (records || []).forEach(record => {
         const billNo = String(record.id || '').replace(/\D/g, '');
         const hamaliBilledOnInflow = Number(record.hamaliPayable) || 0;
         
-        // Calculate true inflow from historical fields
-        const bagsOutFromOutflows = Array.isArray(record.outflows) 
+        // Accurate inflow calculation: Sum of current stock + all past withdrawals
+        const historicalBagsOut = Array.isArray(record.outflows) 
             ? record.outflows.reduce((s, o) => s + (Number(o.bagsWithdrawn) || 0), 0) 
             : (Number(record.bagsOut) || 0);
             
-        const inflowBags = Number(record.bagsIn) || (Number(record.bagsStored || 0) + bagsOutFromOutflows);
+        const inflowBags = Number(record.bagsIn) || (Number(record.bagsStored || 0) + historicalBagsOut);
         
         totalHamaliBilled += hamaliBilledOnInflow;
         totalBagsIn += inflowBags;
@@ -314,26 +314,36 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {lineItems.map((item, index) => (
-                        <TableRow key={index} className="border-b border-slate-100 h-9 hover:bg-slate-50/50">
-                            <TableCell className="p-1 text-center whitespace-nowrap">{format(item.date, 'dd/MM/yy')}</TableCell>
-                            <TableCell className="p-1 font-medium tracking-tight">{item.description}</TableCell>
-                            <TableCell className="p-1 text-center font-mono font-bold text-slate-400">{item.billNo}</TableCell>
-                            <TableCell className="p-1 text-center font-mono text-slate-600">{item.lotNo || ''}</TableCell>
-                            <TableCell className="p-1 text-center font-mono">{item.bagsIn || ''}</TableCell>
-                            <TableCell className="p-1 text-center font-mono text-orange-600 font-bold">{item.bagsOut || ''}</TableCell>
-                            <TableCell className="p-1 text-right font-mono">{item.hamali > 0 ? formatCurrency(item.hamali) : ''}</TableCell>
-                            <TableCell className="p-1 text-right font-mono">{item.rent > 0 ? formatCurrency(item.rent) : ''}</TableCell>
-                            <TableCell className="p-1 text-right font-mono text-green-700 font-black">{item.credit > 0 ? formatCurrency(item.credit) : ''}</TableCell>
-                            <TableCell className="p-1 text-right font-mono font-black">{formatCurrency(item.balance)}</TableCell>
-                            <TableCell className="p-1 text-right print-hide">
-                                {item.recordType === 'storage' && <ActionsMenu record={item.sourceRecord} customers={customers} allRecords={allRecords} />}
-                                {item.recordType === 'unloading' && <UnloadingTableActionsMenu record={{...item.sourceRecord, hamaliPending: 0}} customers={customers} commodities={commodities} lots={lots} storageRecords={allRecords} />}
-                                {item.recordType === 'outflow' && <OutflowActionsMenu record={item.sourceRecord} customer={customer} warehouseInfo={warehouseInfo} outflow={item.outflowData} outflowIndex={item.outflowIndex} deliveryOrderNo={item.billNo} deliveryOrderDate={item.date} commodities={commodities} lots={lots} allRecords={allRecords} />}
-                                {item.recordType === 'payment' && <PaymentActionsMenu event={{ date: item.date, customerId: customer.id, description: item.description, recordId: String(item.sourceRecord.id || item.sourceRecord.billNo || ''), amount: item.credit, type: (item.paymentData?.type || 'other') as PaymentType, recordType: item.paymentType, paymentIndex: item.paymentIndex }} />}
-                            </TableCell>
-                        </TableRow>
-                    ))}
+                    {lineItems.map((item, index) => {
+                        const viewBillLink = item.recordType === 'outflow' && item.billNo 
+                            ? `/outflow/receipt?pattiNo=${item.billNo}` 
+                            : null;
+
+                        return (
+                            <TableRow key={index} className="border-b border-slate-100 h-9 hover:bg-slate-50/50">
+                                <TableCell className="p-1 text-center whitespace-nowrap">{format(item.date, 'dd/MM/yy')}</TableCell>
+                                <TableCell className="p-1 font-medium tracking-tight">{item.description}</TableCell>
+                                <TableCell className="p-1 text-center font-mono font-bold text-slate-400">
+                                    {viewBillLink ? (
+                                        <a href={viewBillLink} target="_blank" className="text-primary hover:underline">{item.billNo}</a>
+                                    ) : item.billNo}
+                                </TableCell>
+                                <TableCell className="p-1 text-center font-mono text-slate-600">{item.lotNo || ''}</TableCell>
+                                <TableCell className="p-1 text-center font-mono">{item.bagsIn || ''}</TableCell>
+                                <TableCell className="p-1 text-center font-mono text-orange-600 font-bold">{item.bagsOut || ''}</TableCell>
+                                <TableCell className="p-1 text-right font-mono">{item.hamali > 0 ? formatCurrency(item.hamali) : ''}</TableCell>
+                                <TableCell className="p-1 text-right font-mono">{item.rent > 0 ? formatCurrency(item.rent) : ''}</TableCell>
+                                <TableCell className="p-1 text-right font-mono text-green-700 font-black">{item.credit > 0 ? formatCurrency(item.credit) : ''}</TableCell>
+                                <TableCell className="p-1 text-right font-mono font-black">{formatCurrency(item.balance)}</TableCell>
+                                <TableCell className="p-1 text-right print-hide">
+                                    {item.recordType === 'storage' && <ActionsMenu record={item.sourceRecord} customers={customers} allRecords={allRecords} />}
+                                    {item.recordType === 'unloading' && <UnloadingTableActionsMenu record={{...item.sourceRecord, hamaliPending: 0}} customers={customers} commodities={commodities} lots={lots} storageRecords={allRecords} />}
+                                    {item.recordType === 'outflow' && <OutflowActionsMenu record={item.sourceRecord} customer={customer} warehouseInfo={warehouseInfo} outflow={item.outflowData} outflowIndex={item.outflowIndex} deliveryOrderNo={item.billNo} deliveryOrderDate={item.date} commodities={commodities} lots={lots} allRecords={allRecords} />}
+                                    {item.recordType === 'payment' && <PaymentActionsMenu event={{ date: item.date, customerId: customer.id, description: item.description, recordId: String(item.sourceRecord.id || item.sourceRecord.billNo || ''), amount: item.credit, type: (item.paymentData?.type || 'other') as PaymentType, recordType: item.paymentType, paymentIndex: item.paymentIndex }} />}
+                                </TableCell>
+                            </TableRow>
+                        );
+                    })}
                 </TableBody>
                 <TableFooter>
                     <TableRow className="bg-slate-900 text-white font-black border-t-2 border-black h-12">

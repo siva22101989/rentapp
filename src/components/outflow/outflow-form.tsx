@@ -177,7 +177,6 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
                 const paymentTotal = Number(amountPaidNow) || 0;
 
                 const currentPattiNo = nextPattiNo;
-                let firstUpdatedRecordId = '';
 
                 // Identify all records to be updated
                 const entriesToProcess = filteredRecordsWithBalance.filter(r => (Number(withdrawals[r.id]) || 0) > 0);
@@ -203,7 +202,7 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
 
                     const { rent } = calculateFinalRent({ ...recordWithRates, storageStartDate: toDate(recordWithRates.storageStartDate) }, finalDate, bagsToWithdraw);
                     
-                    // Distribute global Patti financials to the first record in the batch
+                    // Batch logic: distribute global Patti financials to the first record
                     const d = i === 0 ? discountTotal : 0;
                     const k = i === 0 ? khataTotal : 0;
                     const p = i === 0 ? paymentTotal : 0;
@@ -242,7 +241,6 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
                     }
                     
                     batch.update(doc(firestore, 'storageRecords', record.id), cleanForFirestore(updateData));
-                    if (!firstUpdatedRecordId) firstUpdatedRecordId = record.id;
                 }
                 
                 await batch.commit();
@@ -254,20 +252,17 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
 
                 toast({ title: 'Success', description: `Withdrawal Patti #${currentPattiNo} processed.` });
                 
+                // Open consolidated receipt
                 const qp = new URLSearchParams();
-                qp.set('recordId', firstUpdatedRecordId);
-                qp.set('withdrawn', String(totalBags));
-                qp.set('rent', String(totalRent));
+                qp.set('pattiNo', currentPattiNo);
                 qp.set('paidNow', String(paymentTotal));
-                qp.set('discount', String(discountTotal));
-                qp.set('khata', String(khataTotal));
                 window.open(`/outflow/receipt?${qp.toString()}`, '_blank');
 
                 resetForm();
 
             } catch (error: any) {
                 console.error("Outflow failed:", error);
-                toast({ title: 'Error', description: 'Failed to process outflow.', variant: 'destructive' });
+                toast({ title: 'Error', description: 'Failed to process outflow batch.', variant: 'destructive' });
             }
         });
     }
@@ -283,7 +278,7 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
                             <CardDescription className="text-xs font-medium text-slate-500">Multi-lot support enabled. Bills are globally sequenced.</CardDescription>
                         </div>
                         <div className="text-right">
-                             <Label className="text-[9px] uppercase font-black text-primary/60 tracking-widest">Global Patti No</Label>
+                             <Label className="text-[9px] uppercase font-black text-primary/60 tracking-widest">Next Global Patti</Label>
                              <div className="flex items-center gap-1.5 justify-end">
                                 <Sparkles className="h-3 w-3 text-primary" />
                                 <span className="font-mono font-black text-lg text-primary">{nextPattiNo}</span>
@@ -454,7 +449,7 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
                 </CardContent>
                 <CardFooter className="pb-8">
                     <Button type="submit" disabled={isPending || withdrawalEntries.length === 0} className="w-full h-12 font-black uppercase tracking-widest">
-                        {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Confirm Multi-Withdrawal & Print'}
+                        {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Confirm Batch Outflow & Generate Patti'}
                     </Button>
                 </CardFooter>
             </Card>

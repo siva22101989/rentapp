@@ -40,7 +40,7 @@ export function OutflowReportTable({ events, customers, allRecords, commodities,
         <div className="bg-white p-4 text-black font-sans text-sm printable-area border shadow-sm rounded-lg">
              <div className="mb-4 text-center border-b pb-2">
                 <h2 className="text-xl font-bold uppercase tracking-tight leading-none">SRI LAKSHMI WAREHOUSE</h2>
-                <p className="text-[10px] text-slate-500 uppercase mt-1">Numerical Serial Audit • Generated: {generatedDate}</p>
+                <p className="text-[10px] text-slate-500 uppercase mt-1">Serialized Audit Register • Generated: {generatedDate}</p>
                 <h3 className="font-bold text-center mt-3 uppercase text-[12px] underline decoration-slate-200 underline-offset-4">{title}</h3>
             </div>
             
@@ -66,7 +66,7 @@ export function OutflowReportTable({ events, customers, allRecords, commodities,
                             return (
                                 <TableRow key={index} className="h-8 border-b border-slate-100 hover:bg-slate-50/50">
                                     <TableCell className="p-1 text-center whitespace-nowrap">{format(toDate(event.date), 'dd/MM/yy')}</TableCell>
-                                    <TableCell className="p-1 text-center font-mono font-bold text-blue-600">{displayId}</TableCell>
+                                    <TableCell className="p-1 text-center font-mono font-black text-blue-600">{displayId}</TableCell>
                                     <TableCell className="p-1 font-black whitespace-nowrap uppercase tracking-tight">{getCustomerName(event.customerId)}</TableCell>
                                     <TableCell className="p-1 text-slate-500 text-[11px] leading-tight">
                                         <div className="font-bold text-slate-700">{event.location}</div>

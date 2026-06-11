@@ -269,7 +269,7 @@ export function OutflowForm({ activeRecords = [], allRecords = [], customers = [
                             <CardDescription className="text-xs font-medium text-slate-500">Multiple lots in this transaction will share a single Bill No.</CardDescription>
                         </div>
                         <div className="text-right">
-                             <Label className="text-[9px] font-black uppercase text-primary/60 tracking-widest">Next Serial No</Label>
+                             <Label className="text-[9px] font-black uppercase text-primary/60 tracking-widest">Next Bill No</Label>
                              <div className="flex items-center gap-1.5 justify-end">
                                 <Sparkles className="h-3 w-3 text-primary" />
                                 <span className="font-mono font-black text-lg text-primary">{nextBillNo}</span>

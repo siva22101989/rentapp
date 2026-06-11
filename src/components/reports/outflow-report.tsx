@@ -31,7 +31,7 @@ export function OutflowReport({ records, customers, commodities, lots }: Outflow
     const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
     // Grouping Logic: Aggregate withdrawals sharing the same Bill No for the same customer
-    const individualOutflowEvents = useMemo(() => {
+    const consolidatedOutflowEvents = useMemo(() => {
         const eventsMap: Record<string, OutflowEvent> = {};
         
         records.forEach(record => {
@@ -50,7 +50,10 @@ export function OutflowReport({ records, customers, commodities, lots }: Outflow
 
                     if (selectedCustomerId !== 'all' && record.customerId !== selectedCustomerId) return;
 
-                    const displayId = String(outflow.pattiNo || record.id).replace(/\D/g, '');
+                    // STRICT GROUPING: Customer ID + Numerical Patti/Bill Number
+                    const displayId = String(outflow.pattiNo || '').replace(/\D/g, '');
+                    if (!displayId) return; // Ignore legacy data that isn't mapped to a bill
+
                     const groupKey = `${record.customerId}-${displayId}`;
                     
                     if (eventsMap[groupKey]) {
@@ -85,14 +88,14 @@ export function OutflowReport({ records, customers, commodities, lots }: Outflow
 
     return (
         <Card className="border-primary/20 shadow-md">
-            <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4 print-hide">
+            <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4 print-hide border-b bg-slate-50/50 p-4">
                 <div className="flex-1">
-                    <CardTitle>Outflow Register</CardTitle>
-                    <CardDescription>Grouped by Bill No. Serialized from the first transaction.</CardDescription>
+                    <CardTitle className="text-lg font-black uppercase tracking-tight">Outflow Register</CardTitle>
+                    <CardDescription className="text-xs font-medium">Grouped by Serialized Bill No. Every row represents a unique transaction batch.</CardDescription>
                 </div>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto flex-wrap">
                     <Select onValueChange={setSelectedCustomerId} value={selectedCustomerId}>
-                        <SelectTrigger className="w-full sm:w-[200px] h-9 text-sm">
+                        <SelectTrigger className="w-full sm:w-[200px] h-9 text-sm font-bold">
                             <SelectValue placeholder="All Customers" />
                         </SelectTrigger>
                         <SelectContent>
@@ -106,10 +109,10 @@ export function OutflowReport({ records, customers, commodities, lots }: Outflow
                     </Select>
                 </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-4">
                 <div>
                     <OutflowReportTable 
-                        events={individualOutflowEvents} 
+                        events={consolidatedOutflowEvents} 
                         customers={customers}
                         allRecords={records}
                         commodities={commodities}

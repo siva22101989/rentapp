@@ -63,7 +63,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
     (unloadingRecords || []).forEach(unloading => {
         const totalHamali = Number(unloading.totalHamali) || 0;
         const rawId = String(unloading.billNo || unloading.id || '');
-        const cleanId = rawId.replace(/\D/g, ''); // Strictly Numerical
+        const cleanId = rawId.replace(/\D/g, ''); 
         const bags = Number(unloading.bagsUnloaded) || 0;
         
         if (totalHamali > 0 || bags > 0) {
@@ -112,7 +112,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
 
     // 2. Process Storage Records
     (records || []).forEach(record => {
-        const cleanId = String(record.id || '').replace(/\D/g, ''); // Strictly Numerical
+        const cleanId = String(record.id || '').replace(/\D/g, ''); 
         const hamaliBilledOnInflow = Number(record.hamaliPayable) || 0;
         
         const historicalBagsOut = Array.isArray(record.outflows) 
@@ -161,7 +161,6 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         // Process Outflows for Grouping
         if (Array.isArray(record.outflows)) {
             record.outflows.forEach((outflow, idx) => {
-                // Remove text prefixes and keep it strictly numerical
                 const pNo = String(outflow.pattiNo || record.id).replace(/\D/g, ''); 
                 const rentVal = Number(outflow.rentBilled) || 0;
                 const withdrawn = Number(outflow.bagsWithdrawn) || 0;
@@ -172,7 +171,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 if (!pattiGroups[pNo]) {
                     pattiGroups[pNo] = {
                         date: toDate(outflow.date),
-                        description: `Outflow Withdrawal (Patti)`,
+                        description: `Outflow Withdrawal`,
                         billNo: pNo,
                         bagsIn: 0,
                         bagsOut: 0,
@@ -228,7 +227,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         }
     });
 
-    // Add grouped patti entries to events
+    // Add grouped outflow entries to events
     Object.values(pattiGroups).forEach(patti => {
         const lotArr = Array.from(patti.allLots);
         const lotDisplay = lotArr.length > 1 ? 'Multiple' : (lotArr[0] as string || 'N/A');
@@ -298,7 +297,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 <div className="space-y-2 border-b md:border-b-0 md:border-r border-slate-200 pb-3 md:pb-0 md:pr-10">
                     <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Physical Stock Inventory</h3>
                     <div className="flex justify-between text-[13px]"><span>Total Inflow (History):</span><span className="font-mono font-bold">{totals.totalBagsIn}</span></div>
-                    <div className="flex justify-between text-[13px]"><span>Total Outflow (Patti):</span><span className="font-mono font-bold text-orange-600">{totals.totalBagsOut}</span></div>
+                    <div className="flex justify-between text-[13px]"><span>Total Outflow:</span><span className="font-mono font-bold text-orange-600">{totals.totalBagsOut}</span></div>
                     <div className="flex justify-between items-center border-t border-slate-300 pt-2 mt-2 text-primary font-black">
                         <span className="uppercase text-[11px] tracking-wider">Current Godown Balance:</span>
                         <span className="font-mono text-xl underline underline-offset-4 decoration-primary/30">{totals.balanceStock}</span>

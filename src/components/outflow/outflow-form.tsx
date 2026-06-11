@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useTransition, useMemo } from 'react';
@@ -47,8 +48,8 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
     );
     const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
-    // Global Numerical Patti Sequence Calculation
-    const nextPattiNo = useMemo(() => {
+    // Global Numerical ID Sequence Calculation
+    const nextOutflowNo = useMemo(() => {
         let max = 1000;
         records.forEach(r => {
             if (Array.isArray(r.outflows)) {
@@ -176,7 +177,7 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
                 const khataTotal = Number(khataAmountInput) || 0;
                 const paymentTotal = Number(amountPaidNow) || 0;
 
-                const currentPattiNo = nextPattiNo;
+                const currentOutflowId = nextOutflowNo;
 
                 // Identify all records to be updated
                 const entriesToProcess = filteredRecordsWithBalance.filter(r => (Number(withdrawals[r.id]) || 0) > 0);
@@ -202,7 +203,6 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
 
                     const { rent } = calculateFinalRent({ ...recordWithRates, storageStartDate: toDate(recordWithRates.storageStartDate) }, finalDate, bagsToWithdraw);
                     
-                    // Batch logic: distribute global Patti financials to the first record
                     const d = i === 0 ? discountTotal : 0;
                     const k = i === 0 ? khataTotal : 0;
                     const p = i === 0 ? paymentTotal : 0;
@@ -212,7 +212,7 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
                         bagsWithdrawn: bagsToWithdraw,
                         rentBilled: rent || 0,
                         discount: d,
-                        pattiNo: currentPattiNo,
+                        pattiNo: currentOutflowId,
                     };
 
                     const currentBagsOut = Number(record.bagsOut) || 0;
@@ -246,15 +246,15 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
                 await batch.commit();
 
                 if (sendSmsNotification && warehouseInfo?.textbeeApiKey && selectedCustomer?.phone) {
-                    const msg = `Dear ${selectedCustomer.name}, withdrawal of ${totalBags} bags processed. Patti No: ${currentPattiNo}. Total: ${formatCurrency(totalPayable)}.`;
+                    const msg = `Dear ${selectedCustomer.name}, withdrawal of ${totalBags} bags processed. Outflow No: ${currentOutflowId}. Total: ${formatCurrency(totalPayable)}.`;
                     sendSms({ apiKey: warehouseInfo.textbeeApiKey, deviceId: warehouseInfo.textbeeDeviceId, to: selectedCustomer.phone, message: msg }).catch(console.error);
                 }
 
-                toast({ title: 'Success', description: `Withdrawal Patti #${currentPattiNo} processed.` });
+                toast({ title: 'Success', description: `Outflow Bill #${currentOutflowId} processed.` });
                 
                 // Open consolidated receipt
                 const qp = new URLSearchParams();
-                qp.set('pattiNo', currentPattiNo);
+                qp.set('pattiNo', currentOutflowId);
                 qp.set('paidNow', String(paymentTotal));
                 window.open(`/outflow/receipt?${qp.toString()}`, '_blank');
 
@@ -274,14 +274,14 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
                 <CardHeader className="bg-secondary/30">
                     <div className="flex justify-between items-start">
                         <div>
-                            <CardTitle className="text-xl font-bold tracking-tight text-slate-900">Generate Numerical Patti</CardTitle>
+                            <CardTitle className="text-xl font-bold tracking-tight text-slate-900">Generate Outflow Bill</CardTitle>
                             <CardDescription className="text-xs font-medium text-slate-500">Multi-lot support enabled. Bills are globally sequenced.</CardDescription>
                         </div>
                         <div className="text-right">
-                             <Label className="text-[9px] uppercase font-black text-primary/60 tracking-widest">Next Global Patti</Label>
+                             <Label className="text-[9px] uppercase font-black text-primary/60 tracking-widest">Next Outflow ID</Label>
                              <div className="flex items-center gap-1.5 justify-end">
                                 <Sparkles className="h-3 w-3 text-primary" />
-                                <span className="font-mono font-black text-lg text-primary">{nextPattiNo}</span>
+                                <span className="font-mono font-black text-lg text-primary">{nextOutflowNo}</span>
                              </div>
                         </div>
                     </div>
@@ -362,7 +362,7 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
                             <Separator />
 
                             <div className="space-y-4 p-4 rounded-2xl bg-secondary/10 border">
-                                <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Patti Billing Summary (Batch)</h4>
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Outflow Billing Summary (Batch)</h4>
                                 <div className="space-y-3 text-sm">
                                     <div className="flex justify-between items-center">
                                         <span className="text-muted-foreground font-medium">Bags for Outflow</span>
@@ -394,7 +394,7 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
                                     />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <Label htmlFor="discount" className="text-[10px] font-black uppercase tracking-widest text-slate-400">Patti Discount</Label>
+                                    <Label htmlFor="discount" className="text-[10px] font-black uppercase tracking-widest text-slate-400">Outflow Discount</Label>
                                     <Input
                                         id="discount"
                                         name="discount"
@@ -449,7 +449,7 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
                 </CardContent>
                 <CardFooter className="pb-8">
                     <Button type="submit" disabled={isPending || withdrawalEntries.length === 0} className="w-full h-12 font-black uppercase tracking-widest">
-                        {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Confirm Batch Outflow & Generate Patti'}
+                        {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Confirm Outflow & Generate Bill'}
                     </Button>
                 </CardFooter>
             </Card>

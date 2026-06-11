@@ -50,13 +50,12 @@ export function OutflowReport({ records, customers, commodities, lots }: Outflow
 
                     if (selectedCustomerId !== 'all' && record.customerId !== selectedCustomerId) return;
 
-                    // Strictly numerical Patti identification
-                    const pattiNo = String(outflow.pattiNo || record.id).replace(/\D/g, '');
+                    const displayId = String(outflow.pattiNo || record.id).replace(/\D/g, '');
                     
-                    if (!events[pattiNo]) {
-                        events[pattiNo] = {
+                    if (!events[displayId]) {
+                        events[displayId] = {
                             ...outflow,
-                            pattiNo,
+                            pattiNo: displayId,
                             date: outflowDate,
                             customerId: record.customerId,
                             recordId: record.id,
@@ -67,8 +66,8 @@ export function OutflowReport({ records, customers, commodities, lots }: Outflow
                             rentBilled: Number(outflow.rentBilled) || 0,
                         };
                     } else {
-                        events[pattiNo].bagsWithdrawn += (Number(outflow.bagsWithdrawn) || 0);
-                        events[pattiNo].rentBilled += (Number(outflow.rentBilled) || 0);
+                        events[displayId].bagsWithdrawn += (Number(outflow.bagsWithdrawn) || 0);
+                        events[displayId].rentBilled += (Number(outflow.rentBilled) || 0);
                     }
                 });
             }
@@ -85,7 +84,7 @@ export function OutflowReport({ records, customers, commodities, lots }: Outflow
             <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4 print-hide">
                 <div className="flex-1">
                     <CardTitle>Outflow Register</CardTitle>
-                    <CardDescription>A log of all items withdrawn from storage. Multiple selections are merged into single Patti entries.</CardDescription>
+                    <CardDescription>A log of all items withdrawn from storage. Multiple selections are merged into single Outflow entries.</CardDescription>
                 </div>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto flex-wrap">
                     <Select onValueChange={setSelectedCustomerId} value={selectedCustomerId}>

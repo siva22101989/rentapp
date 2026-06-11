@@ -49,7 +49,7 @@ export function OutflowReportTable({ events, customers, allRecords, commodities,
                     <TableHeader>
                         <TableRow className="border-b border-black bg-slate-50">
                             <TableHead className="font-bold text-black p-1 text-center uppercase text-[10px]">Date</TableHead>
-                            <TableHead className="font-bold text-black p-1 text-center uppercase text-[10px]">Patti No</TableHead>
+                            <TableHead className="font-bold text-black p-1 text-center uppercase text-[10px]">Outflow ID</TableHead>
                             <TableHead className="font-bold text-black p-1 text-left uppercase text-[10px]">Customer Name</TableHead>
                             <TableHead className="font-bold text-black p-1 text-center uppercase text-[10px]">Bags Out</TableHead>
                             <TableHead className="font-bold text-black p-1 text-right uppercase text-[10px]">Rent Billed</TableHead>
@@ -60,12 +60,12 @@ export function OutflowReportTable({ events, customers, allRecords, commodities,
                         {events.map((event, index) => {
                             const parentRecord = allRecords.find(r => r.id === event.recordId);
                             const customer = customers.find(c => c.id === event.customerId);
-                            const pattiNo = event.pattiNo || String(index + 1001);
+                            const displayId = String(event.pattiNo || event.recordId).replace(/\D/g, '');
 
                             return (
                                 <TableRow key={index} className="h-8 border-b border-slate-100 hover:bg-slate-50/50">
                                     <TableCell className="p-1 text-center whitespace-nowrap">{format(toDate(event.date), 'dd/MM/yy')}</TableCell>
-                                    <TableCell className="p-1 text-center font-mono font-bold text-blue-600">{pattiNo}</TableCell>
+                                    <TableCell className="p-1 text-center font-mono font-bold text-blue-600">{displayId}</TableCell>
                                     <TableCell className="p-1 font-bold whitespace-nowrap uppercase">{getCustomerName(event.customerId)}</TableCell>
                                     <TableCell className="p-1 text-center font-mono font-bold text-orange-600">{event.bagsWithdrawn}</TableCell>
                                     <TableCell className="p-1 text-right font-mono">{formatCurrency(event.rentBilled)}</TableCell>
@@ -77,7 +77,7 @@ export function OutflowReportTable({ events, customers, allRecords, commodities,
                                                 warehouseInfo={warehouseInfo}
                                                 outflow={event}
                                                 outflowIndex={event.outflowIndex}
-                                                deliveryOrderNo={pattiNo}
+                                                deliveryOrderNo={displayId}
                                                 deliveryOrderDate={event.date}
                                                 commodities={commodities}
                                                 lots={lots}

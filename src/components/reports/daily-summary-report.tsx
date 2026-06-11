@@ -91,11 +91,11 @@ const DailySummaryContent = ({ dailyData, selectedDate }: { dailyData: DailyData
             <div className="space-y-6 text-[13px]">
                 {mergedOutflows.length > 0 && (
                     <div className="space-y-2">
-                         <h4 className="text-[10px] font-black uppercase text-slate-500 border-l-4 border-orange-500 pl-2">Stock Outflows (Patti)</h4>
+                         <h4 className="text-[10px] font-black uppercase text-slate-500 border-l-4 border-orange-500 pl-2">Stock Outflows</h4>
                          <Table className="border border-slate-100 text-[13px]">
                             <TableHeader className="bg-slate-50">
                                 <TableRow className="h-7">
-                                    <TableHead className="font-bold py-1">Patti No</TableHead>
+                                    <TableHead className="font-bold py-1">Outflow ID</TableHead>
                                     <TableHead className="font-bold py-1">Customer</TableHead>
                                     <TableHead className="font-bold py-1">Commodity</TableHead>
                                     <TableHead className="font-bold text-center py-1">Bags Out</TableHead>
@@ -213,7 +213,7 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
                 r.outflows.forEach((outflow, idx) => {
                     const oDate = toDate(outflow.date);
                     if (isSameDay(oDate, date)) {
-                        const pattiNo = outflow.pattiNo || `legacy-${r.id}-${idx}`;
+                        const pattiNo = String(outflow.pattiNo || r.id).replace(/\D/g, '');
                         if (!data.outflows[pattiNo]) {
                             data.outflows[pattiNo] = {
                                 pattiNo: pattiNo,

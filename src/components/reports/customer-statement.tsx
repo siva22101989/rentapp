@@ -35,7 +35,6 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
 
   const { lineItems, totals } = useMemo(() => {
     const events: any[] = [];
-    const pattiGroups: Record<string, any> = {};
 
     const getPaymentDesc = (type?: string, recordType?: 'storage' | 'unloading') => {
         if (!type) return recordType === 'unloading' ? 'Hamali Payment' : 'Payment Received';
@@ -158,44 +157,32 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             });
         }
 
-        // Process Outflows for Grouping
+        // Process individual Outflows (No Merging)
         if (Array.isArray(record.outflows)) {
             record.outflows.forEach((outflow, idx) => {
-                const pNo = String(outflow.pattiNo || record.id).replace(/\D/g, ''); 
+                const outflowId = String(outflow.pattiNo || record.id).replace(/\D/g, ''); 
                 const rentVal = Number(outflow.rentBilled) || 0;
                 const withdrawn = Number(outflow.bagsWithdrawn) || 0;
                 
                 totalRentBilled += rentVal;
                 totalBagsOut += withdrawn;
 
-                if (!pattiGroups[pNo]) {
-                    pattiGroups[pNo] = {
-                        date: toDate(outflow.date),
-                        description: `Outflow Withdrawal`,
-                        billNo: pNo,
-                        bagsIn: 0,
-                        bagsOut: 0,
-                        hamali: 0,
-                        rent: 0,
-                        credit: 0,
-                        sortDate: toDate(outflow.date).getTime() + 3,
-                        recordType: 'outflow',
-                        sourceRecord: record,
-                        outflowData: outflow,
-                        outflowIndex: idx,
-                        allSourceRecords: [record],
-                        allOutflowData: [{ record, outflow, index: idx }],
-                        allLots: new Set(record.location ? [record.location] : []),
-                        totalBags: 0,
-                        totalRent: 0,
-                    };
-                } else {
-                    pattiGroups[pNo].allSourceRecords.push(record);
-                    pattiGroups[pNo].allOutflowData.push({ record, outflow, index: idx });
-                    if (record.location) pattiGroups[pNo].allLots.add(record.location);
-                }
-                pattiGroups[pNo].totalBags += withdrawn;
-                pattiGroups[pNo].totalRent += rentVal;
+                events.push({
+                    date: toDate(outflow.date),
+                    description: `Outflow Withdrawal`,
+                    billNo: outflowId,
+                    lotNo: record.location || 'N/A',
+                    bagsIn: 0,
+                    bagsOut: withdrawn,
+                    hamali: 0,
+                    rent: rentVal,
+                    credit: 0,
+                    sortDate: toDate(outflow.date).getTime() + 3 + idx,
+                    recordType: 'outflow',
+                    sourceRecord: record,
+                    outflowData: outflow,
+                    outflowIndex: idx,
+                });
             });
         }
 
@@ -225,21 +212,6 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 });
             });
         }
-    });
-
-    // Add grouped outflow entries to events
-    Object.values(pattiGroups).forEach(patti => {
-        const lotArr = Array.from(patti.allLots);
-        const lotDisplay = lotArr.length > 1 ? 'Multiple' : (lotArr[0] as string || 'N/A');
-        
-        events.push({
-            ...patti,
-            lotNo: lotDisplay,
-            bagsOut: patti.totalBags,
-            rent: patti.totalRent,
-            merged: patti.allOutflowData.length > 1,
-            multiData: patti.allOutflowData
-        });
     });
     
     const sortedEvents = (events || []).sort((a, b) => (a.sortDate || 0) - (b.sortDate || 0));
@@ -354,10 +326,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                         return (
                             <TableRow key={index} className="border-b border-slate-100 h-9 hover:bg-slate-50/50">
                                 <TableCell className="p-1 text-center whitespace-nowrap">{format(item.date, 'dd/MM/yy')}</TableCell>
-                                <TableCell className="p-1 font-medium tracking-tight">
-                                    {item.description}
-                                    {item.merged && <span className="ml-1 text-[10px] bg-slate-100 px-1 rounded font-bold uppercase text-slate-500">Merged</span>}
-                                </TableCell>
+                                <TableCell className="p-1 font-medium tracking-tight">{item.description}</TableCell>
                                 <TableCell className="p-1 text-center font-mono font-bold text-slate-400">
                                     {viewBillLink ? (
                                         <a href={viewBillLink} target="_blank" className="text-primary hover:underline">{item.billNo}</a>

@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 
 type DailyData = {
     inflows: StorageRecord[];
-    outflows: Record<string, { pattiNo: string; bags: number; rent: number; customerName: string; commodity: string }>;
+    outflows: { outflowId: string; bags: number; rent: number; customerName: string; commodity: string; lot: string }[];
     unloadings: UnloadingRecord[];
     payments: (Payment & { customerName: string; recordId: string; description: string; })[];
     expenses: Expense[];
@@ -30,7 +30,6 @@ type DailyData = {
 
 const DailySummaryContent = ({ dailyData, selectedDate }: { dailyData: DailyData, selectedDate: Date }) => {
     const timestamp = useMemo(() => format(new Date(), 'dd/MM/yyyy, hh:mm a'), []);
-    const mergedOutflows = Object.values(dailyData.outflows);
 
     return (
         <div className="p-4 space-y-8 text-black">
@@ -89,7 +88,7 @@ const DailySummaryContent = ({ dailyData, selectedDate }: { dailyData: DailyData
             </div>
 
             <div className="space-y-6 text-[13px]">
-                {mergedOutflows.length > 0 && (
+                {dailyData.outflows.length > 0 && (
                     <div className="space-y-2">
                          <h4 className="text-[10px] font-black uppercase text-slate-500 border-l-4 border-orange-500 pl-2">Stock Outflows</h4>
                          <Table className="border border-slate-100 text-[13px]">
@@ -97,17 +96,20 @@ const DailySummaryContent = ({ dailyData, selectedDate }: { dailyData: DailyData
                                 <TableRow className="h-7">
                                     <TableHead className="font-bold py-1">Outflow ID</TableHead>
                                     <TableHead className="font-bold py-1">Customer</TableHead>
-                                    <TableHead className="font-bold py-1">Commodity</TableHead>
+                                    <TableHead className="font-bold py-1">Lot/Prod</TableHead>
                                     <TableHead className="font-bold text-center py-1">Bags Out</TableHead>
                                     <TableHead className="font-bold text-right py-1">Rent Billed</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {mergedOutflows.map((out, i) => (
+                                {dailyData.outflows.map((out, i) => (
                                     <TableRow key={i} className="h-7">
-                                        <TableCell className="font-mono font-bold text-primary py-1">#{out.pattiNo}</TableCell>
+                                        <TableCell className="font-mono font-bold text-primary py-1">#{out.outflowId}</TableCell>
                                         <TableCell className="font-bold py-1 uppercase">{out.customerName}</TableCell>
-                                        <TableCell className="py-1">{out.commodity}</TableCell>
+                                        <TableCell className="py-1 text-[11px] leading-tight">
+                                            <div className="font-bold">{out.lot}</div>
+                                            <div>{out.commodity}</div>
+                                        </TableCell>
                                         <TableCell className="text-center font-mono font-bold text-orange-600 py-1">{out.bags}</TableCell>
                                         <TableCell className="text-right font-mono font-bold py-1">{formatCurrency(out.rent)}</TableCell>
                                     </TableRow>
@@ -193,7 +195,7 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
         const date = selectedDate;
         const data: DailyData = {
             inflows: [],
-            outflows: {},
+            outflows: [],
             unloadings: [],
             payments: [],
             expenses: [],
@@ -210,21 +212,18 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
         // Process Outflows and Storage Payments
         (records || []).forEach(r => {
             if (Array.isArray(r.outflows)) {
-                r.outflows.forEach((outflow, idx) => {
+                r.outflows.forEach((outflow) => {
                     const oDate = toDate(outflow.date);
                     if (isSameDay(oDate, date)) {
-                        const pattiNo = String(outflow.pattiNo || r.id).replace(/\D/g, '');
-                        if (!data.outflows[pattiNo]) {
-                            data.outflows[pattiNo] = {
-                                pattiNo: pattiNo,
-                                bags: 0,
-                                rent: 0,
-                                customerName: customerMap.get(r.customerId) || 'Unknown',
-                                commodity: r.commodityDescription,
-                            };
-                        }
-                        data.outflows[pattiNo].bags += (Number(outflow.bagsWithdrawn) || 0);
-                        data.outflows[pattiNo].rent += (Number(outflow.rentBilled) || 0);
+                        const outflowId = String(outflow.pattiNo || r.id).replace(/\D/g, '');
+                        data.outflows.push({
+                            outflowId: outflowId,
+                            bags: (Number(outflow.bagsWithdrawn) || 0),
+                            rent: (Number(outflow.rentBilled) || 0),
+                            customerName: customerMap.get(r.customerId) || 'Unknown',
+                            commodity: r.commodityDescription,
+                            lot: r.location || 'N/A'
+                        });
                         data.summary.totalOutflowBags += (Number(outflow.bagsWithdrawn) || 0);
                     }
                 });

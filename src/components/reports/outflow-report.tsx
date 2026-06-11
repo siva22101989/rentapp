@@ -31,8 +31,8 @@ export function OutflowReport({ records, customers, commodities, lots }: Outflow
     );
     const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
-    const mergedOutflowEvents = useMemo(() => {
-        const events: Record<string, OutflowEvent> = {};
+    const individualOutflowEvents = useMemo(() => {
+        const events: OutflowEvent[] = [];
         
         records.forEach(record => {
             if (Array.isArray(record.outflows)) {
@@ -52,28 +52,23 @@ export function OutflowReport({ records, customers, commodities, lots }: Outflow
 
                     const displayId = String(outflow.pattiNo || record.id).replace(/\D/g, '');
                     
-                    if (!events[displayId]) {
-                        events[displayId] = {
-                            ...outflow,
-                            pattiNo: displayId,
-                            date: outflowDate,
-                            customerId: record.customerId,
-                            recordId: record.id,
-                            commodityDescription: record.commodityDescription,
-                            location: record.location,
-                            outflowIndex: index,
-                            bagsWithdrawn: Number(outflow.bagsWithdrawn) || 0,
-                            rentBilled: Number(outflow.rentBilled) || 0,
-                        };
-                    } else {
-                        events[displayId].bagsWithdrawn += (Number(outflow.bagsWithdrawn) || 0);
-                        events[displayId].rentBilled += (Number(outflow.rentBilled) || 0);
-                    }
+                    events.push({
+                        ...outflow,
+                        pattiNo: displayId,
+                        date: outflowDate,
+                        customerId: record.customerId,
+                        recordId: record.id,
+                        commodityDescription: record.commodityDescription,
+                        location: record.location,
+                        outflowIndex: index,
+                        bagsWithdrawn: Number(outflow.bagsWithdrawn) || 0,
+                        rentBilled: Number(outflow.rentBilled) || 0,
+                    });
                 });
             }
         });
 
-        return Object.values(events).sort((a,b) => b.date.getTime() - a.date.getTime());
+        return events.sort((a,b) => b.date.getTime() - a.date.getTime());
     }, [records, selectedCustomerId, dateRange, financialYear]);
     
     const customer = customers.find(c => c.id === selectedCustomerId);
@@ -84,7 +79,7 @@ export function OutflowReport({ records, customers, commodities, lots }: Outflow
             <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4 print-hide">
                 <div className="flex-1">
                     <CardTitle>Outflow Register</CardTitle>
-                    <CardDescription>A log of all items withdrawn from storage. Multiple selections are merged into single Outflow entries.</CardDescription>
+                    <CardDescription>A log of all items withdrawn from storage. Displays each lot withdrawal individually.</CardDescription>
                 </div>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto flex-wrap">
                     <Select onValueChange={setSelectedCustomerId} value={selectedCustomerId}>
@@ -105,7 +100,7 @@ export function OutflowReport({ records, customers, commodities, lots }: Outflow
             <CardContent>
                 <div>
                     <OutflowReportTable 
-                        events={mergedOutflowEvents} 
+                        events={individualOutflowEvents} 
                         customers={customers}
                         allRecords={records}
                         commodities={commodities}

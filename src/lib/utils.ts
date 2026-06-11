@@ -28,7 +28,7 @@ export function toDate(date: Date | Timestamp | string | number | null | undefin
     }
     
     // Handle Firestore Timestamp
-    if (typeof (date as any).toDate === 'function') {
+    if (date && typeof (date as any).toDate === 'function') {
       return (date as Timestamp).toDate();
     }
 
@@ -92,11 +92,10 @@ export function cleanForFirestore(data: any): any {
   if (Array.isArray(data)) return data.map(item => cleanForFirestore(item));
   
   if (typeof data === 'object') {
-    // 1. Preservce Firestore Timestamps
+    // 1. Preserve Firestore Timestamps
     if (typeof data.toDate === 'function') return data;
     
     // 2. Preserve Firestore FieldValue operators (arrayUnion, increment, etc.)
-    // These objects usually have a constructor name or internal signature in Web SDK
     const constructorName = data.constructor?.name;
     if (constructorName === 'FieldValueImpl' || data._methodName || data instanceof Timestamp) {
         return data;

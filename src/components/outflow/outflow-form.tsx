@@ -47,7 +47,7 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
     );
     const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
-    // Global Patti Number Calculation
+    // Global Numerical Patti Sequence Calculation
     const nextPattiNo = useMemo(() => {
         let max = 1000;
         records.forEach(r => {
@@ -73,7 +73,7 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
                 const currentBalance = Math.max(0, initialInflow - bagsOut);
                 return { ...r, currentBalance, initialInflow };
             })
-            .filter(r => r.currentBalance > 0.5);
+            .filter(r => r.currentBalance > 0.1);
     }, [records, selectedCustomerId]);
 
     const selectedCustomer = useMemo(() => 
@@ -172,23 +172,19 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
         startTransition(async () => {
             try {
                 const batch = writeBatch(firestore);
-                const discountAmountTotal = Number(discount) || 0;
-                const khataAmountTotal = Number(khataAmountInput) || 0;
-                const paidNowTotal = Number(amountPaidNow) || 0;
+                const discountTotal = Number(discount) || 0;
+                const khataTotal = Number(khataAmountInput) || 0;
+                const paymentTotal = Number(amountPaidNow) || 0;
 
-                let remainingDiscount = discountAmountTotal;
-                let remainingKhata = khataAmountTotal;
-                let remainingPayment = paidNowTotal;
+                const currentPattiNo = nextPattiNo;
+                let firstUpdatedRecordId = '';
 
-                let firstRecordId = '';
-
-                // Step 1: Filter entries
+                // Identify all records to be updated
                 const entriesToProcess = filteredRecordsWithBalance.filter(r => (Number(withdrawals[r.id]) || 0) > 0);
 
                 for (let i = 0; i < entriesToProcess.length; i++) {
                     const record = entriesToProcess[i];
                     const bagsToWithdraw = Number(withdrawals[record.id]);
-                    const isLast = i === entriesToProcess.length - 1;
 
                     let recordWithRates: StorageRecord = { ...record };
                     const normalizedDesc = (record.commodityDescription || '').trim().toLowerCase();
@@ -205,37 +201,35 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
                         }
                     }
 
-                    const { rent: rentForThisWithdrawal } = calculateFinalRent({ ...recordWithRates, storageStartDate: toDate(recordWithRates.storageStartDate) }, finalDate, bagsToWithdraw);
+                    const { rent } = calculateFinalRent({ ...recordWithRates, storageStartDate: toDate(recordWithRates.storageStartDate) }, finalDate, bagsToWithdraw);
                     
-                    // Distribute Discount, Khata, and Payment (simplistic: put all on first, or distribute)
-                    // For audit accuracy, applying to the first record or proportionally is best.
-                    // Here we apply full values to the first record for simplicity in patti-tracking.
-                    const d = i === 0 ? discountAmountTotal : 0;
-                    const k = i === 0 ? khataAmountTotal : 0;
-                    const p = i === 0 ? paidNowTotal : 0;
+                    // Distribute global Patti financials to the first record in the batch
+                    const d = i === 0 ? discountTotal : 0;
+                    const k = i === 0 ? khataTotal : 0;
+                    const p = i === 0 ? paymentTotal : 0;
 
                     const newOutflow: Outflow = {
                         date: finalDate,
                         bagsWithdrawn: bagsToWithdraw,
-                        rentBilled: rentForThisWithdrawal || 0,
+                        rentBilled: rent || 0,
                         discount: d,
-                        pattiNo: nextPattiNo,
+                        pattiNo: currentPattiNo,
                     };
 
                     const currentBagsOut = Number(record.bagsOut) || 0;
                     const newBagsOut = currentBagsOut + bagsToWithdraw;
-                    const newBagsStored = Math.max(0, (Number(record.bagsIn) || (Number(record.bagsStored) + currentBagsOut)) - newBagsOut);
+                    const newBagsStored = Math.max(0, record.initialInflow - newBagsOut);
 
                     const updateData: any = {
                         bagsOut: newBagsOut,
                         bagsStored: newBagsStored,
-                        totalRentBilled: (Number(record.totalRentBilled) || 0) + (rentForThisWithdrawal || 0),
+                        totalRentBilled: (Number(record.totalRentBilled) || 0) + (rent || 0),
                         outflows: arrayUnion(cleanForFirestore(newOutflow)),
                     };
 
                     if (i === 0) updateData.khataAmount = k;
 
-                    if (newBagsStored <= 0.001) {
+                    if (newBagsStored <= 0.05) {
                         updateData.storageEndDate = Timestamp.fromDate(finalDate);
                         updateData.billingCycle = 'Completed';
                     } else {
@@ -248,25 +242,25 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
                     }
                     
                     batch.update(doc(firestore, 'storageRecords', record.id), cleanForFirestore(updateData));
-                    if (!firstRecordId) firstRecordId = record.id;
+                    if (!firstUpdatedRecordId) firstUpdatedRecordId = record.id;
                 }
                 
                 await batch.commit();
 
                 if (sendSmsNotification && warehouseInfo?.textbeeApiKey && selectedCustomer?.phone) {
-                    const msg = `Dear ${selectedCustomer.name}, withdrawal of ${totalBags} bags processed. Patti No: ${nextPattiNo}. Total: ${formatCurrency(totalPayable)}.`;
+                    const msg = `Dear ${selectedCustomer.name}, withdrawal of ${totalBags} bags processed. Patti No: ${currentPattiNo}. Total: ${formatCurrency(totalPayable)}.`;
                     sendSms({ apiKey: warehouseInfo.textbeeApiKey, deviceId: warehouseInfo.textbeeDeviceId, to: selectedCustomer.phone, message: msg }).catch(console.error);
                 }
 
-                toast({ title: 'Success', description: `Withdrawal Patti #${nextPattiNo} processed.` });
+                toast({ title: 'Success', description: `Withdrawal Patti #${currentPattiNo} processed.` });
                 
                 const qp = new URLSearchParams();
-                qp.set('recordId', firstRecordId);
+                qp.set('recordId', firstUpdatedRecordId);
                 qp.set('withdrawn', String(totalBags));
                 qp.set('rent', String(totalRent));
-                qp.set('paidNow', String(paidNowTotal));
-                qp.set('discount', String(discountAmountTotal));
-                qp.set('khata', String(khataAmountTotal));
+                qp.set('paidNow', String(paymentTotal));
+                qp.set('discount', String(discountTotal));
+                qp.set('khata', String(khataTotal));
                 window.open(`/outflow/receipt?${qp.toString()}`, '_blank');
 
                 resetForm();
@@ -285,11 +279,11 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
                 <CardHeader className="bg-secondary/30">
                     <div className="flex justify-between items-start">
                         <div>
-                            <CardTitle className="text-xl font-bold tracking-tight">Generate Outflow Patti</CardTitle>
-                            <CardDescription className="text-xs font-medium text-slate-500">Numerical bills are automatically sequenced.</CardDescription>
+                            <CardTitle className="text-xl font-bold tracking-tight text-slate-900">Generate Numerical Patti</CardTitle>
+                            <CardDescription className="text-xs font-medium text-slate-500">Multi-lot support enabled. Bills are globally sequenced.</CardDescription>
                         </div>
                         <div className="text-right">
-                             <Label className="text-[9px] uppercase font-black text-primary/60 tracking-widest">Next Patti No</Label>
+                             <Label className="text-[9px] uppercase font-black text-primary/60 tracking-widest">Global Patti No</Label>
                              <div className="flex items-center gap-1.5 justify-end">
                                 <Sparkles className="h-3 w-3 text-primary" />
                                 <span className="font-mono font-black text-lg text-primary">{nextPattiNo}</span>
@@ -311,13 +305,12 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
                     
                     {selectedCustomerId && (
                         <div className="border rounded-xl overflow-hidden shadow-inner bg-card">
-                            <Table className="text-sm">
+                            <Table className="text-[13px]">
                                 <TableHeader className="bg-muted/50">
                                     <TableRow className="text-xs uppercase font-black">
                                         <TableHead className="w-[120px]">Storage ID</TableHead>
-                                        <TableHead>Commodity</TableHead>
                                         <TableHead>Lot</TableHead>
-                                        <TableHead className="text-right">Balance Bags</TableHead>
+                                        <TableHead className="text-right">Godown Balance</TableHead>
                                         <TableHead className="w-[120px] text-right">Withdraw</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -325,7 +318,6 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
                                     {filteredRecordsWithBalance.length > 0 ? filteredRecordsWithBalance.map(record => (
                                         <TableRow key={record.id} className="hover:bg-primary/5 transition-colors border-b">
                                             <TableCell className="font-mono font-bold text-primary">{record.id}</TableCell>
-                                            <TableCell className="font-medium">{record.commodityDescription}</TableCell>
                                             <TableCell className="font-mono text-slate-500">{record.location}</TableCell>
                                             <TableCell className="text-right font-mono font-black">{record.currentBalance}</TableCell>
                                             <TableCell className="p-1">
@@ -338,7 +330,7 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
                                                     value={withdrawals[record.id] || ''}
                                                     onChange={(e) => {
                                                         const v = e.target.value === '' ? '' : Number(e.target.value);
-                                                        if (v === '' || (v >= 0 && v <= record.currentBalance + 0.01)) {
+                                                        if (v === '' || (v >= 0 && v <= record.currentBalance + 0.1)) {
                                                             setWithdrawals(prev => ({ ...prev, [record.id]: v }));
                                                         }
                                                     }}
@@ -348,8 +340,8 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
                                         </TableRow>
                                     )) : (
                                         <TableRow>
-                                            <TableCell colSpan={5} className="text-center h-24 text-muted-foreground italic">
-                                                No active inventory found.
+                                            <TableCell colSpan={4} className="text-center h-24 text-muted-foreground italic">
+                                                No active Godown stock found for this customer.
                                             </TableCell>
                                         </TableRow>
                                     )}
@@ -375,14 +367,14 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
                             <Separator />
 
                             <div className="space-y-4 p-4 rounded-2xl bg-secondary/10 border">
-                                <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Patti Billing Summary</h4>
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Patti Billing Summary (Batch)</h4>
                                 <div className="space-y-3 text-sm">
                                     <div className="flex justify-between items-center">
                                         <span className="text-muted-foreground font-medium">Bags for Outflow</span>
                                         <span className="font-mono font-black text-lg">{totalBags}</span>
                                     </div>
                                     <div className="flex justify-between items-center text-primary">
-                                        <span className="font-medium">Accrued Storage Rent</span>
+                                        <span className="font-medium">Total Storage Rent (Accrued)</span>
                                         <span className="font-mono font-black">{formatCurrency(totalRent)}</span>
                                     </div>
                                      <div className="flex justify-between items-center text-orange-600">
@@ -394,7 +386,7 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
                                 <div className="space-y-1.5">
-                                    <Label htmlFor="khataAmountInput" className="text-[10px] font-black uppercase tracking-widest text-slate-400">Khata Amount (Weighbridge)</Label>
+                                    <Label htmlFor="khataAmountInput" className="text-[10px] font-black uppercase tracking-widest text-slate-400">Khata (Weighbridge)</Label>
                                     <Input
                                         id="khataAmountInput"
                                         name="khataAmountInput"
@@ -430,12 +422,12 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
                                 </div>
                                 
                                 <div className="space-y-1.5 p-5 bg-primary/5 rounded-2xl border-2 border-primary/20">
-                                    <Label htmlFor="amountPaidNow" className="text-xs font-black uppercase tracking-widest text-primary">Cash Collected Now</Label>
+                                    <Label htmlFor="amountPaidNow" className="text-xs font-black uppercase tracking-widest text-primary">Cash Collected (Total Bill)</Label>
                                     <Input
                                         id="amountPaidNow"
                                         name="amountPaidNow"
                                         type="number"
-                                        placeholder="Enter amount collected..."
+                                        placeholder="Enter total amount paid..."
                                         step="0.01"
                                         value={amountPaidNow}
                                         onChange={e => setAmountPaidNow(e.target.value === '' ? '' : Number(e.target.value))}
@@ -462,7 +454,7 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
                 </CardContent>
                 <CardFooter className="pb-8">
                     <Button type="submit" disabled={isPending || withdrawalEntries.length === 0} className="w-full h-12 font-black uppercase tracking-widest">
-                        {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Generate Patti Bill'}
+                        {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Confirm Multi-Withdrawal & Print'}
                     </Button>
                 </CardFooter>
             </Card>

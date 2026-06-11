@@ -40,7 +40,7 @@ export function OutflowReportTable({ events, customers, allRecords, commodities,
         <div className="bg-white p-4 text-black font-sans text-sm printable-area border shadow-sm rounded-lg">
              <div className="mb-4 text-center border-b pb-2">
                 <h2 className="text-xl font-bold uppercase tracking-tight leading-none">SRI LAKSHMI WAREHOUSE</h2>
-                <p className="text-[10px] text-slate-500 uppercase mt-1">Numerical Audit Log • Generated: {generatedDate}</p>
+                <p className="text-[10px] text-slate-500 uppercase mt-1">Numerical Serial Audit • Generated: {generatedDate}</p>
                 <h3 className="font-bold text-center mt-3 uppercase text-[12px] underline decoration-slate-200 underline-offset-4">{title}</h3>
             </div>
             
@@ -49,7 +49,7 @@ export function OutflowReportTable({ events, customers, allRecords, commodities,
                     <TableHeader>
                         <TableRow className="border-b border-black bg-slate-50">
                             <TableHead className="font-bold text-black p-2 text-center uppercase text-[10px]">Date</TableHead>
-                            <TableHead className="font-bold text-black p-2 text-center uppercase text-[10px]">Unique ID</TableHead>
+                            <TableHead className="font-bold text-black p-2 text-center uppercase text-[10px]">Bill No</TableHead>
                             <TableHead className="font-bold text-black p-2 text-left uppercase text-[10px]">Customer Name</TableHead>
                             <TableHead className="font-bold text-black p-2 text-left uppercase text-[10px]">Location/Lot</TableHead>
                             <TableHead className="font-bold text-black p-2 text-center uppercase text-[10px]">Bags Out</TableHead>
@@ -96,14 +96,14 @@ export function OutflowReportTable({ events, customers, allRecords, commodities,
                         {events.length === 0 && (
                             <TableRow>
                                 <TableCell colSpan={7} className="text-center py-20 text-muted-foreground italic">
-                                    No unique outflow entries found for this selection.
+                                    No outflow entries found for this selection.
                                 </TableCell>
                             </TableRow>
                         )}
                     </TableBody>
                     <TableFooter>
                         <TableRow className="bg-slate-900 text-white font-black border-t-2 border-black h-10 hover:bg-slate-900">
-                            <TableCell colSpan={4} className="p-2 text-right uppercase text-[10px] tracking-widest">Total Withdrawal Summary</TableCell>
+                            <TableCell colSpan={4} className="p-2 text-right uppercase text-[10px] tracking-widest">Grand Total Summary</TableCell>
                             <TableCell className="p-2 text-center font-mono text-[14px] text-orange-200">{totalBagsWithdrawn}</TableCell>
                             <TableCell className="p-2 text-right font-mono text-[14px]">{formatCurrency(totalRentBilled)}</TableCell>
                             <TableCell className="print-hide" />

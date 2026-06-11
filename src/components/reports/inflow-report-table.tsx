@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo } from "react";
@@ -59,7 +58,6 @@ export function InflowReportTable({ records, allRecords, customers, title }: Rep
                     </TableHeader>
                     <TableBody>
                         {records.map((record) => {
-                            // Strictly numerical display
                             const displayBillNo = String(record.id).replace(/\D/g, '');
                             return (
                                 <TableRow key={record.id} className="h-9 border-b border-slate-100 hover:bg-slate-50/50 group">

@@ -30,9 +30,9 @@ export function OutflowReport({ records, customers, commodities, lots }: Outflow
     );
     const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
-    // DE-MERGED EVENT LOGIC: Treat every outflow item as a unique numerical event
+    // Grouping Logic: Aggregate withdrawals sharing the same Bill No for the same customer
     const individualOutflowEvents = useMemo(() => {
-        const events: OutflowEvent[] = [];
+        const eventsMap: Record<string, OutflowEvent> = {};
         
         records.forEach(record => {
             if (Array.isArray(record.outflows)) {
@@ -50,26 +50,34 @@ export function OutflowReport({ records, customers, commodities, lots }: Outflow
 
                     if (selectedCustomerId !== 'all' && record.customerId !== selectedCustomerId) return;
 
-                    // Strictly numerical ID display
                     const displayId = String(outflow.pattiNo || record.id).replace(/\D/g, '');
+                    const groupKey = `${record.customerId}-${displayId}`;
                     
-                    events.push({
-                        ...outflow,
-                        pattiNo: displayId,
-                        date: outflowDate,
-                        customerId: record.customerId,
-                        recordId: record.id,
-                        commodityDescription: record.commodityDescription,
-                        location: record.location,
-                        outflowIndex: index,
-                        bagsWithdrawn: Number(outflow.bagsWithdrawn) || 0,
-                        rentBilled: Number(outflow.rentBilled) || 0,
-                    });
+                    if (eventsMap[groupKey]) {
+                        eventsMap[groupKey].bagsWithdrawn += Number(outflow.bagsWithdrawn) || 0;
+                        eventsMap[groupKey].rentBilled += Number(outflow.rentBilled) || 0;
+                        if (record.location && !eventsMap[groupKey].location?.includes(record.location)) {
+                            eventsMap[groupKey].location = eventsMap[groupKey].location === 'Multiple' ? 'Multiple' : 'Multiple';
+                        }
+                    } else {
+                        eventsMap[groupKey] = {
+                            ...outflow,
+                            pattiNo: displayId,
+                            date: outflowDate,
+                            customerId: record.customerId,
+                            recordId: record.id,
+                            commodityDescription: record.commodityDescription,
+                            location: record.location || 'N/A',
+                            outflowIndex: index,
+                            bagsWithdrawn: Number(outflow.bagsWithdrawn) || 0,
+                            rentBilled: Number(outflow.rentBilled) || 0,
+                        };
+                    }
                 });
             }
         });
 
-        return events.sort((a,b) => b.date.getTime() - a.date.getTime());
+        return Object.values(eventsMap).sort((a,b) => b.date.getTime() - a.date.getTime());
     }, [records, selectedCustomerId, dateRange, financialYear]);
     
     const customer = customers.find(c => c.id === selectedCustomerId);
@@ -79,8 +87,8 @@ export function OutflowReport({ records, customers, commodities, lots }: Outflow
         <Card className="border-primary/20 shadow-md">
             <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4 print-hide">
                 <div className="flex-1">
-                    <CardTitle>Outflow Register (Numerical Log)</CardTitle>
-                    <CardDescription>A demerged log of all withdrawals. Every lot is listed with its own unique numerical ID.</CardDescription>
+                    <CardTitle>Outflow Register</CardTitle>
+                    <CardDescription>Grouped by Bill No. Serialized from the first transaction.</CardDescription>
                 </div>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto flex-wrap">
                     <Select onValueChange={setSelectedCustomerId} value={selectedCustomerId}>

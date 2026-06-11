@@ -47,13 +47,13 @@ export function OutflowForm({ activeRecords = [], allRecords = [], customers = [
     );
     const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
-    // 1. Calculate TRUE Global Max ID (scans all records ever processed)
-    const nextStartingId = useMemo(() => {
+    // Calculate Serialized Bill No for the transaction batch
+    const nextBillNo = useMemo(() => {
         let max = 1000;
         allRecords.forEach(r => {
             if (Array.isArray(r.outflows)) {
                 r.outflows.forEach(o => {
-                    const num = parseInt(o.pattiNo || '0', 10);
+                    const num = parseInt(String(o.pattiNo || '0').replace(/\D/g, ''), 10);
                     if (!isNaN(num) && num > max) max = num;
                 });
             }
@@ -172,7 +172,7 @@ export function OutflowForm({ activeRecords = [], allRecords = [], customers = [
         startTransition(async () => {
             try {
                 const batch = writeBatch(firestore);
-                let currentIncrementalId = nextStartingId;
+                const sharedBillNo = String(nextBillNo); // Single serial ID for the whole transaction
                 
                 const discountTotal = Number(discount) || 0;
                 const khataTotal = Number(khataAmountInput) || 0;
@@ -183,7 +183,6 @@ export function OutflowForm({ activeRecords = [], allRecords = [], customers = [
                 for (let i = 0; i < entriesToProcess.length; i++) {
                     const record = entriesToProcess[i];
                     const bagsToWithdraw = Number(withdrawals[record.id]);
-                    const uniqueNumericalId = String(currentIncrementalId++); // Guarantee uniqueness per row
 
                     let recordWithRates: StorageRecord = { ...record };
                     const normalizedDesc = (record.commodityDescription || '').trim().toLowerCase();
@@ -211,7 +210,7 @@ export function OutflowForm({ activeRecords = [], allRecords = [], customers = [
                         bagsWithdrawn: bagsToWithdraw,
                         rentBilled: rent || 0,
                         discount: d,
-                        pattiNo: uniqueNumericalId, 
+                        pattiNo: sharedBillNo, 
                     };
 
                     const currentBagsOut = Number(record.bagsOut) || 0;
@@ -245,15 +244,16 @@ export function OutflowForm({ activeRecords = [], allRecords = [], customers = [
                 await batch.commit();
 
                 if (sendSmsNotification && warehouseInfo?.textbeeApiKey && selectedCustomer?.phone) {
-                    const msg = `Dear ${selectedCustomer.name}, withdrawal of ${totalBags} bags processed. Unique IDs starting from ${nextStartingId}. Total: ${formatCurrency(totalPayable)}.`;
+                    const msg = `Dear ${selectedCustomer.name}, withdrawal of ${totalBags} bags processed. Bill No: ${sharedBillNo}. Total: ${formatCurrency(totalPayable)}.`;
                     sendSms({ apiKey: warehouseInfo.textbeeApiKey, deviceId: warehouseInfo.textbeeDeviceId, to: selectedCustomer.phone, message: msg }).catch(console.error);
                 }
 
-                toast({ title: 'Success', description: 'Outflow withdrawals processed with unique IDs.' });
+                toast({ title: 'Success', description: `Outflow Bill #${sharedBillNo} generated.` });
                 resetForm();
+                window.open(`/outflow/receipt?pattiNo=${sharedBillNo}`, '_blank');
             } catch (error: any) {
                 console.error("Outflow failed:", error);
-                toast({ title: 'Error', description: 'Failed to process outflow batch.', variant: 'destructive' });
+                toast({ title: 'Error', description: 'Failed to process outflow bill.', variant: 'destructive' });
             }
         });
     }
@@ -265,14 +265,14 @@ export function OutflowForm({ activeRecords = [], allRecords = [], customers = [
                 <CardHeader className="bg-secondary/30">
                     <div className="flex justify-between items-start">
                         <div>
-                            <CardTitle className="text-xl font-bold tracking-tight">Generate Unique Outflow IDs</CardTitle>
-                            <CardDescription className="text-xs font-medium text-slate-500">Every lot withdrawal in the batch will receive its own numerical ID.</CardDescription>
+                            <CardTitle className="text-xl font-bold tracking-tight">Generate Serialized Outflow Bill</CardTitle>
+                            <CardDescription className="text-xs font-medium text-slate-500">Multiple lots in this transaction will share a single Bill No.</CardDescription>
                         </div>
                         <div className="text-right">
-                             <Label className="text-[9px] uppercase font-black text-primary/60 tracking-widest">Starting ID</Label>
+                             <Label className="text-[9px] font-black uppercase text-primary/60 tracking-widest">Next Serial No</Label>
                              <div className="flex items-center gap-1.5 justify-end">
                                 <Sparkles className="h-3 w-3 text-primary" />
-                                <span className="font-mono font-black text-lg text-primary">{nextStartingId}</span>
+                                <span className="font-mono font-black text-lg text-primary">{nextBillNo}</span>
                              </div>
                         </div>
                     </div>
@@ -294,7 +294,7 @@ export function OutflowForm({ activeRecords = [], allRecords = [], customers = [
                             <Table className="text-[13px]">
                                 <TableHeader className="bg-muted/50">
                                     <TableRow className="text-xs uppercase font-black">
-                                        <TableHead className="w-[120px]">Storage ID</TableHead>
+                                        <TableHead className="w-[120px]">Inflow No.</TableHead>
                                         <TableHead>Lot</TableHead>
                                         <TableHead className="text-right">Balance</TableHead>
                                         <TableHead className="w-[120px] text-right">Withdraw</TableHead>
@@ -353,7 +353,7 @@ export function OutflowForm({ activeRecords = [], allRecords = [], customers = [
                             <Separator />
 
                             <div className="space-y-4 p-4 rounded-2xl bg-secondary/10 border">
-                                <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Auto-Generated Batch Summary</h4>
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Transaction Summary (Bill #{nextBillNo})</h4>
                                 <div className="space-y-3 text-sm">
                                     <div className="flex justify-between items-center">
                                         <span className="text-muted-foreground font-medium">Bags to Withdraw</span>
@@ -385,7 +385,7 @@ export function OutflowForm({ activeRecords = [], allRecords = [], customers = [
                                     />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <Label htmlFor="discount" className="text-[10px] font-black uppercase tracking-widest text-slate-400">Outflow Discount</Label>
+                                    <Label htmlFor="discount" className="text-[10px] font-black uppercase tracking-widest text-slate-400">Bill Discount</Label>
                                     <Input
                                         id="discount"
                                         name="discount"
@@ -426,7 +426,7 @@ export function OutflowForm({ activeRecords = [], allRecords = [], customers = [
                 </CardContent>
                 <CardFooter className="pb-8">
                     <Button type="submit" disabled={isPending || withdrawalEntries.length === 0} className="w-full h-12 font-black uppercase tracking-widest">
-                        {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Confirm Outflow & Generate Bills'}
+                        {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : `Confirm Withdrawal (Bill #${nextBillNo})`}
                     </Button>
                 </CardFooter>
             </Card>

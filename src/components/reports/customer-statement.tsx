@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, forwardRef } from 'react';
@@ -61,8 +60,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
     // 1. Process Unloading Records
     (unloadingRecords || []).forEach(unloading => {
         const totalHamali = Number(unloading.totalHamali) || 0;
-        const rawId = String(unloading.billNo || unloading.id || '');
-        const cleanId = rawId.replace(/\D/g, ''); 
+        const cleanId = String(unloading.billNo || unloading.id || '').replace(/\D/g, ''); 
         const bags = Number(unloading.bagsUnloaded) || 0;
         
         if (totalHamali > 0 || bags > 0) {
@@ -157,34 +155,44 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             });
         }
 
-        // Process individual Outflows (No Merging)
+        // Process Outflows with Grouping
+        const outflowGroups: Record<string, any> = {};
         if (Array.isArray(record.outflows)) {
             record.outflows.forEach((outflow, idx) => {
-                const outflowId = String(outflow.pattiNo || record.id).replace(/\D/g, ''); 
+                const displayId = String(outflow.pattiNo || record.id).replace(/\D/g, ''); 
                 const rentVal = Number(outflow.rentBilled) || 0;
                 const withdrawn = Number(outflow.bagsWithdrawn) || 0;
                 
                 totalRentBilled += rentVal;
                 totalBagsOut += withdrawn;
 
-                events.push({
-                    date: toDate(outflow.date),
-                    description: `Outflow Withdrawal`,
-                    billNo: outflowId,
-                    lotNo: record.location || 'N/A',
-                    bagsIn: 0,
-                    bagsOut: withdrawn,
-                    hamali: 0,
-                    rent: rentVal,
-                    credit: 0,
-                    sortDate: toDate(outflow.date).getTime() + 3 + idx,
-                    recordType: 'outflow',
-                    sourceRecord: record,
-                    outflowData: outflow,
-                    outflowIndex: idx,
-                });
+                if (outflowGroups[displayId]) {
+                    outflowGroups[displayId].bagsOut += withdrawn;
+                    outflowGroups[displayId].rent += rentVal;
+                    if (record.location && !outflowGroups[displayId].lotNo.includes(record.location)) {
+                        outflowGroups[displayId].lotNo = outflowGroups[displayId].lotNo === 'Multiple' ? 'Multiple' : 'Multiple';
+                    }
+                } else {
+                    outflowGroups[displayId] = {
+                        date: toDate(outflow.date),
+                        description: `Outflow Withdrawal`,
+                        billNo: displayId,
+                        lotNo: record.location || 'N/A',
+                        bagsIn: 0,
+                        bagsOut: withdrawn,
+                        hamali: 0,
+                        rent: rentVal,
+                        credit: 0,
+                        sortDate: toDate(outflow.date).getTime() + 3 + idx,
+                        recordType: 'outflow',
+                        sourceRecord: record,
+                        outflowData: outflow,
+                        outflowIndex: idx,
+                    };
+                }
             });
         }
+        Object.values(outflowGroups).forEach(og => events.push(og));
 
         if (Array.isArray(record.payments)) {
             record.payments.forEach((payment, pIdx) => {
@@ -305,8 +313,8 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 <TableHeader>
                     <TableRow className="border-b border-black bg-slate-50 h-10">
                         <TableHead className="font-bold text-black border-r border-slate-200 text-center p-2 uppercase text-[9px]">Date</TableHead>
-                        <TableHead className="font-bold text-black border-r border-slate-200 p-2 uppercase text-[9px]">Process Description</TableHead>
-                        <TableHead className="font-bold text-black border-r border-slate-200 text-center p-2 uppercase text-[9px]">Ref ID</TableHead>
+                        <TableHead className="font-bold text-black border-r border-slate-200 p-2 uppercase text-[9px]">Description</TableHead>
+                        <TableHead className="font-bold text-black border-r border-slate-200 text-center p-2 uppercase text-[9px]">Bill No</TableHead>
                         <TableHead className="font-bold text-black border-r border-slate-200 text-center p-2 uppercase text-[9px]">Lot</TableHead>
                         <TableHead className="font-bold text-black border-r border-slate-200 text-center p-2 uppercase text-[9px]">In</TableHead>
                         <TableHead className="font-bold text-black border-r border-slate-200 text-center p-2 uppercase text-[9px]">Out</TableHead>

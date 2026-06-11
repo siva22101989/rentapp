@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 
 type DailyData = {
     inflows: StorageRecord[];
-    outflows: (StorageRecord & { bagsWithdrawn: number; rentBilled: number; outflowDate: Date })[];
+    outflows: Record<string, { pattiNo: string; bags: number; rent: number; customerName: string; commodity: string }>;
     unloadings: UnloadingRecord[];
     payments: (Payment & { customerName: string; recordId: string; description: string; })[];
     expenses: Expense[];
@@ -29,6 +29,7 @@ type DailyData = {
 
 const DailySummaryContent = ({ dailyData, selectedDate }: { dailyData: DailyData, selectedDate: Date }) => {
     const timestamp = useMemo(() => format(new Date(), 'dd/MM/yyyy, hh:mm a'), []);
+    const mergedOutflows = Object.values(dailyData.outflows);
 
     return (
         <div className="p-4 space-y-8 text-black">
@@ -87,6 +88,34 @@ const DailySummaryContent = ({ dailyData, selectedDate }: { dailyData: DailyData
             </div>
 
             <div className="space-y-6 text-[13px]">
+                {mergedOutflows.length > 0 && (
+                    <div className="space-y-2">
+                         <h4 className="text-[10px] font-black uppercase text-slate-500 border-l-4 border-orange-500 pl-2">Stock Outflows (Patti)</h4>
+                         <Table className="border border-slate-100 text-[13px]">
+                            <TableHeader className="bg-slate-50">
+                                <TableRow className="h-7">
+                                    <TableHead className="font-bold py-1">Patti No</TableHead>
+                                    <TableHead className="font-bold py-1">Customer</TableHead>
+                                    <TableHead className="font-bold py-1">Commodity</TableHead>
+                                    <TableHead className="font-bold text-center py-1">Bags Out</TableHead>
+                                    <TableHead className="font-bold text-right py-1">Rent Billed</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {mergedOutflows.map((out, i) => (
+                                    <TableRow key={i} className="h-7">
+                                        <TableCell className="font-mono font-bold text-primary py-1">#{out.pattiNo}</TableCell>
+                                        <TableCell className="font-bold py-1 uppercase">{out.customerName}</TableCell>
+                                        <TableCell className="py-1">{out.commodity}</TableCell>
+                                        <TableCell className="text-center font-mono font-bold text-orange-600 py-1">{out.bags}</TableCell>
+                                        <TableCell className="text-right font-mono font-bold py-1">{formatCurrency(out.rent)}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                         </Table>
+                    </div>
+                )}
+
                 {dailyData.payments.length > 0 && (
                     <div className="space-y-2">
                         <h4 className="text-[10px] font-black uppercase text-slate-500 border-l-4 border-green-500 pl-2">Cash Receipts (Income)</h4>
@@ -163,7 +192,7 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
         const date = selectedDate;
         const data: DailyData = {
             inflows: [],
-            outflows: [],
+            outflows: {},
             unloadings: [],
             payments: [],
             expenses: [],
@@ -180,9 +209,21 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
         // Process Outflows and Storage Payments
         records.forEach(r => {
             if (Array.isArray(r.outflows)) {
-                r.outflows.forEach(outflow => {
-                    if (isSameDay(toDate(outflow.date), date)) {
-                        data.outflows.push({ ...r, ...outflow, outflowDate: toDate(outflow.date) } as any);
+                r.outflows.forEach((outflow, idx) => {
+                    const oDate = toDate(outflow.date);
+                    if (isSameDay(oDate, date)) {
+                        const pattiNo = outflow.pattiNo || `legacy-${r.id}-${idx}`;
+                        if (!data.outflows[pattiNo]) {
+                            data.outflows[pattiNo] = {
+                                pattiNo: pattiNo,
+                                bags: 0,
+                                rent: 0,
+                                customerName: customerMap.get(r.customerId) || 'Unknown',
+                                commodity: r.commodityDescription,
+                            };
+                        }
+                        data.outflows[pattiNo].bags += (Number(outflow.bagsWithdrawn) || 0);
+                        data.outflows[pattiNo].rent += (Number(outflow.rentBilled) || 0);
                         data.summary.totalOutflowBags += (Number(outflow.bagsWithdrawn) || 0);
                     }
                 });

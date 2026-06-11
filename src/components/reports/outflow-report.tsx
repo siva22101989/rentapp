@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -31,10 +30,11 @@ export function OutflowReport({ records, customers, commodities, lots }: Outflow
     );
     const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
-    const outflowEvents = useMemo(() => {
-        const events: OutflowEvent[] = [];
+    const mergedOutflowEvents = useMemo(() => {
+        const events: Record<string, OutflowEvent> = {};
+        
         records.forEach(record => {
-            if (record.outflows && Array.isArray(record.outflows)) {
+            if (Array.isArray(record.outflows)) {
                 record.outflows.forEach((outflow, index) => {
                     const outflowDate = toDate(outflow.date);
                     
@@ -49,20 +49,29 @@ export function OutflowReport({ records, customers, commodities, lots }: Outflow
 
                     if (selectedCustomerId !== 'all' && record.customerId !== selectedCustomerId) return;
 
-                    events.push({
-                        ...outflow,
-                        date: outflowDate,
-                        customerId: record.customerId,
-                        recordId: record.id,
-                        commodityDescription: record.commodityDescription,
-                        location: record.location,
-                        outflowIndex: index,
-                    });
+                    const pattiNo = outflow.pattiNo || `legacy-${record.id}-${index}`;
+                    
+                    if (!events[pattiNo]) {
+                        events[pattiNo] = {
+                            ...outflow,
+                            date: outflowDate,
+                            customerId: record.customerId,
+                            recordId: record.id,
+                            commodityDescription: record.commodityDescription,
+                            location: record.location,
+                            outflowIndex: index,
+                            bagsWithdrawn: Number(outflow.bagsWithdrawn) || 0,
+                            rentBilled: Number(outflow.rentBilled) || 0,
+                        };
+                    } else {
+                        events[pattiNo].bagsWithdrawn += (Number(outflow.bagsWithdrawn) || 0);
+                        events[pattiNo].rentBilled += (Number(outflow.rentBilled) || 0);
+                    }
                 });
             }
         });
 
-        return events.sort((a,b) => b.date.getTime() - a.date.getTime());
+        return Object.values(events).sort((a,b) => b.date.getTime() - a.date.getTime());
     }, [records, selectedCustomerId, dateRange, financialYear]);
     
     const customer = customers.find(c => c.id === selectedCustomerId);
@@ -73,7 +82,7 @@ export function OutflowReport({ records, customers, commodities, lots }: Outflow
             <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4 print-hide">
                 <div className="flex-1">
                     <CardTitle>Outflow Register</CardTitle>
-                    <CardDescription>A log of all items withdrawn from storage.</CardDescription>
+                    <CardDescription>A log of all items withdrawn from storage. Multiple selections are merged into single Patti entries.</CardDescription>
                 </div>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto flex-wrap">
                     <Select onValueChange={setSelectedCustomerId} value={selectedCustomerId}>
@@ -94,7 +103,7 @@ export function OutflowReport({ records, customers, commodities, lots }: Outflow
             <CardContent>
                 <div>
                     <OutflowReportTable 
-                        events={outflowEvents} 
+                        events={mergedOutflowEvents} 
                         customers={customers}
                         allRecords={records}
                         commodities={commodities}

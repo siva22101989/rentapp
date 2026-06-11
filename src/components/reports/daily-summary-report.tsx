@@ -173,9 +173,11 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
 
         const customerMap = new Map(customers.map(c => [c.id, c.name]));
 
+        // Process Inflows
         data.inflows = records.filter(r => isSameDay(toDate(r.storageStartDate), date));
         data.summary.totalInflowBags = data.inflows.reduce((sum, r) => sum + (Number(r.bagsIn) || 0), 0);
 
+        // Process Outflows and Storage Payments
         records.forEach(r => {
             if (Array.isArray(r.outflows)) {
                 r.outflows.forEach(outflow => {
@@ -188,13 +190,19 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
             if (Array.isArray(r.payments)) {
                 r.payments.forEach(p => {
                     if (isSameDay(toDate(p.date), date)) {
-                        data.payments.push({ ...p, customerName: customerMap.get(r.customerId) ?? 'Unknown', recordId: r.id, description: `Payment for Storage` });
+                        data.payments.push({ 
+                            ...p, 
+                            customerName: customerMap.get(r.customerId) ?? 'Unknown', 
+                            recordId: r.id, 
+                            description: p.type === 'hamali' ? 'Hamali Payment' : 'Rent Payment' 
+                        });
                         data.summary.totalIncome += (Number(p.amount) || 0);
                     }
                 });
             }
         });
 
+        // Process Unloadings and Unloading Payments
         unloadingRecords.forEach(r => {
             if (isSameDay(toDate(r.unloadingDate), date)) {
                 data.unloadings.push(r);
@@ -203,16 +211,23 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
             if (Array.isArray(r.payments)) {
                 r.payments.forEach(p => {
                     if (isSameDay(toDate(p.date), date)) {
-                        data.payments.push({ ...p, customerName: customerMap.get(r.customerId) ?? 'Unknown', recordId: r.billNo || r.id, description: 'Payment for Unloading' });
+                        data.payments.push({ 
+                            ...p, 
+                            customerName: customerMap.get(r.customerId) ?? 'Unknown', 
+                            recordId: r.billNo || r.id, 
+                            description: 'Payment for Unloading' 
+                        });
                         data.summary.totalIncome += (Number(p.amount) || 0);
                     }
                 });
             }
         });
 
+        // Process Other Incomes
         data.otherIncomes = otherIncomes.filter(i => isSameDay(toDate(i.date), date));
         data.summary.totalIncome += data.otherIncomes.reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
 
+        // Process Expenses
         data.expenses = expenses.filter(e => isSameDay(toDate(e.date), date));
         data.summary.totalExpenses = data.expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
 

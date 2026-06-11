@@ -55,9 +55,10 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
         return (records || [])
             .filter(r => r.customerId === selectedCustomerId)
             .map(r => {
-                const bagsOut = Array.isArray(r.outflows) ? r.outflows.reduce((acc, o) => acc + (Number(o.bagsWithdrawn) || 0), 0) : (Number(r.bagsOut) || 0);
+                // ROBUST HISTORICAL CALCULATION
+                const bagsOut = (Array.isArray(r.outflows)) ? r.outflows.reduce((acc, o) => acc + (Number(o.bagsWithdrawn) || 0), 0) : (Number(r.bagsOut) || 0);
                 const initialInflow = Number(r.bagsIn) || (Number(r.bagsStored || 0) + bagsOut);
-                const currentBalance = initialInflow - bagsOut;
+                const currentBalance = Math.max(0, initialInflow - bagsOut);
                 return { ...r, currentBalance, initialInflow };
             })
             .filter(r => r.currentBalance > 0.5);
@@ -143,17 +144,6 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
         setKhataAmountInput('');
         setWithdrawalDateStr(new Date().toISOString().split('T')[0]);
     }
-    
-    const handleCustomerChange = (customerId: string) => {
-        setSelectedCustomerId(customerId);
-    }
-
-    const handleWithdrawalChange = (recordId: string, value: string, maxBags: number) => {
-        const numValue = value === '' ? '' : Number(value);
-        if (numValue === '' || (numValue >= 0 && numValue <= maxBags + 0.01)) {
-            setWithdrawals(prev => ({ ...prev, [recordId]: numValue }));
-        }
-    };
     
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -252,18 +242,10 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
                 await batch.commit();
 
                 if (sendSmsNotification && warehouseInfo?.textbeeApiKey && selectedCustomer?.phone) {
-                    const template = warehouseInfo?.smsOutflowTemplate || `Dear {customerName}, withdrawal of {bags} bags recorded. Bill: {billNo}. Rent: {rent}. Thank you.`;
+                    const template = warehouseInfo?.smsOutflowTemplate || `Dear {customerName}, withdrawal of {bags} bags recorded. Bill: {billNo}. Thank you.`;
                     let billIdentifier = withdrawalEntries.length === 1 ? `${withdrawalEntries[0][0]}-${(filteredRecordsWithBalance.find(r => r.id === withdrawalEntries[0][0])?.outflows?.length || 0) + 1}` : 'Multi-Lot';
-                    
-                    const message = template
-                        .replace('{customerName}', selectedCustomer.name)
-                        .replace('{bags}', String(totalBags))
-                        .replace('{billNo}', billIdentifier)
-                        .replace('{rent}', formatCurrency(totalRent))
-                        .replace('{total}', formatCurrency(totalPayable))
-                        .replace('{warehouseName}', warehouseInfo?.name || 'Warehouse');
-
-                    sendSms({ apiKey: warehouseInfo.textbeeApiKey, deviceId: warehouseInfo.textbeeDeviceId, to: selectedCustomer.phone, message }).catch(console.error);
+                    const msg = template.replace('{customerName}', selectedCustomer.name).replace('{bags}', String(totalBags)).replace('{billNo}', billIdentifier);
+                    sendSms({ apiKey: warehouseInfo.textbeeApiKey, deviceId: warehouseInfo.textbeeDeviceId, to: selectedCustomer.phone, message: msg }).catch(console.error);
                 }
 
                 toast({ title: 'Success', description: `Withdrawal processed for ${totalBags} bags.` });
@@ -291,20 +273,12 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
                         <Combobox
                             options={customerOptions}
                             value={selectedCustomerId}
-                            onChange={handleCustomerChange}
+                            onChange={setSelectedCustomerId}
                             placeholder="Select a customer..."
                             searchPlaceholder="Search customers..."
                         />
                     </div>
                     
-                    {selectedCustomer && (
-                        <div className="text-[11px] text-muted-foreground p-3 border rounded-xl bg-slate-50 space-y-0.5 -mt-2">
-                            <p><strong>Father's Name:</strong> {selectedCustomer.fatherName || 'N/A'}</p>
-                            <p><strong>Village:</strong> {selectedCustomer.village || 'N/A'}</p>
-                            <p><strong>Phone:</strong> {selectedCustomer.phone || 'N/A'}</p>
-                        </div>
-                    )}
-
                     {selectedCustomerId && (
                         <div className="border rounded-xl overflow-hidden shadow-inner bg-card">
                             <Table className="text-sm">
@@ -332,7 +306,12 @@ export function OutflowForm({ records = [], customers = [], commodities = [] }: 
                                                     min="0"
                                                     max={record.currentBalance}
                                                     value={withdrawals[record.id] || ''}
-                                                    onChange={(e) => handleWithdrawalChange(record.id, e.target.value, record.currentBalance)}
+                                                    onChange={(e) => {
+                                                        const v = e.target.value === '' ? '' : Number(e.target.value);
+                                                        if (v === '' || (v >= 0 && v <= record.currentBalance + 0.01)) {
+                                                            setWithdrawals(prev => ({ ...prev, [record.id]: v }));
+                                                        }
+                                                    }}
                                                     className="text-right font-mono font-black h-9 border-none focus-visible:ring-0 bg-secondary/50 rounded-lg"
                                                 />
                                             </TableCell>

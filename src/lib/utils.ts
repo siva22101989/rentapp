@@ -44,8 +44,6 @@ export function toDate(date: Date | Timestamp | string | number | null | undefin
 
     // Handle numeric (Excel serial date)
     if (typeof date === 'number') {
-        // Excel base date is Dec 30, 1899 (for positive dates after 1900)
-        // This is a simple conversion for standard godown dates
         const excelEpoch = new Date(1899, 11, 30);
         const d = new Date(excelEpoch.getTime() + date * 24 * 60 * 60 * 1000);
         return isNaN(d.getTime()) ? new Date() : d;
@@ -84,24 +82,27 @@ export function parseManualDate(input: string): Date | null {
   return isNaN(fallback.getTime()) ? null : fallback;
 }
 
+/**
+ * Robustly cleans objects for Firestore, ensuring FieldValue operators (arrayUnion, increment)
+ * and Timestamps are preserved correctly.
+ */
 export function cleanForFirestore(data: any): any {
-  if (data === null || data === undefined) {
-    return null;
-  }
-
-  if (Array.isArray(data)) {
-    return data.map(item => cleanForFirestore(item));
-  }
-
-  if (data instanceof Date) {
-    return Timestamp.fromDate(data);
-  }
-
-  if (data.toDate && typeof data.toDate === 'function') {
-    return data;
-  }
-
+  if (data === null || data === undefined) return null;
+  if (data instanceof Date) return Timestamp.fromDate(data);
+  if (Array.isArray(data)) return data.map(item => cleanForFirestore(item));
+  
   if (typeof data === 'object') {
+    // 1. Preservce Firestore Timestamps
+    if (typeof data.toDate === 'function') return data;
+    
+    // 2. Preserve Firestore FieldValue operators (arrayUnion, increment, etc.)
+    // These objects usually have a constructor name or internal signature in Web SDK
+    const constructorName = data.constructor?.name;
+    if (constructorName === 'FieldValueImpl' || data._methodName || data instanceof Timestamp) {
+        return data;
+    }
+
+    // 3. Clean standard plain objects
     const cleanedData: { [key: string]: any } = {};
     for (const key of Object.keys(data)) {
       const value = data[key];

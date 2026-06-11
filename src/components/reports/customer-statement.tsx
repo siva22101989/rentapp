@@ -54,19 +54,24 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
     let totalHamaliPaid = 0;
     let totalRentBilled = 0;
     let totalRentPaid = 0;
+    let totalBagsIn = 0;
+    let totalBagsOut = 0;
 
     // 1. Process Unloading Records
     (unloadingRecords || []).forEach(unloading => {
         const totalHamali = Number(unloading.totalHamali) || 0;
         const billNo = String(unloading.billNo || unloading.id || '').replace(/\D/g, '');
-        if (totalHamali > 0) {
+        const bags = Number(unloading.bagsUnloaded) || 0;
+        
+        if (totalHamali > 0 || bags > 0) {
             totalHamaliBilled += totalHamali;
+            totalBagsIn += bags;
             events.push({
                 date: toDate(unloading.unloadingDate),
                 description: `Inflow (Unloading) - ${unloading.commodityDescription || 'Misc'}`,
                 billNo: billNo,
                 lotNo: unloading.location || 'N/A',
-                bagsIn: Number(unloading.bagsUnloaded) || 0,
+                bagsIn: bags,
                 bagsOut: 0,
                 hamali: totalHamali,
                 rent: 0,
@@ -106,7 +111,13 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
     (records || []).forEach(record => {
         const billNo = String(record.id || '').replace(/\D/g, '');
         const hamaliBilledOnInflow = Number(record.hamaliPayable) || 0;
+        
+        // Reconstruct true inflow for historical accuracy
+        const bagsOutFromHistory = (Array.isArray(record.outflows)) ? record.outflows.reduce((s, o) => s + (Number(o.bagsWithdrawn) || 0), 0) : 0;
+        const inflowBags = Number(record.bagsIn) || (Number(record.bagsStored || 0) + bagsOutFromHistory);
+        
         totalHamaliBilled += hamaliBilledOnInflow;
+        totalBagsIn += inflowBags;
         
         // Inflow Event
         events.push({
@@ -114,7 +125,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             description: `Inflow (Storage) - ${record.commodityDescription || 'Misc'}`,
             billNo: billNo,
             lotNo: record.location || 'N/A',
-            bagsIn: Number(record.bagsIn) || (Number(record.bagsStored || 0) + (Number(record.bagsOut) || 0)),
+            bagsIn: inflowBags,
             bagsOut: 0,
             hamali: hamaliBilledOnInflow,
             rent: 0,
@@ -144,13 +155,14 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             });
         }
 
-        // Outflow Events (Rent Category) - ROBUST ARRAY CHECK
-        const outflows = record.outflows;
-        if (outflows && Array.isArray(outflows)) {
-            outflows.forEach((outflow, idx) => {
+        // Outflow Events (Withdrawals)
+        if (Array.isArray(record.outflows)) {
+            record.outflows.forEach((outflow, idx) => {
                 const rentVal = Number(outflow.rentBilled) || 0;
                 const withdrawn = Number(outflow.bagsWithdrawn) || 0;
                 totalRentBilled += rentVal;
+                totalBagsOut += withdrawn;
+                
                 events.push({
                     date: toDate(outflow.date),
                     description: `Outflow Withdrawal`,
@@ -170,10 +182,9 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             });
         }
 
-        // Payments - ROBUST ARRAY CHECK
-        const payments = record.payments;
-        if (payments && Array.isArray(payments)) {
-            payments.forEach((payment, pIdx) => {
+        // Payments
+        if (Array.isArray(record.payments)) {
+            record.payments.forEach((payment, pIdx) => {
                 const amt = Number(payment.amount) || 0;
                 const isHamali = payment.type === 'hamali' || payment.type === 'unloading';
                 if (isHamali) totalHamaliPaid += amt;
@@ -203,19 +214,10 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
     const sortedEvents = (events || []).sort((a, b) => (a.sortDate || 0) - (b.sortDate || 0));
 
     let runningBalance = 0;
-    let totalBagsIn = 0;
-    let totalBagsOut = 0;
-    let totalCredit = 0;
-
     const lineItems = sortedEvents.map(event => {
         const debit = (Number(event.hamali) || 0) + (Number(event.rent) || 0);
         const credit = Number(event.credit) || 0;
         runningBalance += (debit - credit);
-        
-        totalBagsIn += (Number(event.bagsIn) || 0);
-        totalBagsOut += (Number(event.bagsOut) || 0);
-        totalCredit += credit;
-
         return { ...event, balance: runningBalance };
     });
     
@@ -224,14 +226,14 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         totals: { 
             totalBagsIn, 
             totalBagsOut, 
-            balanceStock: totalBagsIn - totalBagsOut, 
+            balanceStock: Math.max(0, totalBagsIn - totalBagsOut), 
             totalHamaliBilled, 
             totalHamaliPaid,
             hamaliBalance: Math.max(0, totalHamaliBilled - totalHamaliPaid),
             totalRentBilled, 
             totalRentPaid,
             rentBalance: Math.max(0, totalRentBilled - totalRentPaid),
-            totalCredit, 
+            totalCredit: totalHamaliPaid + totalRentPaid, 
             finalBalance: Math.max(0, runningBalance)
         } 
     };

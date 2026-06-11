@@ -176,38 +176,44 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
         const customerMap = new Map(customers.map(c => [c.id, c.name]));
 
         data.inflows = records.filter(r => isSameDay(toDate(r.storageStartDate), date));
-        data.summary.totalInflowBags = data.inflows.reduce((sum, r) => sum + (r.bagsIn || 0), 0);
+        data.summary.totalInflowBags = data.inflows.reduce((sum, r) => sum + (Number(r.bagsIn) || 0), 0);
 
         records.forEach(r => {
-            (r.outflows || []).forEach(outflow => {
-                if (isSameDay(toDate(outflow.date), date)) {
-                    data.outflows.push({ ...r, ...outflow, outflowDate: toDate(outflow.date) } as any);
-                    data.summary.totalOutflowBags += outflow.bagsWithdrawn;
-                }
-            });
-            (r.payments || []).forEach(p => {
-                if (isSameDay(toDate(p.date), date)) {
-                    data.payments.push({ ...p, customerName: customerMap.get(r.customerId) ?? 'Unknown', recordId: r.id, description: `Payment for Storage` });
-                    data.summary.totalIncome += p.amount;
-                }
-            });
+            if (Array.isArray(r.outflows)) {
+                r.outflows.forEach(outflow => {
+                    if (isSameDay(toDate(outflow.date), date)) {
+                        data.outflows.push({ ...r, ...outflow, outflowDate: toDate(outflow.date) } as any);
+                        data.summary.totalOutflowBags += (Number(outflow.bagsWithdrawn) || 0);
+                    }
+                });
+            }
+            if (Array.isArray(r.payments)) {
+                r.payments.forEach(p => {
+                    if (isSameDay(toDate(p.date), date)) {
+                        data.payments.push({ ...p, customerName: customerMap.get(r.customerId) ?? 'Unknown', recordId: r.id, description: `Payment for Storage` });
+                        data.summary.totalIncome += (Number(p.amount) || 0);
+                    }
+                });
+            }
         });
 
         data.unloadings = unloadingRecords.filter(r => isSameDay(toDate(r.unloadingDate), date));
         unloadingRecords.forEach(r => {
-            (r.payments || []).forEach(p => {
-                if (isSameDay(toDate(p.date), date)) {
-                    data.payments.push({ ...p, customerName: customerMap.get(r.customerId) ?? 'Unknown', recordId: r.billNo || r.id, description: 'Payment for Unloading' });
-                    data.summary.totalIncome += p.amount;
-                }
-            });
+            if (Array.isArray(r.payments)) {
+                r.payments.forEach(p => {
+                    if (isSameDay(toDate(p.date), date)) {
+                        data.payments.push({ ...p, customerName: customerMap.get(r.customerId) ?? 'Unknown', recordId: r.billNo || r.id, description: 'Payment for Unloading' });
+                        data.summary.totalIncome += (Number(p.amount) || 0);
+                    }
+                });
+            }
         });
 
         data.otherIncomes = otherIncomes.filter(i => isSameDay(toDate(i.date), date));
-        data.summary.totalIncome += data.otherIncomes.reduce((sum, i) => sum + i.amount, 0);
+        data.summary.totalIncome += data.otherIncomes.reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
 
         data.expenses = expenses.filter(e => isSameDay(toDate(e.date), date));
-        data.summary.totalExpenses = data.expenses.reduce((sum, e) => sum + e.amount, 0);
+        data.summary.totalExpenses = data.expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
 
         data.summary.netBalance = data.summary.totalIncome - data.summary.totalExpenses;
         

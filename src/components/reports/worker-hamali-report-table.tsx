@@ -20,8 +20,8 @@ export function WorkerHamaliReportTable({ events, title, warehouseInfo }: Report
     let runningBalance = 0;
     const ledgerItems = useMemo(() => {
         return events.map(event => {
-            const payable = event.payable || 0;
-            const paid = event.paid || 0;
+            const payable = Number(event.payable) || 0;
+            const paid = Number(event.paid) || 0;
             runningBalance += (payable - paid);
             return {
                 ...event,
@@ -30,8 +30,9 @@ export function WorkerHamaliReportTable({ events, title, warehouseInfo }: Report
         });
     }, [events]);
 
-    const totalPayable = events.reduce((acc, event) => acc + event.payable, 0);
-    const totalPaid = events.reduce((acc, event) => acc + event.paid, 0);
+    const totalPayable = events.reduce((acc, event) => acc + (Number(event.payable) || 0), 0);
+    const totalPaid = events.reduce((acc, event) => acc + (Number(event.paid) || 0), 0);
+    const totalBags = events.reduce((acc, event) => acc + (Number(event.bags) || 0), 0);
     
     return (
         <div className="bg-white p-4 text-black font-sans text-[13px] printable-area border shadow-sm rounded-lg">
@@ -81,7 +82,8 @@ export function WorkerHamaliReportTable({ events, title, warehouseInfo }: Report
                     </TableBody>
                     <TableFooter>
                         <TableRow className="bg-slate-900 text-white font-black border-t-2 border-black h-10">
-                            <TableCell colSpan={4} className="p-2 text-right uppercase text-[10px] tracking-widest">Grand Ledger Totals</TableCell>
+                            <TableCell colSpan={3} className="p-2 text-right uppercase text-[10px] tracking-widest">Grand Ledger Totals</TableCell>
+                            <TableCell className="p-2 text-center font-mono text-[13px]">{totalBags || ''}</TableCell>
                             <TableCell className="p-2 text-right font-mono text-[13px]">{formatCurrency(totalPayable)}</TableCell>
                             <TableCell className="p-2 text-right font-mono text-[13px]">{formatCurrency(totalPaid)}</TableCell>
                             <TableCell className="p-2 text-right font-mono text-[14px] text-orange-400">{formatCurrency(totalPayable - totalPaid)}</TableCell>

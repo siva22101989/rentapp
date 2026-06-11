@@ -78,27 +78,29 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             });
         }
 
-        (unloading.payments || []).forEach((payment, pIdx) => {
-            const amt = Number(payment.amount) || 0;
-            totalHamaliPaid += amt;
-            events.push({
-                date: toDate(payment.date),
-                description: getPaymentDesc(payment.type, 'unloading'),
-                billNo: billNo,
-                lotNo: '', 
-                bagsIn: 0,
-                bagsOut: 0,
-                hamali: 0,
-                rent: 0,
-                credit: amt,
-                sortDate: toDate(payment.date).getTime() + pIdx,
-                recordType: 'payment',
-                paymentType: 'unloading',
-                paymentIndex: pIdx,
-                sourceRecord: unloading,
-                paymentData: payment
+        if (Array.isArray(unloading.payments)) {
+            unloading.payments.forEach((payment, pIdx) => {
+                const amt = Number(payment.amount) || 0;
+                totalHamaliPaid += amt;
+                events.push({
+                    date: toDate(payment.date),
+                    description: getPaymentDesc(payment.type, 'unloading'),
+                    billNo: billNo,
+                    lotNo: '', 
+                    bagsIn: 0,
+                    bagsOut: 0,
+                    hamali: 0,
+                    rent: 0,
+                    credit: amt,
+                    sortDate: toDate(payment.date).getTime() + pIdx,
+                    recordType: 'payment',
+                    paymentType: 'unloading',
+                    paymentIndex: pIdx,
+                    sourceRecord: unloading,
+                    paymentData: payment
+                });
             });
-        });
+        }
     });
 
     // 2. Process Storage Records
@@ -168,30 +170,32 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         }
 
         // Payments
-        (record.payments || []).forEach((payment, pIdx) => {
-            const amt = Number(payment.amount) || 0;
-            const isHamali = payment.type === 'hamali' || payment.type === 'unloading';
-            if (isHamali) totalHamaliPaid += amt;
-            else totalRentPaid += amt;
+        if (Array.isArray(record.payments)) {
+            record.payments.forEach((payment, pIdx) => {
+                const amt = Number(payment.amount) || 0;
+                const isHamali = payment.type === 'hamali' || payment.type === 'unloading';
+                if (isHamali) totalHamaliPaid += amt;
+                else totalRentPaid += amt;
 
-            events.push({
-                date: toDate(payment.date),
-                description: getPaymentDesc(payment.type, 'storage'),
-                billNo: billNo,
-                lotNo: '', 
-                bagsIn: 0,
-                bagsOut: 0,
-                hamali: 0,
-                rent: 0,
-                credit: amt,
-                sortDate: toDate(payment.date).getTime() + 5 + pIdx,
-                recordType: 'payment',
-                paymentType: 'storage',
-                paymentIndex: pIdx,
-                sourceRecord: record,
-                paymentData: payment
+                events.push({
+                    date: toDate(payment.date),
+                    description: getPaymentDesc(payment.type, 'storage'),
+                    billNo: billNo,
+                    lotNo: '', 
+                    bagsIn: 0,
+                    bagsOut: 0,
+                    hamali: 0,
+                    rent: 0,
+                    credit: amt,
+                    sortDate: toDate(payment.date).getTime() + 5 + pIdx,
+                    recordType: 'payment',
+                    paymentType: 'storage',
+                    paymentIndex: pIdx,
+                    sourceRecord: record,
+                    paymentData: payment
+                });
             });
-        });
+        }
     });
     
     const sortedEvents = (events || []).sort((a, b) => (a.sortDate || 0) - (b.sortDate || 0));

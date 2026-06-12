@@ -73,7 +73,7 @@ function IncomesTable({ incomes }: { incomes: OtherIncome[] }) {
             <TableHeader>
               <TableRow>
                 <TableHead className="hidden sm:table-cell uppercase text-[10px] font-bold">Date</TableHead>
-                <TableHead className="uppercase text-[10px] font-bold">Ref No</TableHead>
+                <TableHead className="uppercase text-[10px] font-bold">Bill No</TableHead>
                 <TableHead className="uppercase text-[10px] font-bold">Category</TableHead>
                 <TableHead className="uppercase text-[10px] font-bold">Description</TableHead>
                 <TableHead className="text-right uppercase text-[10px] font-bold">Amount</TableHead>
@@ -108,7 +108,7 @@ function ExpensesTable({ expenses }: { expenses: Expense[] }) {
           <TableHeader>
             <TableRow>
               <TableHead className="hidden sm:table-cell uppercase text-[10px] font-bold">Date</TableHead>
-              <TableHead className="uppercase text-[10px] font-bold">Ref No</TableHead>
+              <TableHead className="uppercase text-[10px] font-bold">Bill No</TableHead>
               <TableHead className="uppercase text-[10px] font-bold">Category</TableHead>
               <TableHead className="uppercase text-[10px] font-bold">Description</TableHead>
               <TableHead className="text-right uppercase text-[10px] font-bold">Amount</TableHead>
@@ -293,7 +293,7 @@ export default function ExpensesPage() {
         <Card className="stylish-card"><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Total Income</CardTitle><TrendingUp className="h-4 w-4 text-green-500" /></CardHeader><CardContent><div className="text-2xl font-bold text-green-600">{formatCurrency(stats.periodIncome)}</div></CardContent></Card>
         <Card className="stylish-card"><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Total Expenses</CardTitle><TrendingDown className="h-4 w-4 text-red-500" /></CardHeader><CardContent><div className="text-2xl font-bold text-destructive">{formatCurrency(stats.periodExpenses)}</div></CardContent></Card>
         <Card className="stylish-card"><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Net Profit / Loss</CardTitle><Scale className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className={`text-2xl font-bold ${stats.periodBalance >= 0 ? 'text-primary' : 'text-destructive'}`}>{formatCurrency(stats.periodBalance)}</div></CardContent></Card>
-        <Card className="stylish-card"><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Outstanding Balance</CardTitle><IndianRupee className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold text-blue-600">{formatCurrency(stats.estimatedRent)}</div><p className="text-[10px] text-muted-foreground">Owed on {stats.activeBags} active bags.</p></CardContent></Card>
+        <Card className="stylish-card"><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Godown Rent Receivable</CardTitle><IndianRupee className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold text-blue-600">{formatCurrency(stats.estimatedRent)}</div><p className="text-[10px] text-muted-foreground">Accrued rent on {stats.activeBags} balance bags.</p></CardContent></Card>
       </div>
       <div className="grid gap-4 md:grid-cols-3 mb-8">
          <Card className="stylish-card border-l-4 border-orange-500"><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Interest on Capital</CardTitle><Banknote className="h-4 w-4 text-orange-500" /></CardHeader><CardContent><div className="text-xl font-bold text-orange-600">{formatCurrency(stats.interestOnCapital)}</div></CardContent></Card>

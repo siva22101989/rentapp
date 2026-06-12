@@ -22,9 +22,9 @@ export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecor
   const { dateRange, financialYear } = useDateFilter();
   const generatedDate = useMemo(() => format(new Date(), 'dd MMM yyyy, hh:mm a'), []);
 
-  const { periodIncome, periodExpenses, periodBalance, filteredExpenses, filteredIncomes, interestOnCapital, totalBorrowed, totalLent } = useMemo(() => {
+  const { periodIncome, periodExpenses, periodBalance, filteredExpenses, filteredIncomes, interestOnCapital, totalBorrowed, totalLent, estimatedRent, activeBags } = useMemo(() => {
     if (!allRecords || !allExpenses || !allUnloadingRecords || !otherIncomes || !borrowings || !lendings) {
-        return { periodIncome: 0, periodExpenses: 0, periodBalance: 0, filteredExpenses: [], filteredIncomes: [], interestOnCapital: 0, totalBorrowed: 0, totalLent: 0 };
+        return { periodIncome: 0, periodExpenses: 0, periodBalance: 0, filteredExpenses: [], filteredIncomes: [], interestOnCapital: 0, totalBorrowed: 0, totalLent: 0, estimatedRent: 0, activeBags: 0 };
     }
     const inRange = (date: Date) => {
         if (financialYear === 'all-time') return true;
@@ -64,6 +64,13 @@ export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecor
     const borrowed = borrowings.filter(b => b.status !== 'Paid Off').reduce((acc, b) => acc + b.principal, 0);
     const lent = lendings.filter(l => l.status !== 'Paid Off').reduce((acc, l) => acc + l.principal, 0);
 
+    const activeRecords = allRecords.filter(r => !r.storageEndDate && r.bagsStored > 0);
+    const today = new Date();
+    const rentEstimate = activeRecords.reduce((total, record) => {
+      const { rent } = calculateFinalRent({ ...record, storageStartDate: toDate(record.storageStartDate) }, today, record.bagsStored);
+      return total + rent;
+    }, 0);
+
     return {
       periodIncome: income,
       periodExpenses: totalExpenses,
@@ -72,7 +79,9 @@ export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecor
       filteredIncomes: localFilteredOtherIncomes.sort((a,b) => toDate(b.date).getTime() - toDate(a.date).getTime()),
       interestOnCapital: calculatedInterest,
       totalBorrowed: borrowed,
-      totalLent: lent
+      totalLent: lent,
+      estimatedRent: rentEstimate,
+      activeBags: activeRecords.reduce((acc, r) => acc + r.bagsStored, 0)
     };
   }, [allRecords, allExpenses, allUnloadingRecords, otherIncomes, dateRange, warehouseInfo, financialYear, borrowings, lendings]);
 
@@ -118,6 +127,17 @@ export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecor
                         </TableRow>
                     </TableFooter>
                 </Table>
+
+                <div className="space-y-4 pt-6">
+                    <h3 className="text-md font-bold uppercase tracking-tight border-b pb-1">Godown Valuation Assets</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-[13px]">
+                        <div className="space-y-1">
+                            <p className="text-slate-500 font-bold uppercase text-[10px]">Godown Rent Receivable</p>
+                            <p className="text-lg font-black text-blue-600 font-mono">{formatCurrency(estimatedRent)}</p>
+                            <p className="text-[10px] text-muted-foreground italic">Accrued rent calculation on {activeBags} balance bags currently in stock.</p>
+                        </div>
+                    </div>
+                </div>
 
                 <div className="space-y-4 pt-6">
                     <h3 className="text-md font-bold uppercase tracking-tight border-b pb-1">Current Financial Position (Principal)</h3>

@@ -24,7 +24,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { Combobox } from '../ui/combobox';
-import { Separator } from '../ui/separator';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 import { useAppUser } from '@/firebase/auth/use-user';
@@ -61,7 +60,6 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
   );
   const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
-  // PERFORMANCE OPTIMIZATION: Only calculate dues map when the dialog is open
   const customerDuesMap = useMemo(() => {
     if (!isOpen) return {};
     const duesMap: Record<string, { hLiability: number, rLiability: number, totalPaid: number }> = {};
@@ -75,14 +73,14 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
         const c = getCust(rec.customerId);
         c.hLiability += rec.hamaliPayable || 0;
         c.rLiability += (rec.totalRentBilled || 0) + (rec.khataAmount || 0);
-        c.totalPaid += (rec.payments || []).reduce((acc, p) => acc + p.amount, 0);
+        c.totalPaid += (rec.payments || []).reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
     });
 
     unloadingRecords.forEach(rec => {
         const c = getCust(rec.customerId);
         const remainingBags = Math.max(0, (rec.bagsUnloaded || 0) - (rec.bagsSentToDrying || 0));
         c.hLiability += remainingBags * (rec.hamaliPerBag || 0);
-        c.totalPaid += (rec.payments || []).reduce((acc, p) => acc + p.amount, 0);
+        c.totalPaid += (rec.payments || []).reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
     });
 
     return duesMap;
@@ -204,14 +202,14 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
       <DialogTrigger asChild>
          <Button><UserPlus className="mr-2" />Bulk Customer Payment</Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-sm max-h-[80vh] overflow-hidden flex flex-col p-0">
+      <DialogContent className="sm:max-w-sm max-h-[90vh] flex flex-col p-0 overflow-hidden">
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full">
-            <DialogHeader className="p-6 pb-2">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full overflow-hidden">
+            <DialogHeader className="p-6 pb-2 shrink-0">
                 <DialogTitle>Bulk Customer Payment</DialogTitle>
                 <DialogDescription>Select a customer with pending dues. Calculations match current Statement Ledger.</DialogDescription>
             </DialogHeader>
-            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 min-h-0">
                 <FormField control={form.control} name="customerId" render={({ field }) => (
                     <FormItem className="flex flex-col">
                         <FormLabel>Customer (Only those with Billed Dues)</FormLabel>
@@ -239,15 +237,15 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
                 )} />
                 <div className="flex items-center space-x-2 pt-4">
                     <Checkbox id="sendSmsBulk" checked={sendSmsNotification} onCheckedChange={(checked) => setSendSmsNotification(Boolean(checked))} disabled={!warehouseInfo?.textbeeApiKey || !selectedCustomer?.phone} />
-                    <label htmlFor="sendSmsBulk" className="text-sm font-medium leading-none">Send SMS</label>
+                    <label htmlFor="sendSmsBulk" className="text-sm font-medium leading-none cursor-pointer">Send SMS Notification</label>
                 </div>
                 </>
                 )}
             </div>
-            <DialogFooter className="p-6 pt-2 border-t">
-                <DialogClose asChild><Button variant="outline" type="button" className="text-sm">Cancel</Button></DialogClose>
+            <DialogFooter className="p-6 pt-4 border-t shrink-0">
+                <DialogClose asChild><Button variant="outline" type="button">Cancel</Button></DialogClose>
                 <Button type="submit" disabled={isPending || !selectedCustomerId}>
-                   {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                   {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                    Record Payment
                 </Button>
             </DialogFooter>

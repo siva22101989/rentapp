@@ -1,4 +1,3 @@
-
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
@@ -12,7 +11,7 @@ import { CustomerBulkPaymentDialog } from "@/components/payments/customer-bulk-p
 import { useAppUser } from "@/firebase/auth/use-user";
 import { RecordHamaliPaymentDialog } from "@/components/hamali/record-payment-dialog";
 import { Button } from "@/components/ui/button";
-import { Hammer } from "lucide-react";
+import { Hammer, Loader2 } from "lucide-react";
 import { SendReminderSmsDialog } from "@/components/payments/send-reminder-sms-dialog";
 
 export default function PendingPaymentsPage() {
@@ -43,17 +42,26 @@ export default function PendingPaymentsPage() {
 
 
     if (loadingRecords || loadingCustomers || loadingUnloadingRecords || loadingExpenses) {
-        return <AppLayout><div>Loading...</div></AppLayout>;
+        return (
+            <AppLayout>
+                <div className="flex h-[60vh] w-full items-center justify-center">
+                    <div className="flex flex-col items-center gap-2">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        <p className="text-muted-foreground font-medium">Synchronizing pending dues...</p>
+                    </div>
+                </div>
+            </AppLayout>
+        );
     }
 
     return (
         <AppLayout>
             <PageHeader
-                title="Pending Payments"
-                description="View all records with an outstanding balance."
+                title="Pending Dues Management"
+                description="Monitor and collect outstanding hamali and rent balances."
             >
               {canInteract && (
-                <>
+                <div className="flex items-center gap-2 flex-wrap">
                   <SendReminderSmsDialog 
                       customers={allCustomers || []}
                       storageRecords={allRecords || []}
@@ -66,18 +74,20 @@ export default function PendingPaymentsPage() {
                   />
                   <RecordHamaliPaymentDialog>
                       <Button variant="outline">
-                          <Hammer className="mr-2" />
+                          <Hammer className="mr-2 h-4 w-4" />
                           Record Hamali Payment
                       </Button>
                   </RecordHamaliPaymentDialog>
-                </>
+                </div>
               )}
             </PageHeader>
-            <PendingPaymentsTable 
-                records={allRecords || []} 
-                customers={allCustomers || []} 
-                unloadingRecords={allUnloadingRecords || []}
-            />
+            <div className="flex-1 overflow-auto">
+                <PendingPaymentsTable 
+                    records={allRecords || []} 
+                    customers={allCustomers || []} 
+                    unloadingRecords={allUnloadingRecords || []}
+                />
+            </div>
         </AppLayout>
     );
 }

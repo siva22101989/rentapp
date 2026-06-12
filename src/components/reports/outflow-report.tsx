@@ -30,7 +30,6 @@ export function OutflowReport({ records, customers, commodities, lots }: Outflow
     );
     const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
-    // Grouping Logic: Aggregate withdrawals sharing the same Bill No for the same customer
     const consolidatedOutflowEvents = useMemo(() => {
         const eventsMap: Record<string, OutflowEvent> = {};
         
@@ -50,11 +49,16 @@ export function OutflowReport({ records, customers, commodities, lots }: Outflow
 
                     if (selectedCustomerId !== 'all' && record.customerId !== selectedCustomerId) return;
 
-                    // STRICT GROUPING: Customer ID + Numerical Patti/Bill Number
-                    const displayId = String(outflow.pattiNo || '').replace(/\D/g, '');
-                    if (!displayId) return; // Ignore legacy data that isn't mapped to a bill
+                    // Fallback logic for Bill No (Strictly Numerical)
+                    const pattiNoRaw = String(outflow.pattiNo || '').replace(/\D/g, '');
+                    const fallbackId = String(record.id).replace(/\D/g, '');
+                    const displayId = pattiNoRaw || fallbackId;
 
-                    const groupKey = `${record.customerId}-${displayId}`;
+                    // Group Key: Customer + Bill No. 
+                    // If no pattiNo, we add index to key to avoid merging different transactions
+                    const groupKey = pattiNoRaw 
+                        ? `${record.customerId}-${pattiNoRaw}` 
+                        : `${record.customerId}-${fallbackId}-${index}`;
                     
                     if (eventsMap[groupKey]) {
                         eventsMap[groupKey].bagsWithdrawn += Number(outflow.bagsWithdrawn) || 0;
@@ -65,7 +69,7 @@ export function OutflowReport({ records, customers, commodities, lots }: Outflow
                     } else {
                         eventsMap[groupKey] = {
                             ...outflow,
-                            pattiNo: displayId,
+                            pattiNo: displayId, // Standardized as Bill No
                             date: outflowDate,
                             customerId: record.customerId,
                             recordId: record.id,
@@ -91,7 +95,7 @@ export function OutflowReport({ records, customers, commodities, lots }: Outflow
             <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4 print-hide border-b bg-slate-50/50 p-4">
                 <div className="flex-1">
                     <CardTitle className="text-lg font-black uppercase tracking-tight">Outflow Register</CardTitle>
-                    <CardDescription className="text-xs font-medium">Grouped by Serialized Bill No. Every row represents a unique transaction batch.</CardDescription>
+                    <CardDescription className="text-xs font-medium">Standardized Serial Bill Numbers. Every row represents a unique transaction.</CardDescription>
                 </div>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto flex-wrap">
                     <Select onValueChange={setSelectedCustomerId} value={selectedCustomerId}>

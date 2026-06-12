@@ -155,12 +155,12 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             });
         }
 
-        // Process Outflows with Numerical Bill Consolidation
+        // Process Outflows with Consolidation Logic
         const outflowGroups: Record<string, any> = {};
         if (Array.isArray(record.outflows)) {
             record.outflows.forEach((outflow, idx) => {
-                const displayId = String(outflow.pattiNo || '').replace(/\D/g, '');
-                if (!displayId) return; // Skip malformed or internal IDs
+                const pattiNoRaw = String(outflow.pattiNo || '').replace(/\D/g, '');
+                const displayId = pattiNoRaw || cleanId; // Fallback to Inflow ID if Outflow Bill No is missing
 
                 const rentVal = Number(outflow.rentBilled) || 0;
                 const withdrawn = Number(outflow.bagsWithdrawn) || 0;
@@ -168,6 +168,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 totalRentBilled += rentVal;
                 totalBagsOut += withdrawn;
 
+                // Grouping by Bill No for consolidated rows
                 if (outflowGroups[displayId]) {
                     outflowGroups[displayId].bagsOut += withdrawn;
                     outflowGroups[displayId].rent += rentVal;

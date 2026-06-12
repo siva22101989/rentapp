@@ -1,4 +1,3 @@
-
 'use client';
 
 import { MoreHorizontal, FileText, Trash2, Pencil } from "lucide-react";
@@ -37,12 +36,15 @@ export function OutflowActionsMenu({
     allRecords
 }: ActionsMenuProps) {
 
-    // Find all records that belong to this Patti for the consolidated view
+    // Find all records that belong to this Bill No for the consolidated view
     const pattiRecords = useMemo(() => {
         if (!deliveryOrderNo) return [record];
+        
+        const numericalBillNo = String(deliveryOrderNo).replace(/\D/g, '');
+        
         return allRecords.filter(r => 
             Array.isArray(r.outflows) && 
-            r.outflows.some(o => String(o.pattiNo) === String(deliveryOrderNo))
+            r.outflows.some(o => String(o.pattiNo || '').replace(/\D/g, '') === numericalBillNo)
         );
     }, [allRecords, deliveryOrderNo, record]);
 

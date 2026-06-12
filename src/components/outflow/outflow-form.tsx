@@ -68,10 +68,15 @@ export function OutflowForm({ activeRecords = [], allRecords = [], customers = [
         return (activeRecords || [])
             .filter(r => r.customerId === selectedCustomerId)
             .map(r => {
-                const bagsOut = Array.isArray(r.outflows) ? r.outflows.reduce((acc, o) => acc + (Number(o.bagsWithdrawn) || 0), 0) : (Number(r.bagsOut) || 0);
-                const initialInflow = Number(r.bagsIn) || (Number(r.bagsStored || 0) + bagsOut);
-                const currentBalance = Math.max(0, initialInflow - bagsOut);
-                return { ...r, currentBalance, initialInflow };
+                // IMPORTANT: Calculate bagsOut from history to ensure accurate current stock levels
+                const bagsOutSum = Array.isArray(r.outflows) 
+                    ? r.outflows.reduce((acc, o) => acc + (Number(o.bagsWithdrawn) || 0), 0) 
+                    : (Number(r.bagsOut) || 0);
+                
+                const initialInflow = Number(r.bagsIn) || (Number(r.bagsStored || 0) + bagsOutSum);
+                const currentBalance = Math.max(0, initialInflow - bagsOutSum);
+                
+                return { ...r, currentBalance, initialInflow, historyBagsOut: bagsOutSum };
             })
             .filter(r => r.currentBalance > 0.1);
     }, [activeRecords, selectedCustomerId]);
@@ -92,6 +97,7 @@ export function OutflowForm({ activeRecords = [], allRecords = [], customers = [
         setKhataAmountInput('');
     }, [selectedCustomerId]);
 
+    // Recalculate financial totals whenever selections or date changes
     useEffect(() => {
         let runningRent = 0;
         let runningHamali = 0;
@@ -99,8 +105,7 @@ export function OutflowForm({ activeRecords = [], allRecords = [], customers = [
         let runningBags = 0;
         const processedRecords = new Set<string>();
 
-        const wDate = new Date(withdrawalDateStr);
-        if (isNaN(wDate.getTime())) return;
+        const wDate = toDate(withdrawalDateStr);
 
         withdrawalEntries.forEach(([recordId, bags]) => {
             const bagsToWithdraw = Number(bags) || 0;
@@ -110,6 +115,7 @@ export function OutflowForm({ activeRecords = [], allRecords = [], customers = [
                 const normalizedDesc = (record.commodityDescription || '').trim().toLowerCase();
                 const commodity = (commodities || []).find(c => (c.name || '').trim().toLowerCase() === normalizedDesc);
 
+                // Use commodity defaults if record is missing rate info
                 if (record.rate6Months === undefined || record.rate1Year === undefined || record.monthlyRate === undefined) {
                     if (commodity) {
                         recordWithRates.rate6Months = commodity.rate6Months ?? 0;
@@ -158,12 +164,7 @@ export function OutflowForm({ activeRecords = [], allRecords = [], customers = [
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         
-        const finalDate = new Date(withdrawalDateStr);
-        if (isNaN(finalDate.getTime())) {
-            toast({ title: 'Invalid Date', description: 'Please select a valid withdrawal date.', variant: 'destructive' });
-            return;
-        }
-
+        const finalDate = toDate(withdrawalDateStr);
         if (!firestore || withdrawalEntries.length === 0) {
             toast({ title: 'Input Required', description: 'Please enter bags for withdrawal.', variant: 'destructive' });
             return;
@@ -172,7 +173,7 @@ export function OutflowForm({ activeRecords = [], allRecords = [], customers = [
         startTransition(async () => {
             try {
                 const batch = writeBatch(firestore);
-                const sharedBillNo = String(nextBillNo); // Single serial ID for the whole transaction
+                const sharedBillNo = String(nextBillNo); 
                 
                 const discountTotal = Number(discount) || 0;
                 const khataTotal = Number(khataAmountInput) || 0;
@@ -213,12 +214,13 @@ export function OutflowForm({ activeRecords = [], allRecords = [], customers = [
                         pattiNo: sharedBillNo, 
                     };
 
-                    const currentBagsOut = Number(record.bagsOut) || 0;
-                    const newBagsOut = currentBagsOut + bagsToWithdraw;
-                    const newBagsStored = Math.max(0, record.initialInflow - newBagsOut);
+                    // CRITICAL: Calculate new stock relative to historical sum, not raw bagsOut field
+                    const accurateCurrentBagsOut = (record as any).historyBagsOut;
+                    const newTotalBagsOut = accurateCurrentBagsOut + bagsToWithdraw;
+                    const newBagsStored = Math.max(0, record.initialInflow - newTotalBagsOut);
 
                     const updateData: any = {
-                        bagsOut: newBagsOut,
+                        bagsOut: newTotalBagsOut,
                         bagsStored: newBagsStored,
                         totalRentBilled: (Number(record.totalRentBilled) || 0) + (rent || 0),
                         outflows: arrayUnion(cleanForFirestore(newOutflow)),
@@ -226,6 +228,7 @@ export function OutflowForm({ activeRecords = [], allRecords = [], customers = [
 
                     if (i === 0) updateData.khataAmount = k;
 
+                    // Close record if stock is zero
                     if (newBagsStored <= 0.05) {
                         updateData.storageEndDate = Timestamp.fromDate(finalDate);
                         updateData.billingCycle = 'Completed';

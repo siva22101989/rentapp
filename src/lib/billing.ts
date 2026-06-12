@@ -60,7 +60,7 @@ export function calculateFinalRent(
   }
 
   // Calculate billing months: partial months count as one full month.
-  const billingMonths = differenceInMonths(endDate, startDate) + 1;
+  const billingMonths = Math.max(1, differenceInMonths(endDate, startDate) + 1);
 
   let rentPerBag = 0;
 
@@ -101,7 +101,7 @@ export function calculateFinalRent(
     }
   }
   
-  const totalRent = rentPerBag * bagsToCalculate;
+  const totalRent = Math.round(rentPerBag * bagsToCalculate * 100) / 100;
 
   return { 
       rent: Math.max(0, totalRent) || 0,

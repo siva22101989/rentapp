@@ -36,9 +36,12 @@ import { Label } from '../ui/label';
 const BulkPaymentSchema = z.object({
   customerId: z.string().min(1, 'Please select a customer.'),
   paymentDate: z.string().min(1, 'Payment date is required.'),
-  paymentAmount: z.coerce.number().positive('Payment amount must be a positive number.'),
+  paymentAmount: z.coerce.number().nonnegative('Payment amount must be a non-negative number.').optional().default(0),
   paymentType: z.enum(['rent', 'hamali']),
-  discount: z.coerce.number().nonnegative('Discount must be a non-negative number.').optional(),
+  discount: z.coerce.number().nonnegative('Discount must be a non-negative number.').optional().default(0),
+}).refine(data => (data.paymentAmount || 0) + (data.discount || 0) > 0, {
+    message: "Enter either a payment amount or a discount.",
+    path: ['paymentAmount']
 });
 
 type PaymentFormData = z.infer<typeof BulkPaymentSchema>;
@@ -112,9 +115,9 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
     defaultValues: {
         customerId: '',
         paymentDate: formatManualDate(new Date()),
-        paymentAmount: undefined,
+        paymentAmount: 0,
         paymentType: 'rent',
-        discount: undefined,
+        discount: 0,
     },
   });
   
@@ -147,7 +150,7 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
     startTransition(async () => {
       try {
         const batch = writeBatch(firestore);
-        let cashToApply = data.paymentAmount;
+        let cashToApply = data.paymentAmount || 0;
         let discountToApply = data.discount || 0;
         const paymentDate = finalDate;
 
@@ -216,23 +219,24 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
         await batch.commit();
         
         if (sendSmsNotification && warehouseInfo?.textbeeApiKey && selectedCustomer?.phone) {
+            const totalAction = (data.paymentAmount || 0) + (data.discount || 0);
             const typeLabel = data.paymentType === 'hamali' ? 'Hamali' : 'Rent';
-            const template = warehouseInfo?.smsPaymentTemplate || 'Dear {customerName}, thank you for your {paymentType} payment of {paymentAmount} on {date}. - {warehouseName}';
+            const template = warehouseInfo?.smsPaymentTemplate || 'Dear {customerName}, thank you for your {paymentType} transaction of {paymentAmount} on {date}. - {warehouseName}';
             const msg = template
                 .replace('{customerName}', selectedCustomer.name)
                 .replace('{paymentType}', typeLabel)
-                .replace('{paymentAmount}', formatCurrency(data.paymentAmount))
+                .replace('{paymentAmount}', formatCurrency(totalAction))
                 .replace('{date}', format(paymentDate, 'dd/MM/yy'))
                 .replace('{warehouseName}', warehouseInfo?.name || 'GrainDost');
             sendSms({ apiKey: warehouseInfo.textbeeApiKey, deviceId: warehouseInfo.textbeeDeviceId, to: selectedCustomer.phone, message: msg }).catch(console.error);
         }
         
-        toast({ title: 'Payment Recorded', description: `${formatCurrency(data.paymentAmount)} collected for ${data.paymentType}.` });
+        toast({ title: 'Transaction Recorded', description: `Recorded collection/adjustment for ${data.paymentType}.` });
         setIsOpen(false);
         form.reset();
       } catch (error) {
         console.error(error);
-        toast({ title: 'Error', description: 'Failed to record payment.', variant: 'destructive' });
+        toast({ title: 'Error', description: 'Failed to record transaction.', variant: 'destructive' });
       }
     });
   };
@@ -240,14 +244,14 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-         <Button><UserPlus className="mr-2" />Bulk Customer Payment</Button>
+         <Button><UserPlus className="mr-2" />Bulk Payment / Discount</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-sm max-h-[90vh] flex flex-col p-0 overflow-hidden">
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full overflow-hidden">
             <DialogHeader className="p-6 pb-2 shrink-0">
-                <DialogTitle>Bulk Customer Payment</DialogTitle>
-                <DialogDescription>Apply payment specifically to Rent or Hamali dues.</DialogDescription>
+                <DialogTitle>Bulk Payment / Discount</DialogTitle>
+                <DialogDescription>Record a cash collection or apply an adjustment to dues.</DialogDescription>
             </DialogHeader>
             <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 min-h-0">
                 <FormField control={form.control} name="customerId" render={({ field }) => (
@@ -265,7 +269,7 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
                             name="paymentType"
                             render={({ field }) => (
                                 <FormItem className="space-y-3">
-                                    <FormLabel>Payment Category</FormLabel>
+                                    <FormLabel>Transaction Category</FormLabel>
                                     <FormControl>
                                         <RadioGroup
                                             onValueChange={field.onChange}
@@ -289,16 +293,8 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
 
                         <div className="p-4 rounded-lg bg-secondary border space-y-2">
                             <div className="flex justify-between text-sm">
-                                <span className="text-muted-foreground">{paymentType === 'hamali' ? 'Hamali Dues' : 'Rent Dues'}</span>
+                                <span className="text-muted-foreground">{paymentType === 'hamali' ? 'Hamali Pending' : 'Rent Pending'}</span>
                                 <span className="font-bold text-primary">{formatCurrency(categoryDue)}</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                                <span className="text-muted-foreground">Discount</span>
-                                <span className="text-green-600">- {formatCurrency(discountAmount)}</span>
-                            </div>
-                            <div className="flex justify-between text-sm font-bold border-t pt-1">
-                                <span>Final Payable</span>
-                                <span className="text-destructive">{formatCurrency(totalPayableAfterDiscount)}</span>
                             </div>
                         </div>
 
@@ -308,10 +304,10 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
                         
                         <div className="grid grid-cols-2 gap-4">
                             <FormField control={form.control} name="paymentAmount" render={({ field }) => (
-                                <FormItem><FormLabel>Amount Collected</FormLabel><FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel>Cash Collected</FormLabel><FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                             )} />
                             <FormField control={form.control} name="discount" render={({ field }) => (
-                                <FormItem><FormLabel>Extra Discount</FormLabel><FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel>Discount / Waiver</FormLabel><FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                             )} />
                         </div>
 
@@ -326,7 +322,7 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
                 <DialogClose asChild><Button variant="outline" type="button">Cancel</Button></DialogClose>
                 <Button type="submit" disabled={isPending || !selectedCustomerId}>
                    {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                   Record {paymentType === 'hamali' ? 'Hamali' : 'Rent'} Payment
+                   Save Transaction
                 </Button>
             </DialogFooter>
             </form>

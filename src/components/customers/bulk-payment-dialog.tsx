@@ -28,8 +28,12 @@ import { Label } from '../ui/label';
 
 const BulkPaymentSchema = z.object({
   paymentDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date" }),
-  paymentAmount: z.coerce.number().positive('Payment amount must be a positive number.'),
+  paymentAmount: z.coerce.number().nonnegative('Payment amount must be non-negative.').optional().default(0),
   paymentType: z.enum(['rent', 'hamali']),
+  discount: z.coerce.number().nonnegative('Discount must be non-negative.').optional().default(0),
+}).refine(data => (data.paymentAmount || 0) + (data.discount || 0) > 0, {
+    message: "Enter either a payment amount or a discount.",
+    path: ['paymentAmount']
 });
 
 type PaymentFormData = z.infer<typeof BulkPaymentSchema>;
@@ -51,8 +55,9 @@ export function BulkPaymentDialog({ customer, storageRecords, unloadingRecords, 
     resolver: zodResolver(BulkPaymentSchema),
     defaultValues: {
         paymentDate: new Date().toISOString().split('T')[0],
-        paymentAmount: undefined,
+        paymentAmount: 0,
         paymentType: 'rent',
+        discount: 0,
     },
   });
 
@@ -104,7 +109,8 @@ export function BulkPaymentDialog({ customer, storageRecords, unloadingRecords, 
     startTransition(async () => {
       try {
         const batch = writeBatch(firestore);
-        let amountToApply = data.paymentAmount;
+        let cashToApply = data.paymentAmount || 0;
+        let discountToApply = data.discount || 0;
         const paymentDate = new Date(data.paymentDate);
 
         const allCustomerRecords = [
@@ -115,7 +121,7 @@ export function BulkPaymentDialog({ customer, storageRecords, unloadingRecords, 
         const sortedRecords = allCustomerRecords.sort((a,b) => a.date.getTime() - b.date.getTime());
 
         for (const record of sortedRecords) {
-            if (amountToApply <= 0.005) break; 
+            if (cashToApply <= 0.005 && discountToApply <= 0.005) break; 
             const newPayments: Payment[] = [];
 
             if (record.rType === 'storage') {
@@ -131,12 +137,20 @@ export function BulkPaymentDialog({ customer, storageRecords, unloadingRecords, 
                     recordDue = Math.max(0, ((sr.totalRentBilled || 0) + (sr.khataAmount || 0)) - rentPaidOnRecord);
                 }
 
-                const apply = Math.min(amountToApply, recordDue);
-                if (apply > 0) {
-                    newPayments.push({ amount: apply, date: paymentDate, type: data.paymentType as any });
-                    amountToApply -= apply;
-                    batch.update(doc(firestore, 'storageRecords', sr.id), { payments: arrayUnion(...newPayments.map(p => cleanForFirestore(p))) });
+                if (recordDue > 0) {
+                    const pay = Math.min(cashToApply, recordDue);
+                    if (pay > 0) { 
+                        newPayments.push({ amount: pay, date: paymentDate, type: data.paymentType as any }); 
+                        cashToApply -= pay; 
+                        recordDue -= pay; 
+                    }
+                    const disc = Math.min(discountToApply, recordDue);
+                    if (disc > 0) { 
+                        newPayments.push({ amount: disc, date: paymentDate, type: 'discount' }); 
+                        discountToApply -= disc; 
+                    }
                 }
+                if (newPayments.length > 0) batch.update(doc(firestore, 'storageRecords', sr.id), { payments: arrayUnion(...newPayments.map(p => cleanForFirestore(p))) });
             } else if (record.rType === 'unloading' && data.paymentType === 'hamali') {
                 const ur = record as any;
                 const remainingBags = Math.max(0, (ur.bagsUnloaded || 0) - (ur.bagsSentToDrying || 0));
@@ -144,21 +158,29 @@ export function BulkPaymentDialog({ customer, storageRecords, unloadingRecords, 
                 const totalPaidOnRecord = (ur.payments || []).reduce((acc: number, p: any) => acc + p.amount, 0);
                 let recordDue = Math.max(0, totalLiabOnRecord - totalPaidOnRecord);
 
-                const apply = Math.min(amountToApply, recordDue);
-                if (apply > 0) {
-                    newPayments.push({ amount: apply, date: paymentDate, type: 'unloading' });
-                    amountToApply -= apply;
-                    batch.update(doc(firestore, 'unloadingRecords', ur.id), { payments: arrayUnion(...newPayments.map(p => cleanForFirestore(p))) });
+                if (recordDue > 0) {
+                    const pay = Math.min(cashToApply, recordDue);
+                    if (pay > 0) { 
+                        newPayments.push({ amount: pay, date: paymentDate, type: 'unloading' }); 
+                        cashToApply -= pay; 
+                        recordDue -= pay; 
+                    }
+                    const disc = Math.min(discountToApply, recordDue);
+                    if (disc > 0) { 
+                        newPayments.push({ amount: disc, date: paymentDate, type: 'discount' }); 
+                        discountToApply -= disc; 
+                    }
                 }
+                if (newPayments.length > 0) batch.update(doc(firestore, 'unloadingRecords', ur.id), { payments: arrayUnion(...newPayments.map(p => cleanForFirestore(p))) });
             }
         }
         
         await batch.commit();
-        toast({ title: 'Success', description: `${formatCurrency(data.paymentAmount)} applied to ${data.paymentType} dues.` });
+        toast({ title: 'Success', description: 'Transaction recorded successfully.' });
         setIsOpen(false);
         form.reset();
       } catch (error) {
-        toast({ title: 'Error', description: 'Failed to record payment.', variant: 'destructive' });
+        toast({ title: 'Error', description: 'Failed to record transaction.', variant: 'destructive' });
       }
     });
   };
@@ -170,8 +192,8 @@ export function BulkPaymentDialog({ customer, storageRecords, unloadingRecords, 
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
             <DialogHeader>
-                <DialogTitle>Record Payment for {customer.name}</DialogTitle>
-                <DialogDescription>Choose whether this collection is for Rent or Hamali charges.</DialogDescription>
+                <DialogTitle>Record Payment or Discount for {customer.name}</DialogTitle>
+                <DialogDescription>Apply a cash collection or adjustment specifically to Rent or Hamali dues.</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
                  <FormField
@@ -209,7 +231,7 @@ export function BulkPaymentDialog({ customer, storageRecords, unloadingRecords, 
                         control={form.control}
                         name="paymentDate"
                         render={({ field }) => (
-                            <FormItem>
+                            <FormItem className="col-span-2">
                                 <FormLabel>Date</FormLabel>
                                 <FormControl><Input type="date" {...field} /></FormControl>
                                 <FormMessage />
@@ -221,7 +243,18 @@ export function BulkPaymentDialog({ customer, storageRecords, unloadingRecords, 
                         name="paymentAmount"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Amount</FormLabel>
+                                <FormLabel>Cash Collected</FormLabel>
+                                <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="discount"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Discount / Waiver</FormLabel>
                                 <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} /></FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -232,7 +265,7 @@ export function BulkPaymentDialog({ customer, storageRecords, unloadingRecords, 
             <DialogFooter>
                 <DialogClose asChild><Button variant="outline" type="button">Cancel</Button></DialogClose>
                 <Button type="submit" disabled={isPending}>
-                    {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Record Payment'}
+                    {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Save Transaction'}
                 </Button>
             </DialogFooter>
             </form>

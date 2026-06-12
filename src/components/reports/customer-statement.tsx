@@ -54,6 +54,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
     let totalHamaliPaid = 0;
     let totalRentBilled = 0;
     let totalRentPaid = 0;
+    let totalDiscounts = 0;
     let totalBagsIn = 0;
     let totalBagsOut = 0;
 
@@ -75,6 +76,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 bagsOut: 0,
                 hamali: totalHamali,
                 rent: 0,
+                discount: 0,
                 credit: 0,
                 sortDate: toDate(unloading.unloadingDate).getTime(),
                 recordType: 'unloading',
@@ -85,24 +87,43 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         if (Array.isArray(unloading.payments)) {
             unloading.payments.forEach((payment, pIdx) => {
                 const amt = Number(payment.amount) || 0;
-                totalHamaliPaid += amt;
-                events.push({
-                    date: toDate(payment.date),
-                    description: getPaymentDesc(payment.type, 'unloading'),
-                    billNo: cleanId,
-                    lotNo: '', 
-                    bagsIn: 0,
-                    bagsOut: 0,
-                    hamali: 0,
-                    rent: 0,
-                    credit: amt,
-                    sortDate: toDate(payment.date).getTime() + pIdx,
-                    recordType: 'payment',
-                    paymentType: 'unloading',
-                    paymentIndex: pIdx,
-                    sourceRecord: unloading,
-                    paymentData: payment
-                });
+                const isDiscount = payment.type === 'discount';
+
+                if (isDiscount) {
+                    totalDiscounts += amt;
+                    events.push({
+                        date: toDate(payment.date),
+                        description: 'Discount Applied',
+                        billNo: cleanId,
+                        lotNo: '', 
+                        bagsIn: 0, bagsOut: 0, hamali: 0, rent: 0,
+                        discount: amt,
+                        credit: 0,
+                        sortDate: toDate(payment.date).getTime() + pIdx,
+                        recordType: 'payment',
+                        paymentType: 'unloading',
+                        paymentIndex: pIdx,
+                        sourceRecord: unloading,
+                        paymentData: payment
+                    });
+                } else {
+                    totalHamaliPaid += amt;
+                    events.push({
+                        date: toDate(payment.date),
+                        description: getPaymentDesc(payment.type, 'unloading'),
+                        billNo: cleanId,
+                        lotNo: '', 
+                        bagsIn: 0, bagsOut: 0, hamali: 0, rent: 0,
+                        discount: 0,
+                        credit: amt,
+                        sortDate: toDate(payment.date).getTime() + pIdx,
+                        recordType: 'payment',
+                        paymentType: 'unloading',
+                        paymentIndex: pIdx,
+                        sourceRecord: unloading,
+                        paymentData: payment
+                    });
+                }
             });
         }
     });
@@ -130,6 +151,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             bagsOut: 0,
             hamali: hamaliBilledOnInflow,
             rent: 0,
+            discount: 0,
             credit: 0,
             sortDate: toDate(record.storageStartDate).getTime(),
             recordType: 'storage',
@@ -144,10 +166,9 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 description: `Khata Income (Weighbridge)`,
                 billNo: cleanId,
                 lotNo: '', 
-                bagsIn: 0,
-                bagsOut: 0,
-                hamali: 0,
+                bagsIn: 0, bagsOut: 0, hamali: 0,
                 rent: khata,
+                discount: 0,
                 credit: 0,
                 sortDate: toDate(record.storageStartDate).getTime() + 2,
                 recordType: 'storage',
@@ -155,25 +176,27 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             });
         }
 
-        // Process Outflows with Consolidation Logic
+        // Process Outflows
         const outflowGroups: Record<string, any> = {};
         if (Array.isArray(record.outflows)) {
             record.outflows.forEach((outflow, idx) => {
                 const pattiNoRaw = String(outflow.pattiNo || '').replace(/\D/g, '');
-                const displayId = pattiNoRaw || cleanId; // Fallback to Inflow ID if Outflow Bill No is missing
+                const displayId = pattiNoRaw || cleanId;
 
                 const rentVal = Number(outflow.rentBilled) || 0;
                 const withdrawn = Number(outflow.bagsWithdrawn) || 0;
+                const discVal = Number(outflow.discount) || 0;
                 
                 totalRentBilled += rentVal;
                 totalBagsOut += withdrawn;
+                totalDiscounts += discVal;
 
-                // Grouping by Bill No for consolidated rows
                 if (outflowGroups[displayId]) {
                     outflowGroups[displayId].bagsOut += withdrawn;
                     outflowGroups[displayId].rent += rentVal;
+                    outflowGroups[displayId].discount += discVal;
                     if (record.location && !outflowGroups[displayId].lotNo.includes(record.location)) {
-                        outflowGroups[displayId].lotNo = outflowGroups[displayId].lotNo === 'Multiple' ? 'Multiple' : 'Multiple';
+                        outflowGroups[displayId].lotNo = "Multiple";
                     }
                 } else {
                     outflowGroups[displayId] = {
@@ -185,6 +208,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                         bagsOut: withdrawn,
                         hamali: 0,
                         rent: rentVal,
+                        discount: discVal,
                         credit: 0,
                         sortDate: toDate(outflow.date).getTime() + 3 + idx,
                         recordType: 'outflow',
@@ -201,26 +225,45 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             record.payments.forEach((payment, pIdx) => {
                 const amt = Number(payment.amount) || 0;
                 const isHamali = payment.type === 'hamali' || payment.type === 'unloading';
-                if (isHamali) totalHamaliPaid += amt;
-                else totalRentPaid += amt;
+                const isDiscount = payment.type === 'discount';
 
-                events.push({
-                    date: toDate(payment.date),
-                    description: getPaymentDesc(payment.type, 'storage'),
-                    billNo: cleanId,
-                    lotNo: '', 
-                    bagsIn: 0,
-                    bagsOut: 0,
-                    hamali: 0,
-                    rent: 0,
-                    credit: amt,
-                    sortDate: toDate(payment.date).getTime() + 5 + pIdx,
-                    recordType: 'payment',
-                    paymentType: 'storage',
-                    paymentIndex: pIdx,
-                    sourceRecord: record,
-                    paymentData: payment
-                });
+                if (isDiscount) {
+                    totalDiscounts += amt;
+                    events.push({
+                        date: toDate(payment.date),
+                        description: 'Adjustment / Discount',
+                        billNo: cleanId,
+                        lotNo: '', 
+                        bagsIn: 0, bagsOut: 0, hamali: 0, rent: 0,
+                        discount: amt,
+                        credit: 0,
+                        sortDate: toDate(payment.date).getTime() + 5 + pIdx,
+                        recordType: 'payment',
+                        paymentType: 'storage',
+                        paymentIndex: pIdx,
+                        sourceRecord: record,
+                        paymentData: payment
+                    });
+                } else {
+                    if (isHamali) totalHamaliPaid += amt;
+                    else totalRentPaid += amt;
+
+                    events.push({
+                        date: toDate(payment.date),
+                        description: getPaymentDesc(payment.type, 'storage'),
+                        billNo: cleanId,
+                        lotNo: '', 
+                        bagsIn: 0, bagsOut: 0, hamali: 0, rent: 0,
+                        discount: 0,
+                        credit: amt,
+                        sortDate: toDate(payment.date).getTime() + 5 + pIdx,
+                        recordType: 'payment',
+                        paymentType: 'storage',
+                        paymentIndex: pIdx,
+                        sourceRecord: record,
+                        paymentData: payment
+                    });
+                }
             });
         }
     });
@@ -230,7 +273,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
     let runningBalance = 0;
     const lineItems = sortedEvents.map(event => {
         const debit = (Number(event.hamali) || 0) + (Number(event.rent) || 0);
-        const credit = Number(event.credit) || 0;
+        const credit = (Number(event.credit) || 0) + (Number(event.discount) || 0);
         runningBalance += (debit - credit);
         return { ...event, balance: runningBalance };
     });
@@ -247,7 +290,8 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             totalRentBilled, 
             totalRentPaid,
             rentBalance: Math.max(0, totalRentBilled - totalRentPaid),
-            totalCredit: totalHamaliPaid + totalRentPaid, 
+            totalDiscounts,
+            totalCredit: totalHamaliPaid + totalRentPaid + totalDiscounts, 
             finalBalance: Math.max(0, runningBalance)
         } 
     };
@@ -291,20 +335,18 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                     <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1">Financial Reconciliation</h3>
                     <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-[12px]">
                         <div className="space-y-0.5 border-r border-slate-100 pr-4">
-                            <p className="uppercase text-[9px] font-bold text-slate-400">Hamali (Handling)</p>
-                            <div className="flex justify-between"><span>Billed:</span><span className="font-mono">{formatCurrency(totals.totalHamaliBilled)}</span></div>
-                            <div className="flex justify-between text-green-700"><span>Paid:</span><span className="font-mono">{formatCurrency(totals.totalHamaliPaid)}</span></div>
-                            <div className="flex justify-between font-bold border-t pt-0.5 text-orange-600"><span>Due:</span><span className="font-mono">{formatCurrency(totals.hamaliBalance)}</span></div>
+                            <p className="uppercase text-[9px] font-bold text-slate-400">Labor/Rent Totals</p>
+                            <div className="flex justify-between"><span>Hamali Due:</span><span className="font-mono">{formatCurrency(totals.hamaliBalance)}</span></div>
+                            <div className="flex justify-between"><span>Rent Due:</span><span className="font-mono">{formatCurrency(totals.rentBalance)}</span></div>
+                            <div className="flex justify-between font-bold border-t pt-0.5 text-green-600"><span>Discounts:</span><span className="font-mono">{formatCurrency(totals.totalDiscounts)}</span></div>
                         </div>
-                        <div className="space-y-0.5">
-                            <p className="uppercase text-[9px] font-bold text-slate-400">Warehouse Rent</p>
-                            <div className="flex justify-between"><span>Billed:</span><span className="font-mono">{formatCurrency(totals.totalRentBilled)}</span></div>
-                            <div className="flex justify-between text-green-700"><span>Paid:</span><span className="font-mono">{formatCurrency(totals.totalRentPaid)}</span></div>
-                            <div className="flex justify-between font-bold border-t pt-0.5 text-blue-600"><span>Due:</span><span className="font-mono">{formatCurrency(totals.rentBalance)}</span></div>
+                        <div className="space-y-0.5 flex flex-col justify-center">
+                            <p className="uppercase text-[9px] font-bold text-slate-400">Total Billed</p>
+                            <p className="text-xl font-mono font-black">{formatCurrency(totals.totalHamaliBilled + totals.totalRentBilled)}</p>
                         </div>
                     </div>
                     <div className="flex justify-between items-center border-t-2 border-slate-900 pt-2 mt-2 text-destructive font-black">
-                        <span className="uppercase text-[11px] tracking-widest">Total Outstanding Due:</span>
+                        <span className="uppercase text-[11px] tracking-widest">Net Payable Due:</span>
                         <span className="font-mono text-xl">{formatCurrency(totals.finalBalance)}</span>
                     </div>
                 </div>
@@ -323,6 +365,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                         <TableHead className="font-bold text-black border-r border-slate-200 text-center p-2 uppercase text-[9px]">Out</TableHead>
                         <TableHead className="font-bold text-black border-r border-slate-200 text-right p-2 uppercase text-[9px]">Hamali (+)</TableHead>
                         <TableHead className="font-bold text-black border-r border-slate-200 text-right p-2 uppercase text-[9px]">Rent (+)</TableHead>
+                        <TableHead className="font-bold text-black border-r border-slate-200 text-right p-2 uppercase text-[9px]">Disc (-)</TableHead>
                         <TableHead className="font-bold text-black border-r border-slate-200 text-right p-2 uppercase text-[9px]">Paid (-)</TableHead>
                         <TableHead className="font-bold text-black text-right p-2 uppercase text-[9px]">Balance</TableHead>
                         <TableHead className="font-bold text-black text-right p-2 uppercase text-[9px] print-hide">Actions</TableHead>
@@ -348,13 +391,14 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                                 <TableCell className="p-1 text-center font-mono text-orange-600 font-bold">{item.bagsOut || ''}</TableCell>
                                 <TableCell className="p-1 text-right font-mono">{item.hamali > 0 ? formatCurrency(item.hamali) : ''}</TableCell>
                                 <TableCell className="p-1 text-right font-mono">{item.rent > 0 ? formatCurrency(item.rent) : ''}</TableCell>
+                                <TableCell className="p-1 text-right font-mono text-blue-600 font-bold">{item.discount > 0 ? formatCurrency(item.discount) : ''}</TableCell>
                                 <TableCell className="p-1 text-right font-mono text-green-700 font-black">{item.credit > 0 ? formatCurrency(item.credit) : ''}</TableCell>
                                 <TableCell className="p-1 text-right font-mono font-black">{formatCurrency(item.balance)}</TableCell>
                                 <TableCell className="p-1 text-right print-hide">
                                     {item.recordType === 'storage' && <ActionsMenu record={item.sourceRecord} customers={customers} allRecords={allRecords} />}
                                     {item.recordType === 'unloading' && <UnloadingTableActionsMenu record={{...item.sourceRecord, hamaliPending: 0}} customers={customers} commodities={commodities} lots={lots} storageRecords={allRecords} />}
                                     {item.recordType === 'outflow' && <OutflowActionsMenu record={item.sourceRecord} customer={customer} warehouseInfo={warehouseInfo} outflow={item.outflowData} outflowIndex={item.outflowIndex} deliveryOrderNo={item.billNo} deliveryOrderDate={item.date} commodities={commodities} lots={lots} allRecords={allRecords} />}
-                                    {item.recordType === 'payment' && <PaymentActionsMenu event={{ date: item.date, customerId: customer.id, description: item.description, recordId: String(item.sourceRecord.id || item.sourceRecord.billNo || ''), amount: item.credit, type: (item.paymentData?.type || 'other') as PaymentType, recordType: item.paymentType, paymentIndex: item.paymentIndex }} />}
+                                    {item.recordType === 'payment' && <PaymentActionsMenu event={{ date: item.date, customerId: customer.id, description: item.description, recordId: String(item.sourceRecord.id || item.sourceRecord.billNo || ''), amount: item.credit || item.discount, type: (item.paymentData?.type || 'other') as PaymentType, recordType: item.paymentType, paymentIndex: item.paymentIndex }} />}
                                 </TableCell>
                             </TableRow>
                         );
@@ -362,12 +406,13 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 </TableBody>
                 <TableFooter>
                     <TableRow className="bg-slate-900 text-white font-black border-t-2 border-black h-12">
-                        <TableCell colSpan={4} className="p-2 text-right uppercase text-[10px] tracking-[0.2em]">Audit Grand Totals</TableCell>
+                        <TableCell colSpan={4} className="p-2 text-right uppercase text-[10px] tracking-tight">Audit Grand Totals</TableCell>
                         <TableCell className="p-2 text-center font-mono">{totals.totalBagsIn}</TableCell>
                         <TableCell className="p-2 text-center font-mono text-orange-400">{totals.totalBagsOut}</TableCell>
                         <TableCell className="p-2 text-right font-mono">{formatCurrency(totals.totalHamaliBilled)}</TableCell>
                         <TableCell className="p-2 text-right font-mono">{formatCurrency(totals.totalRentBilled)}</TableCell>
-                        <TableCell className="p-2 text-right font-mono text-green-400">{formatCurrency(totals.totalCredit)}</TableCell>
+                        <TableCell className="p-2 text-right font-mono text-blue-300">{formatCurrency(totals.totalDiscounts)}</TableCell>
+                        <TableCell className="p-2 text-right font-mono text-green-400">{formatCurrency(totals.totalHamaliPaid + totals.totalRentPaid)}</TableCell>
                         <TableCell className="p-2 text-right font-mono text-base">{formatCurrency(totals.finalBalance)}</TableCell>
                         <TableCell className="print-hide" />
                     </TableRow>

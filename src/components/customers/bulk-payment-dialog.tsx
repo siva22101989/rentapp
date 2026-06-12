@@ -23,10 +23,13 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
+import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
+import { Label } from '../ui/label';
 
 const BulkPaymentSchema = z.object({
   paymentDate: z.string().refine(val => !isNaN(Date.parse(val)), { message: "Invalid date" }),
   paymentAmount: z.coerce.number().positive('Payment amount must be a positive number.'),
+  paymentType: z.enum(['rent', 'hamali']),
 });
 
 type PaymentFormData = z.infer<typeof BulkPaymentSchema>;
@@ -49,50 +52,54 @@ export function BulkPaymentDialog({ customer, storageRecords, unloadingRecords, 
     defaultValues: {
         paymentDate: new Date().toISOString().split('T')[0],
         paymentAmount: undefined,
+        paymentType: 'rent',
     },
   });
 
+  const paymentType = form.watch('paymentType');
+
   const { totalDue, totalHamaliDue, totalRentDue } = useMemo(() => {
-    let hamaliDue = 0;
-    let rentDue = 0;
+    let hamaliLiability = 0;
+    let hamaliPaid = 0;
+    let rentLiability = 0;
+    let rentPaid = 0;
 
     storageRecords
         .filter(r => r.customerId === customer.id)
         .forEach(rec => {
-            const hamaliPayable = rec.hamaliPayable || 0;
-            const totalRentBilled = rec.totalRentBilled || 0;
-            const hamaliPaid = (rec.payments || []).filter(p => p.type === 'hamali').reduce((acc, p) => acc + p.amount, 0);
-            const rentPaid = (rec.payments || []).filter(p => p.type === 'rent').reduce((acc, p) => acc + p.amount, 0);
-            const otherPaid = (rec.payments || []).filter(p => !p.type || p.type === 'other').reduce((acc, p) => acc + p.amount, 0);
-            
-            hamaliDue += Math.max(0, hamaliPayable - hamaliPaid);
-            rentDue += Math.max(0, totalRentBilled - rentPaid - otherPaid);
+            hamaliLiability += rec.hamaliPayable || 0;
+            rentLiability += (rec.totalRentBilled || 0) + (rec.khataAmount || 0);
+            (rec.payments || []).forEach(p => {
+                const isHamali = p.type === 'hamali' || p.type === 'unloading';
+                if (isHamali) hamaliPaid += (p.amount || 0);
+                else rentPaid += (p.amount || 0);
+            });
         });
 
     unloadingRecords
         .filter(r => r.customerId === customer.id)
         .forEach(rec => {
-            const totalHamali = rec.totalHamali || 0;
-            const totalPaid = (rec.payments || []).reduce((acc, p) => acc + p.amount, 0);
-            hamaliDue += Math.max(0, totalHamali - totalPaid);
+            const remainingBags = Math.max(0, (rec.bagsUnloaded || 0) - (rec.bagsSentToDrying || 0));
+            hamaliLiability += remainingBags * (rec.hamaliPerBag || 0);
+            (rec.payments || []).forEach(p => {
+                hamaliPaid += (p.amount || 0);
+            });
         });
     
+    const hPending = Math.max(0, hamaliLiability - hamaliPaid);
+    const rPending = Math.max(0, rentLiability - rentPaid);
+
     return {
-        totalHamaliDue: hamaliDue,
-        totalRentDue: rentDue,
-        totalDue: hamaliDue + rentDue,
+        totalHamaliDue: hPending,
+        totalRentDue: rPending,
+        totalDue: hPending + rPending,
     };
-  }, [customer.id, storageRecords, unloadingRecords]);
+  }, [customer.id, storageRecords, unloadingRecords, isOpen]);
+
+  const activeCategoryDue = paymentType === 'hamali' ? totalHamaliDue : totalRentDue;
 
   const onSubmit = (data: PaymentFormData) => {
-    if (!firestore) {
-      toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
-      return;
-    }
-    if (data.paymentAmount <= 0) {
-        toast({ title: 'Invalid Amount', description: 'Payment amount must be positive.', variant: 'destructive' });
-        return;
-    }
+    if (!firestore) return;
 
     startTransition(async () => {
       try {
@@ -100,80 +107,58 @@ export function BulkPaymentDialog({ customer, storageRecords, unloadingRecords, 
         let amountToApply = data.paymentAmount;
         const paymentDate = new Date(data.paymentDate);
 
-        // Combine storage and unloading records
         const allCustomerRecords = [
-            ...storageRecords
-                .filter(r => r.customerId === customer.id)
-                .map(r => ({ ...r, type: 'storage' as const, date: toDate(r.storageStartDate) })),
-            ...unloadingRecords
-                .filter(r => r.customerId === customer.id)
-                .map(r => ({ ...r, type: 'unloading' as const, date: toDate(r.unloadingDate) }))
+            ...storageRecords.filter(r => r.customerId === customer.id).map(r => ({ ...r, rType: 'storage' as const, date: toDate(r.storageStartDate) })),
+            ...unloadingRecords.filter(r => r.customerId === customer.id).map(r => ({ ...r, rType: 'unloading' as const, date: toDate(r.unloadingDate) }))
         ];
 
-        // Sort by date, oldest first
         const sortedRecords = allCustomerRecords.sort((a,b) => a.date.getTime() - b.date.getTime());
 
         for (const record of sortedRecords) {
-            if (amountToApply <= 0.005) break; // Float tolerance
-            
-            let hamaliDue = 0;
-            let rentDue = 0;
+            if (amountToApply <= 0.005) break; 
             const newPayments: Payment[] = [];
 
-            if (record.type === 'storage') {
-                const sr = record;
-                const hamaliPayable = sr.hamaliPayable || 0;
-                const totalRentBilled = sr.totalRentBilled || 0;
-                const hamaliPaid = (sr.payments || []).filter(p => p.type === 'hamali').reduce((acc, p) => acc + p.amount, 0);
-                const rentPaid = (sr.payments || []).filter(p => p.type === 'rent').reduce((acc, p) => acc + p.amount, 0);
-                const otherPaid = (sr.payments || []).filter(p => !p.type || p.type === 'other').reduce((acc, p) => acc + p.amount, 0);
-                hamaliDue = Math.max(0, hamaliPayable - hamaliPaid);
-                rentDue = Math.max(0, totalRentBilled - rentPaid - otherPaid);
+            if (record.rType === 'storage') {
+                const sr = record as any;
+                const totalPaidOnRecord = (sr.payments || []).reduce((acc: number, p: any) => acc + (p.amount || 0), 0);
+                const hamaliPaidOnRecord = (sr.payments || []).filter((p: any) => p.type === 'hamali' || p.type === 'unloading').reduce((acc: number, p: any) => acc + (p.amount || 0), 0);
+                const rentPaidOnRecord = totalPaidOnRecord - hamaliPaidOnRecord;
 
-                const hamaliToPay = Math.min(amountToApply, hamaliDue);
-                if (hamaliToPay > 0) {
-                    newPayments.push({ amount: hamaliToPay, date: paymentDate, type: 'hamali' });
-                    amountToApply -= hamaliToPay;
-                }
-                if (amountToApply > 0) {
-                    const rentToPay = Math.min(amountToApply, rentDue);
-                    if (rentToPay > 0) {
-                        newPayments.push({ amount: rentToPay, date: paymentDate, type: 'rent' });
-                        amountToApply -= rentToPay;
-                    }
+                let recordDue = 0;
+                if (data.paymentType === 'hamali') {
+                    recordDue = Math.max(0, (sr.hamaliPayable || 0) - hamaliPaidOnRecord);
+                } else {
+                    recordDue = Math.max(0, ((sr.totalRentBilled || 0) + (sr.khataAmount || 0)) - rentPaidOnRecord);
                 }
 
-                if (newPayments.length > 0) {
-                    const recordRef = doc(firestore, 'storageRecords', sr.id);
-                    batch.update(recordRef, { payments: arrayUnion(...newPayments.map(p => cleanForFirestore(p))) });
+                const apply = Math.min(amountToApply, recordDue);
+                if (apply > 0) {
+                    newPayments.push({ amount: apply, date: paymentDate, type: data.paymentType as any });
+                    amountToApply -= apply;
+                    batch.update(doc(firestore, 'storageRecords', sr.id), { payments: arrayUnion(...newPayments.map(p => cleanForFirestore(p))) });
                 }
+            } else if (record.rType === 'unloading' && data.paymentType === 'hamali') {
+                const ur = record as any;
+                const remainingBags = Math.max(0, (ur.bagsUnloaded || 0) - (ur.bagsSentToDrying || 0));
+                const totalLiabOnRecord = remainingBags * (ur.hamaliPerBag || 0);
+                const totalPaidOnRecord = (ur.payments || []).reduce((acc: number, p: any) => acc + p.amount, 0);
+                let recordDue = Math.max(0, totalLiabOnRecord - totalPaidOnRecord);
 
-            } else { // unloading record
-                const ur = record;
-                const totalHamali = ur.totalHamali || 0;
-                const totalPaid = (ur.payments || []).reduce((acc, p) => acc + p.amount, 0);
-                hamaliDue = Math.max(0, totalHamali - totalPaid);
-
-                const hamaliToPay = Math.min(amountToApply, hamaliDue);
-                if (hamaliToPay > 0) {
-                    newPayments.push({ amount: hamaliToPay, date: paymentDate, type: 'unloading' });
-                    amountToApply -= hamaliToPay;
-                }
-                if (newPayments.length > 0) {
-                    const recordRef = doc(firestore, 'unloadingRecords', ur.id);
-                    batch.update(recordRef, { payments: arrayUnion(...newPayments.map(p => cleanForFirestore(p))) });
+                const apply = Math.min(amountToApply, recordDue);
+                if (apply > 0) {
+                    newPayments.push({ amount: apply, date: paymentDate, type: 'unloading' });
+                    amountToApply -= apply;
+                    batch.update(doc(firestore, 'unloadingRecords', ur.id), { payments: arrayUnion(...newPayments.map(p => cleanForFirestore(p))) });
                 }
             }
         }
         
         await batch.commit();
-
-        toast({ title: 'Success', description: `${formatCurrency(data.paymentAmount)} applied to customer's pending dues.` });
+        toast({ title: 'Success', description: `${formatCurrency(data.paymentAmount)} applied to ${data.paymentType} dues.` });
         setIsOpen(false);
         form.reset();
       } catch (error) {
-        console.error(error);
-        toast({ title: 'Error', description: `Failed to record payment. ${error}`, variant: 'destructive' });
+        toast({ title: 'Error', description: 'Failed to record payment.', variant: 'destructive' });
       }
     });
   };
@@ -185,64 +170,69 @@ export function BulkPaymentDialog({ customer, storageRecords, unloadingRecords, 
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
             <DialogHeader>
-                <DialogTitle>Bulk Payment for {customer.name}</DialogTitle>
-                <DialogDescription>
-                Enter a single payment amount. It will be automatically applied to this customer's oldest outstanding bills, clearing hamali dues first.
-                </DialogDescription>
+                <DialogTitle>Record Payment for {customer.name}</DialogTitle>
+                <DialogDescription>Choose whether this collection is for Rent or Hamali charges.</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
+                 <FormField
+                    control={form.control}
+                    name="paymentType"
+                    render={({ field }) => (
+                        <FormItem className="space-y-3">
+                            <FormLabel>Category</FormLabel>
+                            <FormControl>
+                                <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex gap-4">
+                                    <FormItem className="flex items-center space-x-2 space-y-0">
+                                        <FormControl><RadioGroupItem value="rent" /></FormControl>
+                                        <Label className="font-normal cursor-pointer">Rent</Label>
+                                    </FormItem>
+                                    <FormItem className="flex items-center space-x-2 space-y-0">
+                                        <FormControl><RadioGroupItem value="hamali" /></FormControl>
+                                        <Label className="font-normal cursor-pointer">Hamali</Label>
+                                    </FormItem>
+                                </RadioGroup>
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+
                  <div className="p-4 rounded-lg bg-secondary border">
-                    <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Total Hamali Pending</span>
-                        <span className="font-medium">{formatCurrency(totalHamaliDue)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Total Rent Pending</span>
-                        <span className="font-medium">{formatCurrency(totalRentDue)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm font-bold border-t pt-2 mt-2">
-                        <span className="text-foreground">Total Due</span>
-                        <span className="text-destructive">{formatCurrency(totalDue)}</span>
+                    <div className="flex justify-between text-sm font-bold">
+                        <span className="text-muted-foreground uppercase text-[10px] tracking-wider">{paymentType === 'hamali' ? 'Hamali Pending' : 'Rent Pending'}</span>
+                        <span className="text-primary">{formatCurrency(activeCategoryDue)}</span>
                     </div>
                 </div>
 
-                <FormField
-                    control={form.control}
-                    name="paymentDate"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Payment Date</FormLabel>
-                            <FormControl>
-                                <Input type="date" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-
-                <FormField
-                    control={form.control}
-                    name="paymentAmount"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Payment Amount</FormLabel>
-                            <FormControl>
-                                <Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-
+                <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                        control={form.control}
+                        name="paymentDate"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Date</FormLabel>
+                                <FormControl><Input type="date" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="paymentAmount"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Amount</FormLabel>
+                                <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ''} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                </div>
             </div>
             <DialogFooter>
                 <DialogClose asChild><Button variant="outline" type="button">Cancel</Button></DialogClose>
                 <Button type="submit" disabled={isPending}>
-                {isPending ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
-                ) : (
-                    'Record Payment'
-                )}
+                    {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Record Payment'}
                 </Button>
             </DialogFooter>
             </form>

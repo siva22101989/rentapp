@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef } from 'react';
@@ -16,6 +17,8 @@ import { Printer, FileDown, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { PendingPaymentsTable } from '@/components/payments/pending-payments-table';
 import { PaymentReport } from './payment-report';
+import { PendingDuesReportTable } from './pending-dues-report-table';
+import { toDate } from '@/lib/utils';
 
 const reportTypes = [
     { value: 'daily-summary', label: 'Daily Summary Report' },
@@ -39,6 +42,7 @@ type ReportGeneratorProps = {
     lendings: Lending[];
     otherIncomes: OtherIncome[];
     commodities: Commodity[];
+    lots: Lot[];
     initialReport?: string;
     initialCustomerId?: string;
     dryingRecords: DryingRecord[];
@@ -110,13 +114,44 @@ export function CustomReportGenerator({
                         />;
             case 'payment-register':
                 return <PaymentReport records={records} unloadingRecords={unloadingRecords} customers={customers} />;
-            case 'pending-dues':
-                return <PendingPaymentsTable 
-                            records={records} 
-                            customers={customers} 
-                            unloadingRecords={unloadingRecords}
+            case 'pending-dues': {
+                // Generate summaries locally for the report view
+                const summaryMap: Record<string, any> = {};
+                records.forEach(r => {
+                    if (!summaryMap[r.customerId]) summaryMap[r.customerId] = { hLiability: 0, rLiability: 0, totalPaid: 0 };
+                    summaryMap[r.customerId].hLiability += r.hamaliPayable || 0;
+                    summaryMap[r.customerId].rLiability += (r.totalRentBilled || 0) + (r.khataAmount || 0);
+                    summaryMap[r.customerId].totalPaid += (r.payments || []).reduce((acc, p) => acc + p.amount, 0);
+                });
+                unloadingRecords.forEach(r => {
+                    if (!summaryMap[r.customerId]) summaryMap[r.customerId] = { hLiability: 0, rLiability: 0, totalPaid: 0 };
+                    const remaining = Math.max(0, r.bagsUnloaded - (r.bagsSentToDrying || 0));
+                    summaryMap[r.customerId].hLiability += remaining * (r.hamaliPerBag || 0);
+                    summaryMap[r.customerId].totalPaid += (r.payments || []).reduce((acc, p) => acc + p.amount, 0);
+                });
+                const summaries = Object.entries(summaryMap).map(([id, d]) => {
+                    const balance = Math.max(0, (d.hLiability + d.rLiability) - d.totalPaid);
+                    if (balance < 0.5) return null;
+                    return {
+                        customerId: id,
+                        customerName: customers.find(c => c.id === id)?.name || 'Unknown',
+                        totalBilled: d.hLiability + d.rLiability,
+                        amountPaid: d.totalPaid,
+                        balanceDue: balance,
+                        hamaliPending: Math.max(0, d.hLiability - d.totalPaid),
+                        rentPending: Math.max(0, balance - Math.max(0, d.hLiability - d.totalPaid))
+                    };
+                }).filter(s => s !== null);
+
+                return <PendingDuesReportTable 
+                            summaries={summaries as any} 
                             title="Pending Dues Register"
+                            customers={customers}
+                            storageRecords={records}
+                            unloadingRecords={unloadingRecords}
+                            isReport={true}
                         />;
+            }
             case 'customer-statement':
                 return <ReportClient 
                             records={records} 
@@ -136,13 +171,7 @@ export function CustomReportGenerator({
             case 'unloading-register':
                 return <UnloadingReport unloadingRecords={unloadingRecords} customers={customers} commodities={commodities} lots={lots} storageRecords={records} />;
             default:
-                return (
-                    <Card>
-                        <CardContent className="p-8 text-center text-muted-foreground">
-                            Please select a report from the dropdown above.
-                        </CardContent>
-                    </Card>
-                );
+                return null;
         }
     };
 

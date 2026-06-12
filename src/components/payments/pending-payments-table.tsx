@@ -42,11 +42,10 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, tit
             return summaryMap[id];
         };
 
-        // 1. Process Storage Records (Billed Liabilities only to match Statement)
+        // 1. Process Storage Records
         records.forEach(r => {
             const s = getSummary(r.customerId);
             
-            // Liabilities: Billed Hamali + Billed Rent (from outflows) + Khata
             const inflowHamali = r.hamaliPayable || 0; 
             const billedRent = r.totalRentBilled || 0;
             const khata = r.khataAmount || 0;
@@ -80,7 +79,6 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, tit
             const totalLiability = data.hLiability + data.rLiability;
             const balanceDue = Math.max(0, totalLiability - data.totalPaid);
 
-            // Heuristic breakdown for display: Apply payments to Hamali first
             const hamaliPending = Math.max(0, data.hLiability - data.totalPaid);
             const rentPending = Math.max(0, balanceDue - hamaliPending);
 
@@ -102,10 +100,13 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, tit
 
     return (
         <div className="space-y-4">
-            <div className="table-scroll-container printable-area">
+            <div className="table-scroll-container overflow-x-auto overflow-y-hidden">
                 <PendingDuesReportTable
                     summaries={pendingSummaries}
                     title={title}
+                    customers={customers}
+                    storageRecords={records}
+                    unloadingRecords={unloadingRecords}
                 />
             </div>
         </div>

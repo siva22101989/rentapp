@@ -30,75 +30,86 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
     const hamaliRate = record.hamaliRate ?? (record.bagsIn > 0 ? record.hamaliPayable / record.bagsIn : 0);
 
     return (
-        <div ref={ref} className="bg-white p-4 sm:p-6 border-2 border-black font-sans text-lg text-black">
-            <div className="text-center mb-4">
-                <h1 className="text-2xl font-bold tracking-wider">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</h1>
-                <p className="text-sm">{warehouseInfo?.addressLine1 || 'Owk - Koilakuntla Road, OWK - 518 122,'}</p>
-                <p className="text-sm">{warehouseInfo?.addressLine2 || 'Kurnool (Dt.), A.P.'} Cell: {warehouseInfo?.phone || ''}</p>
-                <h2 className="font-bold underline text-center mt-4 text-lg">INFLOW BILL</h2>
-            </div>
-    
-            <div className="grid grid-cols-2 gap-x-4 mb-4 text-base">
-                <div>
-                    <p><span className="font-bold">Storage ID:</span> {record.id}</p>
-                    <p><span className="font-bold">Depositor:</span> {customer.name}</p>
-                    <p><span className="font-bold">Village:</span> {customer.village || 'N/A'}</p>
-                </div>
-                <div className="text-right">
-                    <p><span className="font-bold">Date:</span> {formattedDate}</p>
+        <div ref={ref} className="bg-white p-8 border-2 border-black font-sans text-black max-w-[800px] mx-auto print:p-0 print:border-none">
+            <div className="text-center mb-8 border-b-2 border-black pb-4">
+                <h1 className="text-3xl font-bold uppercase tracking-wider">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</h1>
+                <p className="text-sm font-semibold mt-1">
+                    {warehouseInfo?.addressLine1} {warehouseInfo?.addressLine2}
+                </p>
+                <p className="text-sm font-bold">Cell: {warehouseInfo?.phone || ''}</p>
+                <div className="mt-4 py-1 px-4 border-2 border-black inline-block font-black text-xl">
+                    INFLOW BILL
                 </div>
             </div>
     
-            <div className="border-y-2 border-black py-2 mb-4">
-                <h2 className="font-bold text-center mb-2 text-base uppercase">Particulars of Deposit</h2>
-                <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-base">
-                    <p><span className="font-bold">Storage ID:</span> {record.id}</p>
-                    <p><span className="font-bold">Commodity:</span> {record.commodityDescription}</p>
-                    <p><span className="font-bold">No. of Bags:</span> {record.bagsIn}</p>
-                    <p><span className="font-bold">Lot No.:</span> {record.location || 'N/A'}</p>
-                    {dryingDays && <p className="col-span-2 font-bold italic text-sm">Processed from Plot (Drying: {dryingDays} days)</p>}
+            <div className="grid grid-cols-2 gap-x-12 mb-6 text-sm">
+                <div className="space-y-1">
+                    <p><span className="font-bold w-32 inline-block">BILL NO</span>: <span className="font-mono font-bold text-lg">{record.id}</span></p>
+                    <p><span className="font-bold w-32 inline-block">DEPOSITOR</span>: <span className="uppercase">{customer.name}</span></p>
+                    <p><span className="font-bold w-32 inline-block">FATHER'S NAME</span>: {customer.fatherName || 'N/A'}</p>
+                    <p><span className="font-bold w-32 inline-block">VILLAGE</span>: <span className="uppercase">{customer.village || 'N/A'}</span></p>
+                </div>
+                <div className="text-right space-y-1">
+                    <p><span className="font-bold">DATE</span>: {formattedDate}</p>
+                    <p><span className="font-bold">COMMODITY</span>: <span className="uppercase">{record.commodityDescription}</span></p>
+                    <p><span className="font-bold">LOT NO</span>: <span className="font-mono font-bold">{record.location || 'N/A'}</span></p>
                 </div>
             </div>
-            
-            <Table className="text-lg">
-                 <TableHeader>
-                    <TableRow>
-                        <TableHead className="text-black font-bold">PARTICULARS</TableHead>
-                        <TableHead className="text-center text-black font-bold">Details</TableHead>
-                        <TableHead className="text-right text-black font-bold">Amount</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                     <TableRow>
-                        <TableCell>Handling/Hamali Charges</TableCell>
-                        <TableCell className="text-center font-mono text-base">{record.bagsIn} bags x {formatCurrency(hamaliRate)}</TableCell>
-                        <TableCell className="text-right font-mono">{formatCurrency(record.hamaliPayable)}</TableCell>
-                    </TableRow>
-                    {record.khataAmount && record.khataAmount > 0 && (
-                        <TableRow>
-                            <TableCell>Khata (Weighbridge)</TableCell>
-                            <TableCell></TableCell>
-                            <TableCell className="text-right font-mono">{formatCurrency(record.khataAmount)}</TableCell>
+    
+            <div className="border-t-2 border-black pt-4 mb-4">
+                <h3 className="font-bold uppercase text-center mb-4 underline decoration-slate-300 underline-offset-4">Particulars of Handling</h3>
+                <Table className="border-2 border-black">
+                    <TableHeader>
+                        <TableRow className="border-b-2 border-black bg-slate-50">
+                            <TableHead className="text-black font-bold h-10 px-4 uppercase text-xs">Description</TableHead>
+                            <TableHead className="text-center text-black font-bold h-10 px-4 uppercase text-xs">Quantity (Bags)</TableHead>
+                            <TableHead className="text-right text-black font-bold h-10 px-4 uppercase text-xs">Rate (₹)</TableHead>
+                            <TableHead className="text-right text-black font-bold h-10 px-4 uppercase text-xs">Amount (₹)</TableHead>
                         </TableRow>
-                    )}
-                </TableBody>
-                <TableFooter>
-                    <TableRow className="font-bold border-t-2 border-black">
-                        <TableCell colSpan={2} className="text-right">TOTAL</TableCell>
-                        <TableCell className="text-right font-mono">{formatCurrency((record.hamaliPayable || 0) + (record.khataAmount || 0))}</TableCell>
-                    </TableRow>
-                </TableFooter>
-            </Table>
+                    </TableHeader>
+                    <TableBody>
+                         <TableRow className="h-12 border-b border-black">
+                            <TableCell className="px-4 font-medium">Handling / Hamali Charges</TableCell>
+                            <TableCell className="text-center font-mono font-bold">{record.bagsIn}</TableCell>
+                            <TableCell className="text-right font-mono">{hamaliRate.toFixed(2)}</TableCell>
+                            <TableCell className="text-right font-mono font-bold">{formatCurrency(record.hamaliPayable)}</TableCell>
+                        </TableRow>
+                        {record.khataAmount && record.khataAmount > 0 && (
+                            <TableRow className="h-10 border-b border-black">
+                                <TableCell className="px-4 font-medium" colSpan={3}>Khata (Weighbridge / Entry Fees)</TableCell>
+                                <TableCell className="text-right font-mono font-bold">{formatCurrency(record.khataAmount)}</TableCell>
+                            </TableRow>
+                        )}
+                        {dryingDays && (
+                            <TableRow className="h-8">
+                                <TableCell colSpan={4} className="px-4 italic text-[11px] text-slate-500">
+                                    Note: Items processed through plot drying for {dryingDays} days.
+                                </TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                    <TableFooter>
+                        <TableRow className="h-12 bg-slate-50 font-black text-lg">
+                            <TableCell colSpan={3} className="text-right px-4 uppercase tracking-tighter">Grand Total</TableCell>
+                            <TableCell className="text-right px-4 font-mono">{formatCurrency((record.hamaliPayable || 0) + (record.khataAmount || 0))}</TableCell>
+                        </TableRow>
+                    </TableFooter>
+                </Table>
+            </div>
             
-            <div className="mt-16 pt-8 flex flex-col items-end text-center space-y-1">
-                <div className="w-72 border-t border-slate-400 pt-4">
-                    <p className="text-[#1e293b] font-bold text-sm uppercase tracking-wider">AUTHORIZED MANAGER SIGNATURE</p>
-                    <p className="text-primary font-bold text-xs uppercase mt-1">SRI LAKSHMI WAREHOUSE</p>
+            <div className="mt-20 grid grid-cols-2 gap-12 text-center">
+                <div className="space-y-1">
+                    <div className="border-t border-black pt-2 mx-auto w-48 font-bold text-xs uppercase">Customer Signature</div>
                 </div>
-                <div className="text-[10px] text-slate-500 italic mt-4">
-                    <p>Report validity verified on {generatedDate}</p>
-                    <p>This is a computer generated statement.</p>
+                <div className="space-y-1">
+                    <div className="border-t-2 border-black pt-2 mx-auto w-64 font-black text-sm uppercase">Authorized Manager</div>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{warehouseInfo?.name || 'Warehouse Operations'}</p>
                 </div>
+            </div>
+
+            <div className="mt-12 text-[10px] text-slate-400 italic text-center border-t border-slate-100 pt-4">
+                <p>Digital Audit Timestamp: {generatedDate}</p>
+                <p>This is a computer-generated billing document. Valid without physical signature.</p>
             </div>
         </div>
     );

@@ -20,10 +20,10 @@ export const UnloadingReceipt = React.forwardRef<HTMLDivElement, { record: Unloa
     if (!record || !customer) return <div>Loading...</div>;
     
     return (
-        <div ref={ref} className="bg-white p-10 border-2 border-black font-sans text-black max-w-[800px] mx-auto print:p-0 print:border-none">
+        <div ref={ref} className="bg-white p-10 border-2 border-black font-sans text-black max-w-[800px] w-full mx-auto print:p-0 print:border-none dialog-print-area">
             <div className="text-center mb-10 border-b-2 border-black pb-6">
-                <h1 className="text-3xl font-black uppercase tracking-tight leading-none">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</h1>
-                <p className="text-xs font-bold mt-2 uppercase tracking-widest text-slate-600">
+                <h1 className="text-2xl font-black uppercase tracking-tight leading-none">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</h1>
+                <p className="text-[10px] font-bold mt-2 uppercase tracking-widest text-slate-600">
                     {warehouseInfo?.addressLine1} {warehouseInfo?.addressLine2}
                 </p>
                 <p className="text-sm font-black mt-1">Cell: {warehouseInfo?.phone || ''}</p>
@@ -56,15 +56,15 @@ export const UnloadingReceipt = React.forwardRef<HTMLDivElement, { record: Unloa
                 </TableHeader>
                 <TableBody>
                     <TableRow className="h-16 border-b border-black">
-                        <TableCell className="px-4 font-bold">Unloading Hamali (Labor Charges)</TableCell>
-                        <TableCell className="text-center font-mono font-bold">{record.bagsUnloaded}</TableCell>
-                        <TableCell className="text-center font-mono">{record.hamaliPerBag.toFixed(2)}</TableCell>
+                        <TableCell className="px-4 font-bold border-r border-black">Unloading Hamali (Labor Charges)</TableCell>
+                        <TableCell className="text-center font-mono font-bold border-r border-black">{record.bagsUnloaded}</TableCell>
+                        <TableCell className="text-center font-mono border-r border-black">{record.hamaliPerBag.toFixed(2)}</TableCell>
                         <TableCell className="text-right font-mono font-black">{formatCurrency(record.totalHamali)}</TableCell>
                     </TableRow>
                 </TableBody>
                 <TableFooter>
                     <TableRow className="h-16 bg-slate-50 font-black text-2xl">
-                        <TableCell colSpan={3} className="text-right px-4 uppercase tracking-tighter">Total Payable Amount</TableCell>
+                        <TableCell colSpan={3} className="text-right px-4 uppercase tracking-tighter border-r border-black">Total Payable</TableCell>
                         <TableCell className="text-right px-4 font-mono">{formatCurrency(record.totalHamali)}</TableCell>
                     </TableRow>
                 </TableFooter>

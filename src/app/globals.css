@@ -143,7 +143,7 @@
 
 @media print {
   @page {
-    margin: 8mm;
+    margin: 10mm;
     size: A4 portrait;
   }
 
@@ -179,8 +179,9 @@
     position: absolute;
     left: 0;
     top: 0;
-    width: 100% !important;
-    margin: 0 !important;
+    width: 190mm !important; /* Standard A4 width minus margins */
+    max-width: 190mm !important;
+    margin: 0 auto !important;
     padding: 0 !important;
     border: none !important;
     box-shadow: none !important;
@@ -197,7 +198,7 @@
   table {
     border-collapse: collapse !important;
     width: 100% !important;
-    table-layout: auto !important;
+    table-layout: fixed !important; /* Force columns to respect set widths */
   }
 
   th, td {
@@ -205,6 +206,8 @@
     background-color: transparent !important;
     color: #000 !important;
     padding: 4px 6px !important;
+    overflow-wrap: break-word;
+    word-break: break-all;
   }
 
   tr {

@@ -65,7 +65,7 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
     const balanceDue = grandTotal - paidNow;
 
     return (
-      <div ref={ref} className="bg-white p-8 border-2 border-black font-sans text-black max-w-[850px] w-full shadow-none print:p-0 print:border-none mx-auto dialog-print-area">
+      <div ref={ref} className="bg-white p-8 border-2 border-black font-sans text-black max-w-[800px] w-full shadow-none print:p-0 print:border-none mx-auto dialog-print-area">
           <div className="text-center mb-8 border-b-2 border-black pb-4">
               <h1 className="text-2xl font-black tracking-tight uppercase leading-none">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</h1>
               <p className="text-[10px] font-bold mt-1 uppercase tracking-widest text-slate-600">
@@ -119,7 +119,7 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
                   </TableBody>
                   <TableFooter>
                       <TableRow className="h-10 bg-slate-50 font-black border-t-2 border-black">
-                          <TableCell colSpan={3} className="text-right uppercase text-[10px] px-2">Totals</TableCell>
+                          <TableCell colSpan={3} className="text-right uppercase text-[10px] px-2 border-r border-black">Totals</TableCell>
                           <TableCell className="text-right font-mono text-base border-r border-black">{totalBags}</TableCell>
                           <TableCell className="border-r border-black"></TableCell>
                           <TableCell className="text-right font-mono text-base">{formatCurrency(totalRent)}</TableCell>

@@ -68,7 +68,7 @@
     --destructive-dark: 0 62.8% 20.6%;
     --success: 145 63% 42%;
     --success-foreground: 222.2 47.4% 11.2%;
-    --success-dark: 145 63% 32%;
+    --success-dark: 145 63 32%;
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 217.2 91.2% 59.8%;
@@ -107,6 +107,7 @@
     max-width: 100%;
     overflow-x: hidden;
     word-wrap: break-word;
+    word-break: break-word;
     overflow-wrap: break-word;
   }
 
@@ -122,7 +123,7 @@
   }
 
   input, textarea, select, button {
-    font-size: 16px !important; /* Prevents auto-zoom on mobile focus */
+    font-size: 16px !important;
   }
 
   input::-webkit-outer-spin-button,
@@ -142,7 +143,7 @@
 
 @media print {
   @page {
-    margin: 10mm;
+    margin: 8mm;
     size: A4 portrait;
   }
 
@@ -156,7 +157,21 @@
     visibility: hidden;
   }
 
-  .printable-area, .printable-area * {
+  /* Priority Print Logic: If a dialog is open, only show that dialog's content */
+  body.print-dialog-is-open .dialog-print-area,
+  body.print-dialog-is-open .dialog-print-area * {
+    visibility: visible !important;
+    display: block !important;
+  }
+
+  body.print-dialog-is-open .printable-area:not(.dialog-print-area) {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* Default Print Logic: If no dialog is open, show general printable areas */
+  body:not(.print-dialog-is-open) .printable-area, 
+  body:not(.print-dialog-is-open) .printable-area * {
     visibility: visible;
   }
 
@@ -164,7 +179,7 @@
     position: absolute;
     left: 0;
     top: 0;
-    width: 100%;
+    width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
     border: none !important;
@@ -179,19 +194,19 @@
     overflow: hidden !important;
   }
 
-  /* Reset tables for clean printing */
   table {
     border-collapse: collapse !important;
     width: 100% !important;
+    table-layout: auto !important;
   }
 
   th, td {
     border: 1px solid #000 !important;
     background-color: transparent !important;
     color: #000 !important;
+    padding: 4px 6px !important;
   }
 
-  /* Prevent row breaking across pages */
   tr {
     page-break-inside: avoid !important;
   }

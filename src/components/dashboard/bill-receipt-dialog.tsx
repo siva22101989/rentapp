@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -57,17 +56,19 @@ export function BillReceiptDialog({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="max-w-3xl">
-        <DialogHeader>
+      <DialogContent className="max-w-4xl max-h-[95vh] flex flex-col p-0 overflow-hidden">
+        <DialogHeader className="p-4 border-b">
           <DialogTitle>Inflow Receipt</DialogTitle>
         </DialogHeader>
-        <div className="max-h-[70vh] overflow-y-auto p-2 printable-area">
-            {loadingWarehouseInfo ? <div>Loading...</div> : (
-              <InflowReceipt record={record} customer={customer} warehouseInfo={warehouseInfo} />
-            )}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-slate-50/50">
+            <div className="dialog-print-area">
+                {loadingWarehouseInfo ? <div>Loading...</div> : (
+                  <InflowReceipt record={record} customer={customer} warehouseInfo={warehouseInfo} />
+                )}
+            </div>
         </div>
-        <DialogFooter className="print-hide">
-            <Button variant="outline" onClick={handlePrint}>
+        <DialogFooter className="p-4 border-t bg-white print-hide">
+            <Button variant="default" onClick={handlePrint} className="w-full sm:w-auto font-bold h-11 px-8">
                 <Printer className="mr-2 h-4 w-4" />
                 Print Bill
             </Button>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -25,67 +24,61 @@ export default function SuperAdminLoginPage() {
   const handlePasswordSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!auth) {
-      setError('Firebase not available.');
+      setError('Auth service not ready.');
       return;
     }
     setIsLoading(true);
     setError(null);
 
-    signInWithEmailAndPassword(auth, superAdminEmail, password)
-      .then(() => {
-        // The onAuthStateChanged listener in use-user.tsx will handle redirection.
-      })
-      .catch((signInError: any) => {
-        // If sign-in fails, try to create the account. This allows for first-time setup.
-        if (signInError.code === 'auth/invalid-credential' || signInError.code === 'auth/user-not-found') {
-          createUserWithEmailAndPassword(auth, superAdminEmail, password)
-            .then(() => {
-              // The useUser hook will now verify and set the super-admin role.
-              // Redirection is handled by the use-user hook and AppLayout.
-            })
-            .catch(createError => {
-              if (createError.code === 'auth/email-already-in-use') {
-                // This means the user exists, so the password was simply wrong.
-                setError('Incorrect password. Please try again.');
-              } else if (createError.code === 'auth/weak-password') {
-                setError('Password is too weak. It must be at least 6 characters long.');
-              } else {
-                setError('An unexpected error occurred during setup.');
-                console.error("Super admin create error:", createError);
-              }
-              setIsLoading(false);
-            });
+    try {
+        await signInWithEmailAndPassword(auth, superAdminEmail, password);
+    } catch (signInError: any) {
+        const isNotFound = signInError.code === 'auth/invalid-credential' || signInError.code === 'auth/user-not-found';
+        
+        if (isNotFound) {
+          try {
+            await createUserWithEmailAndPassword(auth, superAdminEmail, password);
+          } catch (createError: any) {
+            if (createError.code === 'auth/email-already-in-use') {
+              setError('Incorrect password. Please try again.');
+            } else if (createError.code === 'auth/weak-password') {
+              setError('Password is too weak.');
+            } else {
+              setError('Unexpected setup error.');
+            }
+            setIsLoading(false);
+          }
         } else {
-          setError('An unknown sign-in error occurred.');
-          console.error("Super admin sign in error:", signInError);
+          setError('Invalid credentials.');
           setIsLoading(false);
         }
-      });
+    }
   };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-sm">
+      <Card className="w-full max-w-sm shadow-2xl border-orange-500/20">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4">
             <Logo />
           </div>
-          <CardTitle>Super Admin Sign In</CardTitle>
-          <CardDescription>Enter the password for the super-admin account.</CardDescription>
+          <CardTitle className="text-xl font-bold">System Administration</CardTitle>
+          <CardDescription>Global maintenance access restricted.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <form onSubmit={handlePasswordSignIn} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Super Admin Email</Label>
+              <Label htmlFor="email" className="text-xs font-bold uppercase text-muted-foreground">Admin ID</Label>
               <Input
                 id="email"
                 type="email"
                 value={superAdminEmail}
+                className="bg-muted font-bold"
                 disabled
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" title="Enter master password" className="text-xs font-bold uppercase text-muted-foreground">Master Password</Label>
               <Input
                 id="password"
                 type="password"
@@ -95,25 +88,25 @@ export default function SuperAdminLoginPage() {
                 required
               />
             </div>
-            <Button type="submit" disabled={isLoading} className="w-full">
-              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Sign In'}
+            <Button type="submit" disabled={isLoading} variant="destructive" className="w-full h-11 font-bold">
+              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Enter System'}
             </Button>
           </form>
 
           {error && (
-            <Alert variant="destructive" className="text-center">
+            <Alert variant="destructive" className="bg-destructive/5">
               <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Sign-In Error</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
+              <AlertTitle className="text-xs font-bold uppercase">Auth Error</AlertTitle>
+              <AlertDescription className="text-xs">{error}</AlertDescription>
             </Alert>
           )}
         </CardContent>
         <CardFooter className="flex-col gap-2">
-          <Button variant="link" size="sm" asChild className="w-full">
-            <Link href="/owner/login">Warehouse Owner Login</Link>
+          <Button variant="link" size="sm" asChild className="w-full text-xs font-bold uppercase tracking-widest text-muted-foreground">
+            <Link href="/owner/login">Warehouse Owner Access</Link>
           </Button>
-          <Button variant="link" size="sm" asChild className="w-full">
-            <Link href="/login">Warehouse Staff Login</Link>
+          <Button variant="link" size="sm" asChild className="w-full text-xs font-bold uppercase tracking-widest text-muted-foreground">
+            <Link href="/login">Staff Access</Link>
           </Button>
         </CardFooter>
       </Card>

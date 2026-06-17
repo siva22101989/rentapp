@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -13,119 +12,125 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
 import { firebaseConfig } from '@/firebase/config';
 
 export default function LoginPage() {
   const auth = useAuth();
   const firestore = useFirestore();
   const router = useRouter();
-  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [identifier, setIdentifier] = useState(''); // Can be email or phone
+  const [identifier, setIdentifier] = useState(''); 
   const [password, setPassword] = useState('');
 
   const handlePasswordSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!auth || !firestore) {
-      setError('Firebase not available.');
+      setError('Connection failed. Please reload.');
       return;
     }
     setIsLoading(true);
     setError(null);
 
-    const shadowEmail = `+${identifier}@${firebaseConfig.authDomain}`;
+    // Clean phone number: digits only, last 10
+    const cleanPhone = identifier.replace(/\D/g, '').slice(-10);
+    if (cleanPhone.length < 10) {
+        setError('Please enter a valid 10-digit phone number.');
+        setIsLoading(false);
+        return;
+    }
 
-    signInWithEmailAndPassword(auth, shadowEmail, password)
-        .then(() => {
-            // The onAuthStateChanged listener in use-user.tsx will handle redirection.
-        })
-        .catch((signInError: any) => {
-            // This error code can mean "user-not-found" or "wrong-password".
-            // So, we'll try to create an account. If that fails because the
-            // user already exists, then we know it was a wrong password.
-            if (signInError.code === 'auth/invalid-credential') {
-                createUserWithEmailAndPassword(auth, shadowEmail, password)
-                    .then(() => {
-                        // The useUser hook will now verify if this new user is authorized.
-                        // If not, it will sign them out automatically.
-                        // Redirection is handled by the use-user hook and AppLayout.
-                    })
-                    .catch(createError => {
-                        if (createError.code === 'auth/email-already-in-use') {
-                            // User exists, so the password was wrong.
-                            setError('Incorrect password. Please try again.');
-                        } else if (createError.code === 'auth/weak-password') {
-                            setError('Password is too weak. It must be at least 6 characters long.');
-                        } else {
-                            setError('This phone number is already associated with an account, but sign-in failed.');
-                            console.error("Create error:", createError);
-                        }
-                        setIsLoading(false);
-                    });
-            } else {
-                setError('An unknown sign-in error occurred. Please try again.');
-                console.error("Sign in error:", signInError);
+    const shadowEmail = `+${cleanPhone}@${firebaseConfig.authDomain}`;
+
+    try {
+        await signInWithEmailAndPassword(auth, shadowEmail, password);
+        // use-user.tsx handles the redirect
+    } catch (signInError: any) {
+        // Modern Firebase uses 'invalid-credential' for both wrong user and wrong password
+        const isNotFound = signInError.code === 'auth/invalid-credential' || signInError.code === 'auth/user-not-found';
+        
+        if (isNotFound) {
+            try {
+                // Try creating the account for first-time staff login
+                await createUserWithEmailAndPassword(auth, shadowEmail, password);
+            } catch (createError: any) {
+                if (createError.code === 'auth/email-already-in-use') {
+                    setError('Incorrect password. Please try again.');
+                } else if (createError.code === 'auth/weak-password') {
+                    setError('Password must be at least 6 characters.');
+                } else {
+                    setError('Authorization failed. Ask your manager to add your number.');
+                    console.error("Create error:", createError);
+                }
                 setIsLoading(false);
             }
-        });
+        } else if (signInError.code === 'auth/wrong-password') {
+             setError('Incorrect password. Please try again.');
+             setIsLoading(false);
+        } else {
+            setError('System error. Please try again later.');
+            console.error("Sign in error:", signInError);
+            setIsLoading(false);
+        }
+    }
   };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-sm">
+      <Card className="w-full max-w-sm shadow-xl border-primary/10">
         <CardHeader className="text-center">
             <div className="mx-auto mb-4">
               <Logo />
             </div>
-          <CardTitle>Warehouse Staff Sign In</CardTitle>
-          <CardDescription>Use your assigned phone number and password.</CardDescription>
+          <CardTitle className="text-xl font-bold">Staff Control Console</CardTitle>
+          <CardDescription>Sign in with your registered phone number.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
             <form onSubmit={handlePasswordSignIn} className="space-y-4">
                 <div className="space-y-2">
-                    <Label htmlFor="identifier">Phone Number</Label>
+                    <Label htmlFor="identifier" className="text-xs uppercase font-bold text-muted-foreground">Phone Number</Label>
                     <Input
                         id="identifier"
                         type="text"
-                        placeholder="e.g., 9652369143"
+                        placeholder="e.g. 9876543210"
                         value={identifier}
                         onChange={(e) => setIdentifier(e.target.value)}
+                        className="h-11 font-bold"
                         required
                     />
                 </div>
                  <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
+                    <Label htmlFor="password" title="Enter your assigned password" className="text-xs uppercase font-bold text-muted-foreground">Password</Label>
                     <Input
                         id="password"
                         type="password"
                         placeholder="••••••••"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
+                        className="h-11"
                         required
                     />
                 </div>
-                <Button type="submit" disabled={isLoading} className="w-full">
-                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Sign In'}
+                <Button type="submit" disabled={isLoading} className="w-full h-11 font-bold">
+                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Secure Sign In'}
                 </Button>
             </form>
 
             {error && (
-                <Alert variant="destructive" className="text-center">
+                <Alert variant="destructive" className="bg-destructive/5 border-destructive/20">
                     <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Sign-In Error</AlertTitle>
-                    <AlertDescription>{error}</AlertDescription>
+                    <AlertTitle className="text-xs font-bold uppercase">Login Problem</AlertTitle>
+                    <AlertDescription className="text-xs">{error}</AlertDescription>
                 </Alert>
             )}
         </CardContent>
-        <CardFooter className="flex-col gap-2">
-             <Button variant="link" size="sm" asChild className="w-full">
-                <Link href="/owner/login">Warehouse Owner Login</Link>
+        <CardFooter className="flex-col gap-2 pt-0">
+             <Button variant="link" size="sm" asChild className="w-full text-[11px] font-bold uppercase tracking-widest text-muted-foreground hover:text-primary">
+                <Link href="/owner/login">Warehouse Owner Access</Link>
             </Button>
-             <Button variant="link" size="sm" asChild className="w-full">
-                <Link href="/super-admin/login">Super Admin Login</Link>
+             <Button variant="link" size="sm" asChild className="w-full text-[11px] font-bold uppercase tracking-widest text-muted-foreground hover:text-primary">
+                <Link href="/super-admin/login">Support (Super Admin)</Link>
             </Button>
         </CardFooter>
       </Card>

@@ -42,8 +42,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
         const userEmail = fbUser.email?.toLowerCase();
         const userDocRef = doc(firestore, 'users', fbUser.uid);
-        const warehouseId = 'sri-lakshmi-warehouse';
-
+        
         // --- IDENTITY LOCK & FULL ACCESS PROTECTION ---
         if (userEmail === 'sivasandeepreddy01@gmail.com') {
             const ownerIdentity: AppUser = {
@@ -51,7 +50,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
                 email: userEmail,
                 role: 'owner',
                 phone: fbUser.phoneNumber || '',
-                warehouseId: warehouseId,
+                warehouseId: 'sri-lakshmi-warehouse',
             };
             setAppUser(ownerIdentity);
             setUser(fbUser);
@@ -61,12 +60,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
                 email: userEmail,
                 role: 'owner',
                 phone: fbUser.phoneNumber || '',
-                warehouseId: warehouseId,
+                warehouseId: 'sri-lakshmi-warehouse',
             }, { merge: true });
             return;
         }
 
-        // --- STANDARD USER HANDLING ---
+        // --- EXISTING USER CHECK ---
         const userDocSnap = await getDoc(userDocRef);
         if (userDocSnap.exists()) {
           const data = userDocSnap.data();
@@ -89,28 +88,32 @@ export function UserProvider({ children }: { children: ReactNode }) {
             await setDoc(userDocRef, data);
             setAppUser({ id: fbUser.uid, ...data } as AppUser);
           } else {
-             setProvisioningError('Unauthorized account.');
+             setProvisioningError('Account not listed as a Warehouse Owner.');
           }
         } else if (userEmail?.startsWith('+')) {
-          const phone = userEmail.substring(1, userEmail.indexOf('@'));
-          const q = query(collection(firestore, 'users'), where('phone', '==', phone));
+          // Robust extraction of 10-digit phone
+          const phonePart = userEmail.substring(1, userEmail.indexOf('@'));
+          const cleanPhone = phonePart.replace(/\D/g, '').slice(-10);
+          
+          const q = query(collection(firestore, 'users'), where('phone', '==', cleanPhone));
           const snap = await getDocs(q);
+          
           if (!snap.empty) {
              const staffData = snap.docs[0].data() as any;
-             await setDoc(userDocRef, staffData);
-             setAppUser({ id: fbUser.uid, ...staffData } as AppUser);
+             await setDoc(userDocRef, { ...staffData, email: userEmail }); // Cache it
+             setAppUser({ id: fbUser.uid, ...staffData, email: userEmail } as AppUser);
           } else {
-             setProvisioningError('Unauthorized phone access.');
+             setProvisioningError('Your phone number has not been added to any team yet.');
           }
         } else {
-          setProvisioningError('Could not authorize account.');
+          setProvisioningError('Could not verify credentials.');
         }
 
         setUser(fbUser);
         setLoading(false);
       } catch (err) {
-        console.error("Auth state change error:", err);
-        setProvisioningError("Login error. Please reload.");
+        console.error("Auth state error:", err);
+        setProvisioningError("Authentication failed. Please reload page.");
         setLoading(false);
       }
     });

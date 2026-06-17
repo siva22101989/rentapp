@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { useAuth } from '@/firebase/provider';
+import { useAuth, useUserContext } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, AlertCircle } from 'lucide-react';
@@ -16,10 +16,19 @@ import { Label } from '@/components/ui/label';
 export default function SuperAdminLoginPage() {
   const auth = useAuth();
   const router = useRouter();
+  const { user, appUser, loading } = useUserContext();
+  
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [password, setPassword] = useState('');
   const superAdminEmail = 'admin@gmail.com';
+
+  // Automatic redirect
+  useEffect(() => {
+    if (!loading && user && appUser) {
+        router.push(appUser.role === 'super-admin' ? '/settings' : '/');
+    }
+  }, [user, appUser, loading, router]);
 
   const handlePasswordSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,13 +48,7 @@ export default function SuperAdminLoginPage() {
           try {
             await createUserWithEmailAndPassword(auth, superAdminEmail, password);
           } catch (createError: any) {
-            if (createError.code === 'auth/email-already-in-use') {
-              setError('Incorrect password. Please try again.');
-            } else if (createError.code === 'auth/weak-password') {
-              setError('Password is too weak.');
-            } else {
-              setError('Unexpected setup error.');
-            }
+            setError('Unexpected setup error.');
             setIsLoading(false);
           }
         } else {
@@ -54,6 +57,14 @@ export default function SuperAdminLoginPage() {
         }
     }
   };
+
+  if (loading) {
+    return (
+        <div className="flex min-h-screen items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -94,14 +105,14 @@ export default function SuperAdminLoginPage() {
           </form>
 
           {error && (
-            <Alert variant="destructive" className="bg-destructive/5">
+            <Alert variant="destructive" className="bg-destructive/5 border-destructive/20">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle className="text-xs font-bold uppercase">Auth Error</AlertTitle>
               <AlertDescription className="text-xs">{error}</AlertDescription>
             </Alert>
           )}
         </CardContent>
-        <CardFooter className="flex-col gap-2">
+        <CardFooter className="flex-col gap-2 pt-0">
           <Button variant="link" size="sm" asChild className="w-full text-xs font-bold uppercase tracking-widest text-muted-foreground">
             <Link href="/owner/login">Warehouse Owner Access</Link>
           </Button>

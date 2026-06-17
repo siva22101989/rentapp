@@ -33,6 +33,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       try {
         setLoading(true);
         setProvisioningError(null);
+        
         if (!fbUser) {
           setUser(null);
           setAppUser(null);
@@ -40,6 +41,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
           return;
         }
 
+        setUser(fbUser);
         const userEmail = fbUser.email?.toLowerCase();
         const userDocRef = doc(firestore, 'users', fbUser.uid);
         
@@ -53,15 +55,13 @@ export function UserProvider({ children }: { children: ReactNode }) {
                 warehouseId: 'sri-lakshmi-warehouse',
             };
             setAppUser(ownerIdentity);
-            setUser(fbUser);
-            setLoading(false);
-
             await setDoc(userDocRef, {
                 email: userEmail,
                 role: 'owner',
                 phone: fbUser.phoneNumber || '',
                 warehouseId: 'sri-lakshmi-warehouse',
             }, { merge: true });
+            setLoading(false);
             return;
         }
 
@@ -70,7 +70,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
         if (userDocSnap.exists()) {
           const data = userDocSnap.data();
           setAppUser({ id: userDocSnap.id, ...data } as AppUser);
-          setUser(fbUser);
           setLoading(false);
           return;
         }
@@ -81,6 +80,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
           await setDoc(userDocRef, data);
           setAppUser({ id: fbUser.uid, ...data } as AppUser);
         } else if (userEmail && !userEmail.startsWith('+')) {
+          // Google Auth Flow
           const q = query(collection(firestore, 'managedWarehouses'), where('ownerEmail', '==', userEmail));
           const snap = await getDocs(q);
           if (!snap.empty) {
@@ -91,7 +91,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
              setProvisioningError('Account not listed as a Warehouse Owner.');
           }
         } else if (userEmail?.startsWith('+')) {
-          // Robust extraction of 10-digit phone
+          // Staff Phone Flow
           const phonePart = userEmail.substring(1, userEmail.indexOf('@'));
           const cleanPhone = phonePart.replace(/\D/g, '').slice(-10);
           
@@ -100,20 +100,19 @@ export function UserProvider({ children }: { children: ReactNode }) {
           
           if (!snap.empty) {
              const staffData = snap.docs[0].data() as any;
-             await setDoc(userDocRef, { ...staffData, email: userEmail }); // Cache it
+             await setDoc(userDocRef, { ...staffData, email: userEmail }, { merge: true });
              setAppUser({ id: fbUser.uid, ...staffData, email: userEmail } as AppUser);
           } else {
              setProvisioningError('Your phone number has not been added to any team yet.');
           }
         } else {
-          setProvisioningError('Could not verify credentials.');
+          setProvisioningError('Could not verify warehouse credentials.');
         }
 
-        setUser(fbUser);
         setLoading(false);
       } catch (err) {
         console.error("Auth state error:", err);
-        setProvisioningError("Authentication failed. Please reload page.");
+        setProvisioningError("Identity verification failed. Please reload.");
         setLoading(false);
       }
     });

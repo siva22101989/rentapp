@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { useAuth, useFirestore } from '@/firebase/provider';
+import { useAuth, useFirestore, useUserContext } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, AlertCircle } from 'lucide-react';
@@ -18,11 +18,19 @@ export default function LoginPage() {
   const auth = useAuth();
   const firestore = useFirestore();
   const router = useRouter();
+  const { user, appUser, loading } = useUserContext();
+  
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   const [identifier, setIdentifier] = useState(''); 
   const [password, setPassword] = useState('');
+
+  // Handle automatic redirect if already logged in
+  useEffect(() => {
+    if (!loading && user && appUser) {
+        router.push(appUser.role === 'super-admin' ? '/settings' : '/');
+    }
+  }, [user, appUser, loading, router]);
 
   const handlePasswordSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,10 +41,9 @@ export default function LoginPage() {
     setIsLoading(true);
     setError(null);
 
-    // Clean phone number: digits only, last 10
     const cleanPhone = identifier.replace(/\D/g, '').slice(-10);
     if (cleanPhone.length < 10) {
-        setError('Please enter a valid 10-digit phone number.');
+        setError('Please enter a 10-digit phone number.');
         setIsLoading(false);
         return;
     }
@@ -45,14 +52,11 @@ export default function LoginPage() {
 
     try {
         await signInWithEmailAndPassword(auth, shadowEmail, password);
-        // use-user.tsx handles the redirect
     } catch (signInError: any) {
-        // Modern Firebase uses 'invalid-credential' for both wrong user and wrong password
         const isNotFound = signInError.code === 'auth/invalid-credential' || signInError.code === 'auth/user-not-found';
         
         if (isNotFound) {
             try {
-                // Try creating the account for first-time staff login
                 await createUserWithEmailAndPassword(auth, shadowEmail, password);
             } catch (createError: any) {
                 if (createError.code === 'auth/email-already-in-use') {
@@ -60,21 +64,24 @@ export default function LoginPage() {
                 } else if (createError.code === 'auth/weak-password') {
                     setError('Password must be at least 6 characters.');
                 } else {
-                    setError('Authorization failed. Ask your manager to add your number.');
-                    console.error("Create error:", createError);
+                    setError('Access denied. Ask your manager to add your number.');
                 }
                 setIsLoading(false);
             }
-        } else if (signInError.code === 'auth/wrong-password') {
-             setError('Incorrect password. Please try again.');
-             setIsLoading(false);
         } else {
-            setError('System error. Please try again later.');
-            console.error("Sign in error:", signInError);
+            setError('Incorrect credentials. Please check and try again.');
             setIsLoading(false);
         }
     }
   };
+
+  if (loading) {
+      return (
+          <div className="flex min-h-screen items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+      );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">

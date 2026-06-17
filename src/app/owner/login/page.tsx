@@ -1,10 +1,9 @@
-
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { useAuth } from '@/firebase/provider';
+import { useAuth, useUserContext } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, AlertCircle } from 'lucide-react';
@@ -26,55 +25,70 @@ function GoogleIcon() {
 export default function WarehouseOwnerLoginPage() {
   const auth = useAuth();
   const router = useRouter();
+  const { user, appUser, loading } = useUserContext();
+  
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [unauthorizedDomain, setUnauthorizedDomain] = useState<string | null>(null);
 
-  const handleGoogleSignIn = () => {
+  // Automatic redirect logic
+  useEffect(() => {
+    if (!loading && user && appUser) {
+        router.push(appUser.role === 'super-admin' ? '/settings' : '/');
+    }
+  }, [user, appUser, loading, router]);
+
+  const handleGoogleSignIn = async () => {
     setIsLoading(true);
     setError(null);
     setUnauthorizedDomain(null);
-    if (auth) {
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({
-        prompt: 'select_account'
-      });
-      signInWithPopup(auth, provider)
-        .then(() => {
-          // Success is handled by the global onAuthStateChanged listener in use-user.tsx
-          // which will handle provisioning and redirection. The loading state on the button
-          // will be turned off in the `finally` block.
-        })
-        .catch((error: any) => {
-          if (error.code === 'auth/unauthorized-domain') {
-              setUnauthorizedDomain(window.location.hostname);
-          } else if (error.code === 'auth/popup-blocked') {
-              setError('Sign-in pop-up blocked by browser. Please allow pop-ups for this site.');
-          } else if (error.code === 'auth/cancelled-popup-request') {
-              // User closed the popup, this is not an error, just stop loading.
-          } else {
-              setError('An unknown error occurred during Google sign-in.');
-              console.error(error);
-          }
-        })
-        .finally(() => {
-            setIsLoading(false);
-        });
-    } else {
-        setError('Authentication service is not ready. Please try again.');
+    
+    if (!auth) {
+        setError('Authentication service is not ready.');
         setIsLoading(false);
+        return;
+    }
+
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      await signInWithPopup(auth, provider);
+      // use-user.tsx handles provisioning, the useEffect above handles redirect
+    } catch (err: any) {
+      setIsLoading(false);
+      console.error("Google Sign-In Error:", err);
+      
+      if (err.code === 'auth/unauthorized-domain') {
+          setUnauthorizedDomain(window.location.hostname);
+      } else if (err.code === 'auth/popup-blocked') {
+          setError('Sign-in pop-up blocked by browser. Please allow pop-ups.');
+      } else if (err.code === 'auth/cancelled-popup-request') {
+          // No error needed
+      } else if (err.code === 'auth/network-request-failed') {
+          setError('Network error. Check your connection and try again.');
+      } else {
+          setError(`Sign-in failed: ${err.message || 'Unknown error'}`);
+      }
     }
   };
 
+  if (loading) {
+    return (
+        <div className="flex min-h-screen items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-sm">
+      <Card className="w-full max-w-sm shadow-xl border-primary/10">
         <CardHeader className="text-center">
             <div className="mx-auto mb-4">
               <Logo />
             </div>
-          <CardTitle>Warehouse Owner Sign In</CardTitle>
-          <CardDescription>Sign in with the Google account assigned by the super-admin.</CardDescription>
+          <CardTitle className="text-xl font-bold">Warehouse Owner Sign In</CardTitle>
+          <CardDescription>Sign in with your assigned Google account.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
             {unauthorizedDomain && (
@@ -82,36 +96,31 @@ export default function WarehouseOwnerLoginPage() {
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle>Domain Not Authorized</AlertTitle>
                     <AlertDescription>
-                        <p className="mb-2">To sign in, authorize this domain in Firebase:</p>
-                        <pre className="mb-4 bg-muted p-2 rounded text-xs font-mono text-destructive-foreground break-all">{unauthorizedDomain}</pre>
-                        <Button asChild size="sm">
-                            <Link href="https://console.firebase.google.com/project/_/authentication/settings" target="_blank" rel="noopener noreferrer">
-                                Open Firebase Auth Settings
-                            </Link>
-                        </Button>
+                        <p className="mb-2">To sign in, authorize this domain in Firebase Console:</p>
+                        <pre className="mb-4 bg-muted p-2 rounded text-xs font-mono break-all">{unauthorizedDomain}</pre>
                     </AlertDescription>
                 </Alert>
             )}
 
-            <Button onClick={handleGoogleSignIn} disabled={isLoading} className="w-full">
-              {isLoading ? ( <Loader2 className="mr-2 h-4 w-4 animate-spin" /> ) : ( <GoogleIcon /> )}
+            <Button onClick={handleGoogleSignIn} disabled={isLoading} variant="outline" className="w-full h-12 gap-3 border-2 font-bold">
+              {isLoading ? ( <Loader2 className="h-5 w-5 animate-spin" /> ) : ( <GoogleIcon /> )}
               Sign in with Google
             </Button>
 
             {error && (
-                <Alert variant="destructive" className="text-center">
+                <Alert variant="destructive" className="bg-destructive/5 border-destructive/20">
                     <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Sign-In Error</AlertTitle>
-                    <AlertDescription>{error}</AlertDescription>
+                    <AlertTitle className="text-xs font-bold uppercase">Auth Error</AlertTitle>
+                    <AlertDescription className="text-xs">{error}</AlertDescription>
                 </Alert>
             )}
         </CardContent>
-         <CardFooter className="flex-col gap-2">
-            <Button variant="link" size="sm" asChild className="w-full">
-                <Link href="/login">Warehouse Staff Login</Link>
+         <CardFooter className="flex-col gap-2 pt-0">
+            <Button variant="link" size="sm" asChild className="w-full text-xs font-bold text-muted-foreground hover:text-primary uppercase tracking-widest">
+                <Link href="/login">Staff Access Portal</Link>
             </Button>
-            <Button variant="link" size="sm" asChild className="w-full">
-                <Link href="/super-admin/login">Super Admin Login</Link>
+            <Button variant="link" size="sm" asChild className="w-full text-xs font-bold text-muted-foreground hover:text-primary uppercase tracking-widest">
+                <Link href="/super-admin/login">System Maintenance</Link>
             </Button>
         </CardFooter>
       </Card>

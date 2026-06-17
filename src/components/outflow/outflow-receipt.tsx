@@ -3,7 +3,7 @@
 
 import React, { useMemo } from 'react';
 import type { Customer, StorageRecord, WarehouseInfo, Outflow } from '@/lib/definitions';
-import { format } from 'date-fns';
+import { format, differenceInMonths } from 'date-fns';
 import { toDate, formatCurrency } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '../ui/table';
 import { Badge } from '../ui/badge';
@@ -37,12 +37,19 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
                 totalBags += bagsVal;
                 totalRent += rentVal;
                 totalDiscount += (o.discount || 0);
-                pattiDate = toDate(o.date);
+                
+                const currentOutflowDate = toDate(o.date);
+                pattiDate = currentOutflowDate;
+
+                const inflowDate = toDate(r.storageStartDate);
+                // Calculate duration in months (partial months count as full for billing usually)
+                const monthsStored = Math.max(1, differenceInMonths(currentOutflowDate, inflowDate) + 1);
 
                 items.push({
                     recordId: r.id,
                     location: r.location || 'N/A',
-                    inflowDate: toDate(r.storageStartDate),
+                    inflowDate: inflowDate,
+                    duration: monthsStored,
                     bags: bagsVal,
                     rent: rentVal,
                     rentPerBag: bagsVal > 0 ? rentVal / bagsVal : 0,
@@ -62,7 +69,7 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
     const balanceDue = grandTotal - paidNow;
 
     return (
-      <div ref={ref} className="bg-white p-6 sm:p-10 border-2 border-black font-sans text-slate-900 max-w-[800px] w-full shadow-2xl">
+      <div ref={ref} className="bg-white p-6 sm:p-10 border-2 border-black font-sans text-slate-900 max-w-[850px] w-full shadow-2xl">
           <div className="text-center mb-8">
               <h1 className="text-3xl font-black tracking-tighter text-slate-900 uppercase">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</h1>
               <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">{warehouseInfo?.addressLine1} {warehouseInfo?.addressLine2}</p>
@@ -104,7 +111,8 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
                           <TableRow className="h-10 hover:bg-slate-50">
                               <TableHead className="font-black text-slate-600 uppercase text-[10px]">Record #</TableHead>
                               <TableHead className="font-black text-slate-600 uppercase text-[10px]">Location</TableHead>
-                              <TableHead className="font-black text-slate-600 uppercase text-[10px]">Stored Since</TableHead>
+                              <TableHead className="font-black text-slate-600 uppercase text-[10px]">In Date</TableHead>
+                              <TableHead className="font-black text-slate-600 uppercase text-[10px] text-center">Duration</TableHead>
                               <TableHead className="text-right font-black text-slate-600 uppercase text-[10px]">Bags</TableHead>
                               <TableHead className="text-right font-black text-slate-600 uppercase text-[10px]">Rent (₹)</TableHead>
                               <TableHead className="text-center font-black text-slate-600 uppercase text-[10px]">Status</TableHead>
@@ -115,7 +123,10 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
                               <TableRow key={idx} className="h-14 border-b last:border-0 border-slate-100">
                                   <TableCell className="font-mono font-bold text-slate-400">#{item.recordId}</TableCell>
                                   <TableCell className="font-bold">{item.location}</TableCell>
-                                  <TableCell className="font-medium text-slate-500">{format(item.inflowDate, 'dd MMM yyyy')}</TableCell>
+                                  <TableCell className="font-medium text-slate-500 whitespace-nowrap">{format(item.inflowDate, 'dd MMM yyyy')}</TableCell>
+                                  <TableCell className="text-center font-bold text-primary">
+                                      {item.duration} {item.duration === 1 ? 'Month' : 'Months'}
+                                  </TableCell>
                                   <TableCell className="text-right font-mono font-black">{item.bags}</TableCell>
                                   <TableCell className="text-right font-mono font-bold">
                                       <div className="flex flex-col items-end">
@@ -135,7 +146,7 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
                       </TableBody>
                       <TableFooter className="bg-slate-50/80">
                           <TableRow className="h-12 hover:bg-slate-50/80">
-                              <TableCell colSpan={3} className="font-black text-slate-900 uppercase text-[11px] px-4">Total</TableCell>
+                              <TableCell colSpan={4} className="font-black text-slate-900 uppercase text-[11px] px-4">Total</TableCell>
                               <TableCell className="text-right font-mono font-black text-lg">{totalBags}</TableCell>
                               <TableCell className="text-right font-mono font-black text-lg">{formatCurrency(totalRent)}</TableCell>
                               <TableCell />

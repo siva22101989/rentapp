@@ -175,11 +175,11 @@
     visibility: visible;
   }
 
-  .printable-area {
+  .printable-area, .dialog-print-area {
     position: absolute;
     left: 0;
     top: 0;
-    width: 190mm !important; /* Standard A4 width minus margins */
+    width: 190mm !important;
     max-width: 190mm !important;
     margin: 0 auto !important;
     padding: 0 !important;
@@ -198,7 +198,7 @@
   table {
     border-collapse: collapse !important;
     width: 100% !important;
-    table-layout: fixed !important; /* Force columns to respect set widths */
+    table-layout: fixed !important;
   }
 
   th, td {

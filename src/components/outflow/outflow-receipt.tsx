@@ -4,7 +4,6 @@ import React, { useMemo } from 'react';
 import type { Customer, StorageRecord, WarehouseInfo, Outflow } from '@/lib/definitions';
 import { format, differenceInMonths } from 'date-fns';
 import { toDate, formatCurrency } from '@/lib/utils';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '../ui/table';
 
 type OutflowReceiptProps = {
   records: StorageRecord[];
@@ -17,7 +16,7 @@ type OutflowReceiptProps = {
 export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptProps>(
   ({ records, customer, warehouseInfo, pattiNo, paidNow = 0 }, ref) => {
     
-    const generatedDate = useMemo(() => format(new Date(), 'dd MMM yyyy, hh:mm a'), []);
+    const generatedDate = useMemo(() => format(new Date(), 'dd/MM/yyyy, hh:mm a'), []);
     
     const breakdownItems = useMemo(() => {
         const items: any[] = [];
@@ -65,115 +64,128 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
     const balanceDue = grandTotal - paidNow;
 
     return (
-      <div ref={ref} className="bg-white p-8 border-2 border-black font-sans text-black max-w-[800px] w-full shadow-none print:p-0 print:border-none mx-auto dialog-print-area">
-          <div className="text-center mb-8 border-b-2 border-black pb-4">
-              <h1 className="text-2xl font-black tracking-tight uppercase leading-none">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</h1>
-              <p className="text-[10px] font-bold mt-1 uppercase tracking-widest text-slate-600">
+      <div ref={ref} className="bg-white p-6 font-sans text-black w-[190mm] mx-auto print:p-0 print:border-none dialog-print-area" style={{ minHeight: '297mm' }}>
+          {/* Header */}
+          <div className="text-center mb-6 border-b-2 border-black pb-4">
+              <h1 className="text-2xl font-black uppercase tracking-tight leading-none mb-1">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</h1>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-600">
                 {warehouseInfo?.addressLine1} • {warehouseInfo?.addressLine2}
               </p>
               <p className="text-sm font-black mt-1">Phone: {warehouseInfo?.phone || ''}</p>
-              <div className="mt-4 py-1 px-6 border-2 border-black inline-block font-black text-xl tracking-widest uppercase">
+              <div className="mt-4 py-1.5 px-8 border-2 border-black inline-block font-black text-xl tracking-[0.2em] uppercase">
                 Outflow Bill
               </div>
           </div>
           
-          <div className="grid grid-cols-2 gap-8 mb-6 text-[13px]">
-              <div className="space-y-1">
-                  <div className="flex"><span className="font-bold w-28 uppercase text-[9px] text-slate-500">Bill No</span>: <span className="font-mono font-black text-base">{pattiNo}</span></div>
-                  <div className="flex"><span className="font-bold w-28 uppercase text-[9px] text-slate-500">Customer</span>: <span className="font-black uppercase">{customer.name}</span></div>
-                  <div className="flex"><span className="font-bold w-28 uppercase text-[9px] text-slate-500">Village</span>: <span className="uppercase">{customer.village || 'N/A'}</span></div>
-              </div>
-              <div className="text-right space-y-1">
-                  <div className="flex justify-end"><span className="font-bold uppercase text-[9px] text-slate-500 w-24">Date</span>: <span className="font-bold">{format(pattiDate, 'dd/MM/yyyy')}</span></div>
-                   <div className="flex justify-end"><span className="font-bold uppercase text-[9px] text-slate-500 w-24">Product</span>: <span className="font-bold uppercase">{records[0]?.commodityDescription || 'Misc'}</span></div>
-              </div>
-          </div>
+          {/* Info Section - High Stability Table */}
+          <table className="w-full mb-6 text-[13px] border-collapse">
+            <tbody>
+              <tr>
+                <td className="py-1 align-top w-[60%]">
+                  <div className="flex"><span className="font-bold w-28 uppercase text-[10px] text-slate-500">Bill No</span>: <span className="font-mono font-black text-base ml-2">{pattiNo}</span></div>
+                  <div className="flex mt-1"><span className="font-bold w-28 uppercase text-[10px] text-slate-500">Customer</span>: <span className="font-black uppercase ml-2">{customer.name}</span></div>
+                  <div className="flex mt-1"><span className="font-bold w-28 uppercase text-[10px] text-slate-500">Village</span>: <span className="uppercase ml-2">{customer.village || 'N/A'}</span></div>
+                </td>
+                <td className="py-1 align-top text-right">
+                  <div className="flex justify-end"><span className="font-bold uppercase text-[10px] text-slate-500 w-24">Date</span>: <span className="font-bold ml-2">{format(pattiDate, 'dd/MM/yyyy')}</span></div>
+                  <div className="flex justify-end mt-1"><span className="font-bold uppercase text-[10px] text-slate-500 w-24">Product</span>: <span className="font-bold uppercase ml-2">{records[0]?.commodityDescription || 'Misc'}</span></div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
 
+          {/* Breakdown Table */}
           <div className="mb-6">
-              <Table className="border-2 border-black w-full table-fixed">
-                  <TableHeader>
-                      <TableRow className="border-b-2 border-black bg-slate-50 h-10">
-                          <TableHead className="font-black text-black uppercase text-[9px] text-center w-[12%] border-r border-black">Lot</TableHead>
-                          <TableHead className="font-black text-black uppercase text-[9px] text-center w-[18%] border-r border-black">Inflow</TableHead>
-                          <TableHead className="font-black text-black uppercase text-[9px] text-center w-[15%] border-r border-black">Duration</TableHead>
-                          <TableHead className="font-black text-black uppercase text-[9px] text-right w-[12%] border-r border-black">Bags</TableHead>
-                          <TableHead className="font-black text-black uppercase text-[9px] text-right w-[25%] border-r border-black">Rent Math</TableHead>
-                          <TableHead className="font-black text-black uppercase text-[9px] text-right w-[18%]">Amount (₹)</TableHead>
-                      </TableRow>
-                  </TableHeader>
-                  <TableBody>
+              <table className="w-full border-2 border-black border-collapse text-[12px]">
+                  <thead>
+                      <tr className="bg-slate-50 border-b-2 border-black h-10">
+                          <th className="border-r border-black font-black uppercase text-[10px] text-center w-[12%]">Lot</th>
+                          <th className="border-r border-black font-black uppercase text-[10px] text-center w-[18%]">Inflow</th>
+                          <th className="border-r border-black font-black uppercase text-[10px] text-center w-[15%]">Duration</th>
+                          <th className="border-r border-black font-black uppercase text-[10px] text-right px-2 w-[12%]">Bags</th>
+                          <th className="border-r border-black font-black uppercase text-[10px] text-right px-2 w-[25%]">Rent Calculation</th>
+                          <th className="font-black uppercase text-[10px] text-right px-2 w-[18%]">Amount (₹)</th>
+                      </tr>
+                  </thead>
+                  <tbody>
                       {items.map((item, idx) => (
-                          <TableRow key={idx} className="h-10 border-b border-black">
-                              <TableCell className="text-center font-bold border-r border-black">{item.location}</TableCell>
-                              <TableCell className="text-center font-medium border-r border-black">{format(item.inflowDate, 'dd/MM/yy')}</TableCell>
-                              <TableCell className="text-center font-bold border-r border-black">
-                                  {item.duration} {item.duration === 1 ? 'Month' : 'Months'}
-                              </TableCell>
-                              <TableCell className="text-right font-mono font-black border-r border-black">{item.bags}</TableCell>
-                              <TableCell className="text-right font-mono text-[10px] border-r border-black">
+                          <tr key={idx} className="border-b border-black h-10">
+                              <td className="border-r border-black text-center font-bold">{item.location}</td>
+                              <td className="border-r border-black text-center">{format(item.inflowDate, 'dd/MM/yy')}</td>
+                              <td className="border-r border-black text-center font-bold">{item.duration} {item.duration === 1 ? 'Month' : 'Months'}</td>
+                              <td className="border-r border-black text-right px-2 font-mono font-black">{item.bags}</td>
+                              <td className="border-r border-black text-right px-2 font-mono text-[10px]">
                                   {item.bags} × {item.rentPerBag.toFixed(2)}
-                              </TableCell>
-                              <TableCell className="text-right font-mono font-bold">{formatCurrency(item.rent)}</TableCell>
-                          </TableRow>
+                              </td>
+                              <td className="text-right px-2 font-mono font-bold">{formatCurrency(item.rent)}</td>
+                          </tr>
                       ))}
-                  </TableBody>
-                  <TableFooter>
-                      <TableRow className="h-10 bg-slate-50 font-black border-t-2 border-black">
-                          <TableCell colSpan={3} className="text-right uppercase text-[10px] px-2 border-r border-black">Totals</TableCell>
-                          <TableCell className="text-right font-mono text-base border-r border-black">{totalBags}</TableCell>
-                          <TableCell className="border-r border-black"></TableCell>
-                          <TableCell className="text-right font-mono text-base">{formatCurrency(totalRent)}</TableCell>
-                      </TableRow>
-                  </TableFooter>
-              </Table>
+                      {/* Subtotal Row */}
+                      <tr className="bg-slate-50 font-black border-t-2 border-black h-10">
+                          <td colSpan={3} className="text-right uppercase text-[10px] px-2 border-r border-black">Totals</td>
+                          <td className="text-right font-mono text-base border-r border-black px-2">{totalBags}</td>
+                          <td className="border-r border-black"></td>
+                          <td className="text-right font-mono text-base px-2">{formatCurrency(totalRent)}</td>
+                      </tr>
+                  </tbody>
+              </table>
           </div>
 
+          {/* Financial Summary */}
           <div className="flex justify-end pt-2">
-              <div className="w-full max-w-[280px] space-y-2 border-2 border-black p-3 bg-slate-50">
-                  <div className="flex justify-between items-center text-[11px]">
-                      <span className="font-bold uppercase">Subtotal Rent</span>
-                      <span className="font-mono font-bold">{formatCurrency(totalRent)}</span>
-                  </div>
-                  {totalKhata > 0 && (
-                       <div className="flex justify-between items-center text-[11px]">
-                        <span className="font-bold uppercase">Khata/Weighbridge</span>
-                        <span className="font-mono font-bold">{formatCurrency(totalKhata)}</span>
-                    </div>
-                  )}
-                  {totalDiscount > 0 && (
-                       <div className="flex justify-between items-center text-[11px] text-green-700">
-                        <span className="font-bold uppercase">Discount (-)</span>
-                        <span className="font-mono font-bold">{formatCurrency(totalDiscount)}</span>
-                    </div>
-                  )}
-                  <div className="h-px bg-black" />
-                  <div className="flex justify-between items-center py-0.5">
-                      <span className="font-black text-xs uppercase">Grand Total</span>
-                      <span className="font-mono font-black text-xl">{formatCurrency(grandTotal)}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-[10px]">
-                      <span className="font-bold uppercase text-slate-500">Collected</span>
-                      <span className="font-mono font-bold text-green-700">-{formatCurrency(paidNow)}</span>
-                  </div>
-                   <div className="flex justify-between items-center pt-1 border-t border-black mt-1">
-                      <span className="font-black text-sm uppercase">Balance Due</span>
-                      <span className="font-mono font-black text-lg underline">{formatCurrency(balanceDue)}</span>
-                  </div>
-              </div>
+              <table className="w-[300px] border-2 border-black border-collapse bg-slate-50">
+                  <tbody>
+                      <tr className="border-b border-black text-[11px]">
+                          <td className="p-2 font-bold uppercase">Subtotal Rent</td>
+                          <td className="p-2 text-right font-mono font-bold">{formatCurrency(totalRent)}</td>
+                      </tr>
+                      {totalKhata > 0 && (
+                        <tr className="border-b border-black text-[11px]">
+                            <td className="p-2 font-bold uppercase">Khata/Weighbridge</td>
+                            <td className="p-2 text-right font-mono font-bold">{formatCurrency(totalKhata)}</td>
+                        </tr>
+                      )}
+                      {totalDiscount > 0 && (
+                        <tr className="border-b border-black text-[11px] text-green-700">
+                            <td className="p-2 font-bold uppercase">Discount (-)</td>
+                            <td className="p-2 text-right font-mono font-bold">{formatCurrency(totalDiscount)}</td>
+                        </tr>
+                      )}
+                      <tr className="bg-white border-b-2 border-black">
+                          <td className="p-2 font-black text-xs uppercase">Grand Total</td>
+                          <td className="p-2 text-right font-mono font-black text-xl">{formatCurrency(grandTotal)}</td>
+                      </tr>
+                      <tr className="text-[11px]">
+                          <td className="p-2 font-bold uppercase text-slate-500">Collected</td>
+                          <td className="p-2 text-right font-mono font-bold text-green-700">-{formatCurrency(paidNow)}</td>
+                      </tr>
+                      <tr className="bg-slate-900 text-white h-12">
+                          <td className="p-2 font-black text-sm uppercase">Balance Due</td>
+                          <td className="p-2 text-right font-mono font-black text-lg underline underline-offset-4">{formatCurrency(balanceDue)}</td>
+                      </tr>
+                  </tbody>
+              </table>
           </div>
           
-          <div className="mt-20 grid grid-cols-2 gap-20 text-center">
-              <div className="space-y-1">
-                <div className="h-px bg-black w-full" />
-                <p className="font-bold text-[9px] uppercase tracking-widest">Customer Sign</p>
-              </div>
-              <div className="space-y-1">
-                <div className="h-px bg-black w-full" />
-                <p className="font-black text-[10px] uppercase tracking-widest">Authorized Auditor</p>
-              </div>
+          {/* Signatures */}
+          <div className="mt-20">
+              <table className="w-full">
+                <tbody>
+                  <tr>
+                    <td className="w-1/2 text-center align-bottom">
+                      <div className="border-t border-black pt-2 mx-auto w-[200px] font-bold text-[10px] uppercase tracking-widest">Customer Sign</div>
+                    </td>
+                    <td className="w-1/2 text-center align-bottom">
+                      <div className="border-t-2 border-black pt-2 mx-auto w-[200px] font-black text-xs uppercase tracking-widest">Authorized Auditor</div>
+                      <p className="text-[9px] font-bold text-slate-500 uppercase mt-1">{warehouseInfo?.name}</p>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
           </div>
 
-          <div className="mt-12 text-[8px] text-slate-400 italic text-center border-t border-slate-100 pt-4">
+          {/* Footer Footer */}
+          <div className="mt-auto pt-12 text-[9px] text-slate-400 italic text-center border-t border-slate-100">
               <p>Generated on {generatedDate} • This is a computer-generated financial document.</p>
           </div>
       </div>

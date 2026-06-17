@@ -55,20 +55,20 @@ export function PrintHeader({ title, filename = 'document.pdf' }: { title: strin
 
 
     return (
-        <div className="p-4 bg-gray-100 border-b flex items-center justify-between sticky top-0 z-10 print-hide">
-            <h1 className="text-lg font-semibold">{title}</h1>
+        <div className="p-4 bg-white border-b flex items-center justify-between sticky top-0 z-10 print-hide shadow-sm">
+            <h1 className="text-lg font-bold tracking-tight">{title}</h1>
             <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={handlePrint} disabled={isDownloading}>
+                <Button variant="default" onClick={handlePrint} disabled={isDownloading} className="font-bold">
                     <Printer className="mr-2 h-4 w-4" />
-                    Print
+                    Print Bill
                 </Button>
-                 <Button onClick={handleDownload} disabled={isDownloading}>
+                 <Button variant="outline" onClick={handleDownload} disabled={isDownloading} className="font-bold">
                     {isDownloading ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     ) : (
                         <FileDown className="mr-2 h-4 w-4" />
                     )}
-                    Download PDF
+                    Save PDF
                 </Button>
             </div>
         </div>

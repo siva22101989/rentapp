@@ -8,12 +8,15 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import { UnloadingReceipt } from './unloading-receipt';
 import type { Customer, UnloadingRecord, WarehouseInfo } from '@/lib/definitions';
 import { useDoc, useFirestore, useAppUser } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
+import { Button } from '../ui/button';
+import { Printer } from 'lucide-react';
 
 export function ViewUnloadingReceiptDialog({
   record,
@@ -45,6 +48,10 @@ export function ViewUnloadingReceiptDialog({
     };
   }, [isOpen]);
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
@@ -57,6 +64,12 @@ export function ViewUnloadingReceiptDialog({
               <UnloadingReceipt record={record} customer={customer} warehouseInfo={warehouseInfo} />
             )}
         </div>
+        <DialogFooter className="print-hide">
+            <Button variant="default" onClick={handlePrint} className="w-full sm:w-auto font-bold">
+                <Printer className="mr-2 h-4 w-4" />
+                Print Bill
+            </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

@@ -8,9 +8,12 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import { OutflowReceipt } from '../outflow/outflow-receipt';
 import type { Customer, StorageRecord, WarehouseInfo } from '@/lib/definitions';
+import { Button } from '../ui/button';
+import { Printer } from 'lucide-react';
 
 type OutflowReceiptDialogProps = {
   records: StorageRecord[];
@@ -34,6 +37,10 @@ export function OutflowReceiptDialog({ records, customer, warehouseInfo, pattiNo
     };
   }, [isOpen]);
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
@@ -49,6 +56,12 @@ export function OutflowReceiptDialog({ records, customer, warehouseInfo, pattiNo
                 pattiNo={pattiNo}
             />
         </div>
+        <DialogFooter className="print-hide">
+            <Button variant="default" onClick={handlePrint} className="w-full sm:w-auto font-bold">
+                <Printer className="mr-2 h-4 w-4" />
+                Print Bill
+            </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

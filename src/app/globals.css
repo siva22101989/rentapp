@@ -45,48 +45,6 @@
     --sidebar-border: 214.3 31.8% 91.4%;
     --sidebar-ring: 221.2 83.2% 53.3%;
   }
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --logo-color: 145 63% 42%;
-    --logo-color-foreground: 210 40% 98%;
-    --primary-dark: 217.2 91.2% 49.8%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --destructive-dark: 0 62.8% 20.6%;
-    --success: 145 63% 42%;
-    --success-foreground: 222.2 47.4% 11.2%;
-    --success-dark: 145 63 32%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 217.2 91.2% 59.8%;
-    --radius: 0.75rem;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-    --sidebar-background: 222.2 84% 4.9%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 217.2 91.2% 59.8%;
-    --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 217.2 32.6% 17.5%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217.2 32.6% 17.5%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
 }
 
 @layer base {
@@ -143,7 +101,7 @@
 
 @media print {
   @page {
-    margin: 10mm;
+    margin: 15mm;
     size: A4 portrait;
   }
 
@@ -153,61 +111,63 @@
     padding: 0 !important;
   }
 
-  body * {
-    visibility: hidden;
+  /* Hide everything in the body by default using visibility to preserve layout where needed, 
+     but display none for actual UI elements */
+  body > * {
+    display: none !important;
   }
 
-  /* Priority Print Logic: If a dialog is open, only show that dialog's content */
-  body.print-dialog-is-open .dialog-print-area,
-  body.print-dialog-is-open .dialog-print-area * {
-    visibility: visible !important;
+  /* Specifically show the main content area that holds our printable component */
+  body > div:first-of-type {
     display: block !important;
+    visibility: visible !important;
   }
 
-  body.print-dialog-is-open .printable-area:not(.dialog-print-area) {
+  /* Ensure the printable container itself is visible and at the top */
+  .dialog-print-area,
+  .printable-area {
+    display: block !important;
+    visibility: visible !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background-color: white !important;
+    z-index: 9999 !important;
+  }
+
+  /* Hide all UI elements inside the container */
+  .print-hide, 
+  header, 
+  nav, 
+  aside, 
+  button, 
+  .fixed, 
+  [role="dialog"] > button {
     display: none !important;
     visibility: hidden !important;
   }
 
-  /* Default Print Logic: If no dialog is open, show general printable areas */
-  body:not(.print-dialog-is-open) .printable-area, 
-  body:not(.print-dialog-is-open) .printable-area * {
-    visibility: visible;
-  }
-
-  .printable-area, .dialog-print-area {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 190mm !important;
-    max-width: 190mm !important;
-    margin: 0 auto !important;
-    padding: 0 !important;
-    border: none !important;
-    box-shadow: none !important;
-    background-color: white !important;
-  }
-
-  .print-hide {
-    display: none !important;
-    height: 0 !important;
-    width: 0 !important;
-    overflow: hidden !important;
-  }
-
+  /* Stabilize tables for print */
   table {
-    border-collapse: collapse !important;
     width: 100% !important;
+    border-collapse: collapse !important;
     table-layout: fixed !important;
+    color: black !important;
   }
 
   th, td {
-    border: 1px solid #000 !important;
-    background-color: transparent !important;
-    color: #000 !important;
+    border: 1px solid black !important;
     padding: 4px 6px !important;
-    overflow-wrap: break-word;
-    word-break: break-all;
+    background: transparent !important;
+    color: black !important;
+  }
+
+  thead {
+    display: table-header-group !important;
   }
 
   tr {

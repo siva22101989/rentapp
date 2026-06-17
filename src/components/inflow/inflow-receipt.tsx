@@ -29,7 +29,11 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
     const hamaliRate = record.hamaliRate ?? (record.bagsIn > 0 ? record.hamaliPayable / record.bagsIn : 0);
 
     return (
-        <div ref={ref} className="bg-white p-6 font-sans text-black w-[190mm] mx-auto print:p-0 print:border-none dialog-print-area" style={{ minHeight: '297mm' }}>
+        <div ref={ref} className="bg-white p-6 font-sans text-black w-[190mm] mx-auto print:p-0 print:border-none dialog-print-area">
+             <style jsx>{`
+                table.no-border, table.no-border td { border: none !important; }
+            `}</style>
+
             {/* Header */}
             <div className="text-center mb-8 border-b-2 border-black pb-4">
                 <h1 className="text-2xl font-black uppercase tracking-tight leading-none mb-1">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</h1>
@@ -42,20 +46,28 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
                 </div>
             </div>
     
-            {/* Information Grid */}
-            <table className="w-full mb-6 text-[13px] border-collapse">
+            {/* Information Grid - High Stability Table */}
+            <table className="w-full mb-6 text-[13px] border-collapse no-border">
                 <tbody>
                     <tr>
-                        <td className="py-1 align-top w-[60%]">
-                            <div className="flex"><span className="font-bold w-24 uppercase text-[10px] text-slate-500">Bill No</span>: <span className="font-mono font-black text-base ml-2">{record.id}</span></div>
-                            <div className="flex mt-1"><span className="font-bold w-24 uppercase text-[10px] text-slate-500">Depositor</span>: <span className="font-black uppercase ml-2">{customer.name}</span></div>
-                            <div className="flex mt-1"><span className="font-bold w-24 uppercase text-[10px] text-slate-500">Father</span>: <span className="ml-2">{customer.fatherName || 'N/A'}</span></div>
-                            <div className="flex mt-1"><span className="font-bold w-24 uppercase text-[10px] text-slate-500">Village</span>: <span className="uppercase ml-2">{customer.village || 'N/A'}</span></div>
+                        <td className="py-1 align-top w-[60%] border-none">
+                            <table className="w-full no-border">
+                                <tbody>
+                                    <tr><td className="font-bold w-24 uppercase text-[10px] text-slate-500 py-0.5">Bill No</td><td className="py-0.5">: <span className="font-mono font-black text-base">{record.id}</span></td></tr>
+                                    <tr><td className="font-bold w-24 uppercase text-[10px] text-slate-500 py-0.5">Depositor</td><td className="py-0.5">: <span className="font-black uppercase">{customer.name}</span></td></tr>
+                                    <tr><td className="font-bold w-24 uppercase text-[10px] text-slate-500 py-0.5">Father</td><td className="py-0.5">: <span>{customer.fatherName || 'N/A'}</span></td></tr>
+                                    <tr><td className="font-bold w-24 uppercase text-[10px] text-slate-500 py-0.5">Village</td><td className="py-0.5">: <span className="uppercase">{customer.village || 'N/A'}</span></td></tr>
+                                </tbody>
+                            </table>
                         </td>
-                        <td className="py-1 align-top text-right">
-                            <div className="flex justify-end"><span className="font-bold uppercase text-[10px] text-slate-500 w-24">Date</span>: <span className="font-bold ml-2">{formattedDate}</span></div>
-                            <div className="flex justify-end mt-1"><span className="font-bold uppercase text-[10px] text-slate-500 w-24">Commodity</span>: <span className="font-black uppercase ml-2">{record.commodityDescription}</span></div>
-                            <div className="flex justify-end mt-1"><span className="font-bold uppercase text-[10px] text-slate-500 w-24">Lot No</span>: <span className="font-mono font-black text-base ml-2">{record.location || 'N/A'}</span></div>
+                        <td className="py-1 align-top text-right border-none">
+                            <table className="w-full no-border">
+                                <tbody>
+                                    <tr><td className="font-bold uppercase text-[10px] text-slate-500 py-0.5">Date</td><td className="py-0.5">: <span className="font-bold">{formattedDate}</span></td></tr>
+                                    <tr><td className="font-bold uppercase text-[10px] text-slate-500 py-0.5">Commodity</td><td className="py-0.5">: <span className="font-black uppercase">{record.commodityDescription}</span></td></tr>
+                                    <tr><td className="font-bold uppercase text-[10px] text-slate-500 py-0.5">Lot No</td><td className="py-0.5">: <span className="font-mono font-black text-base">{record.location || 'N/A'}</span></td></tr>
+                                </tbody>
+                            </table>
                         </td>
                     </tr>
                 </tbody>
@@ -67,9 +79,9 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
                 <table className="w-full border-2 border-black border-collapse text-[13px]">
                     <thead>
                         <tr className="border-b-2 border-black bg-slate-50 h-10">
-                            <th className="border-r border-black font-black uppercase text-[10px] px-4 text-left">Description</th>
-                            <th className="border-r border-black font-black uppercase text-[10px] px-2 text-center w-24">Bags</th>
-                            <th className="border-r border-black font-black uppercase text-[10px] px-2 text-right w-24">Rate (₹)</th>
+                            <th className="font-black uppercase text-[10px] px-4 text-left border-r border-black">Description</th>
+                            <th className="font-black uppercase text-[10px] px-2 text-center w-24 border-r border-black">Bags</th>
+                            <th className="font-black uppercase text-[10px] px-2 text-right w-24 border-r border-black">Rate (₹)</th>
                             <th className="font-black uppercase text-[10px] px-2 text-right w-32">Amount (₹)</th>
                         </tr>
                     </thead>
@@ -103,13 +115,13 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
             
             {/* Signatures */}
             <div className="mt-24">
-                <table className="w-full">
+                <table className="w-full no-border">
                     <tbody>
                         <tr>
-                            <td className="w-1/2 text-center align-bottom">
+                            <td className="w-1/2 text-center align-bottom border-none">
                                 <div className="border-t border-black pt-2 mx-auto w-[200px] font-bold text-[10px] uppercase tracking-widest">Depositor Signature</div>
                             </td>
-                            <td className="w-1/2 text-center align-bottom">
+                            <td className="w-1/2 text-center align-bottom border-none">
                                 <div className="border-t-2 border-black pt-2 mx-auto w-[200px] font-black text-xs uppercase tracking-widest">Authorized Manager</div>
                                 <p className="text-[9px] text-slate-400 font-bold uppercase mt-1 tracking-widest">{warehouseInfo?.name}</p>
                             </td>
@@ -118,7 +130,7 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
                 </table>
             </div>
 
-            <div className="mt-auto pt-16 text-[9px] text-slate-400 italic text-center border-t border-slate-100">
+            <div className="mt-12 pt-8 text-[9px] text-slate-400 italic text-center border-t border-slate-100">
                 <p>Generated on {generatedDate} • This is a computer-generated document.</p>
             </div>
         </div>

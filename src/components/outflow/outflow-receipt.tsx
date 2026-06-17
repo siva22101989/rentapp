@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo } from 'react';
@@ -44,6 +45,7 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
                     inflowDate: toDate(r.storageStartDate),
                     bags: bagsVal,
                     rent: rentVal,
+                    rentPerBag: bagsVal > 0 ? rentVal / bagsVal : 0,
                     isClosed: (Number(r.bagsStored) <= 0.05)
                 });
             });
@@ -110,12 +112,19 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
                       </TableHeader>
                       <TableBody>
                           {items.map((item, idx) => (
-                              <TableRow key={idx} className="h-11 border-b last:border-0 border-slate-100">
+                              <TableRow key={idx} className="h-14 border-b last:border-0 border-slate-100">
                                   <TableCell className="font-mono font-bold text-slate-400">#{item.recordId}</TableCell>
                                   <TableCell className="font-bold">{item.location}</TableCell>
                                   <TableCell className="font-medium text-slate-500">{format(item.inflowDate, 'dd MMM yyyy')}</TableCell>
                                   <TableCell className="text-right font-mono font-black">{item.bags}</TableCell>
-                                  <TableCell className="text-right font-mono font-bold">{formatCurrency(item.rent)}</TableCell>
+                                  <TableCell className="text-right font-mono font-bold">
+                                      <div className="flex flex-col items-end">
+                                          <span className="text-[9px] text-slate-400 font-normal leading-none mb-0.5">
+                                              {item.bags} × {item.rentPerBag.toFixed(2)}
+                                          </span>
+                                          <span>{formatCurrency(item.rent)}</span>
+                                      </div>
+                                  </TableCell>
                                   <TableCell className="text-center">
                                       <Badge variant="secondary" className={item.isClosed ? "bg-red-50 text-red-600 border-red-100 uppercase text-[9px] font-black" : "bg-green-50 text-green-600 border-green-100 uppercase text-[9px] font-black"}>
                                           {item.isClosed ? 'Closed' : 'Active'}

@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { Button } from "../ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import type { Customer, StorageRecord, Outflow, WarehouseInfo, Commodity, Lot } from "@/lib/definitions";
-import { OutflowReceiptDialog } from "./outflow-receipt-dialog";
 import { DeleteOutflowDialog } from "./delete-outflow-dialog";
 import { EditOutflowDialog } from "./edit-outflow-dialog";
 import { useMemo } from "react";
@@ -36,17 +35,8 @@ export function OutflowActionsMenu({
     allRecords
 }: ActionsMenuProps) {
 
-    // Find all records that belong to this Bill No for the consolidated view
-    const pattiRecords = useMemo(() => {
-        if (!deliveryOrderNo) return [record];
-        
-        const numericalBillNo = String(deliveryOrderNo).replace(/\D/g, '');
-        
-        return allRecords.filter(r => 
-            Array.isArray(r.outflows) && 
-            r.outflows.some(o => String(o.pattiNo || '').replace(/\D/g, '') === numericalBillNo)
-        );
-    }, [allRecords, deliveryOrderNo, record]);
+    // Numerical clean ID for the Bill
+    const cleanBillNo = useMemo(() => String(deliveryOrderNo || '').replace(/\D/g, ''), [deliveryOrderNo]);
 
     return (
         <DropdownMenu>
@@ -57,17 +47,12 @@ export function OutflowActionsMenu({
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-                <OutflowReceiptDialog
-                    records={pattiRecords}
-                    customer={customer}
-                    warehouseInfo={warehouseInfo}
-                    pattiNo={deliveryOrderNo}
-                >
-                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                <DropdownMenuItem asChild>
+                    <Link href={`/outflow/receipt?pattiNo=${cleanBillNo}`} target="_blank">
                         <FileText className="mr-2 h-4 w-4" />
-                        View Bill
-                    </DropdownMenuItem>
-                </OutflowReceiptDialog>
+                        View/Print Bill
+                    </Link>
+                </DropdownMenuItem>
 
                 <EditOutflowDialog 
                     record={record} 

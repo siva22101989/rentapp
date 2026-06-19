@@ -1,22 +1,10 @@
+'use client';
+
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { UserProvider } from '@/firebase/auth/use-user';
-
-export const metadata: Metadata = {
-  title: 'GrainDost',
-  description: 'Warehouse Management System for Sri Lakshmi Warehouse',
-  manifest: '/manifest.json',
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'black-translucent',
-    title: 'GrainDost',
-  },
-  formatDetection: {
-    telephone: false,
-  },
-};
 
 export default function RootLayout({
   children,
@@ -26,7 +14,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
         <meta name="theme-color" content="#2563eb" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />

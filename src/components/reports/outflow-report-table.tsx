@@ -37,7 +37,7 @@ export function OutflowReportTable({ events, customers, allRecords, commodities,
     const totalRentBilled = events.reduce((acc, event) => acc + (Number(event.rentBilled) || 0), 0);
 
     return (
-        <div className="bg-white p-4 text-black font-sans text-sm printable-area border shadow-sm rounded-lg">
+        <div className="bg-white p-4 text-black font-sans text-sm printable-area border shadow-sm rounded-lg w-full overflow-hidden">
              <div className="mb-4 text-center border-b pb-2">
                 <h2 className="text-xl font-bold uppercase tracking-tight leading-none">SRI LAKSHMI WAREHOUSE</h2>
                 <p className="text-[10px] text-slate-500 uppercase mt-1">Serialized Audit Register • Generated: {generatedDate}</p>
@@ -45,16 +45,16 @@ export function OutflowReportTable({ events, customers, allRecords, commodities,
             </div>
             
             <div className="table-scroll-container border-y-2 border-black">
-                <Table className="text-[13px]">
+                <Table className="text-[13px] min-w-[800px]">
                     <TableHeader>
                         <TableRow className="border-b border-black bg-slate-50">
-                            <TableHead className="font-bold text-black p-2 text-center uppercase text-[10px]">Date</TableHead>
-                            <TableHead className="font-bold text-black p-2 text-center uppercase text-[10px]">Bill No</TableHead>
-                            <TableHead className="font-bold text-black p-2 text-left uppercase text-[10px]">Customer Name</TableHead>
-                            <TableHead className="font-bold text-black p-2 text-left uppercase text-[10px]">Location/Lot</TableHead>
-                            <TableHead className="font-bold text-black p-2 text-center uppercase text-[10px]">Bags Out</TableHead>
-                            <TableHead className="font-bold text-black p-2 text-right uppercase text-[10px]">Rent Billed</TableHead>
-                            <TableHead className="font-bold text-black p-2 text-right uppercase text-[10px] print-hide">Actions</TableHead>
+                            <TableHead className="font-bold text-black p-2 text-center uppercase text-[10px] whitespace-nowrap">Date</TableHead>
+                            <TableHead className="font-bold text-black p-2 text-center uppercase text-[10px] whitespace-nowrap">Bill No</TableHead>
+                            <TableHead className="font-bold text-black p-2 text-left uppercase text-[10px] whitespace-nowrap">Customer Name</TableHead>
+                            <TableHead className="font-bold text-black p-2 text-left uppercase text-[10px] whitespace-nowrap">Location/Lot</TableHead>
+                            <TableHead className="font-bold text-black p-2 text-center uppercase text-[10px] whitespace-nowrap">Bags Out</TableHead>
+                            <TableHead className="font-bold text-black p-2 text-right uppercase text-[10px] whitespace-nowrap">Rent Billed</TableHead>
+                            <TableHead className="font-bold text-black p-2 text-right uppercase text-[10px] print-hide whitespace-nowrap">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -66,15 +66,15 @@ export function OutflowReportTable({ events, customers, allRecords, commodities,
                             return (
                                 <TableRow key={index} className="h-8 border-b border-slate-100 hover:bg-slate-50/50">
                                     <TableCell className="p-1 text-center whitespace-nowrap">{format(toDate(event.date), 'dd/MM/yy')}</TableCell>
-                                    <TableCell className="p-1 text-center font-mono font-black text-blue-600">{displayId}</TableCell>
+                                    <TableCell className="p-1 text-center font-mono font-black text-blue-600 whitespace-nowrap">{displayId}</TableCell>
                                     <TableCell className="p-1 font-black whitespace-nowrap uppercase tracking-tight">{getCustomerName(event.customerId)}</TableCell>
-                                    <TableCell className="p-1 text-slate-500 text-[11px] leading-tight">
+                                    <TableCell className="p-1 text-slate-500 text-[11px] leading-tight whitespace-nowrap">
                                         <div className="font-bold text-slate-700">{event.location}</div>
                                         <div>{event.commodityDescription}</div>
                                     </TableCell>
-                                    <TableCell className="p-1 text-center font-mono font-black text-orange-600">{event.bagsWithdrawn}</TableCell>
-                                    <TableCell className="p-1 text-right font-mono font-bold">{formatCurrency(event.rentBilled)}</TableCell>
-                                    <TableCell className="p-1 text-right print-hide">
+                                    <TableCell className="p-1 text-center font-mono font-black text-orange-600 whitespace-nowrap">{event.bagsWithdrawn}</TableCell>
+                                    <TableCell className="p-1 text-right font-mono font-bold whitespace-nowrap">{formatCurrency(event.rentBilled)}</TableCell>
+                                    <TableCell className="p-1 text-right print-hide whitespace-nowrap">
                                         {parentRecord && customer && (
                                             <OutflowActionsMenu 
                                                 record={parentRecord}
@@ -103,9 +103,9 @@ export function OutflowReportTable({ events, customers, allRecords, commodities,
                     </TableBody>
                     <TableFooter>
                         <TableRow className="bg-slate-900 text-white font-black border-t-2 border-black h-10 hover:bg-slate-900">
-                            <TableCell colSpan={4} className="p-2 text-right uppercase text-[10px] tracking-widest">Grand Total Summary</TableCell>
-                            <TableCell className="p-2 text-center font-mono text-[14px] text-orange-200">{totalBagsWithdrawn}</TableCell>
-                            <TableCell className="p-2 text-right font-mono text-[14px]">{formatCurrency(totalRentBilled)}</TableCell>
+                            <TableCell colSpan={4} className="p-2 text-right uppercase text-[10px] tracking-widest whitespace-nowrap">Grand Total Summary</TableCell>
+                            <TableCell className="p-2 text-center font-mono text-[14px] text-orange-200 whitespace-nowrap">{totalBagsWithdrawn}</TableCell>
+                            <TableCell className="p-2 text-right font-mono text-[14px] whitespace-nowrap">{formatCurrency(totalRentBilled)}</TableCell>
                             <TableCell className="print-hide" />
                         </TableRow>
                     </TableFooter>

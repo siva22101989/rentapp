@@ -67,8 +67,6 @@
     padding-bottom: env(safe-area-inset-bottom);
     min-height: 100vh;
     min-height: -webkit-fill-available;
-    -webkit-user-select: none;
-    user-select: none;
   }
 
   /* Allow selection for inputs and meaningful text */
@@ -77,15 +75,31 @@
     user-select: text;
   }
 
+  /* Handle Table responsiveness on screen */
+  @media screen {
+    .table-scroll-container {
+      @apply w-full overflow-x-auto rounded-lg border;
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    table {
+      width: 100%;
+      min-width: 600px; /* Force minimum width to prevent vertical squashing on mobile */
+    }
+
+    th, td {
+      white-space: nowrap; /* Prevent text from wrapping vertically in reports */
+      min-width: 80px;
+    }
+
+    td.wrap-content {
+      white-space: normal;
+    }
+  }
+
   p, span, h1, h2, h3, h4, h5, h6, td, th {
     word-wrap: break-word;
     overflow-wrap: break-word;
-    white-space: normal;
-  }
-  
-  .table-scroll-container {
-    @apply w-full overflow-x-auto rounded-lg border;
-    -webkit-overflow-scrolling: touch;
   }
 
   input, textarea, select, button {
@@ -108,13 +122,14 @@
     margin: 0 !important;
     padding: 0 !important;
     overflow: visible !important;
+    -webkit-user-select: text;
+    user-select: text;
   }
 
   body > * {
     display: none !important;
   }
 
-  /* Target whichever area is meant for printing */
   .dialog-print-area,
   .printable-area {
     display: block !important;
@@ -143,6 +158,7 @@
 
   table {
     width: 100% !important;
+    min-width: 0 !important;
     border-collapse: collapse !important;
     table-layout: fixed !important;
     color: black !important;
@@ -154,6 +170,7 @@
     background: transparent !important;
     color: black !important;
     word-break: break-word !important;
+    white-space: normal !important;
   }
 
   thead {

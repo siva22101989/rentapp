@@ -1,14 +1,14 @@
-const CACHE_NAME = 'graindost-cache-v1';
-const ASSETS_TO_CACHE = [
+const CACHE_NAME = 'graindost-v2';
+const ASSETS = [
   '/',
-  '/manifest.json',
-  'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap'
+  '/login',
+  '/manifest.json'
 ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
+      return cache.addAll(ASSETS);
     })
   );
 });

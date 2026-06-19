@@ -4,20 +4,19 @@
   "description": "Professional Warehouse Management System",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f8fafc",
-  "theme_color": "#2563eb",
-  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#221.2 83.2% 53.3%",
+  "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "https://picsum.photos/seed/pwa1/192/192",
-      "sizes": "192x192",
+      "src": "https://picsum.photos/seed/gd1/192/192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "sizes": "192x192"
     },
     {
-      "src": "https://picsum.photos/seed/pwa2/512/512",
-      "sizes": "512x512",
-      "type": "image/png"
+      "src": "https://picsum.photos/seed/gd1/512/512",
+      "type": "image/png",
+      "sizes": "512x512"
     }
   ]
 }

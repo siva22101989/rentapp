@@ -300,133 +300,104 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
   const timestamp = useMemo(() => format(new Date(), 'dd/MM/yy, h:mm a'), []);
 
   return (
-    <div ref={ref} className="bg-white p-4 sm:p-6 text-black font-sans text-sm printable-area border-2 border-black rounded-lg shadow-sm">
+    <div ref={ref} className="bg-white p-3 sm:p-6 text-black font-sans text-sm printable-area border-2 border-black rounded-lg shadow-sm w-full max-w-[190mm] mx-auto overflow-hidden">
         <div className="text-center mb-6 border-b-2 border-black pb-2">
-            <h1 className="text-2xl font-bold uppercase tracking-tight">{warehouseInfo?.name || "SRI LAKSHMI WAREHOUSE"}</h1>
-            <p className="text-[11px] uppercase font-semibold text-slate-600">{warehouseInfo?.addressLine1} {warehouseInfo?.addressLine2} | Cell: {warehouseInfo?.phone}</p>
-            <h2 className="text-md font-bold underline mt-2 uppercase tracking-widest">Statement of Account</h2>
+            <h1 className="text-xl sm:text-2xl font-bold uppercase tracking-tight">{warehouseInfo?.name || "SRI LAKSHMI WAREHOUSE"}</h1>
+            <p className="text-[10px] sm:text-[11px] uppercase font-semibold text-slate-600 leading-tight">{warehouseInfo?.addressLine1} {warehouseInfo?.addressLine2} | Cell: {warehouseInfo?.phone}</p>
+            <h2 className="text-sm sm:text-md font-bold underline mt-2 uppercase tracking-widest">Statement of Account</h2>
         </div>
 
-        <div className="flex flex-col sm:flex-row justify-between mb-4 gap-2 text-[13px]">
+        <div className="flex flex-col sm:flex-row justify-between mb-4 gap-2 text-[12px] sm:text-[13px]">
             <div className="space-y-0.5">
-                <p><span className="font-bold uppercase text-[10px] text-slate-500">Customer:</span> <span className="font-bold text-base">{customer?.name}</span></p>
-                <p><span className="font-bold uppercase text-[10px] text-slate-500">Father's Name:</span> {customer?.fatherName || 'N/A'}</p>
-                <p><span className="font-bold uppercase text-[10px] text-slate-500">Village:</span> {customer?.village || 'N/A'}</p>
-                <p><span className="font-bold uppercase text-[10px] text-slate-500">Phone No:</span> {customer?.phone || 'N/A'}</p>
+                <p><span className="font-bold uppercase text-[9px] sm:text-[10px] text-slate-500">Customer:</span> <span className="font-bold text-base">{customer?.name}</span></p>
+                <p><span className="font-bold uppercase text-[9px] sm:text-[10px] text-slate-500">Village:</span> {customer?.village || 'N/A'}</p>
+                <p><span className="font-bold uppercase text-[9px] sm:text-[10px] text-slate-500">Phone:</span> {customer?.phone || 'N/A'}</p>
             </div>
-            <div className="sm:text-right text-[10px] text-slate-400 font-bold uppercase">
+            <div className="sm:text-right text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase">
                 <p>Audit Generation: {timestamp}</p>
             </div>
         </div>
 
-        <div className="border-2 border-slate-900 p-4 rounded-xl bg-slate-50 mb-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="border-2 border-slate-900 p-3 sm:p-4 rounded-xl bg-slate-50 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-8">
                 <div className="space-y-2 border-b md:border-b-0 md:border-r border-slate-200 pb-3 md:pb-0 md:pr-10">
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Physical Stock Inventory</h3>
-                    <div className="flex justify-between text-[13px]"><span>Total Inflow (History):</span><span className="font-mono font-bold">{totals.totalBagsIn}</span></div>
-                    <div className="flex justify-between text-[13px]"><span>Total Outflow:</span><span className="font-mono font-bold text-orange-600">{totals.totalBagsOut}</span></div>
+                    <h3 className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Physical Stock Inventory</h3>
+                    <div className="flex justify-between text-[12px] sm:text-[13px]"><span>Total Inflow (History):</span><span className="font-mono font-bold">{totals.totalBagsIn}</span></div>
+                    <div className="flex justify-between text-[12px] sm:text-[13px]"><span>Total Outflow:</span><span className="font-mono font-bold text-orange-600">{totals.totalBagsOut}</span></div>
                     <div className="flex justify-between items-center border-t border-slate-300 pt-2 mt-2 text-primary font-black">
-                        <span className="uppercase text-[11px] tracking-wider">Current Godown Balance:</span>
-                        <span className="font-mono text-xl underline underline-offset-4 decoration-primary/30">{totals.balanceStock}</span>
+                        <span className="uppercase text-[10px] sm:text-[11px] tracking-wider">Godown Balance:</span>
+                        <span className="font-mono text-lg sm:text-xl">{totals.balanceStock}</span>
                     </div>
                 </div>
 
                 <div className="space-y-3 md:pl-2">
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1">Financial Reconciliation</h3>
-                    <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-[12px]">
-                        <div className="space-y-0.5 border-r border-slate-100 pr-4">
-                            <p className="uppercase text-[9px] font-bold text-slate-400">Labor/Rent Totals</p>
+                    <h3 className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1">Financial Reconciliation</h3>
+                    <div className="grid grid-cols-2 gap-x-4 sm:gap-x-8 gap-y-2 text-[11px] sm:text-[12px]">
+                        <div className="space-y-0.5 border-r border-slate-100 pr-2 sm:pr-4">
+                            <p className="uppercase text-[8px] sm:text-[9px] font-bold text-slate-400">Labor/Rent</p>
                             <div className="flex justify-between"><span>Hamali Due:</span><span className="font-mono">{formatCurrency(totals.hamaliBalance)}</span></div>
                             <div className="flex justify-between"><span>Rent Due:</span><span className="font-mono">{formatCurrency(totals.rentBalance)}</span></div>
-                            <div className="flex justify-between font-bold border-t pt-0.5 text-green-600"><span>Discounts:</span><span className="font-mono">{formatCurrency(totals.totalDiscounts)}</span></div>
                         </div>
                         <div className="space-y-0.5 flex flex-col justify-center">
-                            <p className="uppercase text-[9px] font-bold text-slate-400">Total Billed</p>
-                            <p className="text-xl font-mono font-black">{formatCurrency(totals.totalHamaliBilled + totals.totalRentBilled)}</p>
+                            <p className="uppercase text-[8px] sm:text-[9px] font-bold text-slate-400">Net Due</p>
+                            <p className="text-lg sm:text-xl font-mono font-black text-destructive">{formatCurrency(totals.finalBalance)}</p>
                         </div>
-                    </div>
-                    <div className="flex justify-between items-center border-t-2 border-slate-900 pt-2 mt-2 text-destructive font-black">
-                        <span className="uppercase text-[11px] tracking-widest">Net Payable Due:</span>
-                        <span className="font-mono text-xl">{formatCurrency(totals.finalBalance)}</span>
                     </div>
                 </div>
             </div>
         </div>
 
         <div className="table-scroll-container border-y-2 border-black">
-            <Table className="w-full text-[13px]">
+            <Table className="w-full text-[11px] sm:text-[13px]">
                 <TableHeader>
                     <TableRow className="border-b border-black bg-slate-50 h-10">
-                        <TableHead className="font-bold text-black border-r border-slate-200 text-center p-2 uppercase text-[9px]">Date</TableHead>
-                        <TableHead className="font-bold text-black border-r border-slate-200 p-2 uppercase text-[9px]">Description</TableHead>
-                        <TableHead className="font-bold text-black border-r border-slate-200 text-center p-2 uppercase text-[9px]">Bill No</TableHead>
-                        <TableHead className="font-bold text-black border-r border-slate-200 text-center p-2 uppercase text-[9px]">Lot</TableHead>
-                        <TableHead className="font-bold text-black border-r border-slate-200 text-center p-2 uppercase text-[9px]">In</TableHead>
-                        <TableHead className="font-bold text-black border-r border-slate-200 text-center p-2 uppercase text-[9px]">Out</TableHead>
-                        <TableHead className="font-bold text-black border-r border-slate-200 text-right p-2 uppercase text-[9px]">Hamali (+)</TableHead>
-                        <TableHead className="font-bold text-black border-r border-slate-200 text-right p-2 uppercase text-[9px]">Rent (+)</TableHead>
-                        <TableHead className="font-bold text-black border-r border-slate-200 text-right p-2 uppercase text-[9px]">Disc (-)</TableHead>
-                        <TableHead className="font-bold text-black border-r border-slate-200 text-right p-2 uppercase text-[9px]">Paid (-)</TableHead>
-                        <TableHead className="font-bold text-black text-right p-2 uppercase text-[9px]">Balance</TableHead>
-                        <TableHead className="font-bold text-black text-right p-2 uppercase text-[9px] print-hide">Actions</TableHead>
+                        <TableHead className="font-bold text-black border-r border-slate-200 text-center p-1 uppercase text-[8px] sm:text-[9px]">Date</TableHead>
+                        <TableHead className="font-bold text-black border-r border-slate-200 p-1 uppercase text-[8px] sm:text-[9px]">Description</TableHead>
+                        <TableHead className="font-bold text-black border-r border-slate-200 text-center p-1 uppercase text-[8px] sm:text-[9px]">In</TableHead>
+                        <TableHead className="font-bold text-black border-r border-slate-200 text-center p-1 uppercase text-[8px] sm:text-[9px]">Out</TableHead>
+                        <TableHead className="font-bold text-black border-r border-slate-200 text-right p-1 uppercase text-[8px] sm:text-[9px]">Hamali</TableHead>
+                        <TableHead className="font-bold text-black border-r border-slate-200 text-right p-1 uppercase text-[8px] sm:text-[9px]">Rent</TableHead>
+                        <TableHead className="font-bold text-black border-r border-slate-200 text-right p-1 uppercase text-[8px] sm:text-[9px]">Disc</TableHead>
+                        <TableHead className="font-bold text-black border-r border-slate-200 text-right p-1 uppercase text-[8px] sm:text-[9px]">Paid</TableHead>
+                        <TableHead className="font-bold text-black text-right p-1 uppercase text-[8px] sm:text-[9px]">Balance</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {lineItems.map((item, index) => {
-                        const viewBillLink = item.recordType === 'outflow' && item.billNo 
-                            ? `/outflow/receipt?pattiNo=${item.billNo}` 
-                            : null;
-
-                        return (
-                            <TableRow key={index} className="border-b border-slate-100 h-9 hover:bg-slate-50/50">
-                                <TableCell className="p-1 text-center whitespace-nowrap">{format(item.date, 'dd/MM/yy')}</TableCell>
-                                <TableCell className="p-1 font-medium tracking-tight">{item.description}</TableCell>
-                                <TableCell className="p-1 text-center font-mono font-bold text-slate-400">
-                                    {viewBillLink ? (
-                                        <a href={viewBillLink} target="_blank" className="text-primary hover:underline">{item.billNo}</a>
-                                    ) : item.billNo}
-                                </TableCell>
-                                <TableCell className="p-1 text-center font-mono text-slate-600">{item.lotNo || ''}</TableCell>
-                                <TableCell className="p-1 text-center font-mono">{item.bagsIn || ''}</TableCell>
-                                <TableCell className="p-1 text-center font-mono text-orange-600 font-bold">{item.bagsOut || ''}</TableCell>
-                                <TableCell className="p-1 text-right font-mono">{item.hamali > 0 ? formatCurrency(item.hamali) : ''}</TableCell>
-                                <TableCell className="p-1 text-right font-mono">{item.rent > 0 ? formatCurrency(item.rent) : ''}</TableCell>
-                                <TableCell className="p-1 text-right font-mono text-blue-600 font-bold">{item.discount > 0 ? formatCurrency(item.discount) : ''}</TableCell>
-                                <TableCell className="p-1 text-right font-mono text-green-700 font-black">{item.credit > 0 ? formatCurrency(item.credit) : ''}</TableCell>
-                                <TableCell className="p-1 text-right font-mono font-black">{formatCurrency(item.balance)}</TableCell>
-                                <TableCell className="p-1 text-right print-hide">
-                                    {item.recordType === 'storage' && <ActionsMenu record={item.sourceRecord} customers={customers} allRecords={allRecords} />}
-                                    {item.recordType === 'unloading' && <UnloadingTableActionsMenu record={{...item.sourceRecord, hamaliPending: 0}} customers={customers} commodities={commodities} lots={lots} storageRecords={allRecords} />}
-                                    {item.recordType === 'outflow' && <OutflowActionsMenu record={item.sourceRecord} customer={customer} warehouseInfo={warehouseInfo} outflow={item.outflowData} outflowIndex={item.outflowIndex} deliveryOrderNo={item.billNo} deliveryOrderDate={item.date} commodities={commodities} lots={lots} allRecords={allRecords} />}
-                                    {item.recordType === 'payment' && <PaymentActionsMenu event={{ date: item.date, customerId: customer.id, description: item.description, recordId: String(item.sourceRecord.id || item.sourceRecord.billNo || ''), amount: item.credit || item.discount, type: (item.paymentData?.type || 'other') as PaymentType, recordType: item.paymentType, paymentIndex: item.paymentIndex }} />}
-                                </TableCell>
-                            </TableRow>
-                        );
-                    })}
+                    {lineItems.map((item, index) => (
+                        <TableRow key={index} className="border-b border-slate-100 h-9 hover:bg-slate-50/50">
+                            <TableCell className="p-1 text-center whitespace-nowrap">{format(item.date, 'dd/MM/yy')}</TableCell>
+                            <TableCell className="p-1 font-medium tracking-tight text-[10px] sm:text-[12px]">{item.description}</TableCell>
+                            <TableCell className="p-1 text-center font-mono">{item.bagsIn || ''}</TableCell>
+                            <TableCell className="p-1 text-center font-mono text-orange-600 font-bold">{item.bagsOut || ''}</TableCell>
+                            <TableCell className="p-1 text-right font-mono">{item.hamali > 0 ? formatCurrency(item.hamali) : ''}</TableCell>
+                            <TableCell className="p-1 text-right font-mono">{item.rent > 0 ? formatCurrency(item.rent) : ''}</TableCell>
+                            <TableCell className="p-1 text-right font-mono text-blue-600 font-bold">{item.discount > 0 ? formatCurrency(item.discount) : ''}</TableCell>
+                            <TableCell className="p-1 text-right font-mono text-green-700 font-black">{item.credit > 0 ? formatCurrency(item.credit) : ''}</TableCell>
+                            <TableCell className="p-1 text-right font-mono font-black">{formatCurrency(item.balance)}</TableCell>
+                        </TableRow>
+                    ))}
                 </TableBody>
                 <TableFooter>
                     <TableRow className="bg-slate-900 text-white font-black border-t-2 border-black h-12">
-                        <TableCell colSpan={4} className="p-2 text-right uppercase text-[10px] tracking-tight">Audit Grand Totals</TableCell>
-                        <TableCell className="p-2 text-center font-mono">{totals.totalBagsIn}</TableCell>
-                        <TableCell className="p-2 text-center font-mono text-orange-400">{totals.totalBagsOut}</TableCell>
-                        <TableCell className="p-2 text-right font-mono">{formatCurrency(totals.totalHamaliBilled)}</TableCell>
-                        <TableCell className="p-2 text-right font-mono">{formatCurrency(totals.totalRentBilled)}</TableCell>
-                        <TableCell className="p-2 text-right font-mono text-blue-300">{formatCurrency(totals.totalDiscounts)}</TableCell>
-                        <TableCell className="p-2 text-right font-mono text-green-400">{formatCurrency(totals.totalHamaliPaid + totals.totalRentPaid)}</TableCell>
-                        <TableCell className="p-2 text-right font-mono text-base">{formatCurrency(totals.finalBalance)}</TableCell>
-                        <TableCell className="print-hide" />
+                        <TableCell colSpan={2} className="p-2 text-right uppercase text-[8px] sm:text-[10px]">Grand Totals</TableCell>
+                        <TableCell className="p-1 text-center font-mono">{totals.totalBagsIn}</TableCell>
+                        <TableCell className="p-1 text-center font-mono text-orange-400">{totals.totalBagsOut}</TableCell>
+                        <TableCell className="p-1 text-right font-mono">{formatCurrency(totals.totalHamaliBilled)}</TableCell>
+                        <TableCell className="p-1 text-right font-mono">{formatCurrency(totals.totalRentBilled)}</TableCell>
+                        <TableCell className="p-1 text-right font-mono text-blue-300">{formatCurrency(totals.totalDiscounts)}</TableCell>
+                        <TableCell className="p-1 text-right font-mono text-green-400">{formatCurrency(totals.totalHamaliPaid + totals.totalRentPaid)}</TableCell>
+                        <TableCell className="p-1 text-right font-mono text-[12px] sm:text-base">{formatCurrency(totals.finalBalance)}</TableCell>
                     </TableRow>
                 </TableFooter>
             </Table>
         </div>
 
-        <div className="mt-20 flex justify-between">
-             <div className="w-64 border-t border-slate-300 text-center pt-2">
-                <p className="font-bold text-[11px] uppercase tracking-widest text-slate-500">Customer Acknowledgment</p>
+        <div className="mt-12 sm:mt-20 flex justify-between">
+             <div className="w-32 sm:w-64 border-t border-slate-300 text-center pt-2">
+                <p className="font-bold text-[9px] sm:text-[11px] uppercase tracking-widest text-slate-500">Customer</p>
             </div>
-            <div className="w-64 border-t-2 border-black text-center pt-2">
-                <p className="font-black text-[12px] uppercase tracking-widest text-slate-800">Authorized Auditor Signature</p>
-                <p className="text-[10px] text-slate-400 mt-1 uppercase">Operations Division</p>
+            <div className="w-32 sm:w-64 border-t-2 border-black text-center pt-2">
+                <p className="font-black text-[10px] sm:text-[12px] uppercase tracking-widest text-slate-800">Authorized Manager</p>
             </div>
         </div>
     </div>

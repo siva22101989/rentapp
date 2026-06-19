@@ -136,9 +136,12 @@ export const deletePatti = async (db: Firestore, warehouseId: string, pattiNo: s
     const snap = await getDocs(q);
     
     // Find all storage records that participated in this patti/bill
-    const affectedRecords = snap.docs.filter(d => 
-        (d.data().outflows || []).some((o: any) => String(o.pattiNo) === String(pattiNo))
-    );
+    const affectedRecords = snap.docs.filter(docSnap => {
+        const data = docSnap.data() as StorageRecord;
+        return (data.outflows || []).some((o: any) => 
+            String(o.pattiNo || docSnap.id).replace(/\D/g, '') === String(pattiNo).replace(/\D/g, '')
+        );
+    });
 
     if (affectedRecords.length === 0) throw new Error("Bill not found.");
 
@@ -146,15 +149,16 @@ export const deletePatti = async (db: Firestore, warehouseId: string, pattiNo: s
 
     affectedRecords.forEach(docSnap => {
         const record = docSnap.data() as StorageRecord;
+        const recordId = docSnap.id;
         const outflows = [...(record.outflows || [])];
         
         // Find matching outflows in this record
-        const matchingOutflows = outflows.filter(o => String(o.pattiNo) === String(pattiNo));
-        const newOutflows = outflows.filter(o => String(o.pattiNo) !== String(pattiNo));
+        const matchingOutflows = outflows.filter(o => String(o.pattiNo || recordId).replace(/\D/g, '') === String(pattiNo).replace(/\D/g, ''));
+        const newOutflows = outflows.filter(o => String(o.pattiNo || recordId).replace(/\D/g, '') !== String(pattiNo).replace(/\D/g, ''));
         
         // Calculate restored stock
-        const bagsToRestore = matchingOutflows.reduce((sum, o) => sum + (o.bagsWithdrawn || 0), 0);
-        const rentToReverse = matchingOutflows.reduce((sum, o) => sum + (o.rentBilled || 0), 0);
+        const bagsToRestore = matchingOutflows.reduce((sum, o) => sum + (Number(o.bagsWithdrawn) || 0), 0);
+        const rentToReverse = matchingOutflows.reduce((sum, o) => sum + (Number(o.rentBilled) || 0), 0);
 
         const currentBagsOut = Number(record.bagsOut) || 0;
         const newBagsOut = Math.max(0, currentBagsOut - bagsToRestore);
@@ -168,13 +172,13 @@ export const deletePatti = async (db: Firestore, warehouseId: string, pattiNo: s
         const updateData: any = {
             outflows: cleanForFirestore(newOutflows),
             bagsOut: newBagsOut,
-            bagsStored: newBagsStored,
-            totalRentBilled: Math.max(0, (record.totalRentBilled || 0) - rentToReverse),
+            bagsStored: Math.max(0, newBagsStored),
+            totalRentBilled: Math.max(0, (Number(record.totalRentBilled) || 0) - rentToReverse),
             storageEndDate: null, // Reactivate the record
         };
 
         // If the record was completed, reset its billing cycle
-        if (record.billingCycle === 'Completed') {
+        if (record.billingCycle === 'Completed' && newBagsStored > 0.5) {
             updateData.billingCycle = '6-Month Initial'; // Fallback to initial
         }
 
@@ -195,19 +199,19 @@ export const deleteOutflowEvent = async (db: Firestore, recordId: string, outflo
         const outflowToDelete = outflows[outflowIndex];
         const newOutflows = outflows.filter((_, index) => index !== outflowIndex);
         
-        const newBagsOut = (record.bagsOut || 0) - outflowToDelete.bagsWithdrawn;
-        const currentBagsStored = Number(record.bagsStored) || 0;
         const currentBagsOut = Number(record.bagsOut) || 0;
+        const newBagsOut = Math.max(0, currentBagsOut - outflowToDelete.bagsWithdrawn);
+        const currentBagsStored = Number(record.bagsStored) || 0;
         const bagsIn = Number(record.bagsIn) || (currentBagsStored + currentBagsOut);
         
         const newBagsStored = bagsIn - newBagsOut;
-        const newTotalRentBilled = (record.totalRentBilled || 0) - outflowToDelete.rentBilled;
+        const newTotalRentBilled = (Number(record.totalRentBilled) || 0) - outflowToDelete.rentBilled;
         
         transaction.update(recordRef, cleanForFirestore({
             outflows: newOutflows,
             bagsOut: newBagsOut,
-            bagsStored: newBagsStored,
-            totalRentBilled: newTotalRentBilled,
+            bagsStored: Math.max(0, newBagsStored),
+            totalRentBilled: Math.max(0, newTotalRentBilled),
             storageEndDate: null,
         }));
     });
@@ -219,7 +223,7 @@ export const deleteOutflowEvent = async (db: Firestore, recordId: string, outflo
 export const editPattiMetadata = async (db: Firestore, warehouseId: string, pattiNo: string, newData: any): Promise<void> => {
     const q = query(collection(db, 'storageRecords'), where('warehouseId', '==', warehouseId));
     const snap = await getDocs(q);
-    const affectedRecords = snap.docs.filter(d => (d.data().outflows || []).some((o: any) => String(o.pattiNo) === String(pattiNo)));
+    const affectedRecords = snap.docs.filter(d => (d.data().outflows || []).some((o: any) => String(o.pattiNo || d.id).replace(/\D/g, '') === String(pattiNo).replace(/\D/g, '')));
 
     if (affectedRecords.length === 0) throw new Error("No records found for this Bill No.");
 
@@ -227,12 +231,13 @@ export const editPattiMetadata = async (db: Firestore, warehouseId: string, patt
     
     affectedRecords.forEach(docSnap => {
         const data = docSnap.data() as StorageRecord;
+        const recordId = docSnap.id;
         const outflows = [...(data.outflows || [])];
         let hasChanges = false;
 
         // 1. Update outflows within this record that match the pattiNo
         outflows.forEach((o, idx) => {
-            if (String(o.pattiNo) === String(pattiNo)) {
+            if (String(o.pattiNo || recordId).replace(/\D/g, '') === String(pattiNo).replace(/\D/g, '')) {
                 if (newData.date) o.date = newData.date;
                 if (newData.discount !== undefined && affectedRecords.length === 1) {
                     // Only apply discount change to the first/only record if specifically provided
@@ -292,7 +297,7 @@ export const editOutflowEvent = async (db: Firestore, recordId: string, outflowI
             outflows: cleanForFirestore(outflows),
             bagsOut: newBagsOut,
             bagsStored: Math.max(0, newBagsStored),
-            totalRentBilled: (record.totalRentBilled || 0) + rentDiff,
+            totalRentBilled: (Number(record.totalRentBilled) || 0) + rentDiff,
         };
         
         if (newData.khataAmount !== undefined) updateData.khataAmount = newData.khataAmount;

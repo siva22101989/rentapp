@@ -127,6 +127,63 @@ export const deleteLot = async (db: Firestore, id: string): Promise<void> => {
     await deleteDoc(doc(db, 'lots', id));
 };
 
+/**
+ * Global Patti Reversal: Deletes all matching outflows across ALL storage records
+ * and correctly restores stock for every affected lot.
+ */
+export const deletePatti = async (db: Firestore, warehouseId: string, pattiNo: string): Promise<void> => {
+    const q = query(collection(db, 'storageRecords'), where('warehouseId', '==', warehouseId));
+    const snap = await getDocs(q);
+    
+    // Find all storage records that participated in this patti/bill
+    const affectedRecords = snap.docs.filter(d => 
+        (d.data().outflows || []).some((o: any) => String(o.pattiNo) === String(pattiNo))
+    );
+
+    if (affectedRecords.length === 0) throw new Error("Bill not found.");
+
+    const batch = writeBatch(db);
+
+    affectedRecords.forEach(docSnap => {
+        const record = docSnap.data() as StorageRecord;
+        const outflows = [...(record.outflows || [])];
+        
+        // Find matching outflows in this record
+        const matchingOutflows = outflows.filter(o => String(o.pattiNo) === String(pattiNo));
+        const newOutflows = outflows.filter(o => String(o.pattiNo) !== String(pattiNo));
+        
+        // Calculate restored stock
+        const bagsToRestore = matchingOutflows.reduce((sum, o) => sum + (o.bagsWithdrawn || 0), 0);
+        const rentToReverse = matchingOutflows.reduce((sum, o) => sum + (o.rentBilled || 0), 0);
+
+        const currentBagsOut = Number(record.bagsOut) || 0;
+        const newBagsOut = Math.max(0, currentBagsOut - bagsToRestore);
+        
+        // Derive original inflow bags accurately
+        const currentBagsStored = Number(record.bagsStored) || 0;
+        const bagsIn = Number(record.bagsIn) || (currentBagsStored + currentBagsOut);
+        
+        const newBagsStored = bagsIn - newBagsOut;
+
+        const updateData: any = {
+            outflows: cleanForFirestore(newOutflows),
+            bagsOut: newBagsOut,
+            bagsStored: newBagsStored,
+            totalRentBilled: Math.max(0, (record.totalRentBilled || 0) - rentToReverse),
+            storageEndDate: null, // Reactivate the record
+        };
+
+        // If the record was completed, reset its billing cycle
+        if (record.billingCycle === 'Completed') {
+            updateData.billingCycle = '6-Month Initial'; // Fallback to initial
+        }
+
+        batch.update(docSnap.ref, updateData);
+    });
+
+    await batch.commit();
+};
+
 export const deleteOutflowEvent = async (db: Firestore, recordId: string, outflowIndex: number): Promise<void> => {
     const recordRef = doc(db, 'storageRecords', recordId);
     await runTransaction(db, async (transaction) => {
@@ -137,10 +194,15 @@ export const deleteOutflowEvent = async (db: Firestore, recordId: string, outflo
         if (outflowIndex < 0 || outflowIndex >= outflows.length) throw new Error("Outflow index error");
         const outflowToDelete = outflows[outflowIndex];
         const newOutflows = outflows.filter((_, index) => index !== outflowIndex);
+        
         const newBagsOut = (record.bagsOut || 0) - outflowToDelete.bagsWithdrawn;
-        const currentBagsIn = Number(record.bagsIn) || (Number(record.bagsStored) + (record.bagsOut || 0));
-        const newBagsStored = currentBagsIn - newBagsOut;
+        const currentBagsStored = Number(record.bagsStored) || 0;
+        const currentBagsOut = Number(record.bagsOut) || 0;
+        const bagsIn = Number(record.bagsIn) || (currentBagsStored + currentBagsOut);
+        
+        const newBagsStored = bagsIn - newBagsOut;
         const newTotalRentBilled = (record.totalRentBilled || 0) - outflowToDelete.rentBilled;
+        
         transaction.update(recordRef, cleanForFirestore({
             outflows: newOutflows,
             bagsOut: newBagsOut,

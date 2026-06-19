@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -15,43 +14,42 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '../ui/button';
 import { Loader2 } from 'lucide-react';
-import { useFirestore } from '@/firebase/provider';
-import { deleteOutflowEvent } from '@/lib/data';
+import { useFirestore, useAppUser } from '@/firebase';
+import { deletePatti } from '@/lib/data';
 import type { Outflow } from '@/lib/definitions';
 import { format } from 'date-fns';
 import { toDate } from '@/lib/utils';
 
-
 export function DeleteOutflowDialog({
-  recordId,
+  pattiNo,
   outflow,
-  outflowIndex,
   children,
 }: {
-  recordId: string;
+  pattiNo: string;
   outflow: Outflow;
-  outflowIndex: number;
   children: React.ReactNode;
 }) {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const firestore = useFirestore();
+  const appUser = useAppUser();
 
   const handleDelete = async () => {
-    if (!firestore) {
-      toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
+    if (!firestore || !appUser?.warehouseId) {
+      toast({ title: 'Error', description: 'Session expired. Please reload.', variant: 'destructive' });
       return;
     }
+    
     startTransition(async () => {
       try {
-        await deleteOutflowEvent(firestore, recordId, outflowIndex);
-        toast({ title: 'Success', description: 'Outflow event deleted successfully. Record has been updated.' });
+        await deletePatti(firestore, appUser.warehouseId!, pattiNo);
+        toast({ title: 'Bill Reverted', description: 'Stock has been restored for all items in this bill.' });
         setIsOpen(false);
       } catch (error) {
          toast({
           title: 'Error',
-          description: `Failed to delete outflow event. ${error instanceof Error ? error.message : ''}`,
+          description: `Failed to restore stock. ${error instanceof Error ? error.message : ''}`,
           variant: 'destructive',
         });
       }
@@ -63,21 +61,20 @@ export function DeleteOutflowDialog({
       <AlertDialogTrigger asChild>{children}</AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-          <AlertDialogDescription>
-            This will permanently delete the outflow of <span className="font-bold">{outflow.bagsWithdrawn} bags</span> from <span className="font-bold">{format(toDate(outflow.date), 'dd MMM yyyy')}</span>.
-            The parent storage record will be updated to reflect this change (bags will be returned to stock, etc.). This action cannot be undone.
+          <AlertDialogTitle className="text-xl font-bold uppercase tracking-tight">Full Bill Reversal?</AlertDialogTitle>
+          <AlertDialogDescription className="text-sm font-medium leading-relaxed">
+            This will permanently delete **Bill No. {pattiNo}** and restore the stock of <span className="font-bold text-primary">{outflow.bagsWithdrawn} bags</span> (plus any other lots in this transaction) back to your Godown inventory. This action cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+        <AlertDialogFooter className="gap-2">
+          <AlertDialogCancel className="font-bold">Keep Bill</AlertDialogCancel>
           <Button
             variant="destructive"
             onClick={handleDelete}
             disabled={isPending}
+            className="font-black uppercase tracking-widest"
           >
-            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Delete Outflow
+            {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Restoring...</> : 'Confirm Reversal'}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>

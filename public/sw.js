@@ -1,4 +1,4 @@
-const CACHE_NAME = 'graindost-v1';
+const CACHE_NAME = 'graindost-cache-v1';
 const ASSETS_TO_CACHE = [
   '/',
   '/manifest.json',

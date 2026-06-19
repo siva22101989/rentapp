@@ -17,7 +17,7 @@ import {
   increment,
 } from 'firebase/firestore';
 import type { Customer, Expense, Payment, StorageRecord, Commodity, Outflow, UnloadingRecord, Borrowing, Lending, AppUser, ManagedWarehouse, DryingRecord } from './definitions';
-import { cleanForFirestore } from './utils';
+import { cleanForFirestore, toDate } from './utils';
 
 export const saveCustomer = async (db: Firestore, customer: Omit<Customer, 'id'>, warehouseId: string): Promise<string> => {
   const dataToSave = { ...customer, warehouseId };
@@ -151,6 +151,51 @@ export const deleteOutflowEvent = async (db: Firestore, recordId: string, outflo
     });
 };
 
+/**
+ * Updates shared metadata (Date, Commodity, etc.) across all records in a Patti (Consolidated Bill).
+ */
+export const editPattiMetadata = async (db: Firestore, warehouseId: string, pattiNo: string, newData: any): Promise<void> => {
+    const q = query(collection(db, 'storageRecords'), where('warehouseId', '==', warehouseId));
+    const snap = await getDocs(q);
+    const affectedRecords = snap.docs.filter(d => (d.data().outflows || []).some((o: any) => String(o.pattiNo) === String(pattiNo)));
+
+    if (affectedRecords.length === 0) throw new Error("No records found for this Bill No.");
+
+    const batch = writeBatch(db);
+    
+    affectedRecords.forEach(docSnap => {
+        const data = docSnap.data() as StorageRecord;
+        const outflows = [...(data.outflows || [])];
+        let hasChanges = false;
+
+        // 1. Update outflows within this record that match the pattiNo
+        outflows.forEach((o, idx) => {
+            if (String(o.pattiNo) === String(pattiNo)) {
+                if (newData.date) o.date = newData.date;
+                if (newData.discount !== undefined && affectedRecords.length === 1) {
+                    // Only apply discount change to the first/only record if specifically provided
+                    o.discount = newData.discount;
+                }
+                hasChanges = true;
+            }
+        });
+
+        if (hasChanges) {
+            const updateData: any = {
+                outflows: cleanForFirestore(outflows),
+                commodityDescription: newData.commodityDescription || data.commodityDescription,
+                location: newData.location || data.location,
+                lorryTractorNo: newData.lorryTractorNo || data.lorryTractorNo,
+                weight: newData.weight !== undefined ? newData.weight : data.weight,
+                khataAmount: newData.khataAmount !== undefined ? newData.khataAmount : data.khataAmount,
+            };
+            batch.update(docSnap.ref, updateData);
+        }
+    });
+
+    await batch.commit();
+};
+
 export const editOutflowEvent = async (db: Firestore, recordId: string, outflowIndex: number, newData: any): Promise<void> => {
     const recordRef = doc(db, 'storageRecords', recordId);
     await runTransaction(db, async (transaction) => {
@@ -160,6 +205,8 @@ export const editOutflowEvent = async (db: Firestore, recordId: string, outflowI
         const outflows = [...(record.outflows || [])];
         if (outflowIndex < 0 || outflowIndex >= outflows.length) throw new Error("Index error");
         const oldOutflow = outflows[outflowIndex];
+        
+        // Safety: use small buffer for floating point
         const bagDiff = newData.bagsWithdrawn - oldOutflow.bagsWithdrawn;
         const rentDiff = newData.rentBilled - oldOutflow.rentBilled;
         
@@ -177,18 +224,22 @@ export const editOutflowEvent = async (db: Firestore, recordId: string, outflowI
         const currentBagsIn = Number(record.bagsIn) || (Number(record.bagsStored) + currentBagsOut);
         const newBagsStored = currentBagsIn - newBagsOut;
 
-        if (newBagsStored < -0.001) throw new Error("Insufficient stock for update");
+        if (newBagsStored < -0.005) throw new Error("Insufficient stock for update");
 
         const updateData: any = {
             outflows: cleanForFirestore(outflows),
             bagsOut: newBagsOut,
-            bagsStored: newBagsStored,
+            bagsStored: Math.max(0, newBagsStored),
             totalRentBilled: (record.totalRentBilled || 0) + rentDiff,
         };
+        
         if (newData.khataAmount !== undefined) updateData.khataAmount = newData.khataAmount;
         if (newData.commodityDescription !== undefined) updateData.commodityDescription = newData.commodityDescription;
         if (newData.location !== undefined) updateData.location = newData.location;
-        if (newBagsStored <= 0.001) {
+        if (newData.lorryTractorNo !== undefined) updateData.lorryTractorNo = newData.lorryTractorNo;
+        if (newData.weight !== undefined) updateData.weight = newData.weight;
+
+        if (newBagsStored <= 0.005) {
             updateData.storageEndDate = Timestamp.fromDate(newData.date);
             updateData.billingCycle = 'Completed';
         } else {

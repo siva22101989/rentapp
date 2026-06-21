@@ -58,18 +58,18 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
                             <td className="py-1 align-top w-[55%] border-none">
                                 <table className="w-full no-border">
                                     <tbody>
-                                        <tr><td className="font-bold w-24 uppercase text-[10px] text-slate-500 py-0.5">Bill No</td><td className="py-0.5">: <span className="font-mono font-black text-base">{record.id}</span></td></tr>
-                                        <tr><td className="font-bold w-24 uppercase text-[10px] text-slate-500 py-0.5">Depositor</td><td className="py-0.5">: <span className="font-black uppercase">{customer.name}</span></td></tr>
-                                        <tr><td className="font-bold w-24 uppercase text-[10px] text-slate-500 py-0.5">Village</td><td className="py-0.5">: <span className="uppercase">{customer.village || 'N/A'}</span></td></tr>
+                                        <tr><td className="font-bold w-20 sm:w-24 uppercase text-[10px] text-slate-500 py-0.5">Bill No</td><td className="py-0.5">: <span className="font-mono font-black text-base">{record.id}</span></td></tr>
+                                        <tr><td className="font-bold w-20 sm:w-24 uppercase text-[10px] text-slate-500 py-0.5">Depositor</td><td className="py-0.5">: <span className="font-black uppercase">{customer.name}</span></td></tr>
+                                        <tr><td className="font-bold w-20 sm:w-24 uppercase text-[10px] text-slate-500 py-0.5">Village</td><td className="py-0.5">: <span className="uppercase">{customer.village || 'N/A'}</span></td></tr>
                                     </tbody>
                                 </table>
                             </td>
-                            <td className="py-1 align-top text-right border-none">
+                            <td className="py-1 align-top w-[45%] border-none">
                                 <table className="w-full no-border">
                                     <tbody>
-                                        <tr><td className="font-bold uppercase text-[10px] text-slate-500 py-0.5">Date</td><td className="py-0.5">: <span className="font-bold">{formattedDate}</span></td></tr>
-                                        <tr><td className="font-bold uppercase text-[10px] text-slate-500 py-0.5">Product</td><td className="py-0.5">: <span className="font-black uppercase">{record.commodityDescription}</span></td></tr>
-                                        <tr><td className="font-bold uppercase text-[10px] text-slate-500 py-0.5">Lot No</td><td className="py-0.5">: <span className="font-mono font-black text-base">{record.location || 'N/A'}</span></td></tr>
+                                        <tr><td className="font-bold w-20 sm:w-24 uppercase text-[10px] text-slate-500 py-0.5">Date</td><td className="py-0.5">: <span className="font-bold">{formattedDate}</span></td></tr>
+                                        <tr><td className="font-bold w-20 sm:w-24 uppercase text-[10px] text-slate-500 py-0.5">Product</td><td className="py-0.5">: <span className="font-black uppercase">{record.commodityDescription}</span></td></tr>
+                                        <tr><td className="font-bold w-20 sm:w-24 uppercase text-[10px] text-slate-500 py-0.5">Lot No</td><td className="py-0.5">: <span className="font-mono font-black text-base">{record.location || 'N/A'}</span></td></tr>
                                     </tbody>
                                 </table>
                             </td>

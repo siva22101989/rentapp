@@ -95,17 +95,17 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
                   <td className="py-1 align-top w-[55%] border-none">
                     <table className="w-full no-border">
                       <tbody>
-                          <tr><td className="font-bold w-24 sm:w-28 uppercase text-[10px] text-slate-500 py-0.5">Bill No</td><td className="py-0.5">: <span className="font-mono font-black text-base">{pattiNo}</span></td></tr>
-                          <tr><td className="font-bold w-24 sm:w-28 uppercase text-[10px] text-slate-500 py-0.5">Customer</td><td className="py-0.5">: <span className="font-black uppercase">{customer.name}</span></td></tr>
-                          <tr><td className="font-bold w-24 sm:w-28 uppercase text-[10px] text-slate-500 py-0.5">Village</td><td className="py-0.5">: <span className="uppercase">{customer.village || 'N/A'}</span></td></tr>
+                          <tr><td className="font-bold w-20 sm:w-24 uppercase text-[10px] text-slate-500 py-0.5">Bill No</td><td className="py-0.5">: <span className="font-mono font-black text-base">{pattiNo}</span></td></tr>
+                          <tr><td className="font-bold w-20 sm:w-24 uppercase text-[10px] text-slate-500 py-0.5">Customer</td><td className="py-0.5">: <span className="font-black uppercase">{customer.name}</span></td></tr>
+                          <tr><td className="font-bold w-20 sm:w-24 uppercase text-[10px] text-slate-500 py-0.5">Village</td><td className="py-0.5">: <span className="uppercase">{customer.village || 'N/A'}</span></td></tr>
                       </tbody>
                     </table>
                   </td>
-                  <td className="py-1 align-top text-right border-none">
+                  <td className="py-1 align-top w-[45%] border-none">
                     <table className="w-full no-border">
                       <tbody>
-                          <tr><td className="font-bold uppercase text-[10px] text-slate-500 py-0.5">Date</td><td className="py-0.5">: <span className="font-bold">{format(pattiDate, 'dd/MM/yyyy')}</span></td></tr>
-                          <tr><td className="font-bold uppercase text-[10px] text-slate-500 py-0.5">Product</td><td className="py-0.5">: <span className="font-bold uppercase">{records[0]?.commodityDescription || 'Misc'}</span></td></tr>
+                          <tr><td className="font-bold w-20 sm:w-24 uppercase text-[10px] text-slate-500 py-0.5">Date</td><td className="py-0.5">: <span className="font-bold">{format(pattiDate, 'dd/MM/yyyy')}</span></td></tr>
+                          <tr><td className="font-bold w-20 sm:w-24 uppercase text-[10px] text-slate-500 py-0.5">Product</td><td className="py-0.5">: <span className="font-bold uppercase">{records[0]?.commodityDescription || 'Misc'}</span></td></tr>
                       </tbody>
                     </table>
                   </td>

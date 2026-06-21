@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo } from 'react';
@@ -58,12 +57,12 @@ function LotOutflowReportTable({ groupedLots, customers, title }: { groupedLots:
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead className="w-[150px]">Lot No.</TableHead>
-                        <TableHead>Outflow Date</TableHead>
-                        <TableHead>Customer</TableHead>
-                        <TableHead>Commodity</TableHead>
-                        <TableHead>Patti No.</TableHead>
-                        <TableHead className="text-right">Bags Withdrawn</TableHead>
+                        <TableHead className="w-[150px] text-center">Lot No.</TableHead>
+                        <TableHead className="text-center">Outflow Date</TableHead>
+                        <TableHead className="text-center">Customer</TableHead>
+                        <TableHead className="text-center">Commodity</TableHead>
+                        <TableHead className="text-center">Patti No.</TableHead>
+                        <TableHead className="text-center">Bags Withdrawn</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>

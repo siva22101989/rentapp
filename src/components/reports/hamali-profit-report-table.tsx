@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -48,14 +47,14 @@ export function HamaliProfitReportTable({ events, customers, title }: ReportTabl
             <Table className="text-[13px]">
                 <TableHeader>
                     <TableRow className="bg-muted/50">
-                        <TableHead className="uppercase text-[10px] font-bold">Date</TableHead>
-                        <TableHead className="uppercase text-[10px] font-bold">Customer</TableHead>
-                        <TableHead className="uppercase text-[10px] font-bold">Description</TableHead>
-                        <TableHead className="uppercase text-[10px] font-bold">Storage ID</TableHead>
+                        <TableHead className="uppercase text-[10px] font-bold text-center">Date</TableHead>
+                        <TableHead className="uppercase text-[10px] font-bold text-center">Customer</TableHead>
+                        <TableHead className="uppercase text-[10px] font-bold text-center">Description</TableHead>
+                        <TableHead className="uppercase text-[10px] font-bold text-center">Storage ID</TableHead>
                         <TableHead className="text-center uppercase text-[10px] font-bold">Bags</TableHead>
-                        <TableHead className="text-right uppercase text-[10px] font-bold">Cust. Charge</TableHead>
-                        <TableHead className="text-right uppercase text-[10px] font-bold">Worker Pay</TableHead>
-                        <TableHead className="text-right uppercase text-[10px] font-bold">Diff.</TableHead>
+                        <TableHead className="text-center uppercase text-[10px] font-bold">Cust. Charge</TableHead>
+                        <TableHead className="text-center uppercase text-[10px] font-bold">Worker Pay</TableHead>
+                        <TableHead className="text-center uppercase text-[10px] font-bold">Diff.</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>

@@ -1,4 +1,3 @@
-
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { AddExpenseDialog } from "@/components/expenses/add-expense-dialog";
@@ -72,11 +71,11 @@ function IncomesTable({ incomes }: { incomes: OtherIncome[] }) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="hidden sm:table-cell uppercase text-[10px] font-bold">Date</TableHead>
-                <TableHead className="uppercase text-[10px] font-bold">Bill No</TableHead>
-                <TableHead className="uppercase text-[10px] font-bold">Category</TableHead>
-                <TableHead className="uppercase text-[10px] font-bold">Description</TableHead>
-                <TableHead className="text-right uppercase text-[10px] font-bold">Amount</TableHead>
+                <TableHead className="hidden sm:table-cell uppercase text-[10px] font-bold text-center">Date</TableHead>
+                <TableHead className="uppercase text-[10px] font-bold text-center">Bill No</TableHead>
+                <TableHead className="uppercase text-[10px] font-bold text-center">Category</TableHead>
+                <TableHead className="uppercase text-[10px] font-bold text-center">Description</TableHead>
+                <TableHead className="text-center uppercase text-[10px] font-bold">Amount</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -107,11 +106,11 @@ function ExpensesTable({ expenses }: { expenses: Expense[] }) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="hidden sm:table-cell uppercase text-[10px] font-bold">Date</TableHead>
-              <TableHead className="uppercase text-[10px] font-bold">Bill No</TableHead>
-              <TableHead className="uppercase text-[10px] font-bold">Category</TableHead>
-              <TableHead className="uppercase text-[10px] font-bold">Description</TableHead>
-              <TableHead className="text-right uppercase text-[10px] font-bold">Amount</TableHead>
+              <TableHead className="hidden sm:table-cell uppercase text-[10px] font-bold text-center">Date</TableHead>
+              <TableHead className="uppercase text-[10px] font-bold text-center">Bill No</TableHead>
+              <TableHead className="uppercase text-[10px] font-bold text-center">Category</TableHead>
+              <TableHead className="uppercase text-[10px] font-bold text-center">Description</TableHead>
+              <TableHead className="text-center uppercase text-[10px] font-bold">Amount</TableHead>
               {canEdit && <TableHead className="w-[50px]"></TableHead>}
             </TableRow>
           </TableHeader>
@@ -145,11 +144,11 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="uppercase text-[10px] font-bold">Lender</TableHead>
-                <TableHead className="uppercase text-[10px] font-bold">Date Taken</TableHead>
-                <TableHead className="text-right uppercase text-[10px] font-bold">Interest %</TableHead>
-                <TableHead className="text-right uppercase text-[10px] font-bold">Interest Due</TableHead>
-                <TableHead className="text-right uppercase text-[10px] font-bold">Principal Due</TableHead>
+                <TableHead className="uppercase text-[10px] font-bold text-center">Lender</TableHead>
+                <TableHead className="uppercase text-[10px] font-bold text-center">Date Taken</TableHead>
+                <TableHead className="text-center uppercase text-[10px] font-bold">Interest %</TableHead>
+                <TableHead className="text-center uppercase text-[10px] font-bold">Interest Due</TableHead>
+                <TableHead className="text-center uppercase text-[10px] font-bold">Principal Due</TableHead>
                 {canEdit && <TableHead className="w-[50px]"></TableHead>}
               </TableRow>
             </TableHeader>
@@ -185,11 +184,11 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="uppercase text-[10px] font-bold">Borrower</TableHead>
-                <TableHead className="uppercase text-[10px] font-bold">Date Given</TableHead>
-                <TableHead className="text-right uppercase text-[10px] font-bold">Interest %</TableHead>
-                <TableHead className="text-right uppercase text-[10px] font-bold">Interest Due</TableHead>
-                <TableHead className="text-right uppercase text-[10px] font-bold">Principal Due</TableHead>
+                <TableHead className="uppercase text-[10px] font-bold text-center">Borrower</TableHead>
+                <TableHead className="uppercase text-[10px] font-bold text-center">Date Given</TableHead>
+                <TableHead className="text-center uppercase text-[10px] font-bold">Interest %</TableHead>
+                <TableHead className="text-center uppercase text-[10px] font-bold">Interest Due</TableHead>
+                <TableHead className="text-center uppercase text-[10px] font-bold">Principal Due</TableHead>
                 {canEdit && <TableHead className="w-[50px]"></TableHead>}
               </TableRow>
             </TableHeader>

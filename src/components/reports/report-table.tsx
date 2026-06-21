@@ -59,17 +59,17 @@ export function ReportTable({ records, allRecords, customers, title }: ReportTab
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead>Customer</TableHead>
-                        <TableHead className="hidden sm:table-cell">Start Date</TableHead>
-                        <TableHead className="hidden lg:table-cell">End Date</TableHead>
-                        <TableHead className="hidden md:table-cell">Status</TableHead>
-                        <TableHead className="text-right hidden xl:table-cell">Bags In</TableHead>
-                        <TableHead className="text-right hidden xl:table-cell">Bags Out</TableHead>
-                        <TableHead className="text-right">Balance</TableHead>
-                        <TableHead className="text-right hidden md:table-cell">Total Billed</TableHead>
-                        <TableHead className="text-right hidden lg:table-cell">Amount Paid</TableHead>
-                        <TableHead className="text-right">Balance Due</TableHead>
-                        <TableHead className="w-[50px] text-right print-hide">Actions</TableHead>
+                        <TableHead className="text-center">Customer</TableHead>
+                        <TableHead className="hidden sm:table-cell text-center">Start Date</TableHead>
+                        <TableHead className="hidden lg:table-cell text-center">End Date</TableHead>
+                        <TableHead className="hidden md:table-cell text-center">Status</TableHead>
+                        <TableHead className="text-center hidden xl:table-cell">Bags In</TableHead>
+                        <TableHead className="text-center hidden xl:table-cell">Bags Out</TableHead>
+                        <TableHead className="text-center">Balance</TableHead>
+                        <TableHead className="text-center hidden md:table-cell">Total Billed</TableHead>
+                        <TableHead className="text-center hidden lg:table-cell">Amount Paid</TableHead>
+                        <TableHead className="text-center">Balance Due</TableHead>
+                        <TableHead className="w-[50px] text-center print-hide">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>

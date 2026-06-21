@@ -81,13 +81,13 @@ export function LotStockOutflowReport({ records, customers }: ReportProps) {
                             <Table className="text-xs">
                                 <TableHeader className="bg-muted/30">
                                     <TableRow>
-                                        <TableHead className="w-[100px] h-auto py-2">Storage ID</TableHead>
-                                        <TableHead className="min-w-[150px] h-auto py-2">Customer Name</TableHead>
-                                        <TableHead className="h-auto py-2">Commodity</TableHead>
-                                        <TableHead className="h-auto py-2">Inflow Date</TableHead>
-                                        <TableHead className="text-right h-auto py-2">Inflow Bags</TableHead>
-                                        <TableHead className="text-right text-orange-600 h-auto py-2">Total Outflow</TableHead>
-                                        <TableHead className="text-right font-bold text-primary h-auto py-2">Balance Bags</TableHead>
+                                        <TableHead className="w-[100px] h-auto py-2 text-center">Storage ID</TableHead>
+                                        <TableHead className="min-w-[150px] h-auto py-2 text-center">Customer Name</TableHead>
+                                        <TableHead className="h-auto py-2 text-center">Commodity</TableHead>
+                                        <TableHead className="h-auto py-2 text-center">Inflow Date</TableHead>
+                                        <TableHead className="text-center h-auto py-2">Inflow Bags</TableHead>
+                                        <TableHead className="text-center text-orange-600 h-auto py-2">Total Outflow</TableHead>
+                                        <TableHead className="text-center font-bold text-primary h-auto py-2">Balance Bags</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>

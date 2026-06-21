@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo } from 'react';
@@ -55,12 +54,12 @@ function LotInventoryTable({ groupedLots, customers, title }: { groupedLots: Gro
             <Table className="text-[13px]">
                 <TableHeader>
                     <TableRow className="bg-muted/50 hover:bg-muted/50">
-                        <TableHead className="w-[120px] uppercase text-[10px] font-bold">Lot No.</TableHead>
-                        <TableHead className="uppercase text-[10px] font-bold">Storage ID</TableHead>
-                        <TableHead className="uppercase text-[10px] font-bold">Customer Name</TableHead>
-                        <TableHead className="hidden md:table-cell uppercase text-[10px] font-bold">Commodity</TableHead>
-                        <TableHead className="hidden lg:table-cell uppercase text-[10px] font-bold">Inflow Date</TableHead>
-                        <TableHead className="text-right uppercase text-[10px] font-bold">Bags in Stock</TableHead>
+                        <TableHead className="w-[120px] uppercase text-[10px] font-bold text-center">Lot No.</TableHead>
+                        <TableHead className="uppercase text-[10px] font-bold text-center">Storage ID</TableHead>
+                        <TableHead className="uppercase text-[10px] font-bold text-center">Customer Name</TableHead>
+                        <TableHead className="hidden md:table-cell uppercase text-[10px] font-bold text-center">Commodity</TableHead>
+                        <TableHead className="hidden lg:table-cell uppercase text-[10px] font-bold text-center">Inflow Date</TableHead>
+                        <TableHead className="text-center uppercase text-[10px] font-bold">Bags in Stock</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>

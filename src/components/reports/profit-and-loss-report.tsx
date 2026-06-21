@@ -1,4 +1,3 @@
-
 'use client';
 import { Card, CardContent } from "@/components/ui/card";
 import { formatCurrency, toDate } from "@/lib/utils";
@@ -7,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFoo
 import type { Expense, StorageRecord, UnloadingRecord, WarehouseInfo, Borrowing, Lending, OtherIncome, CustomerPayment } from "@/lib/definitions";
 import { format } from "date-fns";
 import { useDateFilter } from "@/firebase/provider";
+import { calculateFinalRent } from "@/lib/billing";
 
 type ProfitAndLossReportProps = {
     allRecords: StorageRecord[];
@@ -113,8 +113,8 @@ export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecor
                 <Table className="text-[13px] border-collapse">
                     <TableHeader>
                         <TableRow className="bg-slate-50 border-y-2 border-black">
-                            <TableHead className="font-black text-black uppercase text-[10px] py-3">Financial Particulars</TableHead>
-                            <TableHead className="text-right font-black text-black uppercase text-[10px] py-3">Amount (INR)</TableHead>
+                            <TableHead className="font-black text-black uppercase text-[10px] py-3 text-center">Financial Particulars</TableHead>
+                            <TableHead className="text-center font-black text-black uppercase text-[10px] py-3">Amount (INR)</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>

@@ -78,16 +78,15 @@
     
     table {
       width: 100%;
-      min-width: 700px; /* Prevent vertical squashing of text */
+      min-width: 700px;
     }
 
     th, td {
       white-space: nowrap; 
       min-width: 100px;
-      font-size: 14px !important; /* Keep font readable on mobile screen */
+      font-size: 14px !important;
     }
 
-    /* Professional scaling for mobile viewed documents */
     .printable-area {
       width: 100% !important;
       max-width: 100vw !important;
@@ -97,7 +96,7 @@
   }
 
   input, textarea, select, button {
-    font-size: 16px !important; /* Prevent iOS auto-zoom on focus */
+    font-size: 16px !important;
   }
 
   .stylish-card {
@@ -118,18 +117,48 @@
     overflow: visible !important;
   }
 
-  body > * {
+  /* Ensure the main container and its parents don't hide everything */
+  body, #__next, [data-nextjs-scroll-focus-boundary] {
+    display: block !important;
+  }
+
+  /* Hide common UI elements */
+  .print-hide, 
+  header, 
+  nav, 
+  footer:not(.bill-footer), 
+  button, 
+  .sticky {
     display: none !important;
   }
 
+  /* Force display of printable containers */
   .dialog-print-area,
-  .printable-area {
+  .printable-area,
+  .printable-area * {
     display: block !important;
     visibility: visible !important;
-    position: relative !important;
-    width: 190mm !important; /* Fixed A4 Printable Width */
+  }
+
+  /* Table specific print fixes */
+  table {
+    display: table !important;
+    width: 100% !important;
+    min-width: 100% !important;
+    border-collapse: collapse !important;
+    table-layout: fixed !important;
+  }
+  
+  tr { display: table-row !important; }
+  td, th { display: table-cell !important; }
+
+  .printable-area {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 190mm !important;
     max-width: 190mm !important;
-    margin: 0 auto !important;
+    margin: 0 !important;
     padding: 0 !important;
     background-color: white !important;
     z-index: 9999 !important;
@@ -137,11 +166,11 @@
     box-shadow: none !important;
   }
 
-  table {
-    width: 100% !important;
-    min-width: 100% !important;
-    border-collapse: collapse !important;
-    table-layout: fixed !important;
+  /* Ensure text is black for clarity */
+  * {
+    color: black !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
   th, td {
@@ -150,9 +179,5 @@
     font-size: 11px !important;
     white-space: normal !important;
     word-break: break-word !important;
-  }
-
-  .print-hide {
-    display: none !important;
   }
 }

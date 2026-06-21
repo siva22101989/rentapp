@@ -132,54 +132,55 @@ export const deleteLot = async (db: Firestore, id: string): Promise<void> => {
  * and correctly restores stock for every affected lot.
  */
 export const deletePatti = async (db: Firestore, warehouseId: string, pattiNo: string): Promise<void> => {
+    // 1. Fetch all storage records for this warehouse
     const q = query(collection(db, 'storageRecords'), where('warehouseId', '==', warehouseId));
     const snap = await getDocs(q);
     
-    // Find all storage records that participated in this patti/bill
+    const searchNo = String(pattiNo).replace(/\D/g, '');
+    
+    // 2. Identify records that contain an outflow with this pattiNo
     const affectedRecords = snap.docs.filter(docSnap => {
         const data = docSnap.data() as StorageRecord;
         return (data.outflows || []).some((o: any) => 
-            String(o.pattiNo || docSnap.id).replace(/\D/g, '') === String(pattiNo).replace(/\D/g, '')
+            String(o.pattiNo || '').replace(/\D/g, '') === searchNo
         );
     });
 
-    if (affectedRecords.length === 0) throw new Error("Bill not found.");
+    if (affectedRecords.length === 0) throw new Error(`No records found for Bill #${pattiNo}`);
 
     const batch = writeBatch(db);
 
     affectedRecords.forEach(docSnap => {
         const record = docSnap.data() as StorageRecord;
-        const recordId = docSnap.id;
         const outflows = [...(record.outflows || [])];
         
-        // Find matching outflows in this record
-        const matchingOutflows = outflows.filter(o => String(o.pattiNo || recordId).replace(/\D/g, '') === String(pattiNo).replace(/\D/g, ''));
-        const newOutflows = outflows.filter(o => String(o.pattiNo || recordId).replace(/\D/g, '') !== String(pattiNo).replace(/\D/g, ''));
+        // Find outflows to remove
+        const matchingOutflows = outflows.filter(o => String(o.pattiNo || '').replace(/\D/g, '') === searchNo);
+        // Keep outflows that don't match
+        const remainingOutflows = outflows.filter(o => String(o.pattiNo || '').replace(/\D/g, '') !== searchNo);
         
-        // Calculate restored stock
         const bagsToRestore = matchingOutflows.reduce((sum, o) => sum + (Number(o.bagsWithdrawn) || 0), 0);
         const rentToReverse = matchingOutflows.reduce((sum, o) => sum + (Number(o.rentBilled) || 0), 0);
 
+        // Standardize bags calculation
         const currentBagsOut = Number(record.bagsOut) || 0;
-        const newBagsOut = Math.max(0, currentBagsOut - bagsToRestore);
-        
-        // Derive original inflow bags accurately
         const currentBagsStored = Number(record.bagsStored) || 0;
         const bagsIn = Number(record.bagsIn) || (currentBagsStored + currentBagsOut);
         
-        const newBagsStored = bagsIn - newBagsOut;
+        const newBagsOut = Math.max(0, currentBagsOut - bagsToRestore);
+        const newBagsStored = Math.max(0, bagsIn - newBagsOut);
 
         const updateData: any = {
-            outflows: cleanForFirestore(newOutflows),
+            outflows: cleanForFirestore(remainingOutflows),
             bagsOut: newBagsOut,
-            bagsStored: Math.max(0, newBagsStored),
+            bagsStored: newBagsStored,
             totalRentBilled: Math.max(0, (Number(record.totalRentBilled) || 0) - rentToReverse),
-            storageEndDate: null, // Reactivate the record
+            storageEndDate: null, // Always re-activate the record
         };
 
-        // If the record was completed, reset its billing cycle
-        if (record.billingCycle === 'Completed' && newBagsStored > 0.5) {
-            updateData.billingCycle = '6-Month Initial'; // Fallback to initial
+        // If the record was "Completed", reset it to "Active"
+        if (record.billingCycle === 'Completed') {
+            updateData.billingCycle = '6-Month Initial'; 
         }
 
         batch.update(docSnap.ref, updateData);
@@ -223,7 +224,9 @@ export const deleteOutflowEvent = async (db: Firestore, recordId: string, outflo
 export const editPattiMetadata = async (db: Firestore, warehouseId: string, pattiNo: string, newData: any): Promise<void> => {
     const q = query(collection(db, 'storageRecords'), where('warehouseId', '==', warehouseId));
     const snap = await getDocs(q);
-    const affectedRecords = snap.docs.filter(d => (d.data().outflows || []).some((o: any) => String(o.pattiNo || d.id).replace(/\D/g, '') === String(pattiNo).replace(/\D/g, '')));
+    const searchNo = String(pattiNo).replace(/\D/g, '');
+    
+    const affectedRecords = snap.docs.filter(d => (d.data().outflows || []).some((o: any) => String(o.pattiNo || '').replace(/\D/g, '') === searchNo));
 
     if (affectedRecords.length === 0) throw new Error("No records found for this Bill No.");
 
@@ -231,16 +234,13 @@ export const editPattiMetadata = async (db: Firestore, warehouseId: string, patt
     
     affectedRecords.forEach(docSnap => {
         const data = docSnap.data() as StorageRecord;
-        const recordId = docSnap.id;
         const outflows = [...(data.outflows || [])];
         let hasChanges = false;
 
-        // 1. Update outflows within this record that match the pattiNo
-        outflows.forEach((o, idx) => {
-            if (String(o.pattiNo || recordId).replace(/\D/g, '') === String(pattiNo).replace(/\D/g, '')) {
+        outflows.forEach((o) => {
+            if (String(o.pattiNo || '').replace(/\D/g, '') === searchNo) {
                 if (newData.date) o.date = newData.date;
                 if (newData.discount !== undefined && affectedRecords.length === 1) {
-                    // Only apply discount change to the first/only record if specifically provided
                     o.discount = newData.discount;
                 }
                 hasChanges = true;
@@ -273,7 +273,6 @@ export const editOutflowEvent = async (db: Firestore, recordId: string, outflowI
         if (outflowIndex < 0 || outflowIndex >= outflows.length) throw new Error("Index error");
         const oldOutflow = outflows[outflowIndex];
         
-        // Safety: use small buffer for floating point
         const bagDiff = newData.bagsWithdrawn - oldOutflow.bagsWithdrawn;
         const rentDiff = newData.rentBilled - oldOutflow.rentBilled;
         

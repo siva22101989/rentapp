@@ -307,7 +307,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         <div className="border-2 border-slate-900 p-3 sm:p-4 rounded-xl bg-slate-50 mb-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-8">
                 <div className="space-y-2 border-b md:border-b-0 md:border-r border-slate-200 pb-3 md:pb-0 md:pr-10">
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Physical Stock Inventory</h3>
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 text-center">Physical Stock Inventory</h3>
                     <div className="flex justify-between text-[12px] sm:text-[13px]"><span>Total Inflow (History):</span><span className="font-mono font-bold">{totals.totalBagsIn}</span></div>
                     <div className="flex justify-between text-[12px] sm:text-[13px]"><span>Total Outflow:</span><span className="font-mono font-bold text-orange-600">{totals.totalBagsOut}</span></div>
                     <div className="flex justify-between items-center border-t border-slate-300 pt-2 mt-2 text-primary font-black">
@@ -317,7 +317,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 </div>
 
                 <div className="space-y-3 md:pl-2">
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1">Financial Reconciliation</h3>
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1 text-center">Financial Reconciliation</h3>
                     <div className="grid grid-cols-2 gap-x-4 sm:gap-x-8 gap-y-2 text-[11px] sm:text-[12px]">
                         <div className="space-y-0.5 border-r border-slate-100 pr-2 sm:pr-4">
                             <p className="uppercase text-[9px] font-bold text-slate-400">Labor/Rent</p>
@@ -338,14 +338,14 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 <TableHeader>
                     <TableRow className="border-b border-black bg-slate-50 h-10">
                         <TableHead className="font-bold text-black border-r border-slate-200 text-center p-1 uppercase text-[9px]">Date</TableHead>
-                        <TableHead className="font-bold text-black border-r border-slate-200 p-1 uppercase text-[9px]">Description</TableHead>
+                        <TableHead className="font-bold text-black border-r border-slate-200 p-1 uppercase text-[9px] text-center">Description</TableHead>
                         <TableHead className="font-bold text-black border-r border-slate-200 text-center p-1 uppercase text-[9px]">In</TableHead>
                         <TableHead className="font-bold text-black border-r border-slate-200 text-center p-1 uppercase text-[9px]">Out</TableHead>
-                        <TableHead className="font-bold text-black border-r border-slate-200 text-right p-1 uppercase text-[9px]">Hamali</TableHead>
-                        <TableHead className="font-bold text-black border-r border-slate-200 text-right p-1 uppercase text-[9px]">Rent</TableHead>
-                        <TableHead className="font-bold text-black border-r border-slate-200 text-right p-1 uppercase text-[9px]">Disc</TableHead>
-                        <TableHead className="font-bold text-black border-r border-slate-200 text-right p-1 uppercase text-[9px]">Paid</TableHead>
-                        <TableHead className="font-bold text-black text-right p-1 uppercase text-[9px]">Balance</TableHead>
+                        <TableHead className="font-bold text-black border-r border-slate-200 text-center p-1 uppercase text-[9px]">Hamali</TableHead>
+                        <TableHead className="font-bold text-black border-r border-slate-200 text-center p-1 uppercase text-[9px]">Rent</TableHead>
+                        <TableHead className="font-bold text-black border-r border-slate-200 text-center p-1 uppercase text-[9px]">Disc</TableHead>
+                        <TableHead className="font-bold text-black border-r border-slate-200 text-center p-1 uppercase text-[9px]">Paid</TableHead>
+                        <TableHead className="font-bold text-black text-center p-1 uppercase text-[9px]">Balance</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>

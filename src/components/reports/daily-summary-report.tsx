@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo } from 'react';
@@ -73,7 +72,7 @@ const DailySummaryContent = ({ dailyData, selectedDate }: { dailyData: DailyData
                         <ArrowDownToDot className="h-3 w-3 text-sky-500" />
                     </CardHeader>
                     <CardContent className="p-2 pt-0">
-                         <div className="text-lg font-black text-slate-800">{dailyData.summary.totalInflowBags}</div>
+                        <div className="text-lg font-black text-slate-800">{dailyData.summary.totalInflowBags}</div>
                     </CardContent>
                 </Card>
                 <Card className="shadow-sm border-slate-200">
@@ -82,7 +81,7 @@ const DailySummaryContent = ({ dailyData, selectedDate }: { dailyData: DailyData
                         <ArrowUpFromDot className="h-3 w-3 text-orange-500" />
                     </CardHeader>
                     <CardContent className="p-2 pt-0">
-                         <div className="text-lg font-black text-slate-800">{dailyData.summary.totalOutflowBags}</div>
+                        <div className="text-lg font-black text-slate-800">{dailyData.summary.totalOutflowBags}</div>
                     </CardContent>
                 </Card>
             </div>
@@ -94,11 +93,11 @@ const DailySummaryContent = ({ dailyData, selectedDate }: { dailyData: DailyData
                          <Table className="border border-slate-100 text-[13px]">
                             <TableHeader className="bg-slate-50">
                                 <TableRow className="h-7">
-                                    <TableHead className="font-bold py-1">Outflow ID</TableHead>
-                                    <TableHead className="font-bold py-1">Customer</TableHead>
-                                    <TableHead className="font-bold py-1">Lot/Prod</TableHead>
+                                    <TableHead className="font-bold py-1 text-center">Outflow ID</TableHead>
+                                    <TableHead className="font-bold py-1 text-center">Customer</TableHead>
+                                    <TableHead className="font-bold py-1 text-center">Lot/Prod</TableHead>
                                     <TableHead className="font-bold text-center py-1">Bags Out</TableHead>
-                                    <TableHead className="font-bold text-right py-1">Rent Billed</TableHead>
+                                    <TableHead className="font-bold text-center py-1 text-right">Rent Billed</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -125,9 +124,9 @@ const DailySummaryContent = ({ dailyData, selectedDate }: { dailyData: DailyData
                         <Table className="border border-slate-100 text-[13px]">
                             <TableHeader className="bg-slate-50">
                                 <TableRow className="h-7">
-                                    <TableHead className="font-bold py-1">Customer</TableHead>
-                                    <TableHead className="font-bold py-1">Description</TableHead>
-                                    <TableHead className="font-bold text-right py-1">Amount</TableHead>
+                                    <TableHead className="font-bold py-1 text-center">Customer</TableHead>
+                                    <TableHead className="font-bold py-1 text-center">Description</TableHead>
+                                    <TableHead className="font-bold text-center py-1 text-right">Amount</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -149,9 +148,9 @@ const DailySummaryContent = ({ dailyData, selectedDate }: { dailyData: DailyData
                         <Table className="border border-slate-100 text-[13px]">
                             <TableHeader className="bg-slate-50">
                                 <TableRow className="h-7">
-                                    <TableHead className="font-bold py-1">Ref No</TableHead>
-                                    <TableHead className="font-bold py-1">Description</TableHead>
-                                    <TableHead className="font-bold text-right py-1">Amount</TableHead>
+                                    <TableHead className="font-bold py-1 text-center">Ref No</TableHead>
+                                    <TableHead className="font-bold py-1 text-center">Description</TableHead>
+                                    <TableHead className="font-bold text-center py-1 text-right">Amount</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>

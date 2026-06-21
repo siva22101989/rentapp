@@ -47,13 +47,13 @@ export function PendingDuesReportTable({ summaries, title, customers, storageRec
             <Table className="text-[13px]">
                 <TableHeader>
                     <TableRow className="bg-slate-50/80 hover:bg-slate-50/80 border-b-2">
-                        <TableHead className="font-bold text-slate-900 py-3 uppercase text-[10px]">Customer Name</TableHead>
-                        <TableHead className="text-right font-bold text-slate-900 py-3 uppercase text-[10px]">Hamali Pending</TableHead>
-                        <TableHead className="text-right font-bold text-slate-900 py-3 uppercase text-[10px]">Rent Pending</TableHead>
-                        <TableHead className="text-right font-bold text-slate-900 py-3 uppercase text-[10px]">Total Billed</TableHead>
-                        <TableHead className="text-right font-bold text-slate-900 py-3 uppercase text-[10px]">Amount Paid</TableHead>
-                        <TableHead className="text-right font-bold text-slate-900 py-3 uppercase text-[10px]">Balance Due</TableHead>
-                        {!isReport && <TableHead className="w-[80px] print-hide"></TableHead>}
+                        <TableHead className="font-bold text-slate-900 py-3 uppercase text-[10px] text-center">Customer Name</TableHead>
+                        <TableHead className="font-bold text-slate-900 py-3 uppercase text-[10px] text-center">Hamali Pending</TableHead>
+                        <TableHead className="font-bold text-slate-900 py-3 uppercase text-[10px] text-center">Rent Pending</TableHead>
+                        <TableHead className="font-bold text-slate-900 py-3 uppercase text-[10px] text-center">Total Billed</TableHead>
+                        <TableHead className="font-bold text-slate-900 py-3 uppercase text-[10px] text-center">Amount Paid</TableHead>
+                        <TableHead className="font-bold text-slate-900 py-3 uppercase text-[10px] text-center">Balance Due</TableHead>
+                        {!isReport && <TableHead className="w-[80px] print-hide text-center"></TableHead>}
                     </TableRow>
                 </TableHeader>
                 <TableBody>

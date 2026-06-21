@@ -85,10 +85,10 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
                     <table className="bill-table border-2 border-black border-collapse text-[12px] sm:text-[13px]">
                         <thead>
                             <tr className="border-b-2 border-black bg-slate-50 h-10">
-                                <th className="font-black uppercase text-[10px] px-4 text-left border-r border-black">Description</th>
+                                <th className="font-black uppercase text-[10px] px-4 text-center border-r border-black">Description</th>
                                 <th className="font-black uppercase text-[10px] px-2 text-center w-24 border-r border-black">Bags</th>
-                                <th className="font-black uppercase text-[10px] px-2 text-right w-24 border-r border-black">Rate</th>
-                                <th className="font-black uppercase text-[10px] px-2 text-right w-32">Amount</th>
+                                <th className="font-black uppercase text-[10px] px-2 text-center w-24 border-r border-black">Rate</th>
+                                <th className="font-black uppercase text-[10px] px-2 text-center w-32">Amount</th>
                             </tr>
                         </thead>
                         <tbody>

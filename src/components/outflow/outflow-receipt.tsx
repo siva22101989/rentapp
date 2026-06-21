@@ -122,9 +122,9 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
                           <th className="font-black uppercase text-[10px] text-center w-[15%] border-r border-black">Lot No.</th>
                           <th className="font-black uppercase text-[10px] text-center w-[18%] border-r border-black">Inflow Date</th>
                           <th className="font-black uppercase text-[10px] text-center w-[12%] border-r border-black">Months</th>
-                          <th className="font-black uppercase text-[10px] text-right px-2 w-[12%] border-r border-black">Bags</th>
-                          <th className="font-black uppercase text-[10px] text-right px-2 w-[25%] border-r border-black">Rate Math</th>
-                          <th className="font-black uppercase text-[10px] text-right px-2 w-[18%]">Rent Amount</th>
+                          <th className="font-black uppercase text-[10px] text-center px-2 w-[12%] border-r border-black">Bags</th>
+                          <th className="font-black uppercase text-[10px] text-center px-2 w-[25%] border-r border-black">Rate Math</th>
+                          <th className="font-black uppercase text-[10px] text-center px-2 w-[18%]">Rent Amount</th>
                       </tr>
                   </thead>
                   <tbody>

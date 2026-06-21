@@ -24,7 +24,7 @@ export const UnloadingReceipt = React.forwardRef<HTMLDivElement, { record: Unloa
                 table.no-border, table.no-border td { border: none !important; }
                 @media screen {
                     .bill-table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-                    .bill-table { min-width: 600px; width: 100%; }
+                    .bill-table { min-width: 700px; width: 100%; }
                 }
             `}</style>
 
@@ -73,10 +73,10 @@ export const UnloadingReceipt = React.forwardRef<HTMLDivElement, { record: Unloa
                 <table className="bill-table border-2 border-black border-collapse text-[12px] sm:text-[13px]">
                     <thead>
                         <tr className="bg-slate-50 border-b-2 border-black h-12">
-                            <th className="font-black uppercase text-[10px] px-4 text-left border-r border-black">Description of Service</th>
+                            <th className="font-black uppercase text-[10px] px-4 text-center border-r border-black">Description of Service</th>
                             <th className="font-black uppercase text-[10px] px-2 text-center w-24 border-r border-black">Bags</th>
-                            <th className="font-black uppercase text-[10px] px-2 text-right w-32 border-r border-black">Rate</th>
-                            <th className="font-black uppercase text-[10px] px-2 text-right w-32">Amount</th>
+                            <th className="font-black uppercase text-[10px] px-2 text-center w-32 border-r border-black">Rate</th>
+                            <th className="font-black uppercase text-[10px] px-2 text-center w-32">Amount</th>
                         </tr>
                     </thead>
                     <tbody>

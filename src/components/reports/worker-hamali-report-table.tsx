@@ -45,12 +45,12 @@ export function WorkerHamaliReportTable({ events, title, warehouseInfo }: Report
                     <TableHeader>
                         <TableRow className="border-b border-black bg-slate-50">
                             <TableHead className="font-bold text-black p-2 text-center uppercase text-[10px]">Date</TableHead>
-                            <TableHead className="font-bold text-black p-2 text-left uppercase text-[10px]">Description (Customer - Process)</TableHead>
+                            <TableHead className="font-bold text-black p-2 text-center uppercase text-[10px]">Description (Customer - Process)</TableHead>
                             <TableHead className="font-bold text-black p-2 text-center uppercase text-[10px]">Ref ID</TableHead>
                             <TableHead className="font-bold text-black p-2 text-center uppercase text-[10px]">Bags</TableHead>
-                            <TableHead className="font-bold text-black p-2 text-right uppercase text-[10px]">Payable (+)</TableHead>
-                            <TableHead className="font-bold text-black p-2 text-right uppercase text-[10px]">Paid (-)</TableHead>
-                            <TableHead className="font-bold text-black p-2 text-right uppercase text-[10px]">Balance</TableHead>
+                            <TableHead className="font-bold text-black p-2 text-center uppercase text-[10px]">Payable (+)</TableHead>
+                            <TableHead className="font-bold text-black p-2 text-center uppercase text-[10px]">Paid (-)</TableHead>
+                            <TableHead className="font-bold text-black p-2 text-center uppercase text-[10px]">Balance</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>

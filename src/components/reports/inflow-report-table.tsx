@@ -45,15 +45,15 @@ export function InflowReportTable({ records, allRecords, customers, title }: Rep
                         <TableRow className="border-b border-slate-900 bg-slate-50">
                             <TableHead className="font-bold text-black p-2 text-center uppercase text-[10px]">Date</TableHead>
                             <TableHead className="font-bold text-black p-2 text-center uppercase text-[10px]">Bill No</TableHead>
-                            <TableHead className="font-bold text-black p-2 text-left uppercase text-[10px]">Customer Name</TableHead>
-                            <TableHead className="font-bold text-black p-2 text-left uppercase text-[10px]">Vehicle No</TableHead>
+                            <TableHead className="font-bold text-black p-2 text-center uppercase text-[10px]">Customer Name</TableHead>
+                            <TableHead className="font-bold text-black p-2 text-center uppercase text-[10px]">Vehicle No</TableHead>
                             <TableHead className="font-bold text-black p-2 text-center uppercase text-[10px]">Lot</TableHead>
-                            <TableHead className="font-bold text-black p-2 text-right uppercase text-[10px]">Bags</TableHead>
-                            <TableHead className="font-bold text-black p-2 text-right uppercase text-[10px]">Weight</TableHead>
-                            <TableHead className="font-bold text-black p-2 text-right uppercase text-[10px]">Rate</TableHead>
-                            <TableHead className="font-bold text-black p-2 text-right uppercase text-[10px]">Hamali</TableHead>
-                            <TableHead className="font-bold text-black p-2 text-right uppercase text-[10px]">Khata</TableHead>
-                            <TableHead className="font-bold text-black p-2 text-right uppercase text-[10px] print-hide">Actions</TableHead>
+                            <TableHead className="font-bold text-black p-2 text-center uppercase text-[10px]">Bags</TableHead>
+                            <TableHead className="font-bold text-black p-2 text-center uppercase text-[10px]">Weight</TableHead>
+                            <TableHead className="font-bold text-black p-2 text-center uppercase text-[10px]">Rate</TableHead>
+                            <TableHead className="font-bold text-black p-2 text-center uppercase text-[10px]">Hamali</TableHead>
+                            <TableHead className="font-bold text-black p-2 text-center uppercase text-[10px]">Khata</TableHead>
+                            <TableHead className="font-bold text-black p-2 text-center uppercase text-[10px] print-hide">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>

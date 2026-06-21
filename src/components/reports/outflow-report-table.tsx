@@ -50,11 +50,11 @@ export function OutflowReportTable({ events, customers, allRecords, commodities,
                         <TableRow className="border-b border-black bg-slate-50">
                             <TableHead className="font-bold text-black p-2 text-center uppercase text-[10px] whitespace-nowrap">Date</TableHead>
                             <TableHead className="font-bold text-black p-2 text-center uppercase text-[10px] whitespace-nowrap">Bill No</TableHead>
-                            <TableHead className="font-bold text-black p-2 text-left uppercase text-[10px] whitespace-nowrap">Customer Name</TableHead>
-                            <TableHead className="font-bold text-black p-2 text-left uppercase text-[10px] whitespace-nowrap">Location/Lot</TableHead>
+                            <TableHead className="font-bold text-black p-2 text-center uppercase text-[10px] whitespace-nowrap">Customer Name</TableHead>
+                            <TableHead className="font-bold text-black p-2 text-center uppercase text-[10px] whitespace-nowrap">Location/Lot</TableHead>
                             <TableHead className="font-bold text-black p-2 text-center uppercase text-[10px] whitespace-nowrap">Bags Out</TableHead>
-                            <TableHead className="font-bold text-black p-2 text-right uppercase text-[10px] whitespace-nowrap">Rent Billed</TableHead>
-                            <TableHead className="font-bold text-black p-2 text-right uppercase text-[10px] print-hide whitespace-nowrap">Actions</TableHead>
+                            <TableHead className="font-bold text-black p-2 text-center uppercase text-[10px] whitespace-nowrap">Rent Billed</TableHead>
+                            <TableHead className="font-bold text-black p-2 text-center uppercase text-[10px] print-hide whitespace-nowrap">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>

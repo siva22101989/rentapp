@@ -37,11 +37,11 @@ export function CustomerHamaliReportTable({ events, customers, allRecords, title
                     <TableHeader>
                         <TableRow className="border-b border-black">
                             <TableHead className="font-bold text-black p-1 text-center uppercase text-[9px]">Date</TableHead>
-                            <TableHead className="font-bold text-black p-1 text-left uppercase text-[9px]">Customer Name</TableHead>
+                            <TableHead className="font-bold text-black p-1 text-center uppercase text-[9px]">Customer Name</TableHead>
                             <TableHead className="font-bold text-black p-1 text-center uppercase text-[9px]">Ref ID</TableHead>
-                            <TableHead className="font-bold text-black p-1 text-right uppercase text-[9px]">Charge</TableHead>
-                            <TableHead className="font-bold text-black p-1 text-right uppercase text-[9px]">Payment</TableHead>
-                            <TableHead className="font-bold text-black p-1 text-right uppercase text-[9px] print-hide">Actions</TableHead>
+                            <TableHead className="font-bold text-black p-1 text-center uppercase text-[9px]">Charge</TableHead>
+                            <TableHead className="font-bold text-black p-1 text-center uppercase text-[9px]">Payment</TableHead>
+                            <TableHead className="font-bold text-black p-1 text-center uppercase text-[9px] print-hide">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>

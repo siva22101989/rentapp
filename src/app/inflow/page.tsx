@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { InflowForm } from "@/components/inflow/inflow-form";
 import { AddCustomerDialog } from "@/components/customers/add-customer-dialog";
 import { useMemo } from "react";
-import type { Customer, StorageRecord, Commodity, Lot } from "@/lib/definitions";
+import type { Customer, StorageRecord, Commodity, Lot, UnloadingRecord } from "@/lib/definitions";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { collection, query, where } from "firebase/firestore";
 import { useFirestore } from "@/firebase/provider";
@@ -30,6 +30,12 @@ export default function InflowPage() {
   );
   const { data: records, loading: loadingRecords } = useCollection<StorageRecord>(recordsQuery);
 
+  const unloadingRecordsQuery = useMemoFirebase(
+    () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'unloadingRecords'), where('warehouseId', '==', appUser.warehouseId)) : null),
+    [firestore, appUser]
+  );
+  const { data: unloadingRecords, loading: loadingUnloading } = useCollection<UnloadingRecord>(unloadingRecordsQuery);
+
   const commoditiesQuery = useMemoFirebase(
     () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'commodities'), where('warehouseId', '==', appUser.warehouseId)) : null),
     [firestore, appUser]
@@ -43,24 +49,44 @@ export default function InflowPage() {
   const { data: lots, loading: loadingLots } = useCollection<Lot>(lotsQuery);
 
   const nextId = useMemo(() => {
-    if (!records || records.length === 0) return '1001';
-    const maxId = records.reduce((max, r) => {
-        const idNum = parseInt(r.id.replace(/[^0-9]/g, ''), 10);
-        return isNaN(idNum) ? max : Math.max(max, idNum);
-    }, 0);
-    return String(Math.max(1001, maxId + 1));
-  }, [records]);
+    let max = 1000;
+    
+    // 1. Check Storage Records & Outflow Pattis
+    if (records) {
+        records.forEach(r => {
+            const idNum = parseInt(String(r.id).replace(/\D/g, ''), 10);
+            if (!isNaN(idNum) && idNum > max) max = idNum;
+            
+            if (Array.isArray(r.outflows)) {
+                r.outflows.forEach(o => {
+                    const pNum = parseInt(String(o.pattiNo || '0').replace(/\D/g, ''), 10);
+                    if (!isNaN(pNum) && pNum > max) max = pNum;
+                });
+            }
+        });
+    }
+
+    // 2. Check Unloading Bills
+    if (unloadingRecords) {
+        unloadingRecords.forEach(ur => {
+            const billNum = parseInt(String(ur.billNo || ur.id).replace(/\D/g, ''), 10);
+            if (!isNaN(billNum) && billNum > max) max = billNum;
+        });
+    }
+
+    return String(max + 1);
+  }, [records, unloadingRecords]);
 
 
-  if (loadingCustomers || loadingRecords || loadingCommodities || loadingLots) {
-    return <AppLayout><div className="p-8 text-center">Loading inflow data...</div></AppLayout>;
+  if (loadingCustomers || loadingRecords || loadingCommodities || loadingLots || loadingUnloading) {
+    return <AppLayout><div className="p-8 text-center">Loading global sequence...</div></AppLayout>;
   }
 
   return (
     <AppLayout>
       <PageHeader
         title="Add Inflow"
-        description="Create a new storage record for a customer."
+        description="Create a new storage record. IDs are sequential across all bill types."
       >
         {canAdd && <AddCustomerDialog />}
       </PageHeader>

@@ -1,8 +1,9 @@
+
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
 import { OutflowForm } from "@/components/outflow/outflow-form";
-import type { Customer, StorageRecord, Commodity } from "@/lib/definitions";
+import type { Customer, StorageRecord, Commodity, UnloadingRecord } from "@/lib/definitions";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { collection, query, where } from "firebase/firestore";
 import { useFirestore } from "@/firebase/provider";
@@ -17,12 +18,17 @@ export default function OutflowPage() {
   const appUser = useAppUser();
   const canAdd = appUser?.role !== 'super-admin';
 
-  // 1. Fetch ALL records for ID calculation (to prevent repeats)
   const allRecordsQuery = useMemoFirebase(
     () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'storageRecords'), where('warehouseId', '==', appUser.warehouseId)) : null),
     [firestore, appUser]
   );
   const { data: allRecords, loading: loadingRecords } = useCollection<StorageRecord>(allRecordsQuery);
+
+  const unloadingRecordsQuery = useMemoFirebase(
+    () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'unloadingRecords'), where('warehouseId', '==', appUser.warehouseId)) : null),
+    [firestore, appUser]
+  );
+  const { data: unloadingRecords, loading: loadingUnloading } = useCollection<UnloadingRecord>(unloadingRecordsQuery);
 
   const customersQuery = useMemoFirebase(
     () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'customers'), where('warehouseId', '==', appUser.warehouseId)) : null),
@@ -36,7 +42,6 @@ export default function OutflowPage() {
   );
   const { data: commodities, loading: loadingCommodities } = useCollection<Commodity>(commoditiesQuery);
 
-  // 2. Extract Active Records for selection
   const activeRecords = useMemo(() => {
     if (!allRecords) return [];
     return allRecords.filter(r => {
@@ -47,12 +52,12 @@ export default function OutflowPage() {
     });
   }, [allRecords]);
 
-  if (loadingCustomers || loadingRecords || loadingCommodities) {
+  if (loadingCustomers || loadingRecords || loadingCommodities || loadingUnloading) {
     return (
         <AppLayout>
             <div className="flex h-64 items-center justify-center text-muted-foreground">
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Synchronizing global inventory...
+                Synchronizing global sequence...
             </div>
         </AppLayout>
     );
@@ -62,12 +67,13 @@ export default function OutflowPage() {
     <AppLayout>
       <PageHeader
         title="Process Outflow"
-        description="Withdraw items from Godown. Every entry generates a unique numerical ID."
+        description="IDs are unique and sequential across Inflow, Unloading, and Outflow."
       />
       {canAdd ? (
         <OutflowForm 
             activeRecords={activeRecords} 
             allRecords={allRecords || []} 
+            unloadingRecords={unloadingRecords || []}
             customers={customers || []} 
             commodities={commodities || []} 
         />

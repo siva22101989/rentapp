@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useTransition, useMemo } from 'react';
@@ -8,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import type { Customer, StorageRecord, Payment, Outflow, WarehouseInfo, Commodity } from '@/lib/definitions';
+import type { Customer, StorageRecord, Payment, Outflow, WarehouseInfo, Commodity, UnloadingRecord } from '@/lib/definitions';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Sparkles } from 'lucide-react';
 import { Separator } from '../ui/separator';
@@ -21,7 +22,19 @@ import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 import { Checkbox } from '@/components/ui/checkbox';
 import { sendSms } from '@/lib/sms';
 
-export function OutflowForm({ activeRecords = [], allRecords = [], customers = [], commodities = [] }: { activeRecords: StorageRecord[], allRecords: StorageRecord[], customers: Customer[], commodities: Commodity[] }) {
+export function OutflowForm({ 
+    activeRecords = [], 
+    allRecords = [], 
+    unloadingRecords = [],
+    customers = [], 
+    commodities = [] 
+}: { 
+    activeRecords: StorageRecord[], 
+    allRecords: StorageRecord[], 
+    unloadingRecords: UnloadingRecord[],
+    customers: Customer[], 
+    commodities: Commodity[] 
+}) {
     const { toast } = useToast();
     const firestore = useFirestore();
     const appUser = useAppUser();
@@ -47,10 +60,15 @@ export function OutflowForm({ activeRecords = [], allRecords = [], customers = [
     );
     const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
-    // Calculate Serialized Bill No for the transaction batch
+    // Calculate Global Serialized Bill No
     const nextBillNo = useMemo(() => {
         let max = 1000;
+        
+        // 1. Check all Storage Records & Outflow Pattis
         allRecords.forEach(r => {
+            const idNum = parseInt(String(r.id).replace(/\D/g, ''), 10);
+            if (!isNaN(idNum) && idNum > max) max = idNum;
+
             if (Array.isArray(r.outflows)) {
                 r.outflows.forEach(o => {
                     const num = parseInt(String(o.pattiNo || '0').replace(/\D/g, ''), 10);
@@ -58,8 +76,15 @@ export function OutflowForm({ activeRecords = [], allRecords = [], customers = [
                 });
             }
         });
+
+        // 2. Check all Unloading Bills
+        unloadingRecords.forEach(ur => {
+            const billNum = parseInt(String(ur.billNo || ur.id).replace(/\D/g, ''), 10);
+            if (!isNaN(billNum) && billNum > max) max = billNum;
+        });
+
         return max + 1;
-    }, [allRecords]);
+    }, [allRecords, unloadingRecords]);
 
     const customerOptions = useMemo(() => (customers || []).map(c => ({ value: c.id, label: c.name })), [customers]);
 
@@ -68,7 +93,6 @@ export function OutflowForm({ activeRecords = [], allRecords = [], customers = [
         return (activeRecords || [])
             .filter(r => r.customerId === selectedCustomerId)
             .map(r => {
-                // IMPORTANT: Calculate bagsOut from history to ensure accurate current stock levels
                 const bagsOutSum = Array.isArray(r.outflows) 
                     ? r.outflows.reduce((acc, o) => acc + (Number(o.bagsWithdrawn) || 0), 0) 
                     : (Number(r.bagsOut) || 0);
@@ -97,14 +121,12 @@ export function OutflowForm({ activeRecords = [], allRecords = [], customers = [
         setKhataAmountInput('');
     }, [selectedCustomerId]);
 
-    // Recalculate financial totals whenever selections or date changes
     useEffect(() => {
         let runningRent = 0;
         let runningHamali = 0;
         let runningKhata = 0;
         let runningBags = 0;
         const processedRecords = new Set<string>();
-
         const wDate = toDate(withdrawalDateStr);
 
         withdrawalEntries.forEach(([recordId, bags]) => {
@@ -115,7 +137,6 @@ export function OutflowForm({ activeRecords = [], allRecords = [], customers = [
                 const normalizedDesc = (record.commodityDescription || '').trim().toLowerCase();
                 const commodity = (commodities || []).find(c => (c.name || '').trim().toLowerCase() === normalizedDesc);
 
-                // Use commodity defaults if record is missing rate info
                 if (record.rate6Months === undefined || record.rate1Year === undefined || record.monthlyRate === undefined) {
                     if (commodity) {
                         recordWithRates.rate6Months = commodity.rate6Months ?? 0;
@@ -163,7 +184,6 @@ export function OutflowForm({ activeRecords = [], allRecords = [], customers = [
     
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        
         const finalDate = toDate(withdrawalDateStr);
         if (!firestore || withdrawalEntries.length === 0) {
             toast({ title: 'Input Required', description: 'Please enter bags for withdrawal.', variant: 'destructive' });
@@ -214,7 +234,6 @@ export function OutflowForm({ activeRecords = [], allRecords = [], customers = [
                         pattiNo: sharedBillNo, 
                     };
 
-                    // CRITICAL: Calculate new stock relative to historical sum, not raw bagsOut field
                     const accurateCurrentBagsOut = (record as any).historyBagsOut;
                     const newTotalBagsOut = accurateCurrentBagsOut + bagsToWithdraw;
                     const newBagsStored = Math.max(0, record.initialInflow - newTotalBagsOut);
@@ -228,7 +247,6 @@ export function OutflowForm({ activeRecords = [], allRecords = [], customers = [
 
                     if (i === 0) updateData.khataAmount = k;
 
-                    // Close record if stock is zero
                     if (newBagsStored <= 0.05) {
                         updateData.storageEndDate = Timestamp.fromDate(finalDate);
                         updateData.billingCycle = 'Completed';
@@ -268,14 +286,14 @@ export function OutflowForm({ activeRecords = [], allRecords = [], customers = [
                 <CardHeader className="bg-secondary/30">
                     <div className="flex justify-between items-start">
                         <div>
-                            <CardTitle className="text-xl font-bold tracking-tight">Generate Serialized Outflow Bill</CardTitle>
-                            <CardDescription className="text-xs font-medium text-slate-500">Multiple lots in this transaction will share a single Bill No.</CardDescription>
+                            <CardTitle className="text-xl font-bold tracking-tight">Generate Global Serialized Bill</CardTitle>
+                            <CardDescription className="text-xs font-medium text-slate-500">Shared sequence across all warehouse transactions.</CardDescription>
                         </div>
                         <div className="text-right">
-                             <Label className="text-[9px] font-black uppercase text-primary/60 tracking-widest">Next Bill No</Label>
+                             <Label className="text-[9px] font-black uppercase text-primary/60 tracking-widest">Global Sequence</Label>
                              <div className="flex items-center gap-1.5 justify-end">
                                 <Sparkles className="h-3 w-3 text-primary" />
-                                <span className="font-mono font-black text-lg text-primary">{nextBillNo}</span>
+                                <span className="font-mono font-black text-lg text-primary">#{nextBillNo}</span>
                              </div>
                         </div>
                     </div>

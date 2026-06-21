@@ -49,23 +49,43 @@ export default function UnloadingPage() {
   const { data: storageRecords, loading: loadingStorage } = useCollection<StorageRecord>(storageRecordsQuery);
 
   const nextBillNo = useMemo(() => {
-    if (!unloadingRecords || unloadingRecords.length === 0) return '1001';
-    const maxBillNo = unloadingRecords.reduce((max, record) => {
-      const billNo = parseInt(record.billNo?.replace(/[^0-9]/g, '') || '0', 10);
-      return isNaN(billNo) ? max : Math.max(max, billNo);
-    }, 0);
-    return String(Math.max(1001, maxBillNo + 1));
-  }, [unloadingRecords]);
+    let max = 1000;
+    
+    // 1. Check Unloading Records
+    if (unloadingRecords) {
+        unloadingRecords.forEach(ur => {
+            const billNum = parseInt(String(ur.billNo || ur.id).replace(/\D/g, ''), 10);
+            if (!isNaN(billNum) && billNum > max) max = billNum;
+        });
+    }
+
+    // 2. Check Storage Records & Outflow Pattis
+    if (storageRecords) {
+        storageRecords.forEach(r => {
+            const idNum = parseInt(String(r.id).replace(/\D/g, ''), 10);
+            if (!isNaN(idNum) && idNum > max) max = idNum;
+            
+            if (Array.isArray(r.outflows)) {
+                r.outflows.forEach(o => {
+                    const pNum = parseInt(String(o.pattiNo || '0').replace(/\D/g, ''), 10);
+                    if (!isNaN(pNum) && pNum > max) max = pNum;
+                });
+            }
+        });
+    }
+
+    return String(max + 1);
+  }, [unloadingRecords, storageRecords]);
 
   if (loadingCustomers || loadingRecords || loadingCommodities || loadingLots || loadingStorage) {
-    return <AppLayout><div className="p-8 text-center">Loading unloading process...</div></AppLayout>;
+    return <AppLayout><div className="p-8 text-center">Loading global sequence...</div></AppLayout>;
   }
 
   return (
     <AppLayout>
       <PageHeader
         title="Unloading Process"
-        description="Manage the process of unloading goods from vehicles."
+        description="Sequential Bill Numbers applied across all warehouse activities."
       >
         {canAdd && <AddCustomerDialog />}
       </PageHeader>

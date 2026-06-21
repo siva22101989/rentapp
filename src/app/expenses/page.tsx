@@ -262,11 +262,13 @@ export default function ExpensesPage() {
     
     const totalCashIncome = incomeFromRecords + incomeFromUnloading + incomeFromBulk + incomeFromOther;
 
-    // 2. Calculate Loss from Discounts / Waivers
+    // 2. Calculate Loss from Discounts / Waivers (Including Outflow Patti Discounts)
     const discountFromRecords = allRecords.flatMap(r => r.payments || []).filter(p => inRange(toDate(p.date)) && p.type === 'discount').reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
     const discountFromUnloading = allUnloadingRecords.flatMap(r => r.payments || []).filter(p => inRange(toDate(p.date)) && p.type === 'discount').reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
     const discountFromBulk = customerPayments.filter(p => inRange(toDate(p.date)) && p.isDiscount).reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
-    const totalDiscountLoss = discountFromRecords + discountFromUnloading + discountFromBulk;
+    const discountFromOutflows = allRecords.flatMap(r => r.outflows || []).filter(o => inRange(toDate(o.date))).reduce((acc, o) => acc + (Number(o.discount) || 0), 0);
+    
+    const totalDiscountLoss = discountFromRecords + discountFromUnloading + discountFromBulk + discountFromOutflows;
 
     // 3. Total Operational Expenses
     const localFilteredExpenses = allExpenses.filter(e => inRange(toDate(e.date)));

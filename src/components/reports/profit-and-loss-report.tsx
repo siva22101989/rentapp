@@ -62,11 +62,13 @@ export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecor
     const incomeFromOther = localFilteredIncomes.reduce((acc, i) => acc + (Number(i.amount) || 0), 0);
     const totalCashIncome = incomeFromRecords + incomeFromUnloading + incomeFromBulk + incomeFromOther;
 
-    // Loss from Discounts / Waivers
+    // Loss from Discounts / Waivers (Including Outflow Patti Discounts)
     const discountFromRecords = allRecords.flatMap(r => r.payments || []).filter(p => inRange(toDate(p.date)) && p.type === 'discount').reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
     const discountFromUnloading = allUnloadingRecords.flatMap(r => r.payments || []).filter(p => inRange(toDate(p.date)) && p.type === 'discount').reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
     const discountFromBulk = customerPayments.filter(p => inRange(toDate(p.date)) && p.isDiscount).reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
-    const totalLossFromDiscounts = discountFromRecords + discountFromUnloading + discountFromBulk;
+    const discountFromOutflows = allRecords.flatMap(r => r.outflows || []).filter(o => inRange(toDate(o.date))).reduce((acc, o) => acc + (Number(o.discount) || 0), 0);
+    
+    const totalLossFromDiscounts = discountFromRecords + discountFromUnloading + discountFromBulk + discountFromOutflows;
 
     // Operating Expenses
     const localFilteredExpenses = allExpenses.filter(e => inRange(toDate(e.date)));
@@ -118,13 +120,13 @@ export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecor
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        <TableRow className="bg-muted/30 font-black"><TableCell colSpan={2} className="uppercase text-[10px] tracking-wider py-1.5 text-primary">Revenue & Cash Inflow</TableCell></TableRow>
+                        <TableRow className="bg-muted/30 font-black"><TableCell colSpan={2} className="uppercase text-[10px] tracking-wider py-1.5 text-primary text-center">Revenue & Cash Inflow</TableCell></TableRow>
                         {filteredIncomes.map((income) => (
                             <TableRow key={`inc-${income.id}`} className="border-b border-slate-100 h-8"><TableCell className="pl-6 font-medium">{income.description}</TableCell><TableCell className="text-right font-mono text-green-600 font-bold">{formatCurrency(income.amount)}</TableCell></TableRow>
                         ))}
                         <TableRow className="bg-green-50/50 font-black border-y border-green-200"><TableCell className="text-right uppercase text-[10px] tracking-tight">Total Realized Cash Income</TableCell><TableCell className="text-right font-mono text-green-700 text-base">{formatCurrency(periodIncome)}</TableCell></TableRow>
                         
-                        <TableRow className="bg-muted/30 font-black"><TableCell colSpan={2} className="uppercase text-[10px] tracking-wider py-1.5 text-destructive mt-6">Operational Debits & Losses</TableCell></TableRow>
+                        <TableRow className="bg-muted/30 font-black"><TableCell colSpan={2} className="uppercase text-[10px] tracking-wider py-1.5 text-destructive mt-6 text-center">Operational Debits & Losses</TableCell></TableRow>
                         {filteredExpenses.map((expense) => (
                             <TableRow key={`exp-${expense.id}`} className="border-b border-slate-100 h-8"><TableCell className="pl-6 font-medium">{expense.category}: {expense.description}</TableCell><TableCell className="text-right font-mono text-destructive">({formatCurrency(expense.amount)})</TableCell></TableRow>
                         ))}
@@ -138,7 +140,7 @@ export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecor
                     </TableBody>
                     <TableFooter>
                         <TableRow className="text-xl bg-slate-900 text-white border-t-2 border-black h-14">
-                            <TableCell className="font-black uppercase tracking-tighter">{periodBalance >= 0 ? 'Net Adjusted Profit' : 'Net Final Loss'}</TableCell>
+                            <TableCell className="font-black uppercase tracking-tighter text-center">{periodBalance >= 0 ? 'Net Adjusted Profit' : 'Net Final Loss'}</TableCell>
                             <TableCell className={`text-right font-mono font-black text-2xl underline underline-offset-8`}>{formatCurrency(periodBalance)}</TableCell>
                         </TableRow>
                     </TableFooter>
@@ -146,24 +148,24 @@ export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecor
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-12 pt-8">
                     <div className="space-y-4">
-                        <h3 className="text-[11px] font-black uppercase tracking-[0.2em] border-b-2 border-black pb-1">Unrealized Asset Valuation</h3>
+                        <h3 className="text-[11px] font-black uppercase tracking-[0.2em] border-b-2 border-black pb-1 text-center">Unrealized Asset Valuation</h3>
                         <div className="space-y-1">
-                            <p className="text-slate-500 font-bold uppercase text-[9px]">Accrued Rent Receivable</p>
-                            <p className="text-2xl font-black text-blue-600 font-mono">{formatCurrency(estimatedRent)}</p>
-                            <p className="text-[10px] text-slate-400 italic leading-tight">Valuation based on {activeBags} bags currently stacked in Godown.</p>
+                            <p className="text-slate-500 font-bold uppercase text-[9px] text-center">Accrued Rent Receivable</p>
+                            <p className="text-2xl font-black text-blue-600 font-mono text-center">{formatCurrency(estimatedRent)}</p>
+                            <p className="text-[10px] text-slate-400 italic leading-tight text-center">Valuation based on {activeBags} bags currently stacked in Godown.</p>
                         </div>
                     </div>
 
                     <div className="space-y-4">
-                        <h3 className="text-[11px] font-black uppercase tracking-[0.2em] border-b-2 border-black pb-1">Capital Liquidity Positions</h3>
+                        <h3 className="text-[11px] font-black uppercase tracking-[0.2em] border-b-2 border-black pb-1 text-center">Capital Liquidity Positions</h3>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1">
-                                <p className="text-slate-500 font-bold uppercase text-[9px]">Lent Principal</p>
-                                <p className="text-lg font-black text-emerald-600 font-mono">{formatCurrency(totalLent)}</p>
+                                <p className="text-slate-500 font-bold uppercase text-[9px] text-center">Lent Principal</p>
+                                <p className="text-lg font-black text-emerald-600 font-mono text-center">{formatCurrency(totalLent)}</p>
                             </div>
                             <div className="space-y-1">
-                                <p className="text-slate-500 font-bold uppercase text-[9px]">Borrowed Principal</p>
-                                <p className="text-lg font-black text-destructive font-mono">{formatCurrency(totalBorrowed)}</p>
+                                <p className="text-slate-500 font-bold uppercase text-[9px] text-center">Borrowed Principal</p>
+                                <p className="text-lg font-black text-destructive font-mono text-center">{formatCurrency(totalBorrowed)}</p>
                             </div>
                         </div>
                     </div>

@@ -35,8 +35,8 @@ export function InflowReportTable({ records, allRecords, customers, title }: Rep
         <div className="bg-white p-4 text-black font-sans text-sm printable-area border shadow-sm rounded-lg">
              <div className="mb-6 text-center border-b pb-4">
                 <h2 className="text-2xl font-black uppercase tracking-tight leading-none">SRI LAKSHMI WAREHOUSE</h2>
-                <h3 className="font-bold uppercase text-slate-500 tracking-widest text-[14px] mt-1">{title}</h3>
-                <p className="text-[10px] text-slate-400 mt-1 uppercase">Audit Generation: {generatedDate}</p>
+                <h3 className="font-bold uppercase text-slate-500 tracking-widest text-[14px] mt-1 text-center">{title}</h3>
+                <p className="text-[10px] text-slate-400 mt-1 uppercase text-center">Audit Generation: {generatedDate}</p>
             </div>
             
             <div className="table-scroll-container border-y-2 border-slate-900">

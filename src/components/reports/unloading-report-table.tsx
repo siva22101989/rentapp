@@ -28,8 +28,9 @@ export function UnloadingReportTable({ records, customers, commodities, lots, st
     return (
         <div className="bg-white p-4 text-black font-sans text-sm printable-area">
              <div className="mb-4 text-center border-b-2 border-black pb-2">
-                <h2 className="text-xl font-bold uppercase">{title}</h2>
-                <p className="text-[10px] text-slate-500 uppercase">Generated: {generatedDate}</p>
+                <h2 className="text-xl font-bold uppercase text-center">SRI LAKSHMI WAREHOUSE</h2>
+                <h3 className="font-bold uppercase text-[12px] text-center">{title}</h3>
+                <p className="text-[10px] text-slate-500 uppercase text-center">Generated: {generatedDate}</p>
             </div>
             <div className="table-scroll-container border-y-2 border-black">
                 <Table className="text-[13px]">
@@ -53,10 +54,10 @@ export function UnloadingReportTable({ records, customers, commodities, lots, st
                                 <TableRow key={record.id} className="h-8 border-b border-slate-100">
                                     <TableCell className="p-1 text-center">{format(toDate(record.unloadingDate), 'dd/MM/yy')}</TableCell>
                                     <TableCell className="p-1 text-center font-mono">{cleanBillNo}</TableCell>
-                                    <TableCell className="p-1 font-medium uppercase whitespace-nowrap">{getCustomerName(record.customerId)}</TableCell>
+                                    <TableCell className="p-1 font-medium uppercase whitespace-nowrap text-center">{getCustomerName(record.customerId)}</TableCell>
                                     <TableCell className="p-1 text-center">{record.commodityDescription}</TableCell>
-                                    <TableCell className="p-1 text-right font-mono font-bold">{record.bagsUnloaded}</TableCell>
-                                    <TableCell className="p-1 text-right print-hide">
+                                    <TableCell className="p-1 text-center font-mono font-bold">{record.bagsUnloaded}</TableCell>
+                                    <TableCell className="p-1 text-center print-hide">
                                         <UnloadingTableActionsMenu 
                                             record={{ ...record, hamaliPending }} 
                                             customers={customers} 
@@ -72,7 +73,7 @@ export function UnloadingReportTable({ records, customers, commodities, lots, st
                     <TableFooter>
                         <TableRow className="bg-slate-50 font-bold border-t-2 border-black">
                             <TableCell colSpan={4} className="p-1 text-right uppercase text-[10px]">Total Unloaded Bags</TableCell>
-                            <TableCell className="p-1 text-right font-mono text-[14px]">{totalBagsUnloaded}</TableCell>
+                            <TableCell className="p-1 text-center font-mono text-[14px]">{totalBagsUnloaded}</TableCell>
                             <TableCell className="print-hide" />
                         </TableRow>
                     </TableFooter>

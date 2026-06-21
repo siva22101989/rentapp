@@ -144,11 +144,11 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="uppercase text-[10px] font-bold text-center">Lender</TableHead>
                 <TableHead className="uppercase text-[10px] font-bold text-center">Date Taken</TableHead>
-                <TableHead className="text-center uppercase text-[10px] font-bold">Interest %</TableHead>
-                <TableHead className="text-center uppercase text-[10px] font-bold">Interest Due</TableHead>
+                <TableHead className="uppercase text-[10px] font-bold text-center">Lender</TableHead>
                 <TableHead className="text-center uppercase text-[10px] font-bold">Principal Due</TableHead>
+                <TableHead className="text-center uppercase text-[10px] font-bold">Interest Due</TableHead>
+                <TableHead className="text-center uppercase text-[10px] font-bold">Total Amount</TableHead>
                 {canEdit && <TableHead className="w-[50px]"></TableHead>}
               </TableRow>
             </TableHeader>
@@ -157,11 +157,11 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
                 const { principalDue, interestDue } = calculateLoanBalances(b);
                 return (
                 <TableRow key={b.id} className="h-8 text-[13px]">
-                  <TableCell className="font-medium text-center">{b.lenderName}</TableCell>
                   <TableCell className="text-center">{format(toDate(b.dateTaken), 'dd/MM/yy')}</TableCell>
-                  <TableCell className="text-center">{b.interestRate}%</TableCell>
+                  <TableCell className="font-medium text-center">{b.lenderName}</TableCell>
+                  <TableCell className="text-right font-mono text-destructive">{formatCurrency(principalDue)}</TableCell>
                   <TableCell className="text-right font-mono text-destructive">{formatCurrency(interestDue)}</TableCell>
-                  <TableCell className="text-right font-mono text-destructive font-bold">{formatCurrency(principalDue)}</TableCell>
+                  <TableCell className="text-right font-mono text-destructive font-bold">{formatCurrency(principalDue + interestDue)}</TableCell>
                   {canEdit && <TableCell><BorrowingActionsMenu borrowing={b} /></TableCell>}
                 </TableRow>
               )})}
@@ -184,11 +184,11 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="uppercase text-[10px] font-bold text-center">Borrower</TableHead>
                 <TableHead className="uppercase text-[10px] font-bold text-center">Date Given</TableHead>
-                <TableHead className="text-center uppercase text-[10px] font-bold">Interest %</TableHead>
-                <TableHead className="text-center uppercase text-[10px] font-bold">Interest Due</TableHead>
+                <TableHead className="uppercase text-[10px] font-bold text-center">Borrower</TableHead>
                 <TableHead className="text-center uppercase text-[10px] font-bold">Principal Due</TableHead>
+                <TableHead className="text-center uppercase text-[10px] font-bold">Interest Due</TableHead>
+                <TableHead className="text-center uppercase text-[10px] font-bold">Total Amount</TableHead>
                 {canEdit && <TableHead className="w-[50px]"></TableHead>}
               </TableRow>
             </TableHeader>
@@ -197,11 +197,11 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
                 const { principalDue, interestDue } = calculateLoanBalances(l);
                 return (
                 <TableRow key={l.id} className="h-8 text-[13px]">
-                  <TableCell className="font-medium text-center">{l.borrowerName}</TableCell>
                   <TableCell className="text-center">{format(toDate(l.dateGiven), 'dd/MM/yy')}</TableCell>
-                  <TableCell className="text-center">{l.interestRate}%</TableCell>
+                  <TableCell className="font-medium text-center">{l.borrowerName}</TableCell>
+                  <TableCell className="text-right font-mono text-green-600">{formatCurrency(principalDue)}</TableCell>
                   <TableCell className="text-right font-mono text-green-600">{formatCurrency(interestDue)}</TableCell>
-                  <TableCell className="text-right font-mono text-green-600 font-bold">{formatCurrency(principalDue)}</TableCell>
+                  <TableCell className="text-right font-mono text-green-600 font-bold">{formatCurrency(principalDue + interestDue)}</TableCell>
                   {canEdit && <TableCell><LendingActionsMenu lending={l} /></TableCell>}
                 </TableRow>
               )})}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useEffect } from 'react';
 import type { Customer, StorageRecord, UnloadingRecord, Expense, WarehouseInfo, Borrowing, Lending, OtherIncome, Commodity, Lot, DryingRecord, CustomerPayment } from "@/lib/definitions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -16,7 +16,7 @@ import { Printer, FileDown, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { PaymentReport } from './payment-report';
 import { PendingDuesReportTable } from './pending-dues-report-table';
-import { toDate } from '@/lib/utils';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const reportTypes = [
     { value: 'daily-summary', label: 'Daily Summary Report' },
@@ -64,8 +64,15 @@ export function CustomReportGenerator({
 }: ReportGeneratorProps) {
     const [selectedReport, setSelectedReport] = useState<string>(initialReport || 'daily-summary');
     const [isDownloading, setIsDownloading] = useState(false);
+    const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait');
     const reportRef = useRef<HTMLDivElement>(null);
     const { toast } = useToast();
+
+    useEffect(() => {
+        document.body.classList.remove('portrait', 'landscape');
+        document.body.classList.add(orientation);
+        return () => document.body.classList.remove('portrait', 'landscape');
+    }, [orientation]);
     
     const handleDownload = async () => {
         const printableArea = reportRef.current;
@@ -74,7 +81,14 @@ export function CustomReportGenerator({
         setIsDownloading(true);
         try {
             const { default: jsPDF } = await import('jspdf');
-            const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+            const pdf = new jsPDF({ 
+                orientation: orientation === 'portrait' ? 'p' : 'l', 
+                unit: 'mm', 
+                format: 'a4' 
+            });
+
+            const pdfWidth = orientation === 'portrait' ? 190 : 277;
+
             await pdf.html(printableArea, {
                 html2canvas: {
                     scale: 2,
@@ -85,8 +99,8 @@ export function CustomReportGenerator({
                 },
                 margin: [10, 10, 10, 10],
                 autoPaging: 'text',
-                width: 190,
-                windowWidth: printableArea.scrollWidth
+                width: pdfWidth,
+                windowWidth: orientation === 'portrait' ? 900 : 1300
             });
             pdf.save(`${selectedReport}-report.pdf`);
         } catch (error) {
@@ -182,36 +196,54 @@ export function CustomReportGenerator({
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 print-hide">
-                <div>
-                    <label htmlFor="report-type-select" className="text-sm font-medium text-muted-foreground">Select Report Type</label>
-                    <Select onValueChange={setSelectedReport} value={selectedReport}>
-                        <SelectTrigger id="report-type-select" className="mt-1 w-full md:w-auto text-sm h-9">
-                            <SelectValue placeholder="Select a report type..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {reportTypes.map(report => (
-                                <SelectItem key={report.value} value={report.value} className="text-sm">
-                                    {report.label}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 print-hide bg-white p-4 rounded-xl border shadow-sm">
+                <div className="flex-1 space-y-3">
+                    <div className="space-y-1">
+                        <label htmlFor="report-type-select" className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Audit Report Type</label>
+                        <Select onValueChange={setSelectedReport} value={selectedReport}>
+                            <SelectTrigger id="report-type-select" className="w-full md:w-[320px] h-10 font-bold border-2">
+                                <SelectValue placeholder="Select a report type..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {reportTypes.map(report => (
+                                    <SelectItem key={report.value} value={report.value} className="text-sm font-medium">
+                                        {report.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
-                <div className="self-end flex items-center gap-2">
-                     <Button onClick={() => window.print()} variant="outline" size="sm">
-                        <Printer className="mr-2 h-4 w-4" />
-                        Print Report
-                    </Button>
-                     <Button onClick={handleDownload} disabled={isDownloading} size="sm">
-                        {isDownloading ? (
-                            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Downloading...</>
-                        ) : (
-                            <><FileDown className="mr-2 h-4 w-4" /> Download PDF</>
-                        )}
-                    </Button>
+
+                <div className="flex flex-wrap items-center gap-4">
+                    <div className="flex flex-col space-y-1">
+                        <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Page Format</label>
+                        <div className="bg-slate-100 p-1 rounded-lg border">
+                            <Tabs value={orientation} onValueChange={(v) => setOrientation(v as any)}>
+                                <TabsList className="h-8 p-0 bg-transparent">
+                                    <TabsTrigger value="portrait" className="h-7 text-[10px] font-bold uppercase">Portrait</TabsTrigger>
+                                    <TabsTrigger value="landscape" className="h-7 text-[10px] font-bold uppercase">Landscape</TabsTrigger>
+                                </TabsList>
+                            </Tabs>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <Button onClick={() => window.print()} variant="outline" className="h-10 font-bold uppercase text-[11px] tracking-widest border-2">
+                            <Printer className="mr-2 h-4 w-4" />
+                            Print
+                        </Button>
+                        <Button onClick={handleDownload} disabled={isDownloading} className="h-10 font-black uppercase text-[11px] tracking-[0.1em] shadow-lg">
+                            {isDownloading ? (
+                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> ...</>
+                            ) : (
+                                <><FileDown className="mr-2 h-4 w-4" /> Save PDF</>
+                            )}
+                        </Button>
+                    </div>
                 </div>
             </div>
+
             <div className="mt-6 printable-area" ref={reportRef}>
                 {renderReport()}
             </div>

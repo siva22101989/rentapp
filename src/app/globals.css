@@ -69,7 +69,6 @@
     min-height: -webkit-fill-available;
   }
 
-  /* Handle Table responsiveness on screen */
   @media screen {
     .table-scroll-container {
       @apply w-full overflow-x-auto rounded-lg border bg-white;
@@ -117,12 +116,10 @@
     overflow: visible !important;
   }
 
-  /* Ensure the main container and its parents don't hide everything */
   body, #__next, [data-nextjs-scroll-focus-boundary] {
     display: block !important;
   }
 
-  /* Hide common UI elements */
   .print-hide, 
   header, 
   nav, 
@@ -132,7 +129,6 @@
     display: none !important;
   }
 
-  /* Force display of printable containers */
   .dialog-print-area,
   .printable-area,
   .printable-area * {
@@ -140,13 +136,12 @@
     visibility: visible !important;
   }
 
-  /* Table specific print fixes */
   table {
     display: table !important;
     width: 100% !important;
     min-width: 100% !important;
     border-collapse: collapse !important;
-    table-layout: fixed !important;
+    table-layout: auto !important;
   }
   
   tr { display: table-row !important; }
@@ -166,18 +161,24 @@
     box-shadow: none !important;
   }
 
-  /* Ensure text is black for clarity */
   * {
     color: black !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
 
-  th, td {
+  /* Specific Table formatting for prints to avoid squashing */
+  .bill-table th, .bill-table td {
     border: 1px solid black !important;
-    padding: 4px 6px !important;
+    padding: 6px 8px !important;
     font-size: 11px !important;
     white-space: normal !important;
     word-break: break-word !important;
+  }
+
+  .bill-table th {
+    background-color: #f8fafc !important;
+    text-align: center !important;
+    font-weight: 800 !important;
   }
 }

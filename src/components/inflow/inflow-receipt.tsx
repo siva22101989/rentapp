@@ -31,7 +31,7 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
     return (
         <div ref={ref} className="bg-white p-4 sm:p-8 font-sans text-black w-full mx-auto print:p-0 print:border-none dialog-print-area">
              <style jsx>{`
-                table.no-border, table.no-border td { border: none !important; }
+                .info-table td { border: none !important; padding: 2px 4px !important; vertical-align: top; }
                 @media screen {
                     .bill-table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
                     .bill-table { min-width: 600px; width: 100%; }
@@ -50,30 +50,20 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
                 </div>
             </div>
     
-            {/* Information Grid */}
-            <div className="mb-6">
-                <table className="w-full text-[12px] sm:text-[13px] border-collapse no-border">
+            {/* Information Grid - Replaced with a more stable structure */}
+            <div className="mb-6 grid grid-cols-2 gap-4">
+                <table className="w-full info-table text-[12px] sm:text-[13px]">
                     <tbody>
-                        <tr>
-                            <td className="py-1 align-top w-[55%] border-none">
-                                <table className="w-full no-border">
-                                    <tbody>
-                                        <tr><td className="font-bold w-20 sm:w-24 uppercase text-[10px] text-slate-500 py-0.5">Bill No</td><td className="py-0.5">: <span className="font-mono font-black text-base">{record.id}</span></td></tr>
-                                        <tr><td className="font-bold w-20 sm:w-24 uppercase text-[10px] text-slate-500 py-0.5">Depositor</td><td className="py-0.5">: <span className="font-black uppercase">{customer.name}</span></td></tr>
-                                        <tr><td className="font-bold w-20 sm:w-24 uppercase text-[10px] text-slate-500 py-0.5">Village</td><td className="py-0.5">: <span className="uppercase">{customer.village || 'N/A'}</span></td></tr>
-                                    </tbody>
-                                </table>
-                            </td>
-                            <td className="py-1 align-top w-[45%] border-none">
-                                <table className="w-full no-border">
-                                    <tbody>
-                                        <tr><td className="font-bold w-20 sm:w-24 uppercase text-[10px] text-slate-500 py-0.5">Date</td><td className="py-0.5">: <span className="font-bold">{formattedDate}</span></td></tr>
-                                        <tr><td className="font-bold w-20 sm:w-24 uppercase text-[10px] text-slate-500 py-0.5">Product</td><td className="py-0.5">: <span className="font-black uppercase">{record.commodityDescription}</span></td></tr>
-                                        <tr><td className="font-bold w-20 sm:w-24 uppercase text-[10px] text-slate-500 py-0.5">Lot No</td><td className="py-0.5">: <span className="font-mono font-black text-base">{record.location || 'N/A'}</span></td></tr>
-                                    </tbody>
-                                </table>
-                            </td>
-                        </tr>
+                        <tr><td className="font-bold w-24 uppercase text-[10px] text-slate-500">Bill No</td><td>: <span className="font-mono font-black text-base">{record.id}</span></td></tr>
+                        <tr><td className="font-bold w-24 uppercase text-[10px] text-slate-500">Depositor</td><td>: <span className="font-black uppercase">{customer.name}</span></td></tr>
+                        <tr><td className="font-bold w-24 uppercase text-[10px] text-slate-500">Village</td><td>: <span className="uppercase">{customer.village || 'N/A'}</span></td></tr>
+                    </tbody>
+                </table>
+                <table className="w-full info-table text-[12px] sm:text-[13px]">
+                    <tbody>
+                        <tr><td className="font-bold w-24 uppercase text-[10px] text-slate-500">Date</td><td>: <span className="font-bold">{formattedDate}</span></td></tr>
+                        <tr><td className="font-bold w-24 uppercase text-[10px] text-slate-500">Product</td><td>: <span className="font-black uppercase">{record.commodityDescription}</span></td></tr>
+                        <tr><td className="font-bold w-24 uppercase text-[10px] text-slate-500">Lot No</td><td>: <span className="font-mono font-black text-base">{record.location || 'N/A'}</span></td></tr>
                     </tbody>
                 </table>
             </div>
@@ -85,29 +75,29 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
                     <table className="bill-table border-2 border-black border-collapse text-[12px] sm:text-[13px]">
                         <thead>
                             <tr className="border-b-2 border-black bg-slate-50 h-10">
-                                <th className="font-black uppercase text-[10px] px-4 text-center border-r border-black">Description</th>
-                                <th className="font-black uppercase text-[10px] px-2 text-center w-24 border-r border-black">Bags</th>
-                                <th className="font-black uppercase text-[10px] px-2 text-center w-24 border-r border-black">Rate</th>
+                                <th className="font-black uppercase text-[10px] px-4 text-center">Description</th>
+                                <th className="font-black uppercase text-[10px] px-2 text-center w-24">Bags</th>
+                                <th className="font-black uppercase text-[10px] px-2 text-center w-24">Rate</th>
                                 <th className="font-black uppercase text-[10px] px-2 text-center w-32">Amount</th>
                             </tr>
                         </thead>
                         <tbody>
                              <tr className="h-12 border-b border-black">
-                                <td className="px-4 font-bold border-r border-black">Handling / Hamali Charges</td>
-                                <td className="text-center font-mono font-bold border-r border-black">{record.bagsIn}</td>
-                                <td className="text-right font-mono border-r border-black px-2">{hamaliRate.toFixed(2)}</td>
+                                <td className="px-4 font-bold">Handling / Hamali Charges</td>
+                                <td className="text-center font-mono font-bold">{record.bagsIn}</td>
+                                <td className="text-right font-mono px-2">{hamaliRate.toFixed(2)}</td>
                                 <td className="text-right font-mono font-bold px-2">{formatCurrency(record.hamaliPayable)}</td>
                             </tr>
                             {record.khataAmount && record.khataAmount > 0 && (
                                 <tr className="h-10 border-b border-black">
-                                    <td className="px-4 font-bold border-r border-black" colSpan={3}>Khata (Weighbridge / Entry Fees)</td>
+                                    <td className="px-4 font-bold" colSpan={3}>Khata (Weighbridge / Entry Fees)</td>
                                     <td className="text-right font-mono font-bold px-2">{formatCurrency(record.khataAmount)}</td>
                                 </tr>
                             )}
                         </tbody>
                         <tfoot>
                             <tr className="h-12 bg-slate-50 font-black text-xl border-t-2 border-black">
-                                <td colSpan={3} className="text-right px-4 uppercase tracking-tighter border-r border-black">Total Payable</td>
+                                <td colSpan={3} className="text-right px-4 uppercase tracking-tighter">Total Payable</td>
                                 <td className="text-right px-2 font-mono">{formatCurrency((record.hamaliPayable || 0) + (record.khataAmount || 0))}</td>
                             </tr>
                         </tfoot>
@@ -122,13 +112,13 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
             
             {/* Signatures */}
             <div className="mt-16 sm:mt-24">
-                <table className="w-full no-border">
+                <table className="w-full" style={{ border: 'none' }}>
                     <tbody>
                         <tr>
-                            <td className="w-1/2 text-center align-bottom border-none">
+                            <td className="w-1/2 text-center align-bottom" style={{ border: 'none' }}>
                                 <div className="border-t border-black pt-2 mx-auto w-[160px] font-bold text-[10px] uppercase tracking-widest">Depositor Sign</div>
                             </td>
-                            <td className="w-1/2 text-center align-bottom border-none">
+                            <td className="w-1/2 text-center align-bottom" style={{ border: 'none' }}>
                                 <div className="border-t-2 border-black pt-2 mx-auto w-[160px] font-black text-[10px] uppercase tracking-widest">Authorized Manager</div>
                                 <p className="text-[9px] text-slate-400 font-bold uppercase mt-1 tracking-widest">{warehouseInfo?.name}</p>
                             </td>

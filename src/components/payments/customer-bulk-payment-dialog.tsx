@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useMemo } from 'react';
+import { useState, useTransition, useMemo, useEffect } from 'react';
 import { Loader2, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,7 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { StorageRecord, Customer, UnloadingRecord, WarehouseInfo, CustomerPayment } from '@/lib/definitions';
 import { formatCurrency, toDate, formatManualDate, parseManualDate } from '@/lib/utils';
 import { useFirestore } from '@/firebase/provider';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -27,7 +27,7 @@ import { Combobox } from '../ui/combobox';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 import { useAppUser } from '@/firebase/auth/use-user';
-import { Checkbox } from '../ui/checkbox';
+import { Checkbox } from '@/components/ui/checkbox';
 import { sendSms } from '@/lib/sms';
 import { format } from 'date-fns';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
@@ -52,9 +52,10 @@ type BulkPaymentDialogProps = {
     storageRecords: StorageRecord[];
     unloadingRecords: UnloadingRecord[];
     customerPayments?: CustomerPayment[];
+    children?: React.ReactNode;
 };
 
-export function CustomerBulkPaymentDialog({ customers, storageRecords, unloadingRecords, customerPayments = [] }: BulkPaymentDialogProps) {
+export function CustomerBulkPaymentDialog({ customers, storageRecords, unloadingRecords, customerPayments = [], children }: BulkPaymentDialogProps) {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -70,17 +71,17 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
 
   const customerDuesMap = useMemo(() => {
     if (!isOpen) return {};
-    const duesMap: Record<string, { hLiability: number, rLiability: number, totalPaid: number }> = {};
+    const duesMap: Record<string, { hLiability: number, rLiability: number, hPaid: number, rPaid: number }> = {};
 
     const getCust = (id: string) => {
-        if (!duesMap[id]) duesMap[id] = { hLiability: 0, rLiability: 0, totalPaid: 0 };
+        if (!duesMap[id]) duesMap[id] = { hLiability: 0, rLiability: 0, hPaid: 0, rPaid: 0 };
         return duesMap[id];
     }
 
     storageRecords.forEach(rec => {
         const c = getCust(rec.customerId);
-        c.hLiability += rec.hamaliPayable || 0;
-        c.rLiability += (rec.totalRentBilled || 0) + (rec.khataAmount || 0);
+        c.hLiability += Number(rec.hamaliPayable) || 0;
+        c.rLiability += (Number(rec.totalRentBilled) || 0) + (Number(rec.khataAmount) || 0);
         (rec.payments || []).forEach(p => {
             if (p.type === 'hamali' || p.type === 'unloading') c.hPaid += (Number(p.amount) || 0);
             else c.rPaid += (Number(p.amount) || 0);
@@ -89,8 +90,8 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
 
     unloadingRecords.forEach(rec => {
         const c = getCust(rec.customerId);
-        const remainingBags = Math.max(0, (rec.bagsUnloaded || 0) - (rec.bagsSentToDrying || 0));
-        c.hLiability += remainingBags * (rec.hamaliPerBag || 0);
+        const remainingBags = Math.max(0, (Number(rec.bagsUnloaded) || 0) - (Number(rec.bagsSentToDrying) || 0));
+        c.hLiability += remainingBags * (Number(rec.hamaliPerBag) || 0);
         (rec.payments || []).forEach(p => {
             c.hPaid += (Number(p.amount) || 0);
         });
@@ -191,7 +192,7 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-         <Button><UserPlus className="mr-2" />Bulk Payment / Discount</Button>
+         {children || <Button><UserPlus className="mr-2" />Bulk Payment / Discount</Button>}
       </DialogTrigger>
       <DialogContent className="sm:max-w-sm max-h-[90vh] flex flex-col p-0 overflow-hidden">
         <Form {...form}>
@@ -225,11 +226,11 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
                                         >
                                             <FormItem className="flex items-center space-x-2 space-y-0">
                                                 <FormControl><RadioGroupItem value="rent" /></FormControl>
-                                                <Label className="font-normal cursor-pointer">Godown Rent</Label>
+                                                <Label className="font-normal cursor-pointer text-sm">Godown Rent</Label>
                                             </FormItem>
                                             <FormItem className="flex items-center space-x-2 space-y-0">
                                                 <FormControl><RadioGroupItem value="hamali" /></FormControl>
-                                                <Label className="font-normal cursor-pointer">Handling/Hamali</Label>
+                                                <Label className="font-normal cursor-pointer text-sm">Handling/Hamali</Label>
                                             </FormItem>
                                         </RadioGroup>
                                     </FormControl>

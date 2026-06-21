@@ -5,9 +5,6 @@ import { format } from "date-fns";
 import { formatCurrency } from '@/lib/utils';
 import { useMemo } from "react";
 import type { CustomerPendingSummary } from "../payments/pending-payments-table";
-import { CustomerBulkPaymentDialog } from "../payments/customer-bulk-payment-dialog";
-import { Button } from "../ui/button";
-import { Banknote } from "lucide-react";
 import type { Customer, StorageRecord, UnloadingRecord, CustomerPayment } from "@/lib/definitions";
 
 type ReportTableProps = {
@@ -53,12 +50,10 @@ export function PendingDuesReportTable({ summaries, title, customers, storageRec
                         <TableHead className="font-bold text-slate-900 py-3 uppercase text-[10px] text-center">Total Billed</TableHead>
                         <TableHead className="font-bold text-slate-900 py-3 uppercase text-[10px] text-center">Amount Paid</TableHead>
                         <TableHead className="font-bold text-slate-900 py-3 uppercase text-[10px] text-center">Balance Due</TableHead>
-                        {!isReport && <TableHead className="w-[80px] print-hide text-center"></TableHead>}
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {summaries.map((summary) => {
-                        const customerObj = customers.find(c => c.id === summary.customerId);
                         return (
                             <TableRow key={summary.customerId} className="hover:bg-slate-50/50 border-b border-slate-100 h-8">
                                 <TableCell className="font-bold text-slate-800 p-1 text-center">{summary.customerName}</TableCell>
@@ -67,27 +62,12 @@ export function PendingDuesReportTable({ summaries, title, customers, storageRec
                                 <TableCell className="text-right font-mono text-slate-600 p-1">{formatCurrency(summary.totalBilled)}</TableCell>
                                 <TableCell className="text-right font-mono text-green-600 p-1">{formatCurrency(summary.amountPaid)}</TableCell>
                                 <TableCell className="text-right font-mono font-black text-destructive p-1">{formatCurrency(summary.balanceDue)}</TableCell>
-                                {!isReport && customerObj && (
-                                    <TableCell className="p-1 text-right print-hide">
-                                        <CustomerBulkPaymentDialog
-                                            customers={customers}
-                                            storageRecords={storageRecords}
-                                            unloadingRecords={unloadingRecords}
-                                            customerPayments={customerPayments}
-                                        >
-                                            <Button variant="ghost" size="sm" className="h-7 px-2 text-[10px] uppercase font-black tracking-widest text-primary hover:text-primary hover:bg-primary/10">
-                                                <Banknote className="h-3 w-3 mr-1" />
-                                                Pay
-                                            </Button>
-                                        </CustomerBulkPaymentDialog>
-                                    </TableCell>
-                                )}
                             </TableRow>
                         );
                     })}
                      {summaries.length === 0 && (
                         <TableRow>
-                            <TableCell colSpan={isReport ? 6 : 7} className="text-center text-muted-foreground py-10 italic">
+                            <TableCell colSpan={6} className="text-center text-muted-foreground py-10 italic">
                                 No pending dues found.
                             </TableCell>
                         </TableRow>
@@ -101,7 +81,6 @@ export function PendingDuesReportTable({ summaries, title, customers, storageRec
                         <TableCell className="text-right font-mono text-slate-300">{formatCurrency(totals.billed)}</TableCell>
                         <TableCell className="text-right font-mono text-green-300">{formatCurrency(totals.paid)}</TableCell>
                         <TableCell className="text-right text-white font-mono text-[14px]">{formatCurrency(totals.total)}</TableCell>
-                        {!isReport && <TableCell className="print-hide" />}
                     </TableRow>
                 </TableFooter>
             </Table>

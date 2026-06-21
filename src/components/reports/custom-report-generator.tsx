@@ -88,10 +88,11 @@ export function CustomReportGenerator({
             });
 
             const pdfWidth = orientation === 'portrait' ? 190 : 277;
+            const virtualWidth = orientation === 'portrait' ? 1024 : 1440;
 
             await pdf.html(printableArea, {
                 html2canvas: {
-                    scale: 2,
+                    scale: 1,
                     useCORS: true,
                     backgroundColor: '#ffffff',
                     height: printableArea.scrollHeight,
@@ -100,7 +101,7 @@ export function CustomReportGenerator({
                 margin: [10, 10, 10, 10],
                 autoPaging: 'text',
                 width: pdfWidth,
-                windowWidth: orientation === 'portrait' ? 900 : 1300
+                windowWidth: virtualWidth
             });
             pdf.save(`${selectedReport}-report.pdf`);
         } catch (error) {

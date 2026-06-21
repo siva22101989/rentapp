@@ -1,6 +1,6 @@
 'use client';
 
-import { Printer, FileDown, Loader2, MonitorPlay, Monitor } from 'lucide-react';
+import { Printer, FileDown, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -10,7 +10,6 @@ export function PrintHeader({ title, filename = 'document.pdf' }: { title: strin
     const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait');
 
     useEffect(() => {
-        // Apply orientation class to body for global CSS selectors
         document.body.classList.remove('portrait', 'landscape');
         document.body.classList.add(orientation);
         return () => document.body.classList.remove('portrait', 'landscape');
@@ -38,11 +37,13 @@ export function PrintHeader({ title, filename = 'document.pdf' }: { title: strin
                 format: 'a4',
             });
 
+            // Use fixed virtual widths to prevent mobile-responsive "zoom" during PDF capture
             const pdfWidth = orientation === 'portrait' ? 190 : 277;
+            const virtualWidth = orientation === 'portrait' ? 1024 : 1440;
 
             await pdf.html(printableArea, {
                 html2canvas: {
-                    scale: 2,
+                    scale: 1,
                     useCORS: true,
                     backgroundColor: '#ffffff',
                     height: printableArea.scrollHeight,
@@ -51,7 +52,7 @@ export function PrintHeader({ title, filename = 'document.pdf' }: { title: strin
                 margin: [10, 10, 10, 10],
                 autoPaging: 'text',
                 width: pdfWidth,
-                windowWidth: orientation === 'portrait' ? 800 : 1200 // Virtual browser width for rendering
+                windowWidth: virtualWidth 
             });
             
             pdf.save(filename);

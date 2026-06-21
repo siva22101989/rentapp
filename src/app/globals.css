@@ -87,35 +87,26 @@
     display: none !important;
   }
 
-  /* Orientation specific page sizes */
-  body.portrait @page {
-    size: A4 portrait;
+  /* Fixed widths for PDF/Print to prevent zoom */
+  body.portrait .printable-area {
+    width: 190mm !important;
+    margin: 0 auto !important;
   }
 
-  body.landscape @page {
-    size: A4 landscape;
+  body.landscape .printable-area {
+    width: 277mm !important;
+    margin: 0 auto !important;
   }
 
   .printable-area {
     display: block !important;
     visibility: visible !important;
     position: static !important;
-    margin: 0 auto !important;
     padding: 5mm !important;
     background-color: white !important;
     border: none !important;
     box-shadow: none !important;
-    /* Prevent shrinking on mobile print */
-    min-width: unset !important;
-  }
-
-  /* Fit content based on orientation */
-  body.portrait .printable-area {
-    width: 190mm !important;
-  }
-
-  body.landscape .printable-area {
-    width: 277mm !important;
+    font-size: 11pt !important;
   }
 
   table {
@@ -130,11 +121,13 @@
     font-weight: bold !important;
     border: 1px solid black !important;
     padding: 6px !important;
+    font-size: 10pt !important;
   }
 
   td {
     border: 1px solid black !important;
     padding: 6px !important;
+    font-size: 10pt !important;
   }
 
   * {

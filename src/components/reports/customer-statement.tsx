@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, forwardRef } from 'react';
-import type { Customer, StorageRecord, UnloadingRecord, WarehouseInfo, Commodity, Lot, PaymentType } from '@/lib/definitions';
+import type { Customer, StorageRecord, UnloadingRecord, WarehouseInfo, Commodity, Lot, PaymentType, CustomerPayment } from '@/lib/definitions';
 import { formatCurrency, toDate } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { format } from 'date-fns';
@@ -15,6 +15,7 @@ type CustomerStatementProps = {
   commodities: Commodity[];
   lots: Lot[];
   customers: Customer[];
+  customerPayments?: CustomerPayment[];
 };
 
 export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementProps>(({ 
@@ -25,19 +26,21 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
     allRecords = [],
     commodities = [],
     lots = [],
-    customers = []
+    customers = [],
+    customerPayments = []
 }, ref) => {
 
   const { lineItems, totals } = useMemo(() => {
     const events: any[] = [];
 
-    const getPaymentDesc = (type?: string, recordType?: 'storage' | 'unloading') => {
+    const getPaymentDesc = (type?: string, recordType?: 'storage' | 'unloading' | 'bulk') => {
+        if (recordType === 'bulk') return 'Bulk Account Payment';
         if (!type) return recordType === 'unloading' ? 'Hamali Payment' : 'Payment Received';
         switch (type) {
             case 'rent': return 'Rent Payment';
             case 'hamali': return 'Hamali Payment';
             case 'unloading': return 'Hamali Payment';
-            case 'discount': return 'Discount Applied';
+            case 'discount': return 'Adjustment Applied';
             case 'interest': return 'Interest Payment';
             case 'principal': return 'Principal Repayment';
             case 'repayment': return 'Loan Repayment';
@@ -76,7 +79,6 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 credit: 0,
                 sortDate: toDate(unloading.unloadingDate).getTime(),
                 recordType: 'unloading',
-                sourceRecord: unloading,
             });
         }
 
@@ -89,18 +91,11 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                     totalDiscounts += amt;
                     events.push({
                         date: toDate(payment.date),
-                        description: 'Discount Applied',
+                        description: 'Adjustment / Discount',
                         billNo: cleanId,
-                        lotNo: '', 
-                        bagsIn: 0, bagsOut: 0, hamali: 0, rent: 0,
-                        discount: amt,
-                        credit: 0,
+                        lotNo: '', bagsIn: 0, bagsOut: 0, hamali: 0, rent: 0,
+                        discount: amt, credit: 0,
                         sortDate: toDate(payment.date).getTime() + pIdx,
-                        recordType: 'payment',
-                        paymentType: 'unloading',
-                        paymentIndex: pIdx,
-                        sourceRecord: unloading,
-                        paymentData: payment
                     });
                 } else {
                     totalHamaliPaid += amt;
@@ -108,16 +103,9 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                         date: toDate(payment.date),
                         description: getPaymentDesc(payment.type, 'unloading'),
                         billNo: cleanId,
-                        lotNo: '', 
-                        bagsIn: 0, bagsOut: 0, hamali: 0, rent: 0,
-                        discount: 0,
-                        credit: amt,
+                        lotNo: '', bagsIn: 0, bagsOut: 0, hamali: 0, rent: 0,
+                        discount: 0, credit: amt,
                         sortDate: toDate(payment.date).getTime() + pIdx,
-                        recordType: 'payment',
-                        paymentType: 'unloading',
-                        paymentIndex: pIdx,
-                        sourceRecord: unloading,
-                        paymentData: payment
                     });
                 }
             });
@@ -128,11 +116,9 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
     (records || []).forEach(record => {
         const cleanId = String(record.id || '').replace(/\D/g, ''); 
         const hamaliBilledOnInflow = Number(record.hamaliPayable) || 0;
-        
         const historicalBagsOut = Array.isArray(record.outflows) 
             ? record.outflows.reduce((s, o) => s + (Number(o.bagsWithdrawn) || 0), 0) 
             : (Number(record.bagsOut) || 0);
-            
         const inflowBags = Number(record.bagsIn) || (Number(record.bagsStored || 0) + historicalBagsOut);
         
         totalHamaliBilled += hamaliBilledOnInflow;
@@ -143,15 +129,8 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             description: `Inflow (Godown) - ${record.commodityDescription || 'Misc'}`,
             billNo: cleanId,
             lotNo: record.location || 'N/A',
-            bagsIn: inflowBags,
-            bagsOut: 0,
-            hamali: hamaliBilledOnInflow,
-            rent: 0,
-            discount: 0,
-            credit: 0,
+            bagsIn: inflowBags, bagsOut: 0, hamali: hamaliBilledOnInflow, rent: 0, discount: 0, credit: 0,
             sortDate: toDate(record.storageStartDate).getTime(),
-            recordType: 'storage',
-            sourceRecord: record,
         });
         
         if (record.khataAmount && record.khataAmount > 0) {
@@ -161,24 +140,15 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 date: toDate(record.storageStartDate),
                 description: `Khata Income (Weighbridge)`,
                 billNo: cleanId,
-                lotNo: '', 
-                bagsIn: 0, bagsOut: 0, hamali: 0,
-                rent: khata,
-                discount: 0,
-                credit: 0,
+                lotNo: '', bagsIn: 0, bagsOut: 0, hamali: 0, rent: khata, discount: 0, credit: 0,
                 sortDate: toDate(record.storageStartDate).getTime() + 2,
-                recordType: 'storage',
-                sourceRecord: record,
             });
         }
 
-        // Process Outflows
-        const outflowGroups: Record<string, any> = {};
         if (Array.isArray(record.outflows)) {
             record.outflows.forEach((outflow, idx) => {
                 const pattiNoRaw = String(outflow.pattiNo || '').replace(/\D/g, '');
                 const displayId = pattiNoRaw || cleanId;
-
                 const rentVal = Number(outflow.rentBilled) || 0;
                 const withdrawn = Number(outflow.bagsWithdrawn) || 0;
                 const discVal = Number(outflow.discount) || 0;
@@ -187,81 +157,60 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 totalBagsOut += withdrawn;
                 totalDiscounts += discVal;
 
-                if (outflowGroups[displayId]) {
-                    outflowGroups[displayId].bagsOut += withdrawn;
-                    outflowGroups[displayId].rent += rentVal;
-                    outflowGroups[displayId].discount += discVal;
-                    if (record.location && !outflowGroups[displayId].lotNo.includes(record.location)) {
-                        outflowGroups[displayId].lotNo = "Multiple";
-                    }
-                } else {
-                    outflowGroups[displayId] = {
-                        date: toDate(outflow.date),
-                        description: `Outflow Withdrawal`,
-                        billNo: displayId,
-                        lotNo: record.location || 'N/A',
-                        bagsIn: 0,
-                        bagsOut: withdrawn,
-                        hamali: 0,
-                        rent: rentVal,
-                        discount: discVal,
-                        credit: 0,
-                        sortDate: toDate(outflow.date).getTime() + 3 + idx,
-                        recordType: 'outflow',
-                        sourceRecord: record,
-                        outflowData: outflow,
-                        outflowIndex: idx,
-                    };
-                }
+                events.push({
+                    date: toDate(outflow.date),
+                    description: `Withdrawal - ${record.commodityDescription}`,
+                    billNo: displayId,
+                    lotNo: record.location || 'N/A',
+                    bagsIn: 0, bagsOut: withdrawn, hamali: 0, rent: rentVal, discount: discVal, credit: 0,
+                    sortDate: toDate(outflow.date).getTime() + 3 + idx,
+                });
             });
         }
-        Object.values(outflowGroups).forEach(og => events.push(og));
 
         if (Array.isArray(record.payments)) {
             record.payments.forEach((payment, pIdx) => {
                 const amt = Number(payment.amount) || 0;
                 const isHamali = payment.type === 'hamali' || payment.type === 'unloading';
                 const isDiscount = payment.type === 'discount';
-
                 if (isDiscount) {
                     totalDiscounts += amt;
                     events.push({
                         date: toDate(payment.date),
                         description: 'Adjustment / Discount',
                         billNo: cleanId,
-                        lotNo: '', 
-                        bagsIn: 0, bagsOut: 0, hamali: 0, rent: 0,
-                        discount: amt,
-                        credit: 0,
+                        lotNo: '', bagsIn: 0, bagsOut: 0, hamali: 0, rent: 0, discount: amt, credit: 0,
                         sortDate: toDate(payment.date).getTime() + 5 + pIdx,
-                        recordType: 'payment',
-                        paymentType: 'storage',
-                        paymentIndex: pIdx,
-                        sourceRecord: record,
-                        paymentData: payment
                     });
                 } else {
                     if (isHamali) totalHamaliPaid += amt;
                     else totalRentPaid += amt;
-
                     events.push({
                         date: toDate(payment.date),
                         description: getPaymentDesc(payment.type, 'storage'),
                         billNo: cleanId,
-                        lotNo: '', 
-                        bagsIn: 0, bagsOut: 0, hamali: 0, rent: 0,
-                        discount: 0,
-                        credit: amt,
+                        lotNo: '', bagsIn: 0, bagsOut: 0, hamali: 0, rent: 0, discount: 0, credit: amt,
                         sortDate: toDate(payment.date).getTime() + 5 + pIdx,
-                        recordType: 'payment',
-                        paymentType: 'storage',
-                        paymentIndex: pIdx,
-                        sourceRecord: record,
-                        paymentData: payment
                     });
                 }
             });
         }
+    });
+
+    // 3. Process Account-Level Bulk Payments
+    (customerPayments || []).filter(cp => cp.customerId === customer.id).forEach((cp, idx) => {
+        const amt = Number(cp.amount) || 0;
+        if (cp.type === 'hamali') totalHamaliPaid += amt;
+        else totalRentPaid += amt;
+
+        events.push({
+            date: toDate(cp.date),
+            description: `Bulk Account Payment (${cp.type.toUpperCase()})`,
+            billNo: cp.refNo || 'BULK',
+            lotNo: 'ACCOUNT',
+            bagsIn: 0, bagsOut: 0, hamali: 0, rent: 0, discount: 0, credit: amt,
+            sortDate: toDate(cp.date).getTime() + 10 + idx,
+        });
     });
     
     const sortedEvents = (events || []).sort((a, b) => (a.sortDate || 0) - (b.sortDate || 0));
@@ -274,8 +223,6 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         return { ...event, balance: runningBalance };
     });
 
-    // Reconciled Financial Split for Summary Box
-    // This logic ensures Hamali Due + Rent Due = Final Balance
     const finalBalance = Math.max(0, runningBalance);
     const hamaliDueReconciled = Math.max(0, totalHamaliBilled - totalHamaliPaid);
     const rentDueReconciled = Math.max(0, finalBalance - hamaliDueReconciled);
@@ -283,21 +230,14 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
     return { 
         lineItems, 
         totals: { 
-            totalBagsIn, 
-            totalBagsOut, 
-            balanceStock: Math.max(0, totalBagsIn - totalBagsOut), 
-            totalHamaliBilled, 
-            totalHamaliPaid,
-            hamaliBalance: hamaliDueReconciled,
-            totalRentBilled, 
-            totalRentPaid,
-            rentBalance: rentDueReconciled,
-            totalDiscounts,
-            totalCredit: totalHamaliPaid + totalRentPaid + totalDiscounts, 
+            totalBagsIn, totalBagsOut, balanceStock: Math.max(0, totalBagsIn - totalBagsOut), 
+            totalHamaliBilled, totalHamaliPaid, hamaliBalance: hamaliDueReconciled,
+            totalRentBilled, totalRentPaid, rentBalance: rentDueReconciled,
+            totalDiscounts, totalCredit: totalHamaliPaid + totalRentPaid + totalDiscounts, 
             finalBalance: finalBalance
         } 
     };
-  }, [records, unloadingRecords]);
+  }, [records, unloadingRecords, customerPayments, customer.id]);
   
   const timestamp = useMemo(() => format(new Date(), 'dd/MM/yy, h:mm a'), []);
 

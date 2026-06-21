@@ -16,7 +16,7 @@ import {
   runTransaction,
   increment,
 } from 'firebase/firestore';
-import type { Customer, Expense, Payment, StorageRecord, Commodity, Outflow, UnloadingRecord, Borrowing, Lending, AppUser, ManagedWarehouse, DryingRecord } from './definitions';
+import type { Customer, Expense, Payment, StorageRecord, Commodity, Outflow, UnloadingRecord, Borrowing, Lending, AppUser, ManagedWarehouse, DryingRecord, CustomerPayment } from './definitions';
 import { cleanForFirestore, toDate } from './utils';
 
 export const saveCustomer = async (db: Firestore, customer: Omit<Customer, 'id'>, warehouseId: string): Promise<string> => {
@@ -32,6 +32,11 @@ export const updateCustomer = async (db: Firestore, id: string, data: Partial<Cu
 
 export const deleteCustomer = async (db: Firestore, id: string): Promise<void> => {
     await deleteDoc(doc(db, 'customers', id));
+};
+
+export const recordCustomerBulkPayment = async (db: Firestore, payment: Omit<CustomerPayment, 'id'>): Promise<string> => {
+    const docRef = await addDoc(collection(db, 'customerPayments'), cleanForFirestore(payment));
+    return docRef.id;
 };
 
 export const updateStorageRecord = async (db: Firestore, oldId: string, newId: string, data: Partial<StorageRecord>): Promise<void> => {

@@ -1,8 +1,7 @@
-
 'use client';
 
-import { useState, useRef } from 'react';
-import type { Customer, StorageRecord, UnloadingRecord, Expense, WarehouseInfo, Borrowing, Lending, OtherIncome, Commodity, Lot, DryingRecord } from "@/lib/definitions";
+import { useState, useRef, useMemo } from 'react';
+import type { Customer, StorageRecord, UnloadingRecord, Expense, WarehouseInfo, Borrowing, Lending, OtherIncome, Commodity, Lot, DryingRecord, CustomerPayment } from "@/lib/definitions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ReportClient } from '@/components/reports/report-client';
@@ -15,7 +14,6 @@ import { ProfitAndLossReport } from './profit-and-loss-report';
 import { Button } from '../ui/button';
 import { Printer, FileDown, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { PendingPaymentsTable } from '@/components/payments/pending-payments-table';
 import { PaymentReport } from './payment-report';
 import { PendingDuesReportTable } from './pending-dues-report-table';
 import { toDate } from '@/lib/utils';
@@ -43,10 +41,10 @@ type ReportGeneratorProps = {
     otherIncomes: OtherIncome[];
     commodities: Commodity[];
     lots: Lot[];
+    customerPayments?: CustomerPayment[];
     initialReport?: string;
     initialCustomerId?: string;
     dryingRecords: DryingRecord[];
-    lots: Lot[];
 }
 
 export function CustomReportGenerator({ 
@@ -60,6 +58,7 @@ export function CustomReportGenerator({
     otherIncomes,
     commodities,
     lots,
+    customerPayments = [],
     initialReport, 
     initialCustomerId,
 }: ReportGeneratorProps) {
@@ -111,11 +110,11 @@ export function CustomReportGenerator({
                             warehouseInfo={warehouseInfo}
                             borrowings={borrowings}
                             lendings={lendings}
+                            customerPayments={customerPayments}
                         />;
             case 'payment-register':
                 return <PaymentReport records={records} unloadingRecords={unloadingRecords} customers={customers} />;
             case 'pending-dues': {
-                // Generate summaries locally for the report view
                 const summaryMap: Record<string, any> = {};
                 records.forEach(r => {
                     if (!summaryMap[r.customerId]) summaryMap[r.customerId] = { hLiability: 0, rLiability: 0, totalPaid: 0 };
@@ -128,6 +127,10 @@ export function CustomReportGenerator({
                     const remaining = Math.max(0, r.bagsUnloaded - (r.bagsSentToDrying || 0));
                     summaryMap[r.customerId].hLiability += remaining * (r.hamaliPerBag || 0);
                     summaryMap[r.customerId].totalPaid += (r.payments || []).reduce((acc, p) => acc + p.amount, 0);
+                });
+                customerPayments.forEach(cp => {
+                    if (!summaryMap[cp.customerId]) summaryMap[cp.customerId] = { hLiability: 0, rLiability: 0, totalPaid: 0 };
+                    summaryMap[cp.customerId].totalPaid += (cp.amount || 0);
                 });
                 const summaries = Object.entries(summaryMap).map(([id, d]) => {
                     const balance = Math.max(0, (d.hLiability + d.rLiability) - d.totalPaid);
@@ -149,6 +152,7 @@ export function CustomReportGenerator({
                             customers={customers}
                             storageRecords={records}
                             unloadingRecords={unloadingRecords}
+                            customerPayments={customerPayments}
                             isReport={true}
                         />;
             }
@@ -161,6 +165,7 @@ export function CustomReportGenerator({
                             allRecords={records}
                             commodities={commodities}
                             lots={lots}
+                            customerPayments={customerPayments}
                         />;
             case 'hamali-register':
                 return <HamaliReport records={records} customers={customers} unloadingRecords={unloadingRecords} expenses={expenses} warehouseInfo={warehouseInfo} />;

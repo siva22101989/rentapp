@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -9,7 +8,7 @@ import type { CustomerPendingSummary } from "../payments/pending-payments-table"
 import { BulkPaymentDialog } from "../customers/bulk-payment-dialog";
 import { Button } from "../ui/button";
 import { Banknote } from "lucide-react";
-import type { Customer, StorageRecord, UnloadingRecord } from "@/lib/definitions";
+import type { Customer, StorageRecord, UnloadingRecord, CustomerPayment } from "@/lib/definitions";
 
 type ReportTableProps = {
     summaries: CustomerPendingSummary[];
@@ -17,10 +16,11 @@ type ReportTableProps = {
     customers: Customer[];
     storageRecords: StorageRecord[];
     unloadingRecords: UnloadingRecord[];
+    customerPayments?: CustomerPayment[];
     isReport?: boolean;
 };
 
-export function PendingDuesReportTable({ summaries, title, customers, storageRecords, unloadingRecords, isReport = false }: ReportTableProps) {
+export function PendingDuesReportTable({ summaries, title, customers, storageRecords, unloadingRecords, customerPayments = [], isReport = false }: ReportTableProps) {
     const generatedDate = useMemo(() => format(new Date(), 'dd MMM yyyy, hh:mm a'), []);
 
     const totals = useMemo(() => {

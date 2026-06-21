@@ -29,12 +29,24 @@ export type Lot = {
   warehouseId?: string;
 };
 
-export type PaymentType = 'rent' | 'hamali' | 'other' | 'unloading' | 'discount' | 'repayment' | 'interest' | 'principal';
+export type PaymentType = 'rent' | 'hamali' | 'other' | 'unloading' | 'discount' | 'repayment' | 'interest' | 'principal' | 'bulk';
 
 export type Payment = {
   amount: number;
   date: Date | Timestamp;
   type?: PaymentType;
+};
+
+export type CustomerPayment = {
+  id: string;
+  customerId: string;
+  warehouseId: string;
+  amount: number;
+  date: Date | Timestamp;
+  type: 'rent' | 'hamali';
+  isDiscount: boolean;
+  refNo?: string;
+  description?: string;
 };
 
 export type Outflow = {

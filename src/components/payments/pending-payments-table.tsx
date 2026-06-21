@@ -1,7 +1,6 @@
-
 'use client';
 import { useMemo } from "react";
-import type { Customer, StorageRecord, UnloadingRecord } from "@/lib/definitions";
+import type { Customer, StorageRecord, UnloadingRecord, CustomerPayment } from "@/lib/definitions";
 import { PendingDuesReportTable } from "../reports/pending-dues-report-table";
 import { toDate } from "@/lib/utils";
 
@@ -16,7 +15,7 @@ export type CustomerPendingSummary = {
     lastActivityDate: Date;
 };
 
-export function PendingPaymentsTable({ records, customers, unloadingRecords, title = "Pending Dues Register" }: { records: StorageRecord[], customers: Customer[], unloadingRecords: UnloadingRecord[], title?: string }) {
+export function PendingPaymentsTable({ records, customers, unloadingRecords, customerPayments = [], title = "Pending Dues Register" }: { records: StorageRecord[], customers: Customer[], unloadingRecords: UnloadingRecord[], customerPayments?: CustomerPayment[], title?: string }) {
 
     const pendingSummaries = useMemo(() => {
         if (!records || !unloadingRecords || !customers) return [];
@@ -24,7 +23,7 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, tit
         const summaryMap: Record<string, {
             hLiability: number,
             rLiability: number,
-            totalPaid: number,
+            recordPaid: number,
             lastDate: number
         }> = {};
         
@@ -35,7 +34,7 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, tit
                 summaryMap[id] = {
                     hLiability: 0,
                     rLiability: 0,
-                    totalPaid: 0,
+                    recordPaid: 0,
                     lastDate: 0
                 };
             }
@@ -45,18 +44,12 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, tit
         // 1. Process Storage Records
         records.forEach(r => {
             const s = getSummary(r.customerId);
-            
             const inflowHamali = r.hamaliPayable || 0; 
             const billedRent = r.totalRentBilled || 0;
             const khata = r.khataAmount || 0;
-            
-            const rentLiability = billedRent + khata;
-            const paymentsPaid = (r.payments || []).reduce((acc, p) => acc + p.amount, 0);
-
             s.hLiability += inflowHamali;
-            s.rLiability += rentLiability;
-            s.totalPaid += paymentsPaid;
-            
+            s.rLiability += billedRent + khata;
+            s.recordPaid += (r.payments || []).reduce((acc, p) => acc + p.amount, 0);
             const rDate = toDate(r.storageStartDate).getTime();
             if (rDate > s.lastDate) s.lastDate = rDate;
         });
@@ -66,27 +59,29 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, tit
             const s = getSummary(r.customerId);
             const remainingBags = Math.max(0, (r.bagsUnloaded || 0) - (r.bagsSentToDrying || 0));
             const hLiability = remainingBags * (r.hamaliPerBag || 0);
-            const paymentsPaid = (r.payments || []).reduce((acc, p) => acc + p.amount, 0);
-            
             s.hLiability += hLiability;
-            s.totalPaid += paymentsPaid;
-
+            s.recordPaid += (r.payments || []).reduce((acc, p) => acc + p.amount, 0);
             const uDate = toDate(r.unloadingDate).getTime();
             if (uDate > s.lastDate) s.lastDate = uDate;
         });
 
         return Object.entries(summaryMap).map(([customerId, data]) => {
+            // Factor in bulk customer payments that are not tied to bills
+            const bulkPaymentsForCust = customerPayments.filter(cp => cp.customerId === customerId);
+            const totalBulkPaid = bulkPaymentsForCust.reduce((acc, cp) => acc + (cp.amount || 0), 0);
+            
             const totalLiability = data.hLiability + data.rLiability;
-            const balanceDue = Math.max(0, totalLiability - data.totalPaid);
+            const totalPaid = data.recordPaid + totalBulkPaid;
+            const balanceDue = Math.max(0, totalLiability - totalPaid);
 
-            const hamaliPending = Math.max(0, data.hLiability - data.totalPaid);
+            const hamaliPending = Math.max(0, data.hLiability - totalPaid);
             const rentPending = Math.max(0, balanceDue - hamaliPending);
 
             return {
                 customerId,
                 customerName: customerMap.get(customerId) || 'Unknown',
                 totalBilled: totalLiability,
-                amountPaid: data.totalPaid,
+                amountPaid: totalPaid,
                 balanceDue,
                 hamaliPending,
                 rentPending,
@@ -96,7 +91,7 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, tit
         .filter(s => s.balanceDue > 0.5) 
         .sort((a, b) => b.lastActivityDate.getTime() - a.lastActivityDate.getTime());
 
-    }, [records, unloadingRecords, customers]);
+    }, [records, unloadingRecords, customers, customerPayments]);
 
     return (
         <div className="space-y-4">
@@ -107,6 +102,7 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, tit
                     customers={customers}
                     storageRecords={records}
                     unloadingRecords={unloadingRecords}
+                    customerPayments={customerPayments}
                 />
             </div>
         </div>

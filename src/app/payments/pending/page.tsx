@@ -1,7 +1,7 @@
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
-import type { Customer, StorageRecord, UnloadingRecord, Expense } from "@/lib/definitions";
+import type { Customer, StorageRecord, UnloadingRecord, Expense, CustomerPayment } from "@/lib/definitions";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { collection, query, where } from "firebase/firestore";
 import { useFirestore } from "@/firebase/provider";
@@ -40,8 +40,14 @@ export default function PendingPaymentsPage() {
     const expensesQuery = useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'expenses'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]);
     const { data: allExpenses, loading: loadingExpenses } = useCollection<Expense>(expensesQuery);
 
+    const customerPaymentsQuery = useMemoFirebase(
+      () => (firestore && appUser?.warehouseId ? query(collection(firestore, 'customerPayments'), where('warehouseId', '==', appUser.warehouseId)) : null),
+      [firestore, appUser]
+    );
+    const { data: customerPayments, loading: loadingPayments } = useCollection<CustomerPayment>(customerPaymentsQuery);
 
-    if (loadingRecords || loadingCustomers || loadingUnloadingRecords || loadingExpenses) {
+
+    if (loadingRecords || loadingCustomers || loadingUnloadingRecords || loadingExpenses || loadingPayments) {
         return (
             <AppLayout>
                 <div className="flex h-[60vh] w-full items-center justify-center">
@@ -66,11 +72,13 @@ export default function PendingPaymentsPage() {
                       customers={allCustomers || []}
                       storageRecords={allRecords || []}
                       unloadingRecords={allUnloadingRecords || []}
+                      customerPayments={customerPayments || []}
                   />
                   <CustomerBulkPaymentDialog
                       customers={allCustomers || []}
                       storageRecords={allRecords || []}
                       unloadingRecords={allUnloadingRecords || []}
+                      customerPayments={customerPayments || []}
                   />
                   <RecordHamaliPaymentDialog>
                       <Button variant="outline">
@@ -86,6 +94,7 @@ export default function PendingPaymentsPage() {
                     records={allRecords || []} 
                     customers={allCustomers || []} 
                     unloadingRecords={allUnloadingRecords || []}
+                    customerPayments={customerPayments || []}
                 />
             </div>
         </AppLayout>

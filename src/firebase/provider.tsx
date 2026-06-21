@@ -1,4 +1,3 @@
-
 'use client';
 import {
   createContext,
@@ -14,7 +13,7 @@ import type { DateRange } from 'react-day-picker';
 import { getApp, getApps, initializeApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
 // Import a common function like `collection` to hint the bundler against tree-shaking.
-import { getFirestore, collection, type Firestore, enableIndexedDbPersistence } from 'firebase/firestore';
+import { getFirestore, collection, type Firestore, enableMultiTabIndexedDbPersistence } from 'firebase/firestore';
 import { firebaseConfig } from './config';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
@@ -36,25 +35,30 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
     }
     initialized.current = true;
 
-    const app =
-      getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+    const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const firestore = getFirestore(app);
 
-    enableIndexedDbPersistence(firestore)
-      .then(() => {
-        // Persistence enabled successfully
-        setValue({ firebaseApp: app, auth, firestore });
-      })
-      .catch((err) => {
+    const initializeDatabase = async () => {
+      try {
+        // enableMultiTabIndexedDbPersistence is more robust for Next.js dev and production
+        await enableMultiTabIndexedDbPersistence(firestore);
+      } catch (err: any) {
         if (err.code === 'failed-precondition') {
           console.warn('Firestore persistence failed: multiple tabs open. Offline functionality may be limited.');
         } else if (err.code === 'unimplemented') {
           console.warn('Firestore persistence is not supported in this browser.');
+        } else {
+          // Gracefully catch "already started" or other SDK-level errors to prevent app crashes
+          console.warn('Firestore persistence skipped:', err.message);
         }
-        // Proceed without persistence
+      } finally {
+        // Always provide the instances to the app, regardless of persistence success
         setValue({ firebaseApp: app, auth, firestore });
-      });
+      }
+    };
+
+    initializeDatabase();
   }, []); // Empty dependency array ensures this runs only once on the client.
 
   if (!value) {

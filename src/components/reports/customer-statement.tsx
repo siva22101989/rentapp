@@ -273,6 +273,12 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         runningBalance += (debit - credit);
         return { ...event, balance: runningBalance };
     });
+
+    // Reconciled Financial Split for Summary Box
+    // This logic ensures Hamali Due + Rent Due = Final Balance
+    const finalBalance = Math.max(0, runningBalance);
+    const hamaliDueReconciled = Math.max(0, totalHamaliBilled - totalHamaliPaid);
+    const rentDueReconciled = Math.max(0, finalBalance - hamaliDueReconciled);
     
     return { 
         lineItems, 
@@ -282,13 +288,13 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             balanceStock: Math.max(0, totalBagsIn - totalBagsOut), 
             totalHamaliBilled, 
             totalHamaliPaid,
-            hamaliBalance: Math.max(0, totalHamaliBilled - totalHamaliPaid),
+            hamaliBalance: hamaliDueReconciled,
             totalRentBilled, 
             totalRentPaid,
-            rentBalance: Math.max(0, totalRentBilled - totalRentPaid),
+            rentBalance: rentDueReconciled,
             totalDiscounts,
             totalCredit: totalHamaliPaid + totalRentPaid + totalDiscounts, 
-            finalBalance: Math.max(0, runningBalance)
+            finalBalance: finalBalance
         } 
     };
   }, [records, unloadingRecords]);

@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { formatCurrency, toDate } from "@/lib/utils";
 import { useMemo } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
-import type { Expense, StorageRecord, UnloadingRecord, WarehouseInfo, Borrowing, Lending, OtherIncome } from "@/lib/definitions";
+import type { Expense, StorageRecord, UnloadingRecord, WarehouseInfo, Borrowing, Lending, OtherIncome, CustomerPayment } from "@/lib/definitions";
 import { format } from "date-fns";
 import { useDateFilter } from "@/firebase/provider";
 
@@ -16,15 +16,16 @@ type ProfitAndLossReportProps = {
     warehouseInfo: WarehouseInfo | null;
     borrowings: Borrowing[];
     lendings: Lending[];
+    customerPayments?: CustomerPayment[];
 }
 
-export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecords, otherIncomes, warehouseInfo, borrowings, lendings }: ProfitAndLossReportProps) {
+export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecords, otherIncomes, warehouseInfo, borrowings, lendings, customerPayments = [] }: ProfitAndLossReportProps) {
   const { dateRange, financialYear } = useDateFilter();
   const generatedDate = useMemo(() => format(new Date(), 'dd MMM yyyy, hh:mm a'), []);
 
-  const { periodIncome, periodExpenses, periodBalance, filteredExpenses, filteredIncomes, interestOnCapital, totalBorrowed, totalLent, estimatedRent, activeBags } = useMemo(() => {
+  const { periodIncome, periodExpenses, periodBalance, filteredExpenses, filteredIncomes, interestOnCapital, totalBorrowed, totalLent, estimatedRent, activeBags, totalDiscountLoss } = useMemo(() => {
     if (!allRecords || !allExpenses || !allUnloadingRecords || !otherIncomes || !borrowings || !lendings) {
-        return { periodIncome: 0, periodExpenses: 0, periodBalance: 0, filteredExpenses: [], filteredIncomes: [], interestOnCapital: 0, totalBorrowed: 0, totalLent: 0, estimatedRent: 0, activeBags: 0 };
+        return { periodIncome: 0, periodExpenses: 0, periodBalance: 0, filteredExpenses: [], filteredIncomes: [], interestOnCapital: 0, totalBorrowed: 0, totalLent: 0, estimatedRent: 0, activeBags: 0, totalDiscountLoss: 0 };
     }
     const inRange = (date: Date) => {
         if (financialYear === 'all-time') return true;
@@ -37,6 +38,7 @@ export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecor
         }
         return true;
     };
+
     let calculatedInterest = 0;
     const capital = warehouseInfo?.capitalInvestment || 0;
     const interestRate = warehouseInfo?.annualInterestRate || 0;
@@ -51,15 +53,24 @@ export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecor
             calculatedInterest = capital * dailyRate * diffDays;
         }
     }
-    const filteredStoragePayments = allRecords.flatMap(r => r.payments || []).filter(p => inRange(toDate(p.date)));
-    const filteredUnloadingPayments = allUnloadingRecords.flatMap(r => r.payments || []).filter(p => inRange(toDate(p.date)));
-    const localFilteredOtherIncomes = otherIncomes.filter(i => inRange(toDate(i.date)));
-    const incomeFromRecords = filteredStoragePayments.reduce((acc, p) => acc + p.amount, 0) + filteredUnloadingPayments.reduce((acc, p) => acc + p.amount, 0);
-    const incomeFromOther = localFilteredOtherIncomes.reduce((acc, i) => acc + i.amount, 0);
-    const income = incomeFromRecords + incomeFromOther;
+
+    // Cash Income Calculation
+    const incomeFromRecords = allRecords.flatMap(r => r.payments || []).filter(p => inRange(toDate(p.date)) && p.type !== 'discount').reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
+    const incomeFromUnloading = allUnloadingRecords.flatMap(r => r.payments || []).filter(p => inRange(toDate(p.date)) && p.type !== 'discount').reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
+    const incomeFromBulk = customerPayments.filter(p => inRange(toDate(p.date)) && !p.isDiscount).reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
+    const localFilteredIncomes = otherIncomes.filter(i => inRange(toDate(i.date)));
+    const incomeFromOther = localFilteredIncomes.reduce((acc, i) => acc + (Number(i.amount) || 0), 0);
+    const totalCashIncome = incomeFromRecords + incomeFromUnloading + incomeFromBulk + incomeFromOther;
+
+    // Loss from Discounts / Waivers
+    const discountFromRecords = allRecords.flatMap(r => r.payments || []).filter(p => inRange(toDate(p.date)) && p.type === 'discount').reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
+    const discountFromUnloading = allUnloadingRecords.flatMap(r => r.payments || []).filter(p => inRange(toDate(p.date)) && p.type === 'discount').reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
+    const discountFromBulk = customerPayments.filter(p => inRange(toDate(p.date)) && p.isDiscount).reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
+    const totalLossFromDiscounts = discountFromRecords + discountFromUnloading + discountFromBulk;
+
+    // Operating Expenses
     const localFilteredExpenses = allExpenses.filter(e => inRange(toDate(e.date)));
-    const expensesFromDb = localFilteredExpenses.reduce((total, expense) => total + expense.amount, 0);
-    const totalExpenses = expensesFromDb + calculatedInterest;
+    const totalExpenses = localFilteredExpenses.reduce((total, expense) => total + expense.amount, 0) + calculatedInterest + totalLossFromDiscounts;
 
     const borrowed = borrowings.filter(b => b.status !== 'Paid Off').reduce((acc, b) => acc + b.principal, 0);
     const lent = lendings.filter(l => l.status !== 'Paid Off').reduce((acc, l) => acc + l.principal, 0);
@@ -72,94 +83,101 @@ export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecor
     }, 0);
 
     return {
-      periodIncome: income,
+      periodIncome: totalCashIncome,
       periodExpenses: totalExpenses,
-      periodBalance: income - totalExpenses,
+      totalDiscountLoss: totalLossFromDiscounts,
+      periodBalance: totalCashIncome - totalExpenses,
       filteredExpenses: localFilteredExpenses.sort((a,b) => toDate(b.date).getTime() - toDate(a.date).getTime()),
-      filteredIncomes: localFilteredOtherIncomes.sort((a,b) => toDate(b.date).getTime() - toDate(a.date).getTime()),
+      filteredIncomes: localFilteredIncomes.sort((a,b) => toDate(b.date).getTime() - toDate(a.date).getTime()),
       interestOnCapital: calculatedInterest,
       totalBorrowed: borrowed,
       totalLent: lent,
       estimatedRent: rentEstimate,
       activeBags: activeRecords.reduce((acc, r) => acc + r.bagsStored, 0)
     };
-  }, [allRecords, allExpenses, allUnloadingRecords, otherIncomes, dateRange, warehouseInfo, financialYear, borrowings, lendings]);
+  }, [allRecords, allExpenses, allUnloadingRecords, otherIncomes, customerPayments, dateRange, warehouseInfo, financialYear, borrowings, lendings]);
 
   return (
-    <Card>
+    <Card className="border-2 border-black shadow-none">
         <CardContent className="pt-6">
-            <div className="p-4 space-y-6">
-                <div className="text-center">
-                    <h2 className="text-xl font-bold uppercase tracking-wide">SRI LAKSHMI WAREHOUSE</h2>
-                    <h3 className="text-lg font-semibold underline uppercase">Profit & Loss Statement</h3>
-                    <p className="text-sm text-muted-foreground">
-                        Period: {dateRange?.from ? format(dateRange.from, 'dd MMM yyyy') : 'All Time'} to {dateRange?.to ? format(dateRange.to, 'dd MMM yyyy') : 'Today'}
+            <div className="p-4 space-y-8">
+                <div className="text-center border-b-2 border-black pb-4">
+                    <h1 className="text-2xl font-black uppercase tracking-tight leading-none mb-1">{warehouseInfo?.name || "SRI LAKSHMI WAREHOUSE"}</h1>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{warehouseInfo?.addressLine1} {warehouseInfo?.addressLine2}</p>
+                    <h2 className="text-lg font-black underline uppercase mt-4 tracking-[0.2em]">Profit & Loss Statement</h2>
+                    <p className="text-xs font-bold text-primary uppercase mt-1">
+                        Audit Period: {dateRange?.from ? format(dateRange.from, 'dd MMM yyyy') : 'All Time'} to {dateRange?.to ? format(dateRange.to, 'dd MMM yyyy') : 'Today'}
                     </p>
                 </div>
                 
-                <Table className="text-sm">
+                <Table className="text-[13px] border-collapse">
                     <TableHeader>
-                        <TableRow>
-                            <TableHead className="font-bold text-black">Particulars</TableHead>
-                            <TableHead className="text-right font-bold text-black">Amount</TableHead>
+                        <TableRow className="bg-slate-50 border-y-2 border-black">
+                            <TableHead className="font-black text-black uppercase text-[10px] py-3">Financial Particulars</TableHead>
+                            <TableHead className="text-right font-black text-black uppercase text-[10px] py-3">Amount (INR)</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        <TableRow className="bg-muted/50 font-bold"><TableCell colSpan={2} className="uppercase text-xs tracking-wider">Operational Income</TableCell></TableRow>
+                        <TableRow className="bg-muted/30 font-black"><TableCell colSpan={2} className="uppercase text-[10px] tracking-wider py-1.5 text-primary">Revenue & Cash Inflow</TableCell></TableRow>
                         {filteredIncomes.map((income) => (
-                            <TableRow key={`inc-${income.id}`}><TableCell className="pl-6">{income.description}</TableCell><TableCell className="text-right font-mono text-green-600">{formatCurrency(income.amount)}</TableCell></TableRow>
+                            <TableRow key={`inc-${income.id}`} className="border-b border-slate-100 h-8"><TableCell className="pl-6 font-medium">{income.description}</TableCell><TableCell className="text-right font-mono text-green-600 font-bold">{formatCurrency(income.amount)}</TableCell></TableRow>
                         ))}
-                        <TableRow className="bg-slate-50 font-bold"><TableCell className="text-right uppercase text-xs">Total Income Received</TableCell><TableCell className="text-right font-mono text-green-700">{formatCurrency(periodIncome)}</TableCell></TableRow>
+                        <TableRow className="bg-green-50/50 font-black border-y border-green-200"><TableCell className="text-right uppercase text-[10px] tracking-tight">Total Realized Cash Income</TableCell><TableCell className="text-right font-mono text-green-700 text-base">{formatCurrency(periodIncome)}</TableCell></TableRow>
                         
-                        <TableRow className="bg-muted/50 font-bold"><TableCell colSpan={2} className="uppercase text-xs tracking-wider mt-4">Operational Expenses</TableCell></TableRow>
+                        <TableRow className="bg-muted/30 font-black"><TableCell colSpan={2} className="uppercase text-[10px] tracking-wider py-1.5 text-destructive mt-6">Operational Debits & Losses</TableCell></TableRow>
                         {filteredExpenses.map((expense) => (
-                            <TableRow key={`exp-${expense.id}`}><TableCell className="pl-6">{expense.description}</TableCell><TableCell className="text-right font-mono text-destructive">({formatCurrency(expense.amount)})</TableCell></TableRow>
+                            <TableRow key={`exp-${expense.id}`} className="border-b border-slate-100 h-8"><TableCell className="pl-6 font-medium">{expense.category}: {expense.description}</TableCell><TableCell className="text-right font-mono text-destructive">({formatCurrency(expense.amount)})</TableCell></TableRow>
                         ))}
                         {interestOnCapital > 0 && (
-                            <TableRow><TableCell className="pl-6 italic">Interest on Capital (Notional)</TableCell><TableCell className="text-right font-mono text-destructive">({formatCurrency(interestOnCapital)})</TableCell></TableRow>
+                            <TableRow className="border-b border-slate-100 h-8"><TableCell className="pl-6 italic font-medium">Interest on Capital Investment (Notional)</TableCell><TableCell className="text-right font-mono text-destructive">({formatCurrency(interestOnCapital)})</TableCell></TableRow>
                         )}
-                        <TableRow className="bg-slate-50 font-bold"><TableCell className="text-right uppercase text-xs">Total Expenses Incurred</TableCell><TableCell className="text-right font-mono text-destructive">{formatCurrency(periodExpenses)}</TableCell></TableRow>
+                        {totalDiscountLoss > 0 && (
+                            <TableRow className="bg-red-50/50 border-b border-red-200 h-8"><TableCell className="pl-6 font-black text-red-600 uppercase text-[11px]">Discounts & Waivers (Loss Account)</TableCell><TableCell className="text-right font-mono text-red-700 font-black">({formatCurrency(totalDiscountLoss)})</TableCell></TableRow>
+                        )}
+                        <TableRow className="bg-red-50/50 font-black border-y border-red-200"><TableCell className="text-right uppercase text-[10px] tracking-tight">Total Expenses & Provisions</TableCell><TableCell className="text-right font-mono text-destructive text-base">{formatCurrency(periodExpenses)}</TableCell></TableRow>
                     </TableBody>
                     <TableFooter>
-                        <TableRow className="text-lg bg-primary/10 border-t-2 border-primary">
-                            <TableCell className="font-bold uppercase tracking-tight">{periodBalance >= 0 ? 'Net Operational Profit' : 'Net Operational Loss'}</TableCell>
-                            <TableCell className={`text-right font-bold font-mono ${periodBalance >= 0 ? 'text-primary' : 'text-destructive'}`}>{formatCurrency(periodBalance)}</TableCell>
+                        <TableRow className="text-xl bg-slate-900 text-white border-t-2 border-black h-14">
+                            <TableCell className="font-black uppercase tracking-tighter">{periodBalance >= 0 ? 'Net Adjusted Profit' : 'Net Final Loss'}</TableCell>
+                            <TableCell className={`text-right font-mono font-black text-2xl underline underline-offset-8`}>{formatCurrency(periodBalance)}</TableCell>
                         </TableRow>
                     </TableFooter>
                 </Table>
 
-                <div className="space-y-4 pt-6">
-                    <h3 className="text-md font-bold uppercase tracking-tight border-b pb-1">Godown Valuation Assets</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-[13px]">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-12 pt-8">
+                    <div className="space-y-4">
+                        <h3 className="text-[11px] font-black uppercase tracking-[0.2em] border-b-2 border-black pb-1">Unrealized Asset Valuation</h3>
                         <div className="space-y-1">
-                            <p className="text-slate-500 font-bold uppercase text-[10px]">Godown Rent Receivable</p>
-                            <p className="text-lg font-black text-blue-600 font-mono">{formatCurrency(estimatedRent)}</p>
-                            <p className="text-[10px] text-muted-foreground italic">Accrued rent calculation on {activeBags} balance bags currently in stock.</p>
+                            <p className="text-slate-500 font-bold uppercase text-[9px]">Accrued Rent Receivable</p>
+                            <p className="text-2xl font-black text-blue-600 font-mono">{formatCurrency(estimatedRent)}</p>
+                            <p className="text-[10px] text-slate-400 italic leading-tight">Valuation based on {activeBags} bags currently stacked in Godown.</p>
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        <h3 className="text-[11px] font-black uppercase tracking-[0.2em] border-b-2 border-black pb-1">Capital Liquidity Positions</h3>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                                <p className="text-slate-500 font-bold uppercase text-[9px]">Lent Principal</p>
+                                <p className="text-lg font-black text-emerald-600 font-mono">{formatCurrency(totalLent)}</p>
+                            </div>
+                            <div className="space-y-1">
+                                <p className="text-slate-500 font-bold uppercase text-[9px]">Borrowed Principal</p>
+                                <p className="text-lg font-black text-destructive font-mono">{formatCurrency(totalBorrowed)}</p>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="space-y-4 pt-6">
-                    <h3 className="text-md font-bold uppercase tracking-tight border-b pb-1">Current Financial Position (Principal)</h3>
-                    <div className="grid grid-cols-2 gap-8 text-[13px]">
-                        <div className="space-y-1">
-                            <p className="text-slate-500 font-bold uppercase text-[10px]">Total Active Borrowings</p>
-                            <p className="text-lg font-black text-destructive font-mono">{formatCurrency(totalBorrowed)}</p>
-                        </div>
-                        <div className="space-y-1">
-                            <p className="text-slate-500 font-bold uppercase text-[10px]">Total Active Lendings</p>
-                            <p className="text-lg font-black text-green-600 font-mono">{formatCurrency(totalLent)}</p>
-                        </div>
+                <div className="mt-24 flex flex-col items-end text-center space-y-1">
+                    <div className="w-80 border-t-2 border-black pt-3">
+                        <p className="text-slate-900 font-black text-[13px] uppercase tracking-widest">Authorized Auditor Signature</p>
+                        <p className="text-primary font-bold text-[10px] uppercase mt-1">Financial Operations Audit</p>
                     </div>
-                </div>
-
-                <div className="mt-16 pt-8 flex flex-col items-end text-center space-y-2">
-                    <div className="w-72 border-t border-slate-400 pt-4">
-                        <p className="text-[#1e293b] font-bold text-sm uppercase tracking-wider">AUTHORIZED MANAGER SIGNATURE</p>
-                        <p className="text-primary font-bold text-xs uppercase mt-1">SRI LAKSHMI WAREHOUSE</p>
+                    <div className="text-[9px] text-slate-400 italic pt-12 space-y-0.5">
+                        <p>Report digital ID: PNL-AUDIT-{format(new Date(), 'yyyyMMdd')}</p>
+                        <p>Generated on {generatedDate} • This is a certified computer-generated document.</p>
                     </div>
-                    <p className="text-[10px] text-slate-400">Report validity verified on {generatedDate}</p>
-                    <p className="text-[10px] text-slate-400 italic">This is a computer generated statement.</p>
                 </div>
             </div>
         </CardContent>

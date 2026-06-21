@@ -122,19 +122,19 @@ export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecor
                     <TableBody>
                         <TableRow className="bg-muted/30 font-black"><TableCell colSpan={2} className="uppercase text-[10px] tracking-wider py-1.5 text-primary text-center">Revenue & Cash Inflow</TableCell></TableRow>
                         {filteredIncomes.map((income) => (
-                            <TableRow key={`inc-${income.id}`} className="border-b border-slate-100 h-8"><TableCell className="pl-6 font-medium">{income.description}</TableCell><TableCell className="text-right font-mono text-green-600 font-bold">{formatCurrency(income.amount)}</TableCell></TableRow>
+                            <TableRow key={`inc-${income.id}`} className="border-b border-slate-100 h-8"><TableCell className="pl-6 font-medium text-center">{income.description}</TableCell><TableCell className="text-right font-mono text-green-600 font-bold">{formatCurrency(income.amount)}</TableCell></TableRow>
                         ))}
                         <TableRow className="bg-green-50/50 font-black border-y border-green-200"><TableCell className="text-right uppercase text-[10px] tracking-tight">Total Realized Cash Income</TableCell><TableCell className="text-right font-mono text-green-700 text-base">{formatCurrency(periodIncome)}</TableCell></TableRow>
                         
                         <TableRow className="bg-muted/30 font-black"><TableCell colSpan={2} className="uppercase text-[10px] tracking-wider py-1.5 text-destructive mt-6 text-center">Operational Debits & Losses</TableCell></TableRow>
                         {filteredExpenses.map((expense) => (
-                            <TableRow key={`exp-${expense.id}`} className="border-b border-slate-100 h-8"><TableCell className="pl-6 font-medium">{expense.category}: {expense.description}</TableCell><TableCell className="text-right font-mono text-destructive">({formatCurrency(expense.amount)})</TableCell></TableRow>
+                            <TableRow key={`exp-${expense.id}`} className="border-b border-slate-100 h-8"><TableCell className="pl-6 font-medium text-center">{expense.category}: {expense.description}</TableCell><TableCell className="text-right font-mono text-destructive">({formatCurrency(expense.amount)})</TableCell></TableRow>
                         ))}
                         {interestOnCapital > 0 && (
-                            <TableRow className="border-b border-slate-100 h-8"><TableCell className="pl-6 italic font-medium">Interest on Capital Investment (Notional)</TableCell><TableCell className="text-right font-mono text-destructive">({formatCurrency(interestOnCapital)})</TableCell></TableRow>
+                            <TableRow className="border-b border-slate-100 h-8"><TableCell className="pl-6 italic font-medium text-center">Interest on Capital Investment (Notional)</TableCell><TableCell className="text-right font-mono text-destructive">({formatCurrency(interestOnCapital)})</TableCell></TableRow>
                         )}
                         {totalDiscountLoss > 0 && (
-                            <TableRow className="bg-red-50/50 border-b border-red-200 h-8"><TableCell className="pl-6 font-black text-red-600 uppercase text-[11px]">Discounts & Waivers (Loss Account)</TableCell><TableCell className="text-right font-mono text-red-700 font-black">({formatCurrency(totalDiscountLoss)})</TableCell></TableRow>
+                            <TableRow className="bg-red-50/50 border-b border-red-200 h-8"><TableCell className="pl-6 font-black text-red-600 uppercase text-[11px] text-center">Discounts & Waivers (Loss Account)</TableCell><TableCell className="text-right font-mono text-red-700 font-black">({formatCurrency(totalDiscountLoss)})</TableCell></TableRow>
                         )}
                         <TableRow className="bg-red-50/50 font-black border-y border-red-200"><TableCell className="text-right uppercase text-[10px] tracking-tight">Total Expenses & Provisions</TableCell><TableCell className="text-right font-mono text-destructive text-base">{formatCurrency(periodExpenses)}</TableCell></TableRow>
                     </TableBody>

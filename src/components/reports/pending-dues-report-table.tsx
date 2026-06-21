@@ -61,7 +61,7 @@ export function PendingDuesReportTable({ summaries, title, customers, storageRec
                         const customerObj = customers.find(c => c.id === summary.customerId);
                         return (
                             <TableRow key={summary.customerId} className="hover:bg-slate-50/50 border-b border-slate-100 h-8">
-                                <TableCell className="font-bold text-slate-800 p-1">{summary.customerName}</TableCell>
+                                <TableCell className="font-bold text-slate-800 p-1 text-center">{summary.customerName}</TableCell>
                                 <TableCell className="text-right font-mono text-orange-600 font-medium p-1">{formatCurrency(summary.hamaliPending)}</TableCell>
                                 <TableCell className="text-right font-mono text-blue-600 font-medium p-1">{formatCurrency(summary.rentPending)}</TableCell>
                                 <TableCell className="text-right font-mono text-slate-600 p-1">{formatCurrency(summary.totalBilled)}</TableCell>
@@ -95,7 +95,7 @@ export function PendingDuesReportTable({ summaries, title, customers, storageRec
                 </TableBody>
                 <TableFooter>
                     <TableRow className="bg-slate-900 text-white hover:bg-slate-900 border-t-2 border-slate-900 font-black">
-                        <TableCell className="p-3 uppercase text-[10px] tracking-tight">Grand Total Portfolio</TableCell>
+                        <TableCell className="p-3 uppercase text-[10px] tracking-tight text-center">Grand Total Portfolio</TableCell>
                         <TableCell className="text-right font-mono text-orange-200">{formatCurrency(totals.hamali)}</TableCell>
                         <TableCell className="text-right font-mono text-blue-200">{formatCurrency(totals.rent)}</TableCell>
                         <TableCell className="text-right font-mono text-slate-300">{formatCurrency(totals.billed)}</TableCell>

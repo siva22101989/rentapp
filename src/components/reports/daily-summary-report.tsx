@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import type { Customer, StorageRecord, UnloadingRecord, Expense, Payment, OtherIncome } from "@/lib/definitions";
+import type { Customer, StorageRecord, UnloadingRecord, Expense, Payment, OtherIncome, CustomerPayment } from "@/lib/definitions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,6 +24,7 @@ type DailyData = {
         netBalance: number;
         totalInflowBags: number;
         totalOutflowBags: number;
+        totalDiscounts: number;
     }
 }
 
@@ -41,20 +42,20 @@ const DailySummaryContent = ({ dailyData, selectedDate }: { dailyData: DailyData
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 <Card className="shadow-sm border-slate-200">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 p-2">
-                        <CardTitle className="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Income</CardTitle>
+                        <CardTitle className="text-[10px] font-black uppercase tracking-wider text-slate-400">Cash Income</CardTitle>
                         <TrendingUp className="h-3 w-3 text-green-500" />
                     </CardHeader>
                     <CardContent className="p-2 pt-0">
                         <div className="text-lg font-black text-green-600">{formatCurrency(dailyData.summary.totalIncome)}</div>
                     </CardContent>
                 </Card>
-                <Card className="shadow-sm border-slate-200">
+                <Card className="shadow-sm border-slate-200 bg-destructive/5 border-destructive/20">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 p-2">
-                        <CardTitle className="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Expenses</CardTitle>
-                        <TrendingDown className="h-3 w-3 text-red-500" />
+                        <CardTitle className="text-[10px] font-black uppercase tracking-wider text-destructive">Total Loss/Exp</CardTitle>
+                        <TrendingDown className="h-3 w-3 text-destructive" />
                     </CardHeader>
                     <CardContent className="p-2 pt-0">
-                        <div className="text-lg font-black text-destructive">{formatCurrency(dailyData.summary.totalExpenses)}</div>
+                        <div className="text-lg font-black text-destructive">{formatCurrency(dailyData.summary.totalExpenses + dailyData.summary.totalDiscounts)}</div>
                     </CardContent>
                 </Card>
                 <Card className="shadow-sm border-slate-200">
@@ -97,15 +98,15 @@ const DailySummaryContent = ({ dailyData, selectedDate }: { dailyData: DailyData
                                     <TableHead className="font-bold py-1 text-center">Customer</TableHead>
                                     <TableHead className="font-bold py-1 text-center">Lot/Prod</TableHead>
                                     <TableHead className="font-bold text-center py-1">Bags Out</TableHead>
-                                    <TableHead className="font-bold text-center py-1 text-right">Rent Billed</TableHead>
+                                    <TableHead className="font-bold py-1 text-right">Rent Billed</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {dailyData.outflows.map((out, i) => (
                                     <TableRow key={i} className="h-7">
-                                        <TableCell className="font-mono font-bold text-primary py-1">#{out.outflowId}</TableCell>
-                                        <TableCell className="font-bold py-1 uppercase">{out.customerName}</TableCell>
-                                        <TableCell className="py-1 text-[11px] leading-tight">
+                                        <TableCell className="font-mono font-bold text-primary py-1 text-center">#{out.outflowId}</TableCell>
+                                        <TableCell className="font-bold py-1 uppercase text-center">{out.customerName}</TableCell>
+                                        <TableCell className="py-1 text-[11px] leading-tight text-center">
                                             <div className="font-bold">{out.lot}</div>
                                             <div>{out.commodity}</div>
                                         </TableCell>
@@ -126,17 +127,23 @@ const DailySummaryContent = ({ dailyData, selectedDate }: { dailyData: DailyData
                                 <TableRow className="h-7">
                                     <TableHead className="font-bold py-1 text-center">Customer</TableHead>
                                     <TableHead className="font-bold py-1 text-center">Description</TableHead>
-                                    <TableHead className="font-bold text-center py-1 text-right">Amount</TableHead>
+                                    <TableHead className="font-bold py-1 text-right">Amount</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {dailyData.payments.map((p, i) => (
-                                    <TableRow key={i} className="h-7">
-                                        <TableCell className="font-bold py-1">{p.customerName}</TableCell>
-                                        <TableCell className="py-1">{p.description} (Ref: {p.recordId})</TableCell>
-                                        <TableCell className="text-right font-mono font-bold text-green-600 py-1">{formatCurrency(p.amount)}</TableCell>
+                                {dailyData.payments.map((p, i) => {
+                                    const isDiscount = p.type === 'discount' || (p as any).isDiscount;
+                                    return (
+                                    <TableRow key={i} className={`h-7 ${isDiscount ? 'bg-red-50' : ''}`}>
+                                        <TableCell className="font-bold py-1 text-center">{p.customerName}</TableCell>
+                                        <TableCell className="py-1 text-center">
+                                            {isDiscount ? <span className="text-destructive font-bold">[DISCOUNT]</span> : ''} {p.description} (Ref: {p.recordId})
+                                        </TableCell>
+                                        <TableCell className={`text-right font-mono font-bold py-1 ${isDiscount ? 'text-destructive' : 'text-green-600'}`}>
+                                            {isDiscount ? '-' : ''}{formatCurrency(p.amount)}
+                                        </TableCell>
                                     </TableRow>
-                                ))}
+                                )})}
                             </TableBody>
                         </Table>
                     </div>
@@ -150,14 +157,14 @@ const DailySummaryContent = ({ dailyData, selectedDate }: { dailyData: DailyData
                                 <TableRow className="h-7">
                                     <TableHead className="font-bold py-1 text-center">Ref No</TableHead>
                                     <TableHead className="font-bold py-1 text-center">Description</TableHead>
-                                    <TableHead className="font-bold text-center py-1 text-right">Amount</TableHead>
+                                    <TableHead className="font-bold py-1 text-right">Amount</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {dailyData.expenses.map((e, i) => (
                                     <TableRow key={i} className="h-7">
-                                        <TableCell className="font-bold font-mono py-1">{e.refNo || '-'}</TableCell>
-                                        <TableCell className="py-1">{e.category}: {e.description}</TableCell>
+                                        <TableCell className="font-bold font-mono py-1 text-center">{e.refNo || '-'}</TableCell>
+                                        <TableCell className="py-1 text-center">{e.category}: {e.description}</TableCell>
                                         <TableCell className="text-right font-mono font-bold text-destructive py-1">{formatCurrency(e.amount)}</TableCell>
                                     </TableRow>
                                 ))}
@@ -180,7 +187,21 @@ const DailySummaryContent = ({ dailyData, selectedDate }: { dailyData: DailyData
     );
 };
 
-export function DailySummaryReport({ records, customers, unloadingRecords, expenses, otherIncomes }: { records: StorageRecord[], customers: Customer[], unloadingRecords: UnloadingRecord[], expenses: Expense[], otherIncomes: OtherIncome[] }) {
+export function DailySummaryReport({ 
+    records, 
+    customers, 
+    unloadingRecords, 
+    expenses, 
+    otherIncomes,
+    customerPayments = []
+}: { 
+    records: StorageRecord[], 
+    customers: Customer[], 
+    unloadingRecords: UnloadingRecord[], 
+    expenses: Expense[], 
+    otherIncomes: OtherIncome[],
+    customerPayments?: CustomerPayment[]
+}) {
     const [dateInput, setDateInput] = useState(new Date().toISOString().split('T')[0]);
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     
@@ -199,7 +220,7 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
             payments: [],
             expenses: [],
             otherIncomes: [],
-            summary: { totalIncome: 0, totalExpenses: 0, netBalance: 0, totalInflowBags: 0, totalOutflowBags: 0 }
+            summary: { totalIncome: 0, totalExpenses: 0, netBalance: 0, totalInflowBags: 0, totalOutflowBags: 0, totalDiscounts: 0 }
         };
 
         const customerMap = new Map(customers.map(c => [c.id, c.name]));
@@ -224,19 +245,37 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
                             lot: r.location || 'N/A'
                         });
                         data.summary.totalOutflowBags += (Number(outflow.bagsWithdrawn) || 0);
+                        
+                        // Add outflow patti discounts as loss
+                        if (outflow.discount && outflow.discount > 0) {
+                            data.summary.totalDiscounts += outflow.discount;
+                            data.payments.push({
+                                amount: outflow.discount,
+                                date: oDate,
+                                type: 'discount',
+                                customerName: customerMap.get(r.customerId) ?? 'Unknown',
+                                recordId: outflowId,
+                                description: 'Withdrawal Discount'
+                            });
+                        }
                     }
                 });
             }
             if (Array.isArray(r.payments)) {
                 r.payments.forEach(p => {
                     if (isSameDay(toDate(p.date), date)) {
+                        const isDisc = p.type === 'discount';
                         data.payments.push({ 
                             ...p, 
                             customerName: customerMap.get(r.customerId) ?? 'Unknown', 
                             recordId: r.id, 
-                            description: p.type === 'hamali' ? 'Hamali Payment' : 'Rent Payment' 
+                            description: p.type === 'hamali' ? 'Hamali Payment' : (p.type === 'discount' ? 'Waiver' : 'Rent Payment')
                         });
-                        data.summary.totalIncome += (Number(p.amount) || 0);
+                        if (isDisc) {
+                            data.summary.totalDiscounts += (Number(p.amount) || 0);
+                        } else {
+                            data.summary.totalIncome += (Number(p.amount) || 0);
+                        }
                     }
                 });
             }
@@ -251,15 +290,39 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
             if (Array.isArray(r.payments)) {
                 r.payments.forEach(p => {
                     if (isSameDay(toDate(p.date), date)) {
+                        const isDisc = p.type === 'discount';
                         data.payments.push({ 
                             ...p, 
                             customerName: customerMap.get(r.customerId) ?? 'Unknown', 
                             recordId: r.billNo || r.id, 
-                            description: 'Payment for Unloading' 
+                            description: isDisc ? 'Unloading Discount' : 'Payment for Unloading'
                         });
-                        data.summary.totalIncome += (Number(p.amount) || 0);
+                        if (isDisc) {
+                            data.summary.totalDiscounts += (Number(p.amount) || 0);
+                        } else {
+                            data.summary.totalIncome += (Number(p.amount) || 0);
+                        }
                     }
                 });
+            }
+        });
+
+        // Process Bulk Payments Ledger
+        (customerPayments || []).forEach(cp => {
+            if (isSameDay(toDate(cp.date), date)) {
+                data.payments.push({
+                    amount: cp.amount,
+                    date: toDate(cp.date),
+                    type: cp.isDiscount ? 'discount' : cp.type,
+                    customerName: customerMap.get(cp.customerId) ?? 'Unknown',
+                    recordId: 'BULK',
+                    description: cp.isDiscount ? 'Bulk Account Waiver' : 'Bulk Account Payment'
+                });
+                if (cp.isDiscount) {
+                    data.summary.totalDiscounts += cp.amount;
+                } else {
+                    data.summary.totalIncome += cp.amount;
+                }
             }
         });
 
@@ -271,11 +334,12 @@ export function DailySummaryReport({ records, customers, unloadingRecords, expen
         data.expenses = (expenses || []).filter(e => isSameDay(toDate(e.date), date));
         data.summary.totalExpenses = data.expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
 
-        data.summary.netBalance = data.summary.totalIncome - data.summary.totalExpenses;
+        // FINAL RECONCILIATION: Net Balance = Income - (Expenses + Discounts/Losses)
+        data.summary.netBalance = data.summary.totalIncome - (data.summary.totalExpenses + data.summary.totalDiscounts);
         
         return data;
 
-    }, [selectedDate, records, customers, unloadingRecords, expenses, otherIncomes]);
+    }, [selectedDate, records, customers, unloadingRecords, expenses, otherIncomes, customerPayments]);
     
     return (
         <Card className="border-primary/20 shadow-lg">

@@ -81,10 +81,10 @@ function IncomesTable({ incomes }: { incomes: OtherIncome[] }) {
             <TableBody>
               {incomes.map((income) => (
                 <TableRow key={income.id} className="h-8 text-[13px]">
-                  <TableCell className="hidden sm:table-cell">{format(toDate(income.date), 'dd/MM/yy')}</TableCell>
-                  <TableCell className="font-mono">{income.refNo || '-'}</TableCell>
-                  <TableCell>{income.category}</TableCell>
-                  <TableCell className="font-medium">{income.description}</TableCell>
+                  <TableCell className="hidden sm:table-cell text-center">{format(toDate(income.date), 'dd/MM/yy')}</TableCell>
+                  <TableCell className="font-mono text-center">{income.refNo || '-'}</TableCell>
+                  <TableCell className="text-center">{income.category}</TableCell>
+                  <TableCell className="font-medium text-center">{income.description}</TableCell>
                   <TableCell className="text-right font-mono text-green-600">{formatCurrency(Number(income.amount) || 0)}</TableCell>
                 </TableRow>
               ))}
@@ -117,10 +117,10 @@ function ExpensesTable({ expenses }: { expenses: Expense[] }) {
           <TableBody>
             {expenses.map((expense) => (
               <TableRow key={expense.id} className="h-8 text-[13px]">
-                <TableCell className="hidden sm:table-cell">{format(toDate(expense.date), 'dd/MM/yy')}</TableCell>
-                <TableCell className="font-mono">{expense.refNo || '-'}</TableCell>
-                <TableCell>{expense.category}</TableCell>
-                <TableCell className="font-medium">{expense.description}</TableCell>
+                <TableCell className="hidden sm:table-cell text-center">{format(toDate(expense.date), 'dd/MM/yy')}</TableCell>
+                <TableCell className="font-mono text-center">{expense.refNo || '-'}</TableCell>
+                <TableCell className="text-center">{expense.category}</TableCell>
+                <TableCell className="font-medium text-center">{expense.description}</TableCell>
                 <TableCell className="text-right font-mono">{formatCurrency(Number(expense.amount) || 0)}</TableCell>
                 {canEdit && <TableCell><ExpenseActionsMenu expense={expense} /></TableCell>}
               </TableRow>
@@ -157,9 +157,9 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
                 const { principalDue, interestDue } = calculateLoanBalances(b);
                 return (
                 <TableRow key={b.id} className="h-8 text-[13px]">
-                  <TableCell className="font-medium">{b.lenderName}</TableCell>
-                  <TableCell>{format(toDate(b.dateTaken), 'dd/MM/yy')}</TableCell>
-                  <TableCell className="text-right">{b.interestRate}%</TableCell>
+                  <TableCell className="font-medium text-center">{b.lenderName}</TableCell>
+                  <TableCell className="text-center">{format(toDate(b.dateTaken), 'dd/MM/yy')}</TableCell>
+                  <TableCell className="text-center">{b.interestRate}%</TableCell>
                   <TableCell className="text-right font-mono text-destructive">{formatCurrency(interestDue)}</TableCell>
                   <TableCell className="text-right font-mono text-destructive font-bold">{formatCurrency(principalDue)}</TableCell>
                   {canEdit && <TableCell><BorrowingActionsMenu borrowing={b} /></TableCell>}
@@ -197,9 +197,9 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
                 const { principalDue, interestDue } = calculateLoanBalances(l);
                 return (
                 <TableRow key={l.id} className="h-8 text-[13px]">
-                  <TableCell className="font-medium">{l.borrowerName}</TableCell>
-                  <TableCell>{format(toDate(l.dateGiven), 'dd/MM/yy')}</TableCell>
-                  <TableCell className="text-right">{l.interestRate}%</TableCell>
+                  <TableCell className="font-medium text-center">{l.borrowerName}</TableCell>
+                  <TableCell className="text-center">{format(toDate(l.dateGiven), 'dd/MM/yy')}</TableCell>
+                  <TableCell className="text-center">{l.interestRate}%</TableCell>
                   <TableCell className="text-right font-mono text-green-600">{formatCurrency(interestDue)}</TableCell>
                   <TableCell className="text-right font-mono text-green-600 font-bold">{formatCurrency(principalDue)}</TableCell>
                   {canEdit && <TableCell><LendingActionsMenu lending={l} /></TableCell>}

@@ -100,7 +100,7 @@ export function CustomReportGenerator({
     const renderReport = () => {
         switch (selectedReport) {
             case 'daily-summary':
-                return <DailySummaryReport records={records} customers={customers} unloadingRecords={unloadingRecords} expenses={expenses} otherIncomes={otherIncomes} />;
+                return <DailySummaryReport records={records} customers={customers} unloadingRecords={unloadingRecords} expenses={expenses} otherIncomes={otherIncomes} customerPayments={customerPayments} />;
             case 'profit-and-loss':
                 return <ProfitAndLossReport 
                             allRecords={records}

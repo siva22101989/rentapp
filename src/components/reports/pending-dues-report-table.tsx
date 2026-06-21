@@ -5,7 +5,7 @@ import { format } from "date-fns";
 import { formatCurrency } from '@/lib/utils';
 import { useMemo } from "react";
 import type { CustomerPendingSummary } from "../payments/pending-payments-table";
-import { BulkPaymentDialog } from "../customers/bulk-payment-dialog";
+import { CustomerBulkPaymentDialog } from "../payments/customer-bulk-payment-dialog";
 import { Button } from "../ui/button";
 import { Banknote } from "lucide-react";
 import type { Customer, StorageRecord, UnloadingRecord, CustomerPayment } from "@/lib/definitions";
@@ -69,16 +69,17 @@ export function PendingDuesReportTable({ summaries, title, customers, storageRec
                                 <TableCell className="text-right font-mono font-black text-destructive p-1">{formatCurrency(summary.balanceDue)}</TableCell>
                                 {!isReport && customerObj && (
                                     <TableCell className="p-1 text-right print-hide">
-                                        <BulkPaymentDialog
-                                            customer={customerObj}
+                                        <CustomerBulkPaymentDialog
+                                            customers={customers}
                                             storageRecords={storageRecords}
                                             unloadingRecords={unloadingRecords}
+                                            customerPayments={customerPayments}
                                         >
                                             <Button variant="ghost" size="sm" className="h-7 px-2 text-[10px] uppercase font-black tracking-widest text-primary hover:text-primary hover:bg-primary/10">
                                                 <Banknote className="h-3 w-3 mr-1" />
                                                 Pay
                                             </Button>
-                                        </BulkPaymentDialog>
+                                        </CustomerBulkPaymentDialog>
                                     </TableCell>
                                 )}
                             </TableRow>

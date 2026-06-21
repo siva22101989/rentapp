@@ -31,7 +31,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
 }, ref) => {
 
   const { lineItems, totals } = useMemo(() => {
-    const events: any[] = [];
+    const rawEvents: any[] = [];
 
     const getPaymentDesc = (type?: string, recordType?: 'storage' | 'unloading' | 'bulk') => {
         if (recordType === 'bulk') return 'Bulk Account Payment';
@@ -66,7 +66,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         if (totalHamali > 0 || bags > 0) {
             totalHamaliBilled += totalHamali;
             totalBagsIn += bags;
-            events.push({
+            rawEvents.push({
                 date: toDate(unloading.unloadingDate),
                 description: `Inflow (Unloading) - ${unloading.commodityDescription || 'Misc'}`,
                 billNo: cleanId,
@@ -89,23 +89,23 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
 
                 if (isDiscount) {
                     totalDiscounts += amt;
-                    events.push({
+                    rawEvents.push({
                         date: toDate(payment.date),
                         description: 'Adjustment / Discount',
                         billNo: cleanId,
                         lotNo: '', bagsIn: 0, bagsOut: 0, hamali: 0, rent: 0,
                         discount: amt, credit: 0,
-                        sortDate: toDate(payment.date).getTime() + pIdx,
+                        sortDate: toDate(payment.date).getTime() + 1,
                     });
                 } else {
                     totalHamaliPaid += amt;
-                    events.push({
+                    rawEvents.push({
                         date: toDate(payment.date),
                         description: getPaymentDesc(payment.type, 'unloading'),
                         billNo: cleanId,
                         lotNo: '', bagsIn: 0, bagsOut: 0, hamali: 0, rent: 0,
                         discount: 0, credit: amt,
-                        sortDate: toDate(payment.date).getTime() + pIdx,
+                        sortDate: toDate(payment.date).getTime() + 1,
                     });
                 }
             });
@@ -124,7 +124,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         totalHamaliBilled += hamaliBilledOnInflow;
         totalBagsIn += inflowBags;
         
-        events.push({
+        rawEvents.push({
             date: toDate(record.storageStartDate),
             description: `Inflow (Godown) - ${record.commodityDescription || 'Misc'}`,
             billNo: cleanId,
@@ -136,7 +136,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         if (record.khataAmount && record.khataAmount > 0) {
             const khata = Number(record.khataAmount);
             totalRentBilled += khata;
-            events.push({
+            rawEvents.push({
                 date: toDate(record.storageStartDate),
                 description: `Khata Income (Weighbridge)`,
                 billNo: cleanId,
@@ -157,13 +157,13 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 totalBagsOut += withdrawn;
                 totalDiscounts += discVal;
 
-                events.push({
+                rawEvents.push({
                     date: toDate(outflow.date),
                     description: `Withdrawal - ${record.commodityDescription}`,
                     billNo: displayId,
                     lotNo: record.location || 'N/A',
                     bagsIn: 0, bagsOut: withdrawn, hamali: 0, rent: rentVal, discount: discVal, credit: 0,
-                    sortDate: toDate(outflow.date).getTime() + 3 + idx,
+                    sortDate: toDate(outflow.date).getTime() + 3,
                 });
             });
         }
@@ -175,22 +175,22 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                 const isDiscount = payment.type === 'discount';
                 if (isDiscount) {
                     totalDiscounts += amt;
-                    events.push({
+                    rawEvents.push({
                         date: toDate(payment.date),
                         description: 'Adjustment / Discount',
                         billNo: cleanId,
                         lotNo: '', bagsIn: 0, bagsOut: 0, hamali: 0, rent: 0, discount: amt, credit: 0,
-                        sortDate: toDate(payment.date).getTime() + 5 + pIdx,
+                        sortDate: toDate(payment.date).getTime() + 5,
                     });
                 } else {
                     if (isHamali) totalHamaliPaid += amt;
                     else totalRentPaid += amt;
-                    events.push({
+                    rawEvents.push({
                         date: toDate(payment.date),
                         description: getPaymentDesc(payment.type, 'storage'),
                         billNo: cleanId,
                         lotNo: '', bagsIn: 0, bagsOut: 0, hamali: 0, rent: 0, discount: 0, credit: amt,
-                        sortDate: toDate(payment.date).getTime() + 5 + pIdx,
+                        sortDate: toDate(payment.date).getTime() + 5,
                     });
                 }
             });
@@ -200,30 +200,66 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
     // 3. Process Account-Level Bulk Payments
     (customerPayments || []).filter(cp => cp.customerId === customer.id).forEach((cp, idx) => {
         const amt = Number(cp.amount) || 0;
-        if (cp.type === 'hamali') totalHamaliPaid += amt;
-        else totalRentPaid += amt;
+        if (cp.isDiscount) {
+            totalDiscounts += amt;
+            rawEvents.push({
+                date: toDate(cp.date),
+                description: 'Adjustment / Discount (Bulk)',
+                billNo: cp.refNo || 'BULK',
+                lotNo: 'ACCOUNT',
+                bagsIn: 0, bagsOut: 0, hamali: 0, rent: 0, discount: amt, credit: 0,
+                sortDate: toDate(cp.date).getTime() + 10,
+            });
+        } else {
+            if (cp.type === 'hamali') totalHamaliPaid += amt;
+            else totalRentPaid += amt;
 
-        events.push({
-            date: toDate(cp.date),
-            description: `Bulk Account Payment (${cp.type.toUpperCase()})`,
-            billNo: cp.refNo || 'BULK',
-            lotNo: 'ACCOUNT',
-            bagsIn: 0, bagsOut: 0, hamali: 0, rent: 0, discount: 0, credit: amt,
-            sortDate: toDate(cp.date).getTime() + 10 + idx,
-        });
+            rawEvents.push({
+                date: toDate(cp.date),
+                description: `Bulk Account Payment (${cp.type.toUpperCase()})`,
+                billNo: cp.refNo || 'BULK',
+                lotNo: 'ACCOUNT',
+                bagsIn: 0, bagsOut: 0, hamali: 0, rent: 0, discount: 0, credit: amt,
+                sortDate: toDate(cp.date).getTime() + 10,
+            });
+        }
     });
     
-    const sortedEvents = (events || []).sort((a, b) => (a.sortDate || 0) - (b.sortDate || 0));
+    const sortedEvents = (rawEvents || []).sort((a, b) => a.sortDate - b.sortDate);
 
-    let runningBalance = 0;
-    const lineItems = sortedEvents.map(event => {
-        const debit = (Number(event.hamali) || 0) + (Number(event.rent) || 0);
-        const credit = (Number(event.credit) || 0) + (Number(event.discount) || 0);
-        runningBalance += (debit - credit);
-        return { ...event, balance: runningBalance };
+    // Grouping Pass: Combine consecutive payments/discounts of same type and date
+    const lineItems: any[] = [];
+    let currentBalance = 0;
+
+    sortedEvents.forEach((event, idx) => {
+        const prev = lineItems[lineItems.length - 1];
+        const isFinancialOnly = (event.credit > 0 || event.discount > 0) && event.bagsIn === 0 && event.bagsOut === 0 && event.hamali === 0 && event.rent === 0;
+        
+        const sameDate = prev && format(toDate(prev.date), 'ddMMyy') === format(toDate(event.date), 'ddMMyy');
+        const sameDesc = prev && prev.description === event.description;
+
+        if (isFinancialOnly && prev && sameDate && sameDesc) {
+            // Update the existing row
+            prev.credit += event.credit;
+            prev.discount += event.discount;
+            prev.balance += (event.hamali + event.rent - event.credit - event.discount);
+            currentBalance = prev.balance;
+        } else {
+            // New row
+            const debit = (Number(event.hamali) || 0) + (Number(event.rent) || 0);
+            const creditTotal = (Number(event.credit) || 0) + (Number(event.discount) || 0);
+            currentBalance += (debit - creditTotal);
+            
+            lineItems.push({ 
+                ...event, 
+                balance: currentBalance,
+                // Ensure unique IDs for display
+                rowId: `${event.billNo}-${idx}`
+            });
+        }
     });
 
-    const finalBalance = Math.max(0, runningBalance);
+    const finalBalance = Math.max(0, currentBalance);
     const hamaliDueReconciled = Math.max(0, totalHamaliBilled - totalHamaliPaid);
     const rentDueReconciled = Math.max(0, finalBalance - hamaliDueReconciled);
     
@@ -313,8 +349,8 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {lineItems.map((item, index) => (
-                        <TableRow key={index} className="border-b border-slate-100 h-9 hover:bg-slate-50/50">
+                    {lineItems.map((item) => (
+                        <TableRow key={item.rowId} className="border-b border-slate-100 h-9 hover:bg-slate-50/50">
                             <TableCell className="p-1 text-center whitespace-nowrap">{format(item.date, 'dd/MM/yy')}</TableCell>
                             <TableCell className="p-1 font-medium tracking-tight text-[11px] sm:text-[12px]">{item.description}</TableCell>
                             <TableCell className="p-1 text-center font-mono">{item.bagsIn || ''}</TableCell>

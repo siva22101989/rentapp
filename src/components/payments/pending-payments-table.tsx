@@ -74,7 +74,7 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, cus
             const totalPaid = data.recordPaid + totalBulkPaid;
             const balanceDue = Math.max(0, totalLiability - totalPaid);
 
-            const hamaliPending = Math.max(0, data.hLiability - totalPaid);
+            const hamaliPending = Math.max(0, data.hLiability - (data.recordPaid + totalBulkPaid));
             const rentPending = Math.max(0, balanceDue - hamaliPending);
 
             return {

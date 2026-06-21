@@ -128,17 +128,14 @@ export const deleteLot = async (db: Firestore, id: string): Promise<void> => {
 };
 
 /**
- * Global Patti Reversal: Deletes all matching outflows across ALL storage records
- * and correctly restores stock for every affected lot.
+ * Robust Patti Reversal: Deletes matching outflows and restores stock to the EXACT lot records involved.
  */
 export const deletePatti = async (db: Firestore, warehouseId: string, pattiNo: string): Promise<void> => {
-    // 1. Fetch all storage records for this warehouse
     const q = query(collection(db, 'storageRecords'), where('warehouseId', '==', warehouseId));
     const snap = await getDocs(q);
-    
     const searchNo = String(pattiNo).replace(/\D/g, '');
     
-    // 2. Identify records that contain an outflow with this pattiNo
+    // Identify records that contain an outflow with this pattiNo
     const affectedRecords = snap.docs.filter(docSnap => {
         const data = docSnap.data() as StorageRecord;
         return (data.outflows || []).some((o: any) => 
@@ -154,15 +151,14 @@ export const deletePatti = async (db: Firestore, warehouseId: string, pattiNo: s
         const record = docSnap.data() as StorageRecord;
         const outflows = [...(record.outflows || [])];
         
-        // Find outflows to remove
+        // Isolate outflows belonging ONLY to this Bill/Patti
         const matchingOutflows = outflows.filter(o => String(o.pattiNo || '').replace(/\D/g, '') === searchNo);
-        // Keep outflows that don't match
         const remainingOutflows = outflows.filter(o => String(o.pattiNo || '').replace(/\D/g, '') !== searchNo);
         
         const bagsToRestore = matchingOutflows.reduce((sum, o) => sum + (Number(o.bagsWithdrawn) || 0), 0);
         const rentToReverse = matchingOutflows.reduce((sum, o) => sum + (Number(o.rentBilled) || 0), 0);
 
-        // Standardize bags calculation
+        // Precise Stock Math for this specific lot record
         const currentBagsOut = Number(record.bagsOut) || 0;
         const currentBagsStored = Number(record.bagsStored) || 0;
         const bagsIn = Number(record.bagsIn) || (currentBagsStored + currentBagsOut);
@@ -175,10 +171,10 @@ export const deletePatti = async (db: Firestore, warehouseId: string, pattiNo: s
             bagsOut: newBagsOut,
             bagsStored: newBagsStored,
             totalRentBilled: Math.max(0, (Number(record.totalRentBilled) || 0) - rentToReverse),
-            storageEndDate: null, // Always re-activate the record
+            storageEndDate: null, 
         };
 
-        // If the record was "Completed", reset it to "Active"
+        // If this record was marked as Completed, move it back to Active status
         if (record.billingCycle === 'Completed') {
             updateData.billingCycle = '6-Month Initial'; 
         }
@@ -218,9 +214,6 @@ export const deleteOutflowEvent = async (db: Firestore, recordId: string, outflo
     });
 };
 
-/**
- * Updates shared metadata (Date, Commodity, etc.) across all records in a Patti (Consolidated Bill).
- */
 export const editPattiMetadata = async (db: Firestore, warehouseId: string, pattiNo: string, newData: any): Promise<void> => {
     const q = query(collection(db, 'storageRecords'), where('warehouseId', '==', warehouseId));
     const snap = await getDocs(q);

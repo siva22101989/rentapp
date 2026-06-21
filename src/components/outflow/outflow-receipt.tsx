@@ -26,8 +26,11 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
         let totalKhata = 0;
         let pattiDate = new Date();
 
-        records.forEach(r => {
-            const batchOutflows = (r.outflows || []).filter(o => String(o.pattiNo) === String(pattiNo));
+        // 1. Sort records to ensure consistent ordering in the bill
+        const sortedRecords = [...records].sort((a,b) => (a.location || '').localeCompare(b.location || '', undefined, {numeric: true}));
+
+        sortedRecords.forEach(r => {
+            const batchOutflows = (r.outflows || []).filter(o => String(o.pattiNo).replace(/\D/g, '') === String(pattiNo).replace(/\D/g, ''));
             batchOutflows.forEach(o => {
                 const rentVal = Number(o.rentBilled) || 0;
                 const bagsVal = Number(o.bagsWithdrawn) || 0;
@@ -77,7 +80,7 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
               </div>
           </div>
           
-          {/* Info Section */}
+          {/* Info Section - Data Locked in Table for Alignment */}
           <div className="table-scroll-container border-none mb-6">
             <table className="w-full text-[12px] sm:text-[13px] border-collapse border-none">
               <style jsx>{`
@@ -107,36 +110,36 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
             </table>
           </div>
 
-          {/* Breakdown Table */}
+          {/* Breakdown Table - Shows individual lots for transparency */}
           <div className="mb-6 overflow-x-auto">
               <table className="w-full border-2 border-black border-collapse text-[11px] sm:text-[12px]">
                   <thead>
                       <tr className="bg-slate-50 border-b-2 border-black h-10">
-                          <th className="font-black uppercase text-[9px] text-center w-[12%]">Lot</th>
-                          <th className="font-black uppercase text-[9px] text-center w-[18%]">Inflow</th>
-                          <th className="font-black uppercase text-[9px] text-center w-[15%]">Duration</th>
-                          <th className="font-black uppercase text-[9px] text-right px-1 w-[12%]">Bags</th>
-                          <th className="font-black uppercase text-[9px] text-right px-1 w-[25%]">Rent Math</th>
-                          <th className="font-black uppercase text-[9px] text-right px-1 w-[18%]">Amount</th>
+                          <th className="font-black uppercase text-[9px] text-center w-[15%] border-r border-black">Lot No.</th>
+                          <th className="font-black uppercase text-[9px] text-center w-[18%] border-r border-black">Inflow Date</th>
+                          <th className="font-black uppercase text-[9px] text-center w-[12%] border-r border-black">Months</th>
+                          <th className="font-black uppercase text-[9px] text-right px-1 w-[12%] border-r border-black">Bags</th>
+                          <th className="font-black uppercase text-[9px] text-right px-1 w-[25%] border-r border-black">Rate Breakdown</th>
+                          <th className="font-black uppercase text-[9px] text-right px-1 w-[18%]">Rent Amount</th>
                       </tr>
                   </thead>
                   <tbody>
                       {items.map((item, idx) => (
                           <tr key={idx} className="border-b border-black h-10">
-                              <td className="text-center font-bold">{item.location}</td>
-                              <td className="text-center">{format(item.inflowDate, 'dd/MM/yy')}</td>
-                              <td className="text-center font-bold">{item.duration}M</td>
-                              <td className="text-right px-1 font-mono font-black">{item.bags}</td>
-                              <td className="text-right px-1 font-mono text-[9px]">
+                              <td className="text-center font-bold border-r border-black">{item.location}</td>
+                              <td className="text-center border-r border-black">{format(item.inflowDate, 'dd/MM/yy')}</td>
+                              <td className="text-center font-bold border-r border-black">{item.duration} M</td>
+                              <td className="text-right px-1 font-mono font-black border-r border-black">{item.bags}</td>
+                              <td className="text-right px-1 font-mono text-[9px] border-r border-black">
                                   {item.bags} × {item.rentPerBag.toFixed(2)}
                               </td>
                               <td className="text-right px-1 font-mono font-bold">{formatCurrency(item.rent)}</td>
                           </tr>
                       ))}
                       <tr className="bg-slate-50 font-black border-t-2 border-black h-10">
-                          <td colSpan={3} className="text-right uppercase text-[9px] px-2">Totals</td>
-                          <td className="text-right font-mono text-base px-1">{totalBags}</td>
-                          <td></td>
+                          <td colSpan={3} className="text-right uppercase text-[9px] px-2 border-r border-black">Total Withdrawal Stock</td>
+                          <td className="text-right font-mono text-base px-1 border-r border-black">{totalBags}</td>
+                          <td className="border-r border-black"></td>
                           <td className="text-right font-mono text-base px-1">{formatCurrency(totalRent)}</td>
                       </tr>
                   </tbody>
@@ -145,34 +148,34 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
 
           {/* Financial Summary */}
           <div className="flex justify-end pt-2">
-              <table className="w-full sm:w-[300px] border-2 border-black border-collapse bg-slate-50">
+              <table className="w-full sm:w-[320px] border-2 border-black border-collapse bg-slate-50">
                   <tbody>
                       <tr className="border-b border-black text-[11px]">
-                          <td className="p-2 font-bold uppercase border-r border-black">Subtotal Rent</td>
+                          <td className="p-2 font-bold uppercase border-r border-black">Godown Rent (Subtotal)</td>
                           <td className="p-2 text-right font-mono font-bold">{formatCurrency(totalRent)}</td>
                       </tr>
                       {totalKhata > 0 && (
                         <tr className="border-b border-black text-[11px]">
-                            <td className="p-2 font-bold uppercase border-r border-black">Khata</td>
+                            <td className="p-2 font-bold uppercase border-r border-black">Khata / Weighbridge</td>
                             <td className="p-2 text-right font-mono font-bold">{formatCurrency(totalKhata)}</td>
                         </tr>
                       )}
                       {totalDiscount > 0 && (
-                        <tr className="border-b border-black text-[11px] text-green-700">
-                            <td className="p-2 font-bold uppercase border-r border-black">Discount (-)</td>
-                            <td className="p-2 text-right font-mono font-bold">{formatCurrency(totalDiscount)}</td>
+                        <tr className="border-b border-black text-[11px] text-green-700 font-bold">
+                            <td className="p-2 font-bold uppercase border-r border-black">Bill Discount (-)</td>
+                            <td className="p-2 text-right font-mono">{formatCurrency(totalDiscount)}</td>
                         </tr>
                       )}
                       <tr className="bg-white border-b-2 border-black">
-                          <td className="p-2 font-black text-xs uppercase border-r border-black">Grand Total</td>
+                          <td className="p-2 font-black text-xs uppercase border-r border-black">Bill Grand Total</td>
                           <td className="p-2 text-right font-mono font-black text-lg">{formatCurrency(grandTotal)}</td>
                       </tr>
                       <tr className="text-[11px]">
-                          <td className="p-2 font-bold uppercase text-slate-500 border-r border-black">Collected</td>
+                          <td className="p-2 font-bold uppercase text-slate-500 border-r border-black">Cash Collected</td>
                           <td className="p-2 text-right font-mono font-bold text-green-700">-{formatCurrency(paidNow)}</td>
                       </tr>
                       <tr className="bg-slate-900 text-white h-12">
-                          <td className="p-2 font-black text-sm uppercase border-r border-white">Balance Due</td>
+                          <td className="p-2 font-black text-sm uppercase border-r border-white">Net Balance Due</td>
                           <td className="p-2 text-right font-mono font-black text-lg underline underline-offset-4">{formatCurrency(balanceDue)}</td>
                       </tr>
                   </tbody>
@@ -180,12 +183,12 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
           </div>
           
           {/* Signatures */}
-          <div className="mt-16 sm:mt-20">
+          <div className="mt-16 sm:mt-24">
               <table className="w-full no-border">
                 <tbody>
                   <tr>
                     <td className="w-1/2 text-center align-bottom border-none">
-                      <div className="border-t border-black pt-2 mx-auto w-[140px] sm:w-[200px] font-bold text-[9px] sm:text-[10px] uppercase tracking-widest">Customer Sign</div>
+                      <div className="border-t border-black pt-2 mx-auto w-[140px] sm:w-[200px] font-bold text-[9px] sm:text-[10px] uppercase tracking-widest">Depositor Sign</div>
                     </td>
                     <td className="w-1/2 text-center align-bottom border-none">
                       <div className="border-t-2 border-black pt-2 mx-auto w-[140px] sm:w-[200px] font-black text-[10px] sm:text-xs uppercase tracking-widest">Authorized Auditor</div>
@@ -198,7 +201,8 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
 
           {/* Footer */}
           <div className="mt-10 sm:mt-12 pt-6 text-[8px] sm:text-[9px] text-slate-400 italic text-center border-t border-slate-100">
-              <p>Generated on {generatedDate} • Computer-generated financial document.</p>
+              <p>Audit Ref: {pattiNo} • Generated on {generatedDate}</p>
+              <p>This is a computer-generated document and does not require a physical signature for validity.</p>
           </div>
       </div>
     );

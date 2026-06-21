@@ -49,27 +49,28 @@ export function OutflowReport({ records, customers, commodities, lots }: Outflow
 
                     if (selectedCustomerId !== 'all' && record.customerId !== selectedCustomerId) return;
 
-                    // Fallback logic for Bill No (Strictly Numerical)
+                    // Strictly numerical grouping by Patti/Bill No
                     const pattiNoRaw = String(outflow.pattiNo || '').replace(/\D/g, '');
                     const fallbackId = String(record.id).replace(/\D/g, '');
                     const displayId = pattiNoRaw || fallbackId;
 
-                    // Group Key: Customer + Bill No. 
-                    // If no pattiNo, we add index to key to avoid merging different transactions
-                    const groupKey = pattiNoRaw 
-                        ? `${record.customerId}-${pattiNoRaw}` 
-                        : `${record.customerId}-${fallbackId}-${index}`;
+                    // Group unique transactions by Customer + Bill No
+                    const groupKey = `${record.customerId}-${displayId}`;
                     
                     if (eventsMap[groupKey]) {
                         eventsMap[groupKey].bagsWithdrawn += Number(outflow.bagsWithdrawn) || 0;
                         eventsMap[groupKey].rentBilled += Number(outflow.rentBilled) || 0;
+                        
+                        // Track if the bill spans multiple lots
                         if (record.location && !eventsMap[groupKey].location?.includes(record.location)) {
-                            eventsMap[groupKey].location = eventsMap[groupKey].location === 'Multiple' ? 'Multiple' : 'Multiple';
+                            eventsMap[groupKey].location = eventsMap[groupKey].location === 'Multiple' 
+                                ? 'Multiple' 
+                                : `Multiple (${eventsMap[groupKey].location}, ${record.location})`;
                         }
                     } else {
                         eventsMap[groupKey] = {
                             ...outflow,
-                            pattiNo: displayId, // Standardized as Bill No
+                            pattiNo: displayId, 
                             date: outflowDate,
                             customerId: record.customerId,
                             recordId: record.id,
@@ -84,6 +85,7 @@ export function OutflowReport({ records, customers, commodities, lots }: Outflow
             }
         });
 
+        // Convert grouped map back to array and sort by date descending
         return Object.values(eventsMap).sort((a,b) => b.date.getTime() - a.date.getTime());
     }, [records, selectedCustomerId, dateRange, financialYear]);
     
@@ -95,7 +97,7 @@ export function OutflowReport({ records, customers, commodities, lots }: Outflow
             <CardHeader className="flex-col md:flex-row items-start md:items-center justify-between gap-4 print-hide border-b bg-slate-50/50 p-4">
                 <div className="flex-1">
                     <CardTitle className="text-lg font-black uppercase tracking-tight">Outflow Register</CardTitle>
-                    <CardDescription className="text-xs font-medium">Standardized Serial Bill Numbers. Every row represents a unique transaction.</CardDescription>
+                    <CardDescription className="text-xs font-medium">Audit-ready withdrawal log. Bulk Patti transactions are consolidated for clarity.</CardDescription>
                 </div>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto flex-wrap">
                     <Select onValueChange={setSelectedCustomerId} value={selectedCustomerId}>
@@ -114,17 +116,15 @@ export function OutflowReport({ records, customers, commodities, lots }: Outflow
                 </div>
             </CardHeader>
             <CardContent className="pt-4">
-                <div>
-                    <OutflowReportTable 
-                        events={consolidatedOutflowEvents} 
-                        customers={customers}
-                        allRecords={records}
-                        commodities={commodities}
-                        lots={lots}
-                        warehouseInfo={warehouseInfo}
-                        title={title}
-                    />
-                </div>
+                <OutflowReportTable 
+                    events={consolidatedOutflowEvents} 
+                    customers={customers}
+                    allRecords={records}
+                    commodities={commodities}
+                    lots={lots}
+                    warehouseInfo={warehouseInfo}
+                    title={title}
+                />
             </CardContent>
         </Card>
     );

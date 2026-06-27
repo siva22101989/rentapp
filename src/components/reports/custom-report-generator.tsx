@@ -17,9 +17,13 @@ import { useToast } from '@/hooks/use-toast';
 import { PaymentReport } from './payment-report';
 import { PendingDuesReportTable } from './pending-dues-report-table';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { CommodityStockReport, CustomerCommodityStockReport, LotWiseInventoryReport } from './stock-summary-reports';
 
 const reportTypes = [
     { value: 'daily-summary', label: 'Daily Summary Report' },
+    { value: 'commodity-summary', label: 'Commodity-wise Stock List' },
+    { value: 'customer-commodity-summary', label: 'Customer-wise Commodity Stock' },
+    { value: 'lot-inventory-summary', label: 'Lot-wise Inventory Register' },
     { value: 'profit-and-loss', label: 'Profit & Loss Report' },
     { value: 'payment-register', label: 'Payment Register' },
     { value: 'pending-dues', label: 'Pending Dues Register' },
@@ -116,6 +120,12 @@ export function CustomReportGenerator({
         switch (selectedReport) {
             case 'daily-summary':
                 return <DailySummaryReport records={records} customers={customers} unloadingRecords={unloadingRecords} expenses={expenses} otherIncomes={otherIncomes} customerPayments={customerPayments} />;
+            case 'commodity-summary':
+                return <CommodityStockReport records={records} customers={customers} warehouseInfo={warehouseInfo} title="Commodity-wise Stock Summary" />;
+            case 'customer-commodity-summary':
+                return <CustomerCommodityStockReport records={records} customers={customers} warehouseInfo={warehouseInfo} title="Customer-wise Commodity Stock" />;
+            case 'lot-inventory-summary':
+                return <LotWiseInventoryReport records={records} customers={customers} warehouseInfo={warehouseInfo} title="Lot-wise Inventory Register" />;
             case 'profit-and-loss':
                 return <ProfitAndLossReport 
                             allRecords={records}

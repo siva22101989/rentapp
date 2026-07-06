@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useTransition, useMemo } from 'react';
@@ -42,6 +41,7 @@ export function OutflowForm({
     const [sendSmsNotification, setSendSmsNotification] = useState(false);
     
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
+    const [selectedCommodity, setSelectedCommodity] = useState<string>('');
     const [withdrawals, setWithdrawals] = useState<Record<string, number | ''>>({});
     
     const [amountPaidNow, setAmountPaidNow] = useState<number | ''>('');
@@ -88,10 +88,22 @@ export function OutflowForm({
 
     const customerOptions = useMemo(() => (customers || []).map(c => ({ value: c.id, label: c.name })), [customers]);
 
-    const filteredRecordsWithBalance = useMemo(() => {
+    // Commodities that this customer actually has in stock right now
+    const availableCommodities = useMemo(() => {
         if (!selectedCustomerId) return [];
+        const uniqueSet = new Set<string>();
+        activeRecords.forEach(r => {
+            if (r.customerId === selectedCustomerId && r.bagsStored > 0.5) {
+                uniqueSet.add(r.commodityDescription);
+            }
+        });
+        return Array.from(uniqueSet).sort().map(name => ({ value: name, label: name }));
+    }, [activeRecords, selectedCustomerId]);
+
+    const filteredRecordsWithBalance = useMemo(() => {
+        if (!selectedCustomerId || !selectedCommodity) return [];
         return (activeRecords || [])
-            .filter(r => r.customerId === selectedCustomerId)
+            .filter(r => r.customerId === selectedCustomerId && r.commodityDescription === selectedCommodity)
             .map(r => {
                 const bagsOutSum = Array.isArray(r.outflows) 
                     ? r.outflows.reduce((acc, o) => acc + (Number(o.bagsWithdrawn) || 0), 0) 
@@ -103,7 +115,7 @@ export function OutflowForm({
                 return { ...r, currentBalance, initialInflow, historyBagsOut: bagsOutSum };
             })
             .filter(r => r.currentBalance > 0.1);
-    }, [activeRecords, selectedCustomerId]);
+    }, [activeRecords, selectedCustomerId, selectedCommodity]);
 
     const selectedCustomer = useMemo(() => 
         (customers || []).find(c => c.id === selectedCustomerId)
@@ -116,10 +128,17 @@ export function OutflowForm({
 
     const totalPayable = totalRent + totalPendingHamali + (Number(khataAmountInput) || 0) - (Number(discount) || 0);
 
+    // Reset subordinate selections when parent changes
     useEffect(() => {
+        setSelectedCommodity('');
         setWithdrawals({});
         setKhataAmountInput('');
     }, [selectedCustomerId]);
+
+    useEffect(() => {
+        setWithdrawals({});
+        setKhataAmountInput('');
+    }, [selectedCommodity]);
 
     useEffect(() => {
         let runningRent = 0;
@@ -175,6 +194,7 @@ export function OutflowForm({
 
     const resetForm = () => {
         setSelectedCustomerId('');
+        setSelectedCommodity('');
         setWithdrawals({});
         setAmountPaidNow('');
         setDiscount('');
@@ -298,151 +318,169 @@ export function OutflowForm({
                         </div>
                     </div>
                 </CardHeader>
-                <CardContent className="space-y-4 pt-6">
-                    <div className="space-y-1.5">
-                        <Label htmlFor="customerId" className="text-[10px] font-black uppercase tracking-widest text-slate-400">Target Customer</Label>
-                        <Combobox
-                            options={customerOptions}
-                            value={selectedCustomerId}
-                            onChange={setSelectedCustomerId}
-                            placeholder="Select a customer..."
-                            searchPlaceholder="Search customers..."
-                        />
+                <CardContent className="space-y-6 pt-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                            <Label htmlFor="customerId" className="text-[10px] font-black uppercase tracking-widest text-slate-400">1. Target Customer</Label>
+                            <Combobox
+                                options={customerOptions}
+                                value={selectedCustomerId}
+                                onChange={setSelectedCustomerId}
+                                placeholder="Select a customer..."
+                                searchPlaceholder="Search customers..."
+                            />
+                        </div>
+
+                        {selectedCustomerId && (
+                            <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2">
+                                <Label htmlFor="commodityId" className="text-[10px] font-black uppercase tracking-widest text-slate-400">2. Select Product In Stock</Label>
+                                <Combobox
+                                    options={availableCommodities}
+                                    value={selectedCommodity}
+                                    onChange={setSelectedCommodity}
+                                    placeholder={availableCommodities.length > 0 ? "Select product..." : "No stock available"}
+                                    searchPlaceholder="Search products..."
+                                    disabled={availableCommodities.length === 0}
+                                />
+                            </div>
+                        )}
                     </div>
                     
-                    {selectedCustomerId && (
-                        <div className="border rounded-xl overflow-hidden shadow-inner bg-card">
-                            <Table className="text-[13px]">
-                                <TableHeader className="bg-muted/50">
-                                    <TableRow className="text-xs uppercase font-black">
-                                        <TableHead className="w-[120px]">Inflow No.</TableHead>
-                                        <TableHead>Lot</TableHead>
-                                        <TableHead className="text-right">Balance</TableHead>
-                                        <TableHead className="w-[120px] text-right">Withdraw</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {filteredRecordsWithBalance.length > 0 ? filteredRecordsWithBalance.map(record => (
-                                        <TableRow key={record.id} className="hover:bg-primary/5 transition-colors border-b">
-                                            <TableCell className="font-mono font-bold text-primary">{record.id}</TableCell>
-                                            <TableCell className="font-mono text-slate-500">{record.location}</TableCell>
-                                            <TableCell className="text-right font-mono font-black">{record.currentBalance}</TableCell>
-                                            <TableCell className="p-1">
-                                                <Input
-                                                    type="number"
-                                                    step="0.01"
-                                                    placeholder="0"
-                                                    min="0"
-                                                    max={record.currentBalance}
-                                                    value={withdrawals[record.id] || ''}
-                                                    onChange={(e) => {
-                                                        const v = e.target.value === '' ? '' : Number(e.target.value);
-                                                        if (v === '' || (v >= 0 && v <= record.currentBalance + 0.1)) {
-                                                            setWithdrawals(prev => ({ ...prev, [record.id]: v }));
-                                                        }
-                                                    }}
-                                                    className="text-right font-mono font-black h-9 border-none focus-visible:ring-0 bg-secondary/50 rounded-lg"
-                                                />
-                                            </TableCell>
+                    {selectedCustomerId && selectedCommodity && (
+                        <div className="space-y-4 animate-in fade-in zoom-in-95 duration-300">
+                            <div className="border rounded-xl overflow-hidden shadow-inner bg-card">
+                                <Table className="text-[13px]">
+                                    <TableHeader className="bg-muted/50">
+                                        <TableRow className="text-xs uppercase font-black">
+                                            <TableHead className="w-[120px] text-center">Inflow No.</TableHead>
+                                            <TableHead className="text-center">Lot</TableHead>
+                                            <TableHead className="text-center">Current Balance</TableHead>
+                                            <TableHead className="w-[120px] text-center">Withdrawal Qty</TableHead>
                                         </TableRow>
-                                    )) : (
-                                        <TableRow>
-                                            <TableCell colSpan={4} className="text-center h-24 text-muted-foreground italic">
-                                                No active Godown stock found for this customer.
-                                            </TableCell>
-                                        </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {filteredRecordsWithBalance.length > 0 ? filteredRecordsWithBalance.map(record => (
+                                            <TableRow key={record.id} className="hover:bg-primary/5 transition-colors border-b">
+                                                <TableCell className="font-mono font-bold text-primary text-center">{record.id}</TableCell>
+                                                <TableCell className="font-mono text-slate-500 text-center">{record.location}</TableCell>
+                                                <TableCell className="text-center font-mono font-black">{record.currentBalance}</TableCell>
+                                                <TableCell className="p-1">
+                                                    <Input
+                                                        type="number"
+                                                        step="0.01"
+                                                        placeholder="0"
+                                                        min="0"
+                                                        max={record.currentBalance}
+                                                        value={withdrawals[record.id] || ''}
+                                                        onChange={(e) => {
+                                                            const v = e.target.value === '' ? '' : Number(e.target.value);
+                                                            if (v === '' || (v >= 0 && v <= record.currentBalance + 0.1)) {
+                                                                setWithdrawals(prev => ({ ...prev, [record.id]: v }));
+                                                            }
+                                                        }}
+                                                        className="text-right font-mono font-black h-9 border-none focus-visible:ring-0 bg-secondary/50 rounded-lg"
+                                                    />
+                                                </TableCell>
+                                            </TableRow>
+                                        )) : (
+                                            <TableRow>
+                                                <TableCell colSpan={4} className="text-center h-24 text-muted-foreground italic">
+                                                    No active stock for {selectedCommodity} found for this customer.
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
+
+                            {withdrawalEntries.length > 0 && (
+                                <>
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="withdrawalDate" className="text-[10px] font-black uppercase tracking-widest text-slate-400">Withdrawal Date</Label>
+                                        <Input 
+                                            id="withdrawalDate" 
+                                            name="withdrawalDate" 
+                                            type="date"
+                                            value={withdrawalDateStr}
+                                            required
+                                            onChange={(e) => setWithdrawalDateStr(e.target.value)}
+                                            className="h-10 font-bold"
+                                            />
+                                    </div>
+                                    <Separator />
+
+                                    <div className="space-y-4 p-4 rounded-2xl bg-secondary/10 border">
+                                        <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Transaction Summary (Bill #{nextBillNo})</h4>
+                                        <div className="space-y-3 text-sm">
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-muted-foreground font-medium">Bags to Withdraw</span>
+                                                <span className="font-mono font-black text-lg">{totalBags}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center text-primary">
+                                                <span className="font-medium">Calculated Rent</span>
+                                                <span className="font-mono font-black">{formatCurrency(totalRent)}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center text-orange-600">
+                                                <span className="font-medium">Unpaid Hamali</span>
+                                                <span className="font-mono font-black">{formatCurrency(totalPendingHamali)}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                                        <div className="space-y-1.5">
+                                            <Label htmlFor="khataAmountInput" className="text-[10px] font-black uppercase tracking-widest text-slate-400">Khata (Weighbridge)</Label>
+                                            <Input
+                                                id="khataAmountInput"
+                                                name="khataAmountInput"
+                                                type="number"
+                                                placeholder="0.00"
+                                                step="0.01"
+                                                value={khataAmountInput}
+                                                onChange={e => setKhataAmountInput(e.target.value === '' ? '' : Number(e.target.value))}
+                                                className="h-10 font-mono font-bold"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <Label htmlFor="discount" className="text-[10px] font-black uppercase tracking-widest text-slate-400">Bill Discount</Label>
+                                            <Input
+                                                id="discount"
+                                                name="discount"
+                                                type="number"
+                                                placeholder="0.00"
+                                                step="0.01"
+                                                value={discount}
+                                                onChange={e => setDiscount(e.target.value === '' ? '' : Number(e.target.value))}
+                                                className="h-10 font-mono font-bold text-green-600"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <Separator className="my-2"/>
+
+                                    <div className="space-y-5 pt-2">
+                                        <div className="flex justify-between items-center">
+                                            <span className="font-black text-2xl uppercase tracking-tighter text-slate-900">Total Payable</span>
+                                            <span className="font-mono font-black text-2xl text-primary">{formatCurrency(totalPayable)}</span>
+                                        </div>
+                                        
+                                        <div className="space-y-1.5 p-5 bg-primary/5 rounded-2xl border-2 border-primary/20">
+                                            <Label htmlFor="amountPaidNow" className="text-xs font-black uppercase tracking-widest text-primary">Cash Collected</Label>
+                                            <Input
+                                                id="amountPaidNow"
+                                                name="amountPaidNow"
+                                                type="number"
+                                                placeholder="Enter amount paid..."
+                                                step="0.01"
+                                                value={amountPaidNow}
+                                                onChange={e => setAmountPaidNow(e.target.value === '' ? '' : Number(e.target.value))}
+                                                className="h-12 text-lg font-mono font-black bg-white shadow-inner border-primary/30"
+                                            />
+                                        </div>
+                                    </div>
+                                </>
+                            )}
                         </div>
-                    )}
-
-                    {withdrawalEntries.length > 0 && (
-                        <>
-                            <div className="space-y-1.5">
-                                <Label htmlFor="withdrawalDate" className="text-[10px] font-black uppercase tracking-widest text-slate-400">Withdrawal Date</Label>
-                                <Input 
-                                    id="withdrawalDate" 
-                                    name="withdrawalDate" 
-                                    type="date"
-                                    value={withdrawalDateStr}
-                                    required
-                                    onChange={(e) => setWithdrawalDateStr(e.target.value)}
-                                    className="h-10 font-bold"
-                                    />
-                            </div>
-                            <Separator />
-
-                            <div className="space-y-4 p-4 rounded-2xl bg-secondary/10 border">
-                                <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Transaction Summary (Bill #{nextBillNo})</h4>
-                                <div className="space-y-3 text-sm">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-muted-foreground font-medium">Bags to Withdraw</span>
-                                        <span className="font-mono font-black text-lg">{totalBags}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center text-primary">
-                                        <span className="font-medium">Calculated Rent</span>
-                                        <span className="font-mono font-black">{formatCurrency(totalRent)}</span>
-                                    </div>
-                                     <div className="flex justify-between items-center text-orange-600">
-                                        <span className="font-medium">Unpaid Hamali</span>
-                                        <span className="font-mono font-black">{formatCurrency(totalPendingHamali)}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                                <div className="space-y-1.5">
-                                    <Label htmlFor="khataAmountInput" className="text-[10px] font-black uppercase tracking-widest text-slate-400">Khata (Weighbridge)</Label>
-                                    <Input
-                                        id="khataAmountInput"
-                                        name="khataAmountInput"
-                                        type="number"
-                                        placeholder="0.00"
-                                        step="0.01"
-                                        value={khataAmountInput}
-                                        onChange={e => setKhataAmountInput(e.target.value === '' ? '' : Number(e.target.value))}
-                                        className="h-10 font-mono font-bold"
-                                    />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <Label htmlFor="discount" className="text-[10px] font-black uppercase tracking-widest text-slate-400">Bill Discount</Label>
-                                    <Input
-                                        id="discount"
-                                        name="discount"
-                                        type="number"
-                                        placeholder="0.00"
-                                        step="0.01"
-                                        value={discount}
-                                        onChange={e => setDiscount(e.target.value === '' ? '' : Number(e.target.value))}
-                                        className="h-10 font-mono font-bold text-green-600"
-                                    />
-                                </div>
-                            </div>
-
-                            <Separator className="my-2"/>
-
-                            <div className="space-y-5 pt-2">
-                                <div className="flex justify-between items-center">
-                                    <span className="font-black text-2xl uppercase tracking-tighter text-slate-900">Total Payable</span>
-                                    <span className="font-mono font-black text-2xl text-primary">{formatCurrency(totalPayable)}</span>
-                                </div>
-                                
-                                <div className="space-y-1.5 p-5 bg-primary/5 rounded-2xl border-2 border-primary/20">
-                                    <Label htmlFor="amountPaidNow" className="text-xs font-black uppercase tracking-widest text-primary">Cash Collected</Label>
-                                    <Input
-                                        id="amountPaidNow"
-                                        name="amountPaidNow"
-                                        type="number"
-                                        placeholder="Enter amount paid..."
-                                        step="0.01"
-                                        value={amountPaidNow}
-                                        onChange={e => setAmountPaidNow(e.target.value === '' ? '' : Number(e.target.value))}
-                                        className="h-12 text-lg font-mono font-black bg-white shadow-inner border-primary/30"
-                                    />
-                                </div>
-                            </div>
-                        </>
                     )}
                 </CardContent>
                 <CardFooter className="pb-8">

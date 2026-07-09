@@ -2,18 +2,10 @@
 
 import { Printer, FileDown, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useState, useEffect } from 'react';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useState } from 'react';
 
 export function PrintHeader({ title, filename = 'document.pdf' }: { title: string, filename?: string }) {
     const [isDownloading, setIsDownloading] = useState(false);
-    const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait');
-
-    useEffect(() => {
-        document.body.classList.remove('portrait', 'landscape');
-        document.body.classList.add(orientation);
-        return () => document.body.classList.remove('portrait', 'landscape');
-    }, [orientation]);
 
     const handlePrint = () => {
         window.print();
@@ -31,15 +23,16 @@ export function PrintHeader({ title, filename = 'document.pdf' }: { title: strin
         try {
             const { default: jsPDF } = await import('jspdf');
             
+            // Hardcoded Landscape only for A4
             const pdf = new jsPDF({
-                orientation: orientation === 'portrait' ? 'p' : 'l',
+                orientation: 'l',
                 unit: 'mm',
                 format: 'a4',
             });
 
-            // Use fixed virtual widths to prevent mobile-responsive "zoom" during PDF capture
-            const pdfWidth = orientation === 'portrait' ? 190 : 277;
-            const virtualWidth = orientation === 'portrait' ? 1024 : 1440;
+            // Landscape virtual dimensions
+            const pdfWidth = 277;
+            const virtualWidth = 1440;
 
             await pdf.html(printableArea, {
                 html2canvas: {
@@ -68,28 +61,14 @@ export function PrintHeader({ title, filename = 'document.pdf' }: { title: strin
         <div className="p-4 bg-white border-b flex flex-col md:flex-row items-center justify-between sticky top-0 z-10 print-hide shadow-sm gap-4">
             <div className="flex flex-col gap-1 text-center md:text-left">
                 <h1 className="text-lg font-bold tracking-tight">{title}</h1>
-                <p className="text-[10px] uppercase font-black text-muted-foreground tracking-widest">A4 Print Control Console</p>
+                <p className="text-[10px] uppercase font-black text-muted-foreground tracking-widest">Landscape Audit Control Console</p>
             </div>
 
             <div className="flex flex-wrap items-center justify-center gap-3">
-                <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-lg">
-                    <span className="text-[10px] font-black uppercase px-2 text-slate-500">Page:</span>
-                    <Tabs value={orientation} onValueChange={(v) => setOrientation(v as any)}>
-                        <TabsList className="h-8 p-0 bg-transparent">
-                            <TabsTrigger value="portrait" className="h-7 text-[10px] uppercase font-bold px-3">
-                                Portrait
-                            </TabsTrigger>
-                            <TabsTrigger value="landscape" className="h-7 text-[10px] uppercase font-bold px-3">
-                                Landscape
-                            </TabsTrigger>
-                        </TabsList>
-                    </Tabs>
-                </div>
-
                 <div className="flex items-center gap-2">
                     <Button variant="default" onClick={handlePrint} disabled={isDownloading} className="font-bold h-9 text-xs uppercase tracking-wider px-4">
                         <Printer className="mr-2 h-4 w-4" />
-                        Print
+                        Print Landscape
                     </Button>
                     <Button variant="outline" onClick={handleDownload} disabled={isDownloading} className="font-bold h-9 text-xs uppercase tracking-wider px-4">
                         {isDownloading ? (
@@ -97,7 +76,7 @@ export function PrintHeader({ title, filename = 'document.pdf' }: { title: strin
                         ) : (
                             <FileDown className="mr-2 h-4 w-4" />
                         )}
-                        Save PDF
+                        Save PDF (Wide)
                     </Button>
                 </div>
             </div>

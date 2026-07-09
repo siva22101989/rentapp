@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useRef, useMemo, useEffect } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import type { Customer, StorageRecord, UnloadingRecord, Expense, WarehouseInfo, Borrowing, Lending, OtherIncome, Commodity, Lot, DryingRecord, CustomerPayment } from "@/lib/definitions";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ReportClient } from '@/components/reports/report-client';
 import { HamaliReport } from './hamali-report';
@@ -16,7 +16,6 @@ import { Printer, FileDown, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { PaymentReport } from './payment-report';
 import { PendingDuesReportTable } from './pending-dues-report-table';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CommodityStockReport, CustomerCommodityStockReport, LotWiseInventoryReport } from './stock-summary-reports';
 
 const reportTypes = [
@@ -68,16 +67,9 @@ export function CustomReportGenerator({
 }: ReportGeneratorProps) {
     const [selectedReport, setSelectedReport] = useState<string>(initialReport || 'daily-summary');
     const [isDownloading, setIsDownloading] = useState(false);
-    const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait');
     const reportRef = useRef<HTMLDivElement>(null);
     const { toast } = useToast();
 
-    useEffect(() => {
-        document.body.classList.remove('portrait', 'landscape');
-        document.body.classList.add(orientation);
-        return () => document.body.classList.remove('portrait', 'landscape');
-    }, [orientation]);
-    
     const handleDownload = async () => {
         const printableArea = reportRef.current;
         if (!printableArea) return;
@@ -85,14 +77,15 @@ export function CustomReportGenerator({
         setIsDownloading(true);
         try {
             const { default: jsPDF } = await import('jspdf');
+            // Hardcoded Landscape Only
             const pdf = new jsPDF({ 
-                orientation: orientation === 'portrait' ? 'p' : 'l', 
+                orientation: 'l', 
                 unit: 'mm', 
                 format: 'a4' 
             });
 
-            const pdfWidth = orientation === 'portrait' ? 190 : 277;
-            const virtualWidth = orientation === 'portrait' ? 1024 : 1440;
+            const pdfWidth = 277;
+            const virtualWidth = 1440;
 
             await pdf.html(printableArea, {
                 html2canvas: {
@@ -107,7 +100,7 @@ export function CustomReportGenerator({
                 width: pdfWidth,
                 windowWidth: virtualWidth
             });
-            pdf.save(`${selectedReport}-report.pdf`);
+            pdf.save(`${selectedReport}-landscape-report.pdf`);
         } catch (error) {
             console.error("Error generating PDF:", error);
             toast({ title: "Download Error", description: "Failed to generate PDF.", variant: "destructive"});
@@ -226,32 +219,18 @@ export function CustomReportGenerator({
                     </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-4">
-                    <div className="flex flex-col space-y-1">
-                        <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Page Format</label>
-                        <div className="bg-slate-100 p-1 rounded-lg border">
-                            <Tabs value={orientation} onValueChange={(v) => setOrientation(v as any)}>
-                                <TabsList className="h-8 p-0 bg-transparent">
-                                    <TabsTrigger value="portrait" className="h-7 text-[10px] font-bold uppercase">Portrait</TabsTrigger>
-                                    <TabsTrigger value="landscape" className="h-7 text-[10px] font-bold uppercase">Landscape</TabsTrigger>
-                                </TabsList>
-                            </Tabs>
-                        </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                        <Button onClick={() => window.print()} variant="outline" className="h-10 font-bold uppercase text-[11px] tracking-widest border-2">
-                            <Printer className="mr-2 h-4 w-4" />
-                            Print
-                        </Button>
-                        <Button onClick={handleDownload} disabled={isDownloading} className="h-10 font-black uppercase text-[11px] tracking-[0.1em] shadow-lg">
-                            {isDownloading ? (
-                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> ...</>
-                            ) : (
-                                <><FileDown className="mr-2 h-4 w-4" /> Save PDF</>
-                            )}
-                        </Button>
-                    </div>
+                <div className="flex items-center gap-2">
+                    <Button onClick={() => window.print()} variant="outline" className="h-10 font-bold uppercase text-[11px] tracking-widest border-2">
+                        <Printer className="mr-2 h-4 w-4" />
+                        Print Landscape
+                    </Button>
+                    <Button onClick={handleDownload} disabled={isDownloading} className="h-10 font-black uppercase text-[11px] tracking-[0.1em] shadow-lg">
+                        {isDownloading ? (
+                            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> ...</>
+                        ) : (
+                            <><FileDown className="mr-2 h-4 w-4" /> Save Landscape PDF</>
+                        )}
+                    </Button>
                 </div>
             </div>
 

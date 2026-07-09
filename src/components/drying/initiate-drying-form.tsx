@@ -69,6 +69,8 @@ export function InitiateDryingForm({ customers, unloadingRecords, storageRecords
     );
     const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
+    const isSmsEnabled = warehouseInfo?.smsEnabled && warehouseInfo?.textbeeApiKey;
+
     const unloadingQueueOptions = useMemo(() => {
         const customerMap = new Map(customers.map(c => [c.id, c.name]));
         return unloadingRecords
@@ -228,6 +230,17 @@ export function InitiateDryingForm({ customers, unloadingRecords, storageRecords
                 batch.update(unloadingRecordRef, { bagsSentToDrying: increment(data.bagsForDrying) });
                 await batch.commit();
                 
+                if (sendSmsNotification && isSmsEnabled && selectedCustomer?.phone) {
+                   const msg = (warehouseInfo.smsInflowTemplate || `Dear {customerName}, inflow of {bags} bags recorded. Bill: {billNo}.`)
+                       .replace('{customerName}', selectedCustomer.name)
+                       .replace('{bags}', String(data.bagsPacked))
+                       .replace('{commodity}', selectedRecordOnSubmit.commodityDescription)
+                       .replace('{billNo}', nextId)
+                       .replace('{date}', format(endDate, 'dd/MM/yy'))
+                       .replace('{warehouseName}', warehouseInfo?.name || '');
+                   sendSms({ apiKey: warehouseInfo.textbeeApiKey!, deviceId: warehouseInfo.textbeeDeviceId, to: selectedCustomer.phone, message: msg }).catch(console.error);
+                }
+
                 toast({ title: 'Success', description: `Storage record created.` });
                 setFormData(initialFormData);
                 window.open(`/inflow/receipt?recordId=${nextId}`, '_blank');
@@ -297,14 +310,16 @@ export function InitiateDryingForm({ customers, unloadingRecords, storageRecords
 
                 <div className="flex items-center justify-between p-3 rounded-lg border bg-primary/5">
                     <div className="flex items-center gap-2">
-                        <MessageSquare className="h-4 w-4 text-primary" />
-                        <Label htmlFor="sms-toggle-dry" className="text-[10px] font-black uppercase tracking-wider cursor-pointer">SMS Notification</Label>
+                        <MessageSquare className={`h-4 w-4 ${isSmsEnabled ? 'text-primary' : 'text-slate-300'}`} />
+                        <Label htmlFor="sms-toggle-dry" className={`text-[10px] font-black uppercase tracking-wider cursor-pointer ${!isSmsEnabled ? 'text-slate-400' : ''}`}>
+                            SMS Notification {!isSmsEnabled && '(Global OFF)'}
+                        </Label>
                     </div>
                     <Switch 
                         id="sms-toggle-dry" 
-                        checked={sendSmsNotification} 
+                        checked={isSmsEnabled ? sendSmsNotification : false} 
                         onCheckedChange={setSendSmsNotification}
-                        disabled={!warehouseInfo?.textbeeApiKey || !selectedCustomer?.phone}
+                        disabled={!isSmsEnabled || !selectedCustomer?.phone}
                     />
                 </div>
             </CardContent>

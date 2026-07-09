@@ -60,6 +60,8 @@ export function OutflowForm({
     );
     const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
+    const isSmsEnabled = warehouseInfo?.smsEnabled && warehouseInfo?.textbeeApiKey;
+
     // Calculate Global Serialized Bill No
     const nextBillNo = useMemo(() => {
         let max = 1000;
@@ -284,9 +286,9 @@ export function OutflowForm({
                 
                 await batch.commit();
 
-                if (sendSmsNotification && warehouseInfo?.textbeeApiKey && selectedCustomer?.phone) {
+                if (sendSmsNotification && isSmsEnabled && selectedCustomer?.phone) {
                     const msg = `Dear ${selectedCustomer.name}, withdrawal of ${totalBags} bags processed. Bill No: ${sharedBillNo}. Total: ${formatCurrency(totalPayable)}.`;
-                    sendSms({ apiKey: warehouseInfo.textbeeApiKey, deviceId: warehouseInfo.textbeeDeviceId, to: selectedCustomer.phone, message: msg }).catch(console.error);
+                    sendSms({ apiKey: warehouseInfo.textbeeApiKey!, deviceId: warehouseInfo.textbeeDeviceId, to: selectedCustomer.phone, message: msg }).catch(console.error);
                 }
 
                 toast({ title: 'Success', description: `Outflow Bill #${sharedBillNo} generated.` });
@@ -481,14 +483,16 @@ export function OutflowForm({
 
                                             <div className="flex items-center justify-between pt-2 border-t border-primary/10">
                                                 <div className="flex items-center gap-2">
-                                                    <MessageSquare className="h-4 w-4 text-primary" />
-                                                    <Label htmlFor="sms-toggle-out" className="text-[10px] font-black uppercase tracking-wider text-slate-500 cursor-pointer">Send SMS Receipt</Label>
+                                                    <MessageSquare className={`h-4 w-4 ${isSmsEnabled ? 'text-primary' : 'text-slate-300'}`} />
+                                                    <Label htmlFor="sms-toggle-out" className={`text-[10px] font-black uppercase tracking-wider text-slate-500 cursor-pointer ${!isSmsEnabled ? 'text-slate-400' : ''}`}>
+                                                        Send SMS Receipt {!isSmsEnabled && '(Global OFF)'}
+                                                    </Label>
                                                 </div>
                                                 <Switch 
                                                     id="sms-toggle-out" 
-                                                    checked={sendSmsNotification} 
+                                                    checked={isSmsEnabled ? sendSmsNotification : false} 
                                                     onCheckedChange={setSendSmsNotification}
-                                                    disabled={!warehouseInfo?.textbeeApiKey || !selectedCustomer?.phone}
+                                                    disabled={!isSmsEnabled || !selectedCustomer?.phone}
                                                 />
                                             </div>
                                         </div>

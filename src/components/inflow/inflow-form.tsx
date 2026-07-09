@@ -66,6 +66,8 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
     );
     const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
+    const isSmsEnabled = warehouseInfo?.smsEnabled && warehouseInfo?.textbeeApiKey;
+
     const customerOptions = customers.map(c => ({ value: c.id, label: c.name }));
     const commodityOptions = commodities.map(c => ({ value: c.name, label: c.name }));
 
@@ -164,14 +166,15 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
 
                 await setDoc(doc(firestore, "storageRecords", cleanId), cleanForFirestore(rawRecord));
 
-                if (sendSmsNotification && warehouseInfo?.textbeeApiKey && selectedCustomer?.phone) {
+                if (sendSmsNotification && isSmsEnabled && selectedCustomer?.phone) {
                     const msg = (warehouseInfo.smsInflowTemplate || `Dear {customerName}, inflow of {bags} bags of {commodity} recorded. Bill: {billNo}.`)
                         .replace('{customerName}', selectedCustomer.name)
                         .replace('{bags}', String(bags))
                         .replace('{commodity}', selectedCommodity)
                         .replace('{billNo}', cleanId)
-                        .replace('{date}', format(finalDate, 'dd/MM/yy'));
-                    sendSms({ apiKey: warehouseInfo.textbeeApiKey, deviceId: warehouseInfo.textbeeDeviceId, to: selectedCustomer.phone, message: msg }).catch(console.error);
+                        .replace('{date}', format(finalDate, 'dd/MM/yy'))
+                        .replace('{warehouseName}', warehouseInfo?.name || '');
+                    sendSms({ apiKey: warehouseInfo.textbeeApiKey!, deviceId: warehouseInfo.textbeeDeviceId, to: selectedCustomer.phone, message: msg }).catch(console.error);
                 }
                 
                 toast({ title: 'Success', description: 'Record created.' });
@@ -277,14 +280,16 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                      
                      <div className="flex items-center justify-between p-3 rounded-lg border bg-primary/5">
                         <div className="flex items-center gap-2">
-                            <MessageSquare className="h-4 w-4 text-primary" />
-                            <Label htmlFor="sms-toggle" className="text-xs font-bold uppercase tracking-wider cursor-pointer">SMS Notification</Label>
+                            <MessageSquare className={`h-4 w-4 ${isSmsEnabled ? 'text-primary' : 'text-slate-300'}`} />
+                            <Label htmlFor="sms-toggle" className={`text-xs font-bold uppercase tracking-wider cursor-pointer ${!isSmsEnabled ? 'text-slate-400' : ''}`}>
+                                SMS Notification {!isSmsEnabled && '(Global OFF)'}
+                            </Label>
                         </div>
                         <Switch 
                             id="sms-toggle" 
-                            checked={sendSmsNotification} 
-                            onCheckedChange={setSmsInflowTemplate}
-                            disabled={!warehouseInfo?.textbeeApiKey || !selectedCustomer?.phone}
+                            checked={isSmsEnabled ? sendSmsNotification : false} 
+                            onCheckedChange={setSendSmsNotification}
+                            disabled={!isSmsEnabled || !selectedCustomer?.phone}
                         />
                     </div>
                 </CardContent>

@@ -165,6 +165,7 @@ export type WarehouseInfo = {
   annualInterestRate?: number;
   textbeeApiKey?: string;
   textbeeDeviceId?: string;
+  smsEnabled?: boolean;
   smsInflowTemplate?: string;
   smsOutflowTemplate?: string;
   smsUnloadingTemplate?: string;

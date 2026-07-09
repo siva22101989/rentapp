@@ -65,6 +65,8 @@ export function AddUnloadingRecordForm({
     );
     const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
+    const isSmsEnabled = warehouseInfo?.smsEnabled && warehouseInfo?.textbeeApiKey;
+
     const form = useForm<UnloadingFormData>({
         resolver: zodResolver(UnloadingRecordSchema),
         defaultValues: {
@@ -149,9 +151,9 @@ export function AddUnloadingRecordForm({
                 
                 await setDoc(doc(firestore, 'unloadingRecords', cleanBillNo), cleanForFirestore(rawRecord));
 
-                if (sendSmsNotification && warehouseInfo?.textbeeApiKey && selectedCustomer?.phone) {
+                if (sendSmsNotification && isSmsEnabled && selectedCustomer?.phone) {
                     const msg = `Dear ${selectedCustomer.name}, delivery received. Bill: ${cleanBillNo}.`;
-                    sendSms({ apiKey: warehouseInfo.textbeeApiKey, deviceId: warehouseInfo.textbeeDeviceId, to: selectedCustomer.phone, message: msg }).catch(console.error);
+                    sendSms({ apiKey: warehouseInfo.textbeeApiKey!, deviceId: warehouseInfo.textbeeDeviceId, to: selectedCustomer.phone, message: msg }).catch(console.error);
                 }
                 
                 toast({ title: 'Success', description: 'Record added.' });
@@ -230,7 +232,7 @@ export function AddUnloadingRecordForm({
                         
                         <div className="grid grid-cols-2 gap-4">
                             <FormField control={form.control} name="totalHamaliManual" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-bold text-primary">Cust Total Hamali</FormLabel><FormControl><Input type="number" step="0.01" className="text-sm h-9 border-primary/50" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel className="text-xs font-bold text-primary">Cust Total Hamali</Label><FormControl><Input type="number" step="0.01" className="text-sm h-9 border-primary/50" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                             )} />
                             <FormField control={form.control} name="workerHamaliManual" render={({ field }) => (
                                 <FormItem><FormLabel className="text-xs font-bold text-orange-600">Worker Total Pay</FormLabel><FormControl><Input type="number" step="0.01" className="text-sm h-9 border-orange-400" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
@@ -240,14 +242,16 @@ export function AddUnloadingRecordForm({
                         <Separator />
                         <div className="flex items-center justify-between p-3 rounded-lg border bg-primary/5">
                             <div className="flex items-center gap-2">
-                                <MessageSquare className="h-4 w-4 text-primary" />
-                                <Label htmlFor="sms-toggle-un" className="text-[10px] font-black uppercase tracking-wider cursor-pointer">SMS Notification</Label>
+                                <MessageSquare className={`h-4 w-4 ${isSmsEnabled ? 'text-primary' : 'text-slate-300'}`} />
+                                <Label htmlFor="sms-toggle-un" className={`text-[10px] font-black uppercase tracking-wider cursor-pointer ${!isSmsEnabled ? 'text-slate-400' : ''}`}>
+                                    SMS Notification {!isSmsEnabled && '(Global OFF)'}
+                                </Label>
                             </div>
                             <Switch 
                                 id="sms-toggle-un" 
-                                checked={sendSmsNotification} 
+                                checked={isSmsEnabled ? sendSmsNotification : false} 
                                 onCheckedChange={setSendSmsNotification}
-                                disabled={!warehouseInfo?.textbeeApiKey || !selectedCustomer?.phone}
+                                disabled={!isSmsEnabled || !selectedCustomer?.phone}
                             />
                         </div>
                     </CardContent>

@@ -69,6 +69,8 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
   );
   const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
 
+  const isSmsEnabled = warehouseInfo?.smsEnabled && warehouseInfo?.textbeeApiKey;
+
   const customerDuesMap = useMemo(() => {
     if (!isOpen) return {};
     const duesMap: Record<string, { hLiability: number, rLiability: number, hPaid: number, rPaid: number }> = {};
@@ -167,7 +169,7 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
             description: `Bulk Account Payment recorded in ledger. Category: ${data.paymentType.toUpperCase()}`
         });
         
-        if (sendSmsNotification && warehouseInfo?.textbeeApiKey && selectedCustomer?.phone) {
+        if (sendSmsNotification && isSmsEnabled && selectedCustomer?.phone) {
             const typeLabel = data.paymentType === 'hamali' ? 'Hamali' : 'Rent';
             const template = warehouseInfo?.smsPaymentTemplate || 'Dear {customerName}, thank you for your {paymentType} bulk transaction of {paymentAmount} on {date}. - {warehouseName}';
             const msg = template
@@ -176,7 +178,7 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
                 .replace('{paymentAmount}', formatCurrency(bulkAmount))
                 .replace('{date}', format(finalDate, 'dd/MM/yy'))
                 .replace('{warehouseName}', warehouseInfo?.name || 'GrainDost');
-            sendSms({ apiKey: warehouseInfo.textbeeApiKey, deviceId: warehouseInfo.textbeeDeviceId, to: selectedCustomer.phone, message: msg }).catch(console.error);
+            sendSms({ apiKey: warehouseInfo.textbeeApiKey!, deviceId: warehouseInfo.textbeeDeviceId, to: selectedCustomer.phone, message: msg }).catch(console.error);
         }
         
         toast({ title: 'Bulk Payment Recorded', description: `Successfully added ${formatCurrency(bulkAmount)} to the customer account ledger.` });
@@ -261,14 +263,16 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
 
                         <div className="flex items-center justify-between p-3 rounded-lg border bg-primary/5 mt-2">
                             <div className="flex items-center gap-2">
-                                <MessageSquare className="h-4 w-4 text-primary" />
-                                <Label htmlFor="sms-toggle-bulk" className="text-[10px] font-black uppercase tracking-wider text-slate-500 cursor-pointer">SMS Receipt</Label>
+                                <MessageSquare className={`h-4 w-4 ${isSmsEnabled ? 'text-primary' : 'text-slate-300'}`} />
+                                <Label htmlFor="sms-toggle-bulk" className={`text-[10px] font-black uppercase tracking-wider text-slate-500 cursor-pointer ${!isSmsEnabled ? 'text-slate-400' : ''}`}>
+                                    SMS Receipt {!isSmsEnabled && '(Global OFF)'}
+                                </Label>
                             </div>
                             <Switch 
                                 id="sms-toggle-bulk" 
-                                checked={sendSmsNotification} 
+                                checked={isSmsEnabled ? sendSmsNotification : false} 
                                 onCheckedChange={setSendSmsNotification}
-                                disabled={!warehouseInfo?.textbeeApiKey || !selectedCustomer?.phone}
+                                disabled={!isSmsEnabled || !selectedCustomer?.phone}
                             />
                         </div>
                     </>

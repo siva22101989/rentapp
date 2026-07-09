@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Loader2, Sparkles } from 'lucide-react';
+import { Loader2, Sparkles, MessageSquare } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -18,7 +18,7 @@ import { setDoc, doc, getDoc } from 'firebase/firestore';
 import { formatCurrency, cleanForFirestore } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { Combobox } from '@/components/ui/combobox';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import { sendSms } from '@/lib/sms';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
@@ -57,7 +57,7 @@ export function AddUnloadingRecordForm({
     const [isPending, startTransition] = useTransition();
     const firestore = useFirestore();
     const appUser = useAppUser();
-    const [sendSmsNotification, setSendSmsNotification] = useState(false);
+    const [sendSmsNotification, setSendSmsNotification] = useState(true);
 
     const warehouseInfoRef = useMemoFirebase(
       () => (firestore && appUser?.warehouseId ? doc(firestore, 'warehouses', appUser.warehouseId) : null),
@@ -238,9 +238,17 @@ export function AddUnloadingRecordForm({
                         </div>
 
                         <Separator />
-                        <div className="flex items-center space-x-2 pt-2">
-                            <Checkbox id="smsU" checked={sendSmsNotification} onCheckedChange={(c) => setSendSmsNotification(Boolean(c))} disabled={!warehouseInfo?.textbeeApiKey || !selectedCustomer?.phone} />
-                            <label htmlFor="smsU" className="text-xs font-medium cursor-pointer">Send SMS</label>
+                        <div className="flex items-center justify-between p-3 rounded-lg border bg-primary/5">
+                            <div className="flex items-center gap-2">
+                                <MessageSquare className="h-4 w-4 text-primary" />
+                                <Label htmlFor="sms-toggle-un" className="text-[10px] font-black uppercase tracking-wider cursor-pointer">SMS Notification</Label>
+                            </div>
+                            <Switch 
+                                id="sms-toggle-un" 
+                                checked={sendSmsNotification} 
+                                onCheckedChange={setSendSmsNotification}
+                                disabled={!warehouseInfo?.textbeeApiKey || !selectedCustomer?.phone}
+                            />
                         </div>
                     </CardContent>
                     <CardFooter>

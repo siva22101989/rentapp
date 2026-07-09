@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition, useMemo, useEffect } from 'react';
-import { Loader2, UserPlus } from 'lucide-react';
+import { Loader2, UserPlus, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -27,7 +27,7 @@ import { Combobox } from '../ui/combobox';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 import { useAppUser } from '@/firebase/auth/use-user';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import { sendSms } from '@/lib/sms';
 import { format } from 'date-fns';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
@@ -61,7 +61,7 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
   const [isPending, startTransition] = useTransition();
   const firestore = useFirestore();
   const appUser = useAppUser();
-  const [sendSmsNotification, setSendSmsNotification] = useState(true);
+  const [sendSmsNotification, setSendSmsNotification] = useState(false);
 
   const warehouseInfoRef = useMemoFirebase(
     () => (firestore && appUser?.warehouseId ? doc(firestore, 'warehouses', appUser.warehouseId) : null),
@@ -259,9 +259,17 @@ export function CustomerBulkPaymentDialog({ customers, storageRecords, unloading
                             )} />
                         </div>
 
-                        <div className="flex items-center space-x-2 pt-2">
-                            <Checkbox id="sendSmsBulk" checked={sendSmsNotification} onCheckedChange={(checked) => setSendSmsNotification(Boolean(checked))} disabled={!warehouseInfo?.textbeeApiKey || !selectedCustomer?.phone} />
-                            <label htmlFor="sendSmsBulk" className="text-xs font-bold text-slate-500 uppercase cursor-pointer">Send SMS Receipt</label>
+                        <div className="flex items-center justify-between p-3 rounded-lg border bg-primary/5 mt-2">
+                            <div className="flex items-center gap-2">
+                                <MessageSquare className="h-4 w-4 text-primary" />
+                                <Label htmlFor="sms-toggle-bulk" className="text-[10px] font-black uppercase tracking-wider text-slate-500 cursor-pointer">SMS Receipt</Label>
+                            </div>
+                            <Switch 
+                                id="sms-toggle-bulk" 
+                                checked={sendSmsNotification} 
+                                onCheckedChange={setSendSmsNotification}
+                                disabled={!warehouseInfo?.textbeeApiKey || !selectedCustomer?.phone}
+                            />
                         </div>
                     </>
                 )}

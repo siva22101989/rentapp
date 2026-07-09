@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { Customer, StorageRecord, Payment, Outflow, WarehouseInfo, Commodity, UnloadingRecord } from '@/lib/definitions';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Sparkles } from 'lucide-react';
+import { Loader2, Sparkles, MessageSquare } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { calculateFinalRent } from '@/lib/billing';
 import { format } from 'date-fns';
@@ -18,7 +18,7 @@ import { toDate, cleanForFirestore, formatCurrency } from '@/lib/utils';
 import { Combobox } from '../ui/combobox';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import { sendSms } from '@/lib/sms';
 
 export function OutflowForm({ 
@@ -464,18 +464,33 @@ export function OutflowForm({
                                             <span className="font-mono font-black text-2xl text-primary">{formatCurrency(totalPayable)}</span>
                                         </div>
                                         
-                                        <div className="space-y-1.5 p-5 bg-primary/5 rounded-2xl border-2 border-primary/20">
-                                            <Label htmlFor="amountPaidNow" className="text-xs font-black uppercase tracking-widest text-primary">Cash Collected</Label>
-                                            <Input
-                                                id="amountPaidNow"
-                                                name="amountPaidNow"
-                                                type="number"
-                                                placeholder="Enter amount paid..."
-                                                step="0.01"
-                                                value={amountPaidNow}
-                                                onChange={e => setAmountPaidNow(e.target.value === '' ? '' : Number(e.target.value))}
-                                                className="h-12 text-lg font-mono font-black bg-white shadow-inner border-primary/30"
-                                            />
+                                        <div className="space-y-4 p-5 bg-primary/5 rounded-2xl border-2 border-primary/20">
+                                            <div className="space-y-1.5">
+                                                <Label htmlFor="amountPaidNow" className="text-xs font-black uppercase tracking-widest text-primary">Cash Collected</Label>
+                                                <Input
+                                                    id="amountPaidNow"
+                                                    name="amountPaidNow"
+                                                    type="number"
+                                                    placeholder="Enter amount paid..."
+                                                    step="0.01"
+                                                    value={amountPaidNow}
+                                                    onChange={e => setAmountPaidNow(e.target.value === '' ? '' : Number(e.target.value))}
+                                                    className="h-12 text-lg font-mono font-black bg-white shadow-inner border-primary/30"
+                                                />
+                                            </div>
+
+                                            <div className="flex items-center justify-between pt-2 border-t border-primary/10">
+                                                <div className="flex items-center gap-2">
+                                                    <MessageSquare className="h-4 w-4 text-primary" />
+                                                    <Label htmlFor="sms-toggle-out" className="text-[10px] font-black uppercase tracking-wider text-slate-500 cursor-pointer">Send SMS Receipt</Label>
+                                                </div>
+                                                <Switch 
+                                                    id="sms-toggle-out" 
+                                                    checked={sendSmsNotification} 
+                                                    onCheckedChange={setSendSmsNotification}
+                                                    disabled={!warehouseInfo?.textbeeApiKey || !selectedCustomer?.phone}
+                                                />
+                                            </div>
                                         </div>
                                     </div>
                                 </>

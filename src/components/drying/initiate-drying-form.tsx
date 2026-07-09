@@ -1,7 +1,7 @@
 'use client';
 
 import { useTransition, useState, useEffect, useMemo } from 'react';
-import { Loader2, Calculator } from 'lucide-react';
+import { Loader2, Calculator, MessageSquare } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,7 @@ import { differenceInDays, format } from 'date-fns';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 import { useAppUser } from '@/firebase/auth/use-user';
+import { Switch } from '@/components/ui/switch';
 import { sendSms } from '@/lib/sms';
 import { z } from 'zod';
 
@@ -136,6 +137,10 @@ export function InitiateDryingForm({ customers, unloadingRecords, storageRecords
         setFormData((prev: any) => ({ ...prev, [name]: value }));
     };
 
+    const selectedCustomer = useMemo(() => 
+        selectedUnloadingRecord ? customers.find(c => c.id === selectedUnloadingRecord.customerId) : null
+    , [customers, selectedUnloadingRecord]);
+
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setErrors({});
@@ -158,7 +163,6 @@ export function InitiateDryingForm({ customers, unloadingRecords, storageRecords
         const selectedRecordOnSubmit = unloadingRecords.find(ur => ur.id === data.unloadingRecordId);
         if (!selectedRecordOnSubmit || !firestore || !appUser?.warehouseId) return;
 
-        // Run your asynchronous business logic cleanly
         const submitData = async () => {
             try {
                 const commodityDetails = commodities.find(c => c.name === selectedRecordOnSubmit.commodityDescription);
@@ -233,7 +237,6 @@ export function InitiateDryingForm({ customers, unloadingRecords, storageRecords
             }
         };
 
-        // Wrap execution inside the synchronous startTransition block
         startTransition(() => {
             submitData();
         });
@@ -290,6 +293,19 @@ export function InitiateDryingForm({ customers, unloadingRecords, storageRecords
                         <Separator className="col-span-2 my-2" />
                         <div className="col-span-2 flex justify-between items-center font-bold text-lg text-primary"><span>TOTAL BILLABLE HAMALI</span><span className="font-mono">{formatCurrency(totalCustomerCharge)}</span></div>
                     </div>
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-lg border bg-primary/5">
+                    <div className="flex items-center gap-2">
+                        <MessageSquare className="h-4 w-4 text-primary" />
+                        <Label htmlFor="sms-toggle-dry" className="text-[10px] font-black uppercase tracking-wider cursor-pointer">SMS Notification</Label>
+                    </div>
+                    <Switch 
+                        id="sms-toggle-dry" 
+                        checked={sendSmsNotification} 
+                        onCheckedChange={setSendSmsNotification}
+                        disabled={!warehouseInfo?.textbeeApiKey || !selectedCustomer?.phone}
+                    />
                 </div>
             </CardContent>
             <CardFooter>

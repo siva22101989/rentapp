@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import type { Customer, Payment, Commodity, Lot, StorageRecord, WarehouseInfo } from '@/lib/definitions';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Sparkles } from 'lucide-react';
+import { Loader2, Sparkles, MessageSquare } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { formatCurrency, cleanForFirestore } from '@/lib/utils';
 import { useFirestore } from '@/firebase/provider';
@@ -17,7 +17,7 @@ import { Combobox } from '../ui/combobox';
 import { useAppUser } from '@/firebase/auth/use-user';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import { sendSms } from '@/lib/sms';
 import { format } from 'date-fns';
 
@@ -274,9 +274,18 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                             <span className="font-mono text-destructive">{formatCurrency((Number(hamaliPayableOverride) || 0) - (Number(hamaliPaid) || 0))}</span>
                         </div>
                     </div>
-                     <div className="flex items-center space-x-2 pt-2">
-                        <Checkbox id="sms" checked={sendSmsNotification} onCheckedChange={(c) => setSendSmsNotification(Boolean(c))} disabled={!warehouseInfo?.textbeeApiKey || !selectedCustomer?.phone} />
-                        <label htmlFor="sms" className="text-xs font-medium cursor-pointer">Send SMS Notification</label>
+                     
+                     <div className="flex items-center justify-between p-3 rounded-lg border bg-primary/5">
+                        <div className="flex items-center gap-2">
+                            <MessageSquare className="h-4 w-4 text-primary" />
+                            <Label htmlFor="sms-toggle" className="text-xs font-bold uppercase tracking-wider cursor-pointer">SMS Notification</Label>
+                        </div>
+                        <Switch 
+                            id="sms-toggle" 
+                            checked={sendSmsNotification} 
+                            onCheckedChange={setSmsInflowTemplate}
+                            disabled={!warehouseInfo?.textbeeApiKey || !selectedCustomer?.phone}
+                        />
                     </div>
                 </CardContent>
                 <CardFooter>

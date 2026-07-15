@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useTransition, useEffect, useState } from 'react';
@@ -93,6 +94,10 @@ export function SmsSettings() {
     };
 
     const handleTestSms = () => {
+        if (!smsEnabled) {
+            toast({ title: 'SMS System Disabled', description: 'Please enable the Global SMS Feature first.', variant: 'destructive' });
+            return;
+        }
         if (!testNumber) {
             toast({ title: 'Phone Number Required', description: 'Please enter a phone number to send a test SMS to.', variant: 'destructive' });
             return;
@@ -137,28 +142,35 @@ export function SmsSettings() {
     }
 
   return (
-    <Card className="mt-6 border-primary/20 shadow-lg">
+    <Card className="mt-6 border-primary/20 shadow-lg max-w-4xl mx-auto">
         <form onSubmit={handleSubmit}>
             <CardHeader className="bg-secondary/10 border-b">
                 <CardTitle className="flex items-center gap-2">
                     <MessageSquare className="h-5 w-5 text-primary" />
-                    SMS Configuration
+                    SMS Control Center
                 </CardTitle>
                 <CardDescription>
-                    Configure your textbee.dev account to enable sending SMS notifications to customers.
+                    Configure your textbee.dev account and manage the global SMS master switch.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6 pt-6">
-                <div className="flex items-center justify-between p-4 rounded-xl border-2 border-primary/20 bg-primary/5">
-                    <div className="space-y-0.5">
-                        <Label htmlFor="smsEnabled" className="text-sm font-black uppercase tracking-widest text-primary">Global SMS Feature</Label>
-                        <p className="text-xs text-muted-foreground font-medium">Turn this on to enable automated messaging across the entire application.</p>
+                {/* Global Master Switch */}
+                <div className="flex items-center justify-between p-6 rounded-2xl border-4 border-primary/30 bg-primary/5 shadow-inner">
+                    <div className="space-y-1">
+                        <Label htmlFor="smsEnabled" className="text-lg font-black uppercase tracking-widest text-primary">Global SMS Master Switch</Label>
+                        <p className="text-sm text-muted-foreground font-bold">When OFF, the system will block all outgoing messages from all forms.</p>
                     </div>
-                    <Switch 
-                        id="smsEnabled" 
-                        checked={smsEnabled} 
-                        onCheckedChange={setSmsEnabled} 
-                    />
+                    <div className="flex flex-col items-center gap-2">
+                        <Switch 
+                            id="smsEnabled" 
+                            className="scale-150"
+                            checked={smsEnabled} 
+                            onCheckedChange={setSmsEnabled} 
+                        />
+                        <span className={`text-[10px] font-black uppercase tracking-widest ${smsEnabled ? 'text-primary' : 'text-slate-400'}`}>
+                            {smsEnabled ? 'System Active' : 'System Disabled'}
+                        </span>
+                    </div>
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2">
@@ -173,7 +185,7 @@ export function SmsSettings() {
                 </div>
                 
                 <Separator className="my-4" />
-                <h3 className="text-sm font-black uppercase tracking-[0.2em] text-slate-400 mb-2">SMS Templates</h3>
+                <h3 className="text-sm font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Message Templates</h3>
 
                 <div className="space-y-4">
                     <div className="space-y-1.5">
@@ -209,11 +221,11 @@ export function SmsSettings() {
             </CardContent>
             <CardFooter className="flex-col items-stretch gap-8 bg-slate-50/50 border-t p-6">
                 <div className="flex justify-end">
-                    <Button type="submit" disabled={isPending} className="font-black uppercase tracking-widest px-8">
+                    <Button type="submit" disabled={isPending} className="font-black uppercase tracking-widest px-8 h-11">
                         {isPending ? (
                             <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
                         ) : (
-                            'Save All SMS Settings'
+                            'Save SMS Settings'
                         )}
                     </Button>
                 </div>
@@ -223,7 +235,7 @@ export function SmsSettings() {
                 <div className="space-y-4">
                     <div className="space-y-1">
                         <h3 className="text-sm font-black uppercase text-slate-700">Test SMS Gateway</h3>
-                        <p className="text-[11px] text-muted-foreground font-medium">Verify your configuration by sending a manual test message.</p>
+                        <p className="text-[11px] text-muted-foreground font-medium">Verify your configuration by sending a manual test message. Only works if Global SMS is ON.</p>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-3">
                         <Input 
@@ -232,9 +244,15 @@ export function SmsSettings() {
                             onChange={(e) => setTestNumber(e.target.value)}
                             className="sm:flex-1 h-11 font-bold"
                         />
-                        <Button onClick={handleTestSms} disabled={isTesting || !smsEnabled} className="w-full sm:w-auto h-11 font-black uppercase tracking-wider" type="button" variant="secondary">
+                        <Button 
+                            onClick={handleTestSms} 
+                            disabled={isTesting || !smsEnabled} 
+                            className="w-full sm:w-auto h-11 font-black uppercase tracking-wider" 
+                            type="button" 
+                            variant="secondary"
+                        >
                             {isTesting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-                            Send Test
+                            Send Test SMS
                         </Button>
                     </div>
                 </div>

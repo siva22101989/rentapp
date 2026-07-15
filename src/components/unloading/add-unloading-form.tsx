@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo, useTransition } from 'react';
@@ -244,7 +245,7 @@ export function AddUnloadingRecordForm({
                             <div className="flex items-center gap-2">
                                 <MessageSquare className={`h-4 w-4 ${isSmsEnabled ? 'text-primary' : 'text-slate-300'}`} />
                                 <Label htmlFor="sms-toggle-un" className={`text-[10px] font-black uppercase tracking-wider cursor-pointer ${!isSmsEnabled ? 'text-slate-400' : ''}`}>
-                                    SMS Notification {!isSmsEnabled && '(Global OFF)'}
+                                    SMS Notification {!isSmsEnabled ? '(Global OFF)' : ''}
                                 </Label>
                             </div>
                             <Switch 

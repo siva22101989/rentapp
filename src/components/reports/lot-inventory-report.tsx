@@ -33,9 +33,9 @@ function LotInventoryTable({ groupedLots, customers, title }: { groupedLots: Gro
         return (
              <div className="bg-white p-4 rounded-lg">
                 <div className="mb-4 text-center">
-                    <h2 className="text-xl font-bold uppercase">SRI LAKSHMI WAREHOUSE</h2>
-                    <p className="text-muted-foreground font-semibold">{title}</p>
-                    <p className="text-xs text-muted-foreground">Generated on: {generatedDate}</p>
+                    <h2 className="text-xl font-bold uppercase text-center">SRI LAKSHMI WAREHOUSE</h2>
+                    <p className="text-muted-foreground font-semibold text-center">{title}</p>
+                    <p className="text-xs text-muted-foreground text-center">Generated on: {generatedDate}</p>
                 </div>
                 <div className="text-center py-10 text-muted-foreground border-2 border-dashed rounded-lg text-[13px]">
                     No active stock found in any lots.
@@ -47,9 +47,9 @@ function LotInventoryTable({ groupedLots, customers, title }: { groupedLots: Gro
     return (
         <div className="bg-white p-4 rounded-lg">
             <div className="mb-6 text-center">
-                <h2 className="text-2xl font-bold uppercase">SRI LAKSHMI WAREHOUSE</h2>
-                <p className="text-muted-foreground font-semibold uppercase tracking-wider">{title}</p>
-                <p className="text-xs text-muted-foreground">Generated on: {generatedDate}</p>
+                <h2 className="text-2xl font-bold uppercase text-center">SRI LAKSHMI WAREHOUSE</h2>
+                <p className="text-muted-foreground font-semibold uppercase tracking-wider text-center">{title}</p>
+                <p className="text-xs text-muted-foreground text-center">Generated on: {generatedDate}</p>
             </div>
             <Table className="text-[13px]">
                 <TableHeader>
@@ -59,34 +59,34 @@ function LotInventoryTable({ groupedLots, customers, title }: { groupedLots: Gro
                         <TableHead className="uppercase text-[10px] font-bold text-center">Customer Name</TableHead>
                         <TableHead className="hidden md:table-cell uppercase text-[10px] font-bold text-center">Commodity</TableHead>
                         <TableHead className="hidden lg:table-cell uppercase text-[10px] font-bold text-center">Inflow Date</TableHead>
-                        <TableHead className="text-center uppercase text-[10px] font-bold">Bags in Stock</TableHead>
+                        <TableHead className="text-center uppercase text-[10px] font-bold text-center">Bags in Stock</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {lotNames.map(lotName => (
                         <React.Fragment key={lotName}>
                             <TableRow className="bg-primary/5 hover:bg-primary/10 border-t border-primary/10 h-8">
-                                <TableCell className="font-bold text-primary">{lotName || 'Unassigned'}</TableCell>
-                                <TableCell colSpan={4} className="font-semibold text-muted-foreground italic text-[11px]">Subtotal for Lot {lotName}</TableCell>
-                                <TableCell className="text-right font-bold font-mono text-primary">{groupedLots[lotName].totalBags}</TableCell>
+                                <TableCell className="font-bold text-primary text-center">{lotName || 'Unassigned'}</TableCell>
+                                <TableCell colSpan={4} className="font-semibold text-muted-foreground italic text-[11px] text-center">Subtotal for Lot {lotName}</TableCell>
+                                <TableCell className="text-right font-bold font-mono text-primary text-center">{groupedLots[lotName].totalBags}</TableCell>
                             </TableRow>
                             {groupedLots[lotName].records.sort((a,b) => toDate(b.storageStartDate).getTime() - toDate(a.storageStartDate).getTime()).map(record => (
                                 <TableRow key={record.id} className="hover:bg-muted/10 h-7 border-b border-slate-50">
                                     <TableCell></TableCell>
-                                    <TableCell className="font-mono text-slate-400">{record.id}</TableCell>
-                                    <TableCell className="font-medium whitespace-nowrap">{getCustomerName(record.customerId)}</TableCell>
-                                    <TableCell className="hidden md:table-cell">{record.commodityDescription}</TableCell>
-                                    <TableCell className="hidden lg:table-cell">{format(toDate(record.storageStartDate), 'dd/MM/yy')}</TableCell>
-                                    <TableCell className="text-right font-mono font-medium">{record.bagsStored}</TableCell>
+                                    <TableCell className="font-mono text-slate-400 text-center">{record.id}</TableCell>
+                                    <TableCell className="font-medium whitespace-nowrap text-center">{getCustomerName(record.customerId)}</TableCell>
+                                    <TableCell className="hidden md:table-cell text-center">{record.commodityDescription}</TableCell>
+                                    <TableCell className="hidden lg:table-cell text-center">{format(toDate(record.storageStartDate), 'dd/MM/yy')}</TableCell>
+                                    <TableCell className="text-right font-mono font-medium text-center">{record.bagsStored}</TableCell>
                                 </TableRow>
                             ))}
                         </React.Fragment>
                     ))}
                 </TableBody>
                 <TableFooter>
-                    <TableRow className="bg-slate-900 text-white hover:bg-slate-900 border-t-2 border-slate-900">
+                    <TableRow className="bg-slate-50 text-black hover:bg-slate-50 border-t-2 border-slate-900">
                         <TableCell colSpan={5} className="text-right font-bold uppercase text-[11px]">Total Warehouse Active Stock</TableCell>
-                        <TableCell className="text-right font-bold font-mono text-xl">{grandTotalBags}</TableCell>
+                        <TableCell className="text-center font-bold font-mono text-xl text-primary">{grandTotalBags}</TableCell>
                     </TableRow>
                 </TableFooter>
             </Table>

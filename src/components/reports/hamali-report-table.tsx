@@ -5,7 +5,6 @@ import { format } from "date-fns";
 import type { Customer, StorageRecord } from "@/lib/definitions";
 import { formatCurrency } from '@/lib/utils';
 import { useMemo } from "react";
-import type { CustomerHamaliEvent } from "./hamali-report";
 import { ActionsMenu } from "@/components/dashboard/actions-menu";
 
 type ReportTableProps = {
@@ -28,9 +27,9 @@ export function CustomerHamaliReportTable({ events, customers, allRecords, title
     return (
         <div className="bg-white p-4 text-black font-sans text-sm printable-area">
              <div className="mb-4 text-center border-b-2 border-black pb-2">
-                <h2 className="text-xl font-bold uppercase tracking-wide leading-tight">SRI LAKSHMI WAREHOUSE</h2>
-                <p className="text-muted-foreground font-semibold uppercase text-[12px]">{title}</p>
-                <p className="text-[10px] text-slate-400">Generated: {generatedDate}</p>
+                <h2 className="text-xl font-bold uppercase tracking-wide leading-tight text-center">SRI LAKSHMI WAREHOUSE</h2>
+                <p className="text-muted-foreground font-semibold uppercase text-[12px] text-center">{title}</p>
+                <p className="text-[10px] text-slate-400 text-center">Generated: {generatedDate}</p>
             </div>
             <div className="table-scroll-container border-y-2 border-black">
                 <Table className="text-[13px]">
@@ -51,12 +50,12 @@ export function CustomerHamaliReportTable({ events, customers, allRecords, title
                             return (
                                 <TableRow key={index} className="h-7 border-b border-slate-100">
                                     <TableCell className="p-1 text-center whitespace-nowrap">{format(event.date, 'dd/MM/yy')}</TableCell>
-                                    <TableCell className="p-1 font-medium uppercase whitespace-nowrap">{getCustomerName(event.customerId)}</TableCell>
+                                    <TableCell className="p-1 font-medium uppercase whitespace-nowrap text-center">{getCustomerName(event.customerId)}</TableCell>
                                     <TableCell className="p-1 text-center font-mono text-slate-400">{event.recordId}</TableCell>
-                                    <TableCell className="p-1 text-right font-mono">
+                                    <TableCell className="p-1 text-right font-mono text-center">
                                         {event.type === 'charge' ? formatCurrency(event.amount) : ''}
                                     </TableCell>
-                                    <TableCell className="p-1 text-right font-mono text-green-700">
+                                    <TableCell className="p-1 text-right font-mono text-green-700 text-center">
                                         {event.type === 'payment' ? formatCurrency(event.amount) : ''}
                                     </TableCell>
                                     <TableCell className="p-1 text-right print-hide">
@@ -69,15 +68,15 @@ export function CustomerHamaliReportTable({ events, customers, allRecords, title
                         })}
                     </TableBody>
                     <TableFooter>
-                        <TableRow className="bg-slate-50 font-bold border-t-2 border-black">
+                        <TableRow className="bg-slate-50 text-black font-bold border-t-2 border-black">
                             <TableCell colSpan={3} className="p-1 text-right uppercase text-[10px]">Total Ledger Dues</TableCell>
-                            <TableCell className="p-1 text-right font-mono">{formatCurrency(totalCharges)}</TableCell>
-                            <TableCell className="p-1 text-right font-mono text-green-700">{formatCurrency(totalPayments)}</TableCell>
+                            <TableCell className="p-1 text-right font-mono text-center">{formatCurrency(totalCharges)}</TableCell>
+                            <TableCell className="p-1 text-right font-mono text-green-700 text-center">{formatCurrency(totalPayments)}</TableCell>
                             <TableCell className="print-hide" />
                         </TableRow>
-                         <TableRow className="bg-black text-white font-black">
+                         <TableRow className="bg-slate-100 text-black font-black">
                             <TableCell colSpan={4} className="p-1 text-right uppercase text-[10px]">Net Customer Pending</TableCell>
-                            <TableCell className="p-1 text-right font-mono text-[14px]">{formatCurrency(totalCharges - totalPayments)}</TableCell>
+                            <TableCell className="p-1 text-right font-mono text-[14px] text-destructive text-center">{formatCurrency(totalCharges - totalPayments)}</TableCell>
                             <TableCell className="print-hide" />
                         </TableRow>
                     </TableFooter>
@@ -85,7 +84,7 @@ export function CustomerHamaliReportTable({ events, customers, allRecords, title
             </div>
             <div className="mt-16 flex justify-end">
                 <div className="w-56 border-t border-black text-center pt-1">
-                    <p className="font-bold text-[12px] uppercase">Authorized Signature</p>
+                    <p className="font-bold text-[12px] uppercase text-center">Authorized Signature</p>
                 </div>
             </div>
         </div>

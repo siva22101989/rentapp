@@ -294,12 +294,12 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         </div>
 
         <div className="flex flex-col sm:flex-row justify-between mb-4 gap-2 text-[12px] sm:text-[13px]">
-            <div className="space-y-0.5">
+            <div className="space-y-0.5 text-center sm:text-left">
                 <p><span className="font-bold uppercase text-[10px] text-slate-500">Customer:</span> <span className="font-bold text-base">{customer?.name}</span></p>
                 <p><span className="font-bold uppercase text-[10px] text-slate-500">Village:</span> {customer?.village || 'N/A'}</p>
                 <p><span className="font-bold uppercase text-[10px] text-slate-500">Phone:</span> {customer?.phone || 'N/A'}</p>
             </div>
-            <div className="sm:text-right text-[10px] text-slate-400 font-bold uppercase">
+            <div className="text-center sm:text-right text-[10px] text-slate-400 font-bold uppercase">
                 <p>Audit Generation: {timestamp}</p>
             </div>
         </div>
@@ -320,13 +320,13 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                     <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1 text-center">Financial Reconciliation</h3>
                     <div className="grid grid-cols-2 gap-x-4 sm:gap-x-8 gap-y-2 text-[11px] sm:text-[12px]">
                         <div className="space-y-0.5 border-r border-slate-100 pr-2 sm:pr-4">
-                            <p className="uppercase text-[9px] font-bold text-slate-400">Labor/Rent</p>
+                            <p className="uppercase text-[9px] font-bold text-slate-400 text-center">Labor/Rent</p>
                             <div className="flex justify-between"><span>Hamali Due:</span><span className="font-mono">{formatCurrency(totals.hamaliBalance)}</span></div>
                             <div className="flex justify-between"><span>Rent Due:</span><span className="font-mono">{formatCurrency(totals.rentBalance)}</span></div>
                         </div>
                         <div className="space-y-0.5 flex flex-col justify-center">
-                            <p className="uppercase text-[9px] font-bold text-slate-400">Net Due</p>
-                            <p className="text-lg sm:text-xl font-mono font-black text-destructive">{formatCurrency(totals.finalBalance)}</p>
+                            <p className="uppercase text-[9px] font-bold text-slate-400 text-center">Net Due</p>
+                            <p className="text-lg sm:text-xl font-mono font-black text-destructive text-center">{formatCurrency(totals.finalBalance)}</p>
                         </div>
                     </div>
                 </div>
@@ -352,7 +352,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                     {lineItems.map((item) => (
                         <TableRow key={item.rowId} className="border-b border-slate-100 h-9 hover:bg-slate-50/50">
                             <TableCell className="p-1 text-center whitespace-nowrap">{format(item.date, 'dd/MM/yy')}</TableCell>
-                            <TableCell className="p-1 font-medium tracking-tight text-[11px] sm:text-[12px]">{item.description}</TableCell>
+                            <TableCell className="p-1 font-medium tracking-tight text-[11px] sm:text-[12px] text-center">{item.description}</TableCell>
                             <TableCell className="p-1 text-center font-mono">{item.bagsIn || ''}</TableCell>
                             <TableCell className="p-1 text-center font-mono text-orange-600 font-bold">{item.bagsOut || ''}</TableCell>
                             <TableCell className="p-1 text-right font-mono">{item.hamali > 0 ? formatCurrency(item.hamali) : ''}</TableCell>
@@ -364,14 +364,14 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                     ))}
                 </TableBody>
                 <TableFooter>
-                    <TableRow className="bg-slate-900 text-white font-black border-t-2 border-black h-12">
+                    <TableRow className="bg-slate-50 text-black font-black border-t-2 border-black h-12">
                         <TableCell colSpan={2} className="p-2 text-right uppercase text-[9px] sm:text-[10px]">Grand Totals</TableCell>
                         <TableCell className="p-1 text-center font-mono">{totals.totalBagsIn}</TableCell>
-                        <TableCell className="p-1 text-center font-mono text-orange-400">{totals.totalBagsOut}</TableCell>
+                        <TableCell className="p-1 text-center font-mono text-orange-600">{totals.totalBagsOut}</TableCell>
                         <TableCell className="p-1 text-right font-mono">{formatCurrency(totals.totalHamaliBilled)}</TableCell>
                         <TableCell className="p-1 text-right font-mono">{formatCurrency(totals.totalRentBilled)}</TableCell>
-                        <TableCell className="p-1 text-right font-mono text-blue-300">{formatCurrency(totals.totalDiscounts)}</TableCell>
-                        <TableCell className="p-1 text-right font-mono text-green-400">{formatCurrency(totals.totalHamaliPaid + totals.totalRentPaid)}</TableCell>
+                        <TableCell className="p-1 text-right font-mono text-blue-600">{formatCurrency(totals.totalDiscounts)}</TableCell>
+                        <TableCell className="p-1 text-right font-mono text-green-700">{formatCurrency(totals.totalHamaliPaid + totals.totalRentPaid)}</TableCell>
                         <TableCell className="p-1 text-right font-mono text-[12px] sm:text-base">{formatCurrency(totals.finalBalance)}</TableCell>
                     </TableRow>
                 </TableFooter>

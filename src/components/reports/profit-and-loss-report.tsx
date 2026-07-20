@@ -107,7 +107,7 @@ export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecor
                     <h1 className="text-2xl font-black uppercase tracking-tight leading-none mb-1 text-center">{warehouseInfo?.name || "SRI LAKSHMI WAREHOUSE"}</h1>
                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">{warehouseInfo?.addressLine1} {warehouseInfo?.addressLine2}</p>
                     <h2 className="text-lg font-black underline uppercase mt-4 tracking-[0.2em] text-center">Profit & Loss Statement</h2>
-                    <p className="text-xs font-bold text-primary uppercase mt-1 text-center text-center">
+                    <p className="text-xs font-bold text-primary uppercase mt-1 text-center">
                         Audit Period: {dateRange?.from ? format(dateRange.from, 'dd MMM yyyy') : 'All Time'} to {dateRange?.to ? format(dateRange.to, 'dd MMM yyyy') : 'Today'}
                     </p>
                 </div>
@@ -139,9 +139,9 @@ export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecor
                         <TableRow className="bg-red-50/50 font-black border-y border-red-200"><TableCell className="text-right uppercase text-[10px] tracking-tight">Total Expenses & Provisions</TableCell><TableCell className="text-right font-mono text-destructive text-base">{formatCurrency(periodExpenses)}</TableCell></TableRow>
                     </TableBody>
                     <TableFooter>
-                        <TableRow className="text-xl bg-slate-900 text-white border-t-2 border-black h-14">
+                        <TableRow className="text-xl bg-slate-50 text-black border-t-2 border-black h-14">
                             <TableCell className="font-black uppercase tracking-tighter text-center">{periodBalance >= 0 ? 'Net Adjusted Profit' : 'Net Final Loss'}</TableCell>
-                            <TableCell className={`text-right font-mono font-black text-2xl underline underline-offset-8`}>{formatCurrency(periodBalance)}</TableCell>
+                            <TableCell className={`text-right font-mono font-black text-2xl underline underline-offset-8 text-center`}>{formatCurrency(periodBalance)}</TableCell>
                         </TableRow>
                     </TableFooter>
                 </Table>
@@ -174,7 +174,7 @@ export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecor
                 <div className="mt-24 flex flex-col items-end text-center space-y-1">
                     <div className="w-80 border-t-2 border-black pt-3">
                         <p className="text-slate-900 font-black text-[13px] uppercase tracking-widest text-center">Authorized Auditor Signature</p>
-                        <p className="text-primary font-bold text-[10px] uppercase mt-1 text-center text-center">Financial Operations Audit</p>
+                        <p className="text-primary font-bold text-[10px] uppercase mt-1 text-center">Financial Operations Audit</p>
                     </div>
                     <div className="text-[9px] text-slate-400 italic pt-12 space-y-0.5">
                         <p>Report digital ID: PNL-AUDIT-{format(new Date(), 'yyyyMMdd')}</p>

@@ -39,9 +39,9 @@ export function CommodityStockReport({ records, warehouseInfo, title }: BaseProp
     return (
         <div className="bg-white p-6 rounded-xl border shadow-sm printable-area">
             <div className="mb-6 text-center border-b pb-4">
-                <h2 className="text-xl font-bold uppercase tracking-tight leading-none text-primary">{warehouseInfo?.name || "SRI LAKSHMI WAREHOUSE"}</h2>
-                <h3 className="font-bold uppercase text-slate-500 tracking-widest text-[12px] mt-2">{title}</h3>
-                <p className="text-[10px] text-slate-400 mt-1">Report Generated: {generatedDate}</p>
+                <h2 className="text-xl font-bold uppercase tracking-tight leading-none text-primary text-center">{warehouseInfo?.name || "SRI LAKSHMI WAREHOUSE"}</h2>
+                <h3 className="font-bold uppercase text-slate-500 tracking-widest text-[12px] mt-2 text-center">{title}</h3>
+                <p className="text-[10px] text-slate-400 mt-1 text-center">Report Generated: {generatedDate}</p>
             </div>
 
             <Table className="text-[13px]">
@@ -64,7 +64,7 @@ export function CommodityStockReport({ records, warehouseInfo, title }: BaseProp
                     ))}
                 </TableBody>
                 <TableFooter>
-                    <TableRow className="bg-slate-900 text-white font-black h-12">
+                    <TableRow className="bg-slate-50 text-black font-black h-12">
                         <TableCell colSpan={3} className="text-right uppercase text-[10px] tracking-widest">Total Godown Capacity Occupied</TableCell>
                         <TableCell className="text-center font-mono text-xl">{totalBags}</TableCell>
                     </TableRow>
@@ -99,9 +99,9 @@ export function CustomerCommodityStockReport({ records, customers, warehouseInfo
     return (
         <div className="bg-white p-6 rounded-xl border shadow-sm printable-area">
             <div className="mb-6 text-center border-b pb-4">
-                <h2 className="text-xl font-bold uppercase tracking-tight leading-none text-primary">{warehouseInfo?.name || "SRI LAKSHMI WAREHOUSE"}</h2>
-                <h3 className="font-bold uppercase text-slate-500 tracking-widest text-[12px] mt-2">{title}</h3>
-                <p className="text-[10px] text-slate-400 mt-1">Full Inventory Ledger: {generatedDate}</p>
+                <h2 className="text-xl font-bold uppercase tracking-tight leading-none text-primary text-center">{warehouseInfo?.name || "SRI LAKSHMI WAREHOUSE"}</h2>
+                <h3 className="font-bold uppercase text-slate-500 tracking-widest text-[12px] mt-2 text-center">{title}</h3>
+                <p className="text-[10px] text-slate-400 mt-1 text-center">Full Inventory Ledger: {generatedDate}</p>
             </div>
 
             <Table className="text-[13px]">
@@ -159,9 +159,9 @@ export function LotWiseInventoryReport({ records, customers, warehouseInfo, titl
     return (
         <div className="bg-white p-6 rounded-xl border shadow-sm printable-area">
             <div className="mb-6 text-center border-b pb-4">
-                <h2 className="text-xl font-bold uppercase tracking-tight leading-none text-primary">{warehouseInfo?.name || "SRI LAKSHMI WAREHOUSE"}</h2>
-                <h3 className="font-bold uppercase text-slate-500 tracking-widest text-[12px] mt-2">{title}</h3>
-                <p className="text-[10px] text-slate-400 mt-1">Generated: {generatedDate}</p>
+                <h2 className="text-xl font-bold uppercase tracking-tight leading-none text-primary text-center">{warehouseInfo?.name || "SRI LAKSHMI WAREHOUSE"}</h2>
+                <h3 className="font-bold uppercase text-slate-500 tracking-widest text-[12px] mt-2 text-center">{title}</h3>
+                <p className="text-[10px] text-slate-400 mt-1 text-center">Generated: {generatedDate}</p>
             </div>
 
             <Table className="text-[13px]">

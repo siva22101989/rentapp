@@ -57,9 +57,9 @@ export function PaymentReportTable({ events, customers, title }: ReportTableProp
                             <TableRow key={index} className="h-8 border-b border-slate-100 hover:bg-slate-50/50">
                                 <TableCell className="p-1 text-center whitespace-nowrap">{format(event.date, 'dd/MM/yy')}</TableCell>
                                 <TableCell className="p-1 font-medium uppercase whitespace-nowrap text-center">{getCustomerName(event.customerId)}</TableCell>
-                                <TableCell className="p-1 text-center uppercase text-[9px] font-bold"><span className="bg-slate-100 px-1.5 py-0.5 rounded">{event.type}</span></TableCell>
-                                <TableCell className="p-1 text-center font-mono text-slate-400">{event.recordId.replace(/\D/g, '')}</TableCell>
-                                <TableCell className="p-1 text-center font-mono font-bold text-green-700">
+                                <TableCell className="p-1 text-center uppercase text-[9px] font-bold text-center"><span className="bg-slate-100 px-1.5 py-0.5 rounded">{event.type}</span></TableCell>
+                                <TableCell className="p-1 text-center font-mono text-slate-400 text-center">{event.recordId.replace(/\D/g, '')}</TableCell>
+                                <TableCell className="p-1 text-center font-mono font-bold text-green-700 text-center">
                                     {formatCurrency(event.amount)}
                                 </TableCell>
                                 <TableCell className="p-1 text-center print-hide">
@@ -69,9 +69,9 @@ export function PaymentReportTable({ events, customers, title }: ReportTableProp
                         ))}
                     </TableBody>
                     <TableFooter>
-                        <TableRow className="bg-slate-900 text-white font-black border-t-2 border-black h-10">
+                        <TableRow className="bg-slate-50 text-black font-black border-t-2 border-black h-10">
                             <TableCell colSpan={4} className="p-1 text-right uppercase text-[10px] tracking-tight">Total Cash Portfolio Collected</TableCell>
-                            <TableCell className="p-1 text-center font-mono text-[14px]">{formatCurrency(totalPayments)}</TableCell>
+                            <TableCell className="p-1 text-center font-mono text-[14px] text-green-700">{formatCurrency(totalPayments)}</TableCell>
                             <TableCell className="print-hide" />
                         </TableRow>
                     </TableFooter>
@@ -79,7 +79,7 @@ export function PaymentReportTable({ events, customers, title }: ReportTableProp
             </div>
             <div className="mt-16 flex justify-end">
                 <div className="w-64 border-t border-black text-center pt-1">
-                    <p className="font-bold text-[12px] uppercase">Authorized Signature</p>
+                    <p className="font-bold text-[12px] uppercase text-center">Authorized Signature</p>
                 </div>
             </div>
         </div>

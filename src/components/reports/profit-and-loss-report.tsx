@@ -54,7 +54,7 @@ export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecor
         }
     }
 
-    // Cash Income Calculation
+    // Cash Income Calculation (Actual Receipts)
     const incomeFromRecords = allRecords.flatMap(r => r.payments || []).filter(p => inRange(toDate(p.date)) && p.type !== 'discount').reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
     const incomeFromUnloading = allUnloadingRecords.flatMap(r => r.payments || []).filter(p => inRange(toDate(p.date)) && p.type !== 'discount').reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
     const incomeFromBulk = customerPayments.filter(p => inRange(toDate(p.date)) && !p.isDiscount).reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
@@ -62,7 +62,7 @@ export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecor
     const incomeFromOther = localFilteredIncomes.reduce((acc, i) => acc + (Number(i.amount) || 0), 0);
     const totalCashIncome = incomeFromRecords + incomeFromUnloading + incomeFromBulk + incomeFromOther;
 
-    // Loss from Discounts / Waivers (Including Outflow Patti Discounts)
+    // Loss from Discounts / Waivers (Strictly categorizing as Loss)
     const discountFromRecords = allRecords.flatMap(r => r.payments || []).filter(p => inRange(toDate(p.date)) && p.type === 'discount').reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
     const discountFromUnloading = allUnloadingRecords.flatMap(r => r.payments || []).filter(p => inRange(toDate(p.date)) && p.type === 'discount').reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
     const discountFromBulk = customerPayments.filter(p => inRange(toDate(p.date)) && p.isDiscount).reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
@@ -70,7 +70,7 @@ export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecor
     
     const totalLossFromDiscounts = discountFromRecords + discountFromUnloading + discountFromBulk + discountFromOutflows;
 
-    // Operating Expenses
+    // Operating Expenses + Interest + Discounts
     const localFilteredExpenses = allExpenses.filter(e => inRange(toDate(e.date)));
     const totalExpenses = localFilteredExpenses.reduce((total, expense) => total + expense.amount, 0) + calculatedInterest + totalLossFromDiscounts;
 
@@ -104,10 +104,10 @@ export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecor
         <CardContent className="pt-6">
             <div className="p-4 space-y-8">
                 <div className="text-center border-b-2 border-black pb-4">
-                    <h1 className="text-2xl font-black uppercase tracking-tight leading-none mb-1">{warehouseInfo?.name || "SRI LAKSHMI WAREHOUSE"}</h1>
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{warehouseInfo?.addressLine1} {warehouseInfo?.addressLine2}</p>
-                    <h2 className="text-lg font-black underline uppercase mt-4 tracking-[0.2em]">Profit & Loss Statement</h2>
-                    <p className="text-xs font-bold text-primary uppercase mt-1 text-center">
+                    <h1 className="text-2xl font-black uppercase tracking-tight leading-none mb-1 text-center">{warehouseInfo?.name || "SRI LAKSHMI WAREHOUSE"}</h1>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">{warehouseInfo?.addressLine1} {warehouseInfo?.addressLine2}</p>
+                    <h2 className="text-lg font-black underline uppercase mt-4 tracking-[0.2em] text-center">Profit & Loss Statement</h2>
+                    <p className="text-xs font-bold text-primary uppercase mt-1 text-center text-center">
                         Audit Period: {dateRange?.from ? format(dateRange.from, 'dd MMM yyyy') : 'All Time'} to {dateRange?.to ? format(dateRange.to, 'dd MMM yyyy') : 'Today'}
                     </p>
                 </div>
@@ -116,7 +116,7 @@ export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecor
                     <TableHeader>
                         <TableRow className="bg-slate-50 border-y-2 border-black">
                             <TableHead className="font-black text-black uppercase text-[10px] py-3 text-center">Financial Particulars</TableHead>
-                            <TableHead className="text-center font-black text-black uppercase text-[10px] py-3">Amount (INR)</TableHead>
+                            <TableHead className="text-center font-black text-black uppercase text-[10px] py-3 text-center">Amount (INR)</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -173,8 +173,8 @@ export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecor
 
                 <div className="mt-24 flex flex-col items-end text-center space-y-1">
                     <div className="w-80 border-t-2 border-black pt-3">
-                        <p className="text-slate-900 font-black text-[13px] uppercase tracking-widest">Authorized Auditor Signature</p>
-                        <p className="text-primary font-bold text-[10px] uppercase mt-1 text-center">Financial Operations Audit</p>
+                        <p className="text-slate-900 font-black text-[13px] uppercase tracking-widest text-center">Authorized Auditor Signature</p>
+                        <p className="text-primary font-bold text-[10px] uppercase mt-1 text-center text-center">Financial Operations Audit</p>
                     </div>
                     <div className="text-[9px] text-slate-400 italic pt-12 space-y-0.5">
                         <p>Report digital ID: PNL-AUDIT-{format(new Date(), 'yyyyMMdd')}</p>

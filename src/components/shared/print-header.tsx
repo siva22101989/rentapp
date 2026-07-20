@@ -23,14 +23,14 @@ export function PrintHeader({ title, filename = 'document.pdf' }: { title: strin
         try {
             const { default: jsPDF } = await import('jspdf');
             
-            // Hardcoded Landscape only for A4
+            // Strictly Landscape for wide audit reports
             const pdf = new jsPDF({
                 orientation: 'l',
                 unit: 'mm',
                 format: 'a4',
             });
 
-            // Landscape virtual dimensions
+            // Standardized Landscape virtual dimensions to prevent "zoom"
             const pdfWidth = 277;
             const virtualWidth = 1440;
 

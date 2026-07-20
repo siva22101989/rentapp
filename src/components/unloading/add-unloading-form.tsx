@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo, useTransition } from 'react';
@@ -24,6 +23,7 @@ import { sendSms } from '@/lib/sms';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 import { useAppUser } from '@/firebase/auth/use-user';
+import { format } from 'date-fns';
 
 const UnloadingRecordSchema = z.object({
   customerId: z.string().min(1, 'Customer is required.'),
@@ -89,7 +89,6 @@ export function AddUnloadingRecordForm({
         if (nextBillNo) form.setValue('billNo', String(nextBillNo).replace(/\D/g, ''));
     }, [nextBillNo, form]);
     
-    // Auto-calc logic for the form
     const bagsVal = form.watch('bagsUnloaded');
     const custRate = form.watch('customerHamaliPerBag');
     const workRate = form.watch('workerHamaliPerBag');
@@ -233,7 +232,7 @@ export function AddUnloadingRecordForm({
                         
                         <div className="grid grid-cols-2 gap-4">
                             <FormField control={form.control} name="totalHamaliManual" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-bold text-primary">Cust Total Hamali</Label><FormControl><Input type="number" step="0.01" className="text-sm h-9 border-primary/50" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel className="text-xs font-bold text-primary">Cust Total Hamali</FormLabel><FormControl><Input type="number" step="0.01" className="text-sm h-9 border-primary/50" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                             )} />
                             <FormField control={form.control} name="workerHamaliManual" render={({ field }) => (
                                 <FormItem><FormLabel className="text-xs font-bold text-orange-600">Worker Total Pay</FormLabel><FormControl><Input type="number" step="0.01" className="text-sm h-9 border-orange-400" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>

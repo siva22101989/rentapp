@@ -9,6 +9,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription }
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
@@ -194,7 +195,7 @@ export function AddUnloadingRecordForm({
                                     </Badge>
                                 </FormLabel>
                                 <FormControl>
-                                    <Input className="font-mono font-bold bg-muted/50 text-sm h-9" {...field} readOnly />
+                                    <input className="flex h-10 w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm font-mono font-bold ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" {...field} readOnly />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>

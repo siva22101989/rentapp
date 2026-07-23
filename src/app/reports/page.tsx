@@ -1,8 +1,7 @@
-
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { CustomReportGenerator } from "@/components/reports/custom-report-generator";
-import type { Customer, StorageRecord, UnloadingRecord, Expense, WarehouseInfo, Borrowing, Lending, OtherIncome, Commodity, Lot, DryingRecord } from "@/lib/definitions";
+import type { Customer, StorageRecord, UnloadingRecord, Expense, WarehouseInfo, Borrowing, Lending, OtherIncome, Commodity, Lot, DryingRecord, CustomerPayment } from "@/lib/definitions";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { collection, doc, query, where } from "firebase/firestore";
 import { useFirestore } from "@/firebase/provider";
@@ -52,9 +51,12 @@ export default function ReportsPage() {
     const dryingRecordsQuery = useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'dryingRecords'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]);
     const { data: dryingRecords, loading: loadingDryingRecords } = useCollection<DryingRecord>(dryingRecordsQuery);
 
+    const customerPaymentsQuery = useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'customerPayments'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]);
+    const { data: customerPayments, loading: loadingPayments } = useCollection<CustomerPayment>(customerPaymentsQuery);
 
-    if (loadingRecords || loadingCustomers || loadingUnloadingRecords || loadingExpenses || loadingWarehouseInfo || loadingBorrowings || loadingLendings || loadingOtherIncomes || loadingCommodities || loadingLots || loadingDryingRecords) {
-        return <AppLayout><div>Loading...</div></AppLayout>;
+
+    if (loadingRecords || loadingCustomers || loadingUnloadingRecords || loadingExpenses || loadingWarehouseInfo || loadingBorrowings || loadingLendings || loadingOtherIncomes || loadingCommodities || loadingLots || loadingDryingRecords || loadingPayments) {
+        return <AppLayout><div>Loading report data...</div></AppLayout>;
     }
     
   return (
@@ -73,6 +75,7 @@ export default function ReportsPage() {
         initialCustomerId={initialCustomerId}
         dryingRecords={dryingRecords || []}
         lots={lots || []}
+        customerPayments={customerPayments || []}
       />
     </AppLayout>
   );

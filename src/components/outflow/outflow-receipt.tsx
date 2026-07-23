@@ -63,8 +63,6 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
 
     const { items, totalBags, totalCurrentRent, totalDiscount, totalKhata, pattiDate } = breakdownItems;
     
-    // Previous Rent = Global Outstanding Rent minus what was just billed in this patti (if viewing a fresh bill)
-    // For simplicity, we just show the outstanding balances provided by the parent.
     const grandTotalDue = totalCurrentRent + totalKhata + outstandingRent + outstandingHamali - totalDiscount;
     const closingBalance = grandTotalDue - paidNow;
 
@@ -93,15 +91,15 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
           <div className="mb-6 grid grid-cols-2 gap-8">
                 <table className="w-full info-table text-[13px]">
                     <tbody>
-                        <tr><td className="font-bold w-24 uppercase text-[10px] text-slate-500">Bill No</td><td>: <span className="font-mono font-black text-base">{pattiNo}</span></td></tr>
-                        <tr><td className="font-bold w-24 uppercase text-[10px] text-slate-500">Customer</td><td>: <span className="font-black uppercase">{customer.name}</span></td></tr>
-                        <tr><td className="font-bold w-24 uppercase text-[10px] text-slate-500">Village</td><td>: <span className="uppercase">{customer.village || 'N/A'}</span></td></tr>
+                        <tr><td className="font-bold w-24 uppercase text-[10px] text-slate-500 text-center">Bill No</td><td>: <span className="font-mono font-black text-base">{pattiNo}</span></td></tr>
+                        <tr><td className="font-bold w-24 uppercase text-[10px] text-slate-500 text-center">Customer</td><td>: <span className="font-black uppercase">{customer.name}</span></td></tr>
+                        <tr><td className="font-bold w-24 uppercase text-[10px] text-slate-500 text-center">Village</td><td>: <span className="uppercase">{customer.village || 'N/A'}</span></td></tr>
                     </tbody>
                 </table>
                 <table className="w-full info-table text-[13px]">
                     <tbody>
-                        <tr><td className="font-bold w-24 uppercase text-[10px] text-slate-500">Date</td><td>: <span className="font-bold">{format(pattiDate, 'dd/MM/yyyy')}</span></td></tr>
-                        <tr><td className="font-bold w-24 uppercase text-[10px] text-slate-500">Product</td><td>: <span className="font-bold uppercase">{records[0]?.commodityDescription || 'Misc'}</span></td></tr>
+                        <tr><td className="font-bold w-24 uppercase text-[10px] text-slate-500 text-center">Date</td><td>: <span className="font-bold">{format(pattiDate, 'dd/MM/yyyy')}</span></td></tr>
+                        <tr><td className="font-bold w-24 uppercase text-[10px] text-slate-500 text-center">Product</td><td>: <span className="font-bold uppercase">{records[0]?.commodityDescription || 'Misc'}</span></td></tr>
                     </tbody>
                 </table>
           </div>
@@ -129,14 +127,14 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
                               <td className="text-center font-mono text-[11px] text-slate-500">
                                   {item.bags} bags × {item.rentPerBag.toFixed(2)}
                               </td>
-                              <td className="text-right px-4 font-mono font-bold">{formatCurrency(item.rent)}</td>
+                              <td className="text-right px-4 font-mono font-bold text-center">{formatCurrency(item.rent)}</td>
                           </tr>
                       ))}
                       <tr className="bg-slate-50 font-black h-12">
                           <td colSpan={3} className="text-right uppercase text-[10px] px-4">Total This Withdrawal</td>
                           <td className="text-center font-mono text-base">{totalBags}</td>
                           <td></td>
-                          <td className="text-right px-4 font-mono text-base">{formatCurrency(totalCurrentRent)}</td>
+                          <td className="text-right px-4 font-mono text-base text-center">{formatCurrency(totalCurrentRent)}</td>
                       </tr>
                   </tbody>
               </table>
@@ -147,44 +145,44 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
               <table className="w-full sm:w-[450px] summary-table border-2 border-black border-collapse bg-slate-50 text-[13px]">
                   <tbody>
                       <tr className="h-10">
-                          <td className="font-bold uppercase text-[10px] text-slate-600">Current Rent Billed</td>
-                          <td className="text-right font-mono font-bold">{formatCurrency(totalCurrentRent)}</td>
+                          <td className="font-bold uppercase text-[10px] text-slate-600 text-center">Current Rent Billed</td>
+                          <td className="text-right font-mono font-bold text-center">{formatCurrency(totalCurrentRent)}</td>
                       </tr>
                       {totalKhata > 0 && (
                         <tr className="h-10">
-                            <td className="font-bold uppercase text-[10px] text-slate-600">Khata/Weighbridge Charges</td>
-                            <td className="text-right font-mono font-bold">{formatCurrency(totalKhata)}</td>
+                            <td className="font-bold uppercase text-[10px] text-slate-600 text-center">Khata/Weighbridge Charges</td>
+                            <td className="text-right font-mono font-bold text-center">{formatCurrency(totalKhata)}</td>
                         </tr>
                       )}
                       {outstandingRent > 0 && (
                         <tr className="h-10 text-blue-800">
-                            <td className="font-black uppercase text-[10px]">Previous Pending Rent</td>
-                            <td className="text-right font-mono font-black">{formatCurrency(outstandingRent)}</td>
+                            <td className="font-black uppercase text-[10px] text-center">Previous Pending Rent</td>
+                            <td className="text-right font-mono font-black text-center">{formatCurrency(outstandingRent)}</td>
                         </tr>
                       )}
                       {outstandingHamali > 0 && (
                         <tr className="h-10 text-orange-800">
-                            <td className="font-black uppercase text-[10px]">Total Outstanding Hamali</td>
-                            <td className="text-right font-mono font-black">{formatCurrency(outstandingHamali)}</td>
+                            <td className="font-black uppercase text-[10px] text-center">Total Outstanding Hamali</td>
+                            <td className="text-right font-mono font-black text-center">{formatCurrency(outstandingHamali)}</td>
                         </tr>
                       )}
                       {totalDiscount > 0 && (
                         <tr className="h-10 text-green-700 font-bold">
-                            <td className="font-bold uppercase text-[10px]">Adjustment/Discount (-)</td>
-                            <td className="text-right font-mono">-{formatCurrency(totalDiscount)}</td>
+                            <td className="font-bold uppercase text-[10px] text-center">Adjustment/Discount (-)</td>
+                            <td className="text-right font-mono text-center">-{formatCurrency(totalDiscount)}</td>
                         </tr>
                       )}
                       <tr className="h-12 bg-white border-t-2 border-black">
-                          <td className="font-black text-sm uppercase tracking-tight">Grand Total Account Due</td>
-                          <td className="text-right font-mono font-black text-xl underline underline-offset-4">{formatCurrency(grandTotalDue)}</td>
+                          <td className="font-black text-sm uppercase tracking-tight text-center">Grand Total Account Due</td>
+                          <td className="text-right font-mono font-black text-xl underline underline-offset-4 text-center">{formatCurrency(grandTotalDue)}</td>
                       </tr>
                       <tr className="h-10 bg-emerald-50/50">
-                          <td className="font-bold uppercase text-[10px] text-emerald-800">Cash Received Now</td>
-                          <td className="text-right font-mono font-black text-emerald-700">-{formatCurrency(paidNow)}</td>
+                          <td className="font-bold uppercase text-[10px] text-emerald-800 text-center">Cash Received Now</td>
+                          <td className="text-right font-mono font-black text-emerald-700 text-center">-{formatCurrency(paidNow)}</td>
                       </tr>
-                      <tr className="bg-slate-900 text-white h-14">
-                          <td className="font-black text-sm uppercase tracking-widest">Final Closing Balance</td>
-                          <td className="text-right font-mono font-black text-2xl">{formatCurrency(closingBalance)}</td>
+                      <tr className="bg-slate-100 text-black h-14 border-t-2 border-black">
+                          <td className="font-black text-sm uppercase tracking-widest text-center">Final Closing Balance</td>
+                          <td className="text-right font-mono font-black text-2xl text-center">{formatCurrency(closingBalance)}</td>
                       </tr>
                   </tbody>
               </table>

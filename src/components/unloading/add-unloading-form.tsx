@@ -15,7 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase/provider';
 import type { Customer, Commodity, Lot, StorageRecord, WarehouseInfo, UnloadingStatus } from '@/lib/definitions';
 import { setDoc, doc, getDoc } from 'firebase/firestore';
-import { formatCurrency, cleanForFirestore } from '@/lib/utils';
+import { cleanForFirestore } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { Combobox } from '@/components/ui/combobox';
 import { Switch } from '@/components/ui/switch';
@@ -76,17 +76,19 @@ export function AddUnloadingRecordForm({
           location: '',
           lorryTractorNo: '',
           unloadingDate: new Date().toISOString().split('T')[0],
-          bagsUnloaded: undefined,
-          customerHamaliPerBag: undefined,
-          workerHamaliPerBag: undefined,
+          bagsUnloaded: 0,
+          customerHamaliPerBag: 0,
+          workerHamaliPerBag: 0,
           billNo: String(nextBillNo).replace(/\D/g, ''),
-          totalHamaliManual: undefined,
-          workerHamaliManual: undefined,
+          totalHamaliManual: 0,
+          workerHamaliManual: 0,
         },
     });
 
     useEffect(() => {
-        if (nextBillNo) form.setValue('billNo', String(nextBillNo).replace(/\D/g, ''));
+        if (nextBillNo) {
+            form.setValue('billNo', String(nextBillNo).replace(/\D/g, ''));
+        }
     }, [nextBillNo, form]);
     
     const bagsVal = form.watch('bagsUnloaded');
@@ -101,7 +103,7 @@ export function AddUnloadingRecordForm({
         form.setValue('workerHamaliManual', b * w);
     }, [bagsVal, custRate, workRate, form]);
 
-    const customerOptions = customers.map(c => ({ value: c.id, label: c.name }));
+    const customerOptions = useMemo(() => customers.map(c => ({ value: c.id, label: c.name })), [customers]);
     
     const lotOccupancy = useMemo(() => {
         const occupancy: { [lotName: string]: number } = {};
@@ -123,8 +125,11 @@ export function AddUnloadingRecordForm({
     const selectedCustomerId = form.watch('customerId');
     const selectedCustomer = useMemo(() => customers.find(c => c.id === selectedCustomerId), [selectedCustomerId, customers]);
 
-    const onSubmit = async (data: UnloadingFormData) => {
-        if (!firestore || !appUser?.warehouseId) return;
+    const onSubmit = (data: UnloadingFormData) => {
+        if (!firestore || !appUser?.warehouseId) {
+            toast({ title: 'System Error', description: 'User or warehouse session missing.', variant: 'destructive' });
+            return;
+        }
 
         startTransition(async () => {
             try {
@@ -153,13 +158,19 @@ export function AddUnloadingRecordForm({
 
                 if (sendSmsNotification && isSmsEnabled && selectedCustomer?.phone) {
                     const msg = `Dear ${selectedCustomer.name}, delivery received. Bill: ${cleanBillNo}.`;
-                    sendSms({ apiKey: warehouseInfo.textbeeApiKey!, deviceId: warehouseInfo.textbeeDeviceId, to: selectedCustomer.phone, message: msg }).catch(console.error);
+                    sendSms({ 
+                        apiKey: warehouseInfo.textbeeApiKey!, 
+                        deviceId: warehouseInfo.textbeeDeviceId, 
+                        to: selectedCustomer.phone, 
+                        message: msg 
+                    }).catch(console.error);
                 }
                 
-                toast({ title: 'Success', description: 'Record added.' });
+                toast({ title: 'Success', description: `Record #${cleanBillNo} added.` });
                 form.reset();
                 window.open(`/unloading/receipt?unloadingId=${cleanBillNo}`, '_blank');
             } catch (error) {
+                console.error('Submit Error:', error);
                 toast({ title: 'Error', description: 'Failed to add record.', variant: 'destructive' });
             }
         });
@@ -171,80 +182,129 @@ export function AddUnloadingRecordForm({
                 <form onSubmit={form.handleSubmit(onSubmit)}>
                     <CardHeader>
                         <CardTitle className="text-lg font-bold">New Unloading Record</CardTitle>
-                        <CardDescription className="text-xs">Identified by numeric Bill No. Hamali totals can be overridden.</CardDescription>
+                        <CardDescription className="text-xs font-medium">Numeric Bill No sequence applied automatically.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <FormField control={form.control} name="billNo" render={({ field }) => (
                             <FormItem>
                                 <FormLabel className="flex items-center gap-2 text-xs font-semibold">
                                     Bill No. (Numerical)
-                                    <Badge variant="outline" className="text-[9px] uppercase py-0 h-4 bg-primary/5 text-primary"><Sparkles className="h-2 w-2 mr-1" /> Auto</Badge>
+                                    <Badge variant="outline" className="text-[9px] uppercase py-0 h-4 bg-primary/5 text-primary">
+                                        <Sparkles className="h-2 w-2 mr-1" /> Auto
+                                    </Badge>
                                 </FormLabel>
-                                <FormControl><Input className="font-mono font-bold bg-muted/50 text-sm h-9" {...field} readOnly /></FormControl>
+                                <FormControl>
+                                    <Input className="font-mono font-bold bg-muted/50 text-sm h-9" {...field} readOnly />
+                                </FormControl>
                                 <FormMessage />
                             </FormItem>
                         )} />
+                        
                         <FormField control={form.control} name="customerId" render={({ field }) => (
                             <FormItem className="flex flex-col">
-                                <FormLabel className="text-xs font-semibold">Customer</FormLabel>
-                                <Combobox options={customerOptions} value={field.value} onChange={field.onChange} placeholder="Select..." modal={true} />
+                                <FormLabel className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Customer</FormLabel>
+                                <Combobox options={customerOptions} value={field.value} onChange={field.onChange} placeholder="Select customer..." modal={true} />
                                 <FormMessage />
                             </FormItem>
                         )} />
+
                         <div className="grid grid-cols-2 gap-4">
                             <FormField control={form.control} name="commodityDescription" render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel className="text-xs font-semibold">Product</FormLabel>
+                                    <FormLabel className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Product</FormLabel>
                                     <Select onValueChange={field.onChange} value={field.value}>
-                                        <FormControl><SelectTrigger className="text-sm h-9"><SelectValue placeholder="Select" /></SelectTrigger></FormControl>
-                                        <SelectContent>{commodities.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
+                                        <FormControl>
+                                            <SelectTrigger className="text-sm h-9">
+                                                <SelectValue placeholder="Select" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {commodities.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+                                        </SelectContent>
                                     </Select>
                                     <FormMessage />
                                 </FormItem>
                             )} />
                             <FormField control={form.control} name="location" render={({ field }) => (
                                 <FormItem className="flex flex-col">
-                                    <FormLabel className="text-xs font-semibold">Lot No.</FormLabel>
-                                    <Combobox options={lotOptions} value={field.value} onChange={field.onChange} placeholder="Select" modal={true} />
+                                    <FormLabel className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Lot No.</FormLabel>
+                                    <Combobox options={lotOptions} value={field.value} onChange={field.onChange} placeholder="Select lot" modal={true} />
                                     <FormMessage />
                                 </FormItem>
                             )} />
                         </div>
+
                         <div className="grid grid-cols-2 gap-4">
                             <FormField control={form.control} name="lorryTractorNo" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-semibold">Vehicle No.</FormLabel><FormControl><Input className="text-sm h-9" {...field} /></FormControl><FormMessage /></FormItem>
+                                <FormItem>
+                                    <FormLabel className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Vehicle No.</FormLabel>
+                                    <FormControl><Input className="text-sm h-9" placeholder="AP-21..." {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
                             )} />
                             <FormField control={form.control} name="unloadingDate" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-semibold">Date</FormLabel><FormControl><Input type="date" className="text-sm h-9" {...field} /></FormControl><FormMessage /></FormItem>
+                                <FormItem>
+                                    <FormLabel className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Date</FormLabel>
+                                    <FormControl><Input type="date" className="text-sm h-9" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
                             )} />
                         </div>
+
                         <FormField control={form.control} name="bagsUnloaded" render={({ field }) => (
-                            <FormItem><FormLabel className="text-xs font-semibold">Bags Unloaded</FormLabel><FormControl><Input type="number" step="0.01" className="text-sm h-9" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                            <FormItem>
+                                <FormLabel className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Bags Unloaded</FormLabel>
+                                <FormControl>
+                                    <Input type="number" step="0.01" className="text-sm h-9 font-bold" {...field} value={field.value ?? ''} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
                         )} />
+
                         <div className="grid grid-cols-2 gap-4">
                             <FormField control={form.control} name="customerHamaliPerBag" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-semibold">Cust Rate</FormLabel><FormControl><Input type="number" step="0.01" className="text-sm h-9" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                                <FormItem>
+                                    <FormLabel className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Cust Rate</FormLabel>
+                                    <FormControl><Input type="number" step="0.01" className="text-sm h-9" {...field} value={field.value ?? ''} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
                             )} />
                             <FormField control={form.control} name="workerHamaliPerBag" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-semibold">Worker Rate</FormLabel><FormControl><Input type="number" step="0.01" className="text-sm h-9" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                                <FormItem>
+                                    <FormLabel className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Worker Rate</FormLabel>
+                                    <FormControl><Input type="number" step="0.01" className="text-sm h-9" {...field} value={field.value ?? ''} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
                             )} />
                         </div>
                         
                         <div className="grid grid-cols-2 gap-4">
                             <FormField control={form.control} name="totalHamaliManual" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-bold text-primary">Cust Total Hamali</FormLabel><FormControl><Input type="number" step="0.01" className="text-sm h-9 border-primary/50" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                                <FormItem>
+                                    <FormLabel className="text-[10px] font-black text-primary uppercase tracking-widest">Customer Total</FormLabel>
+                                    <FormControl>
+                                        <Input type="number" step="0.01" className="text-sm h-9 border-primary/40 font-mono font-bold" {...field} value={field.value ?? ''} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
                             )} />
                             <FormField control={form.control} name="workerHamaliManual" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-bold text-orange-600">Worker Total Pay</FormLabel><FormControl><Input type="number" step="0.01" className="text-sm h-9 border-orange-400" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                                <FormItem>
+                                    <FormLabel className="text-[10px] font-black text-orange-600 uppercase tracking-widest">Worker Total</FormLabel>
+                                    <FormControl>
+                                        <Input type="number" step="0.01" className="text-sm h-9 border-orange-300 font-mono font-bold" {...field} value={field.value ?? ''} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
                             )} />
                         </div>
 
                         <Separator />
-                        <div className="flex items-center justify-between p-3 rounded-lg border bg-primary/5">
+                        <div className="flex items-center justify-between p-3 rounded-xl border bg-primary/5">
                             <div className="flex items-center gap-2">
                                 <MessageSquare className={`h-4 w-4 ${isSmsEnabled ? 'text-primary' : 'text-slate-300'}`} />
-                                <Label htmlFor="sms-toggle-un" className={`text-[10px] font-black uppercase tracking-wider cursor-pointer ${!isSmsEnabled ? 'text-slate-400' : ''}`}>
-                                    SMS Notification {!isSmsEnabled ? '(Global OFF)' : ''}
+                                <Label htmlFor="sms-toggle-un" className={`text-[10px] font-black uppercase tracking-wider cursor-pointer ${!isSmsEnabled ? 'text-slate-400' : 'text-slate-600'}`}>
+                                    SMS Receipt {!isSmsEnabled ? '(Global OFF)' : ''}
                                 </Label>
                             </div>
                             <Switch 
@@ -256,8 +316,8 @@ export function AddUnloadingRecordForm({
                         </div>
                     </CardContent>
                     <CardFooter>
-                        <Button type="submit" disabled={isPending} className="w-full text-sm">
-                            {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Add Record & Generate Bill'}
+                        <Button type="submit" disabled={isPending} className="w-full font-bold h-11 uppercase tracking-widest shadow-lg shadow-primary/20">
+                            {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Confirm & Generate Bill'}
                         </Button>
                     </CardFooter>
                 </form>

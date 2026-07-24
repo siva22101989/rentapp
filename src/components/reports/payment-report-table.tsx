@@ -14,7 +14,7 @@ export type PaymentEvent = {
     recordId: string;
     amount: number;
     type: PaymentType;
-    recordType: 'storage' | 'unloading';
+    recordType: 'storage' | 'unloading' | 'bulk';
     paymentIndex: number;
 };
 

@@ -77,7 +77,6 @@ export function CustomReportGenerator({
         setIsDownloading(true);
         try {
             const { default: jsPDF } = await import('jspdf');
-            // Hardcoded Landscape Only
             const pdf = new jsPDF({ 
                 orientation: 'l', 
                 unit: 'mm', 
@@ -131,7 +130,7 @@ export function CustomReportGenerator({
                             customerPayments={customerPayments}
                         />;
             case 'payment-register':
-                return <PaymentReport records={records} unloadingRecords={unloadingRecords} customers={customers} />;
+                return <PaymentReport records={records} unloadingRecords={unloadingRecords} customers={customers} customerPayments={customerPayments} />;
             case 'pending-dues': {
                 const summaryMap: Record<string, any> = {};
                 records.forEach(r => {

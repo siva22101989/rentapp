@@ -1,6 +1,6 @@
 'use client';
 
-import { MoreHorizontal, Pencil, Trash2, Eye } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2, Eye, FileText } from "lucide-react";
 import Link from 'next/link';
 import { Button } from "../ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu";
@@ -13,6 +13,8 @@ export function PaymentActionsMenu({ event }: { event: PaymentEvent }) {
     const appUser = useAppUser();
     const canEdit = appUser?.role === 'owner' || appUser?.role === 'super-admin';
     
+    const isBulk = event.recordType === 'bulk';
+
     const receiptLink = event.recordType === 'storage' 
         ? `/inflow/receipt?recordId=${event.recordId}` 
         : `/unloading/receipt?unloadingId=${event.recordId}`;
@@ -26,14 +28,23 @@ export function PaymentActionsMenu({ event }: { event: PaymentEvent }) {
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-                <DropdownMenuItem asChild>
-                    <Link href={receiptLink} target="_blank">
-                        <Eye className="mr-2 h-4 w-4" />
-                        View Parent Bill
-                    </Link>
-                </DropdownMenuItem>
+                {isBulk ? (
+                    <DropdownMenuItem asChild>
+                        <Link href={`/reports?report=customer-statement&customerId=${event.customerId}`} target="_blank">
+                            <FileText className="mr-2 h-4 w-4" />
+                            View in Statement
+                        </Link>
+                    </DropdownMenuItem>
+                ) : (
+                    <DropdownMenuItem asChild>
+                        <Link href={receiptLink} target="_blank">
+                            <Eye className="mr-2 h-4 w-4" />
+                            View Parent Bill
+                        </Link>
+                    </DropdownMenuItem>
+                )}
                 
-                {canEdit && (
+                {canEdit && !isBulk && (
                     <>
                         <DropdownMenuSeparator />
                         <EditPaymentDialog event={event}>

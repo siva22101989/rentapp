@@ -63,8 +63,8 @@ export function PaymentReport({ records, unloadingRecords, customers, customerPa
                 description: cp.isDiscount ? 'Bulk Account Waiver' : 'Bulk Account Payment',
                 recordId: cp.refNo || 'BULK',
                 amount: cp.amount,
-                type: cp.isDiscount ? 'discount' : 'bulk',
-                recordType: 'storage', // Fallback
+                type: cp.isDiscount ? 'discount' : (cp.type as any),
+                recordType: 'bulk',
                 paymentIndex: 0
             });
         });

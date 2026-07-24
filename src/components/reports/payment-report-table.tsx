@@ -11,7 +11,8 @@ export type PaymentEvent = {
     date: Date;
     customerId: string;
     description: string;
-    recordId: string;
+    recordId: string; // The database document ID
+    displayBillNo: string; // User-facing ID (Bill No or BULK)
     amount: number;
     type: PaymentType;
     recordType: 'storage' | 'unloading' | 'bulk';
@@ -55,7 +56,7 @@ export function PaymentReportTable({ events, customers, title }: ReportTableProp
                     </TableHeader>
                     <TableBody>
                         {events.map((event, index) => {
-                            const displayId = event.recordId === 'BULK' ? 'BULK' : event.recordId.replace(/\D/g, '');
+                            const displayId = event.displayBillNo;
                             return (
                             <TableRow key={index} className="h-9 border-b border-slate-100 hover:bg-slate-50/50">
                                 <TableCell className="p-1 text-center whitespace-nowrap">{format(event.date, 'dd/MM/yy')}</TableCell>

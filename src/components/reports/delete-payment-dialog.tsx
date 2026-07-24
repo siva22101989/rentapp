@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -39,6 +38,8 @@ export function DeletePaymentDialog({ event, children }: { event: PaymentEvent, 
     });
   };
 
+  const displayBill = event.displayBillNo === 'BULK' ? 'Account Balance' : `Bill #${event.displayBillNo}`;
+
   return (
     <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
       <AlertDialogTrigger asChild>{children}</AlertDialogTrigger>
@@ -46,7 +47,7 @@ export function DeletePaymentDialog({ event, children }: { event: PaymentEvent, 
         <AlertDialogHeader>
           <AlertDialogTitle>Delete Cash Receipt?</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to delete the payment of <span className="font-bold text-destructive">{formatCurrency(event.amount)}</span> for Bill #{event.recordId.replace(/\D/g, '')}? 
+            Are you sure you want to delete the payment of <span className="font-bold text-destructive">{formatCurrency(event.amount)}</span> from {displayBill}? 
             This will increase the customer's outstanding balance immediately.
           </AlertDialogDescription>
         </AlertDialogHeader>

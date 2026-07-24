@@ -85,7 +85,11 @@ export const deleteStorageRecord = async (db: Firestore, id: string): Promise<vo
     });
 };
 
-export const deletePaymentFromRecord = async (db: Firestore, recordId: string, recordType: 'storage' | 'unloading', paymentIndex: number): Promise<void> => {
+export const deletePaymentFromRecord = async (db: Firestore, recordId: string, recordType: 'storage' | 'unloading' | 'bulk', paymentIndex: number): Promise<void> => {
+    if (recordType === 'bulk') {
+        await deleteDoc(doc(db, 'customerPayments', recordId));
+        return;
+    }
     const coll = recordType === 'storage' ? 'storageRecords' : 'unloadingRecords';
     const recordRef = doc(db, coll, recordId);
     await runTransaction(db, async (transaction) => {
@@ -99,7 +103,12 @@ export const deletePaymentFromRecord = async (db: Firestore, recordId: string, r
     });
 };
 
-export const editPaymentInRecord = async (db: Firestore, recordId: string, recordType: 'storage' | 'unloading', paymentIndex: number, newData: Payment): Promise<void> => {
+export const editPaymentInRecord = async (db: Firestore, recordId: string, recordType: 'storage' | 'unloading' | 'bulk', paymentIndex: number, newData: Payment): Promise<void> => {
+    if (recordType === 'bulk') {
+        // Bulk payments are simpler to re-create if edited, but for now we update directly if ID is recordId
+        await updateDoc(doc(db, 'customerPayments', recordId), cleanForFirestore(newData));
+        return;
+    }
     const coll = recordType === 'storage' ? 'storageRecords' : 'unloadingRecords';
     const recordRef = doc(db, coll, recordId);
     await runTransaction(db, async (transaction) => {

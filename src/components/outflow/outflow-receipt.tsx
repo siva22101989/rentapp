@@ -24,7 +24,7 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
         const items: any[] = [];
         let totalBags = 0;
         let totalCurrentRent = 0;
-        let totalDiscount = 0;
+        let totalCurrentDiscount = 0;
         let totalKhata = 0;
         let pattiDate = new Date();
 
@@ -37,7 +37,7 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
                 const bagsVal = Number(o.bagsWithdrawn) || 0;
                 totalBags += bagsVal;
                 totalCurrentRent += rentVal;
-                totalDiscount += (o.discount || 0);
+                totalCurrentDiscount += (o.discount || 0);
                 
                 const currentOutflowDate = toDate(o.date);
                 pattiDate = currentOutflowDate;
@@ -55,16 +55,22 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
                     rentPerBag: bagsVal > 0 ? rentVal / bagsVal : 0,
                 });
             });
-            totalKhata = Number(r.khataAmount) || totalKhata; 
+            // Khata is usually tied to the record level for the first inflow vehicle
+            totalKhata += (Number(r.khataAmount) || 0); 
         });
 
-        return { items, totalBags, totalCurrentRent, totalDiscount, totalKhata, pattiDate };
+        return { items, totalBags, totalCurrentRent, totalCurrentDiscount, totalKhata, pattiDate };
     }, [records, pattiNo]);
 
-    const { items, totalBags, totalCurrentRent, totalDiscount, totalKhata, pattiDate } = breakdownItems;
+    const { items, totalBags, totalCurrentRent, totalCurrentDiscount, totalKhata, pattiDate } = breakdownItems;
     
-    const grandTotalDue = totalCurrentRent + totalKhata + outstandingRent + outstandingHamali - totalDiscount;
-    const closingBalance = grandTotalDue - paidNow;
+    // Logic: outstandingRent from props is the CURRENT net account balance in DB (which includes this bill).
+    // To show "Previous Pending", we subtract the charges just generated.
+    const previousPendingRent = Math.max(0, outstandingRent - totalCurrentRent - totalKhata);
+    
+    // Grand total due is exactly what the ledger says + outstanding hamali
+    const grandTotalDue = outstandingRent + outstandingHamali;
+    const closingBalance = Math.max(0, grandTotalDue - paidNow);
 
     return (
       <div ref={ref} className="bg-white p-4 sm:p-8 font-sans text-black w-full mx-auto print:p-0 print:border-none printable-area">
@@ -78,10 +84,10 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
           {/* Header */}
           <div className="text-center mb-8 border-b-2 border-black pb-4">
               <h1 className="text-2xl font-black uppercase tracking-tight leading-none mb-1">{warehouseInfo?.name || 'SRI LAKSHMI WAREHOUSE'}</h1>
-              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-600">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-600 text-center">
                 {warehouseInfo?.addressLine1} {warehouseInfo?.addressLine2}
               </p>
-              <p className="text-sm font-black mt-1">Phone: {warehouseInfo?.phone || ''}</p>
+              <p className="text-sm font-black mt-1 text-center">Phone: {warehouseInfo?.phone || ''}</p>
               <div className="mt-4 py-2 px-10 border-2 border-black inline-block font-black text-xl tracking-[0.2em] uppercase">
                 Outflow Bill
               </div>
@@ -145,39 +151,39 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
               <table className="w-full sm:w-[450px] summary-table border-2 border-black border-collapse bg-slate-50 text-[13px]">
                   <tbody>
                       <tr className="h-10">
-                          <td className="font-bold uppercase text-[10px] text-slate-600 text-center">Current Rent Billed</td>
+                          <td className="font-bold uppercase text-[10px] text-slate-600 text-center">Rent for This Withdrawal</td>
                           <td className="text-right font-mono font-bold text-center">{formatCurrency(totalCurrentRent)}</td>
                       </tr>
                       {totalKhata > 0 && (
                         <tr className="h-10">
-                            <td className="font-bold uppercase text-[10px] text-slate-600 text-center">Khata/Weighbridge Charges</td>
+                            <td className="font-bold uppercase text-[10px] text-slate-600 text-center">Current Khata (Weighbridge)</td>
                             <td className="text-right font-mono font-bold text-center">{formatCurrency(totalKhata)}</td>
                         </tr>
                       )}
-                      {outstandingRent > 0 && (
+                      {previousPendingRent > 0 && (
                         <tr className="h-10 text-blue-800">
-                            <td className="font-black uppercase text-[10px] text-center">Previous Pending Rent</td>
-                            <td className="text-right font-mono font-black text-center">{formatCurrency(outstandingRent)}</td>
+                            <td className="font-black uppercase text-[10px] text-center">Previous Unpaid Rent</td>
+                            <td className="text-right font-mono font-black text-center">{formatCurrency(previousPendingRent)}</td>
                         </tr>
                       )}
                       {outstandingHamali > 0 && (
                         <tr className="h-10 text-orange-800">
-                            <td className="font-black uppercase text-[10px] text-center">Total Outstanding Hamali</td>
+                            <td className="font-black uppercase text-[10px] text-center">Total Unpaid Hamali</td>
                             <td className="text-right font-mono font-black text-center">{formatCurrency(outstandingHamali)}</td>
                         </tr>
                       )}
-                      {totalDiscount > 0 && (
+                      {totalCurrentDiscount > 0 && (
                         <tr className="h-10 text-green-700 font-bold">
-                            <td className="font-bold uppercase text-[10px] text-center">Adjustment/Discount (-)</td>
-                            <td className="text-right font-mono text-center">-{formatCurrency(totalDiscount)}</td>
+                            <td className="font-bold uppercase text-[10px] text-center">Adjusted Discount (-)</td>
+                            <td className="text-right font-mono text-center">-{formatCurrency(totalCurrentDiscount)}</td>
                         </tr>
                       )}
                       <tr className="h-12 bg-white border-t-2 border-black">
-                          <td className="font-black text-sm uppercase tracking-tight text-center">Grand Total Account Due</td>
+                          <td className="font-black text-sm uppercase tracking-tight text-center">Grand Total Account Balance</td>
                           <td className="text-right font-mono font-black text-xl underline underline-offset-4 text-center">{formatCurrency(grandTotalDue)}</td>
                       </tr>
                       <tr className="h-10 bg-emerald-50/50">
-                          <td className="font-bold uppercase text-[10px] text-emerald-800 text-center">Cash Received Now</td>
+                          <td className="font-bold uppercase text-[10px] text-emerald-800 text-center">Cash Collected Today</td>
                           <td className="text-right font-mono font-black text-emerald-700 text-center">-{formatCurrency(paidNow)}</td>
                       </tr>
                       <tr className="bg-slate-100 text-black h-14 border-t-2 border-black">
@@ -198,7 +204,7 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
                     </td>
                     <td className="w-1/2 text-center align-bottom border-none">
                       <div className="border-t-2 border-black pt-2 mx-auto w-[220px] font-black text-[10px] uppercase tracking-widest">Authorized Auditor</div>
-                      <p className="text-[9px] font-bold text-slate-500 uppercase mt-1">{warehouseInfo?.name}</p>
+                      <p className="text-[9px] font-bold text-slate-500 uppercase mt-1 text-center">{warehouseInfo?.name}</p>
                     </td>
                   </tr>
                 </tbody>

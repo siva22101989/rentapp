@@ -70,7 +70,7 @@ export default function OutflowReceiptPage() {
                 setCustomer({ id: cSnap.id, ...cSnap.data() } as Customer);
             }
 
-            // 3. Calculate Account-wide Outstanding Dues
+            // 3. Calculate Account-wide Net Outstanding Dues (Reconciled Ledger)
             const allStorageQ = query(collection(firestore, 'storageRecords'), where('warehouseId', '==', appUser.warehouseId), where('customerId', '==', customerId));
             const allUnloadingQ = query(collection(firestore, 'unloadingRecords'), where('warehouseId', '==', appUser.warehouseId), where('customerId', '==', customerId));
             const allPaymentsQ = query(collection(firestore, 'customerPayments'), where('warehouseId', '==', appUser.warehouseId), where('customerId', '==', customerId));
@@ -90,8 +90,15 @@ export default function OutflowReceiptPage() {
                 const data = d.data() as StorageRecord;
                 totalHamaliLiab += Number(data.hamaliPayable) || 0;
                 totalRentLiab += (Number(data.totalRentBilled) || 0) + (Number(data.khataAmount) || 0);
+                
+                // Track Discounts in Rent column
+                (data.outflows || []).forEach(o => {
+                    totalRentPaid += (Number(o.discount) || 0);
+                });
+
                 (data.payments || []).forEach(p => {
                     if (p.type === 'hamali' || p.type === 'unloading') totalHamaliPaid += (Number(p.amount) || 0);
+                    else if (p.type === 'discount') totalRentPaid += (Number(p.amount) || 0);
                     else totalRentPaid += (Number(p.amount) || 0);
                 });
             });
@@ -100,8 +107,10 @@ export default function OutflowReceiptPage() {
                 const data = d.data() as UnloadingRecord;
                 const remaining = Math.max(0, (data.bagsUnloaded || 0) - (data.bagsSentToDrying || 0));
                 totalHamaliLiab += remaining * (data.hamaliPerBag || 0);
+                
                 (data.payments || []).forEach(p => {
-                    totalHamaliPaid += (Number(p.amount) || 0);
+                    if (p.type === 'discount') totalHamaliPaid += (Number(p.amount) || 0);
+                    else totalHamaliPaid += (Number(p.amount) || 0);
                 });
             });
 

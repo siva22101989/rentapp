@@ -73,19 +73,31 @@
     margin: 10mm;
   }
 
-  body {
+  html, body {
     background-color: white !important;
     margin: 0 !important;
     padding: 0 !important;
     overflow: visible !important;
-    width: auto !important;
+    height: auto !important;
+    width: 100% !important;
+  }
+
+  /* Reset flex parents that might restrict print height */
+  main, .flex, .grid {
+    display: block !important;
+    overflow: visible !important;
+    height: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
 
   .print-hide, 
   header, 
   nav, 
-  button, 
-  .sticky {
+  button,
+  [role="combobox"],
+  .sticky,
+  .no-print {
     display: none !important;
   }
 
@@ -93,13 +105,14 @@
     display: block !important;
     visibility: visible !important;
     position: static !important;
+    width: 277mm !important;
+    max-width: 277mm !important;
+    margin: 0 auto !important;
     padding: 0 !important;
     background-color: white !important;
     border: none !important;
     box-shadow: none !important;
-    font-size: 11pt !important;
-    width: 277mm !important;
-    margin: 0 auto !important;
+    font-size: 10pt !important;
   }
 
   table {
@@ -107,25 +120,40 @@
     border-collapse: collapse !important;
     table-layout: auto !important;
     margin-bottom: 10px !important;
+    page-break-inside: auto !important;
+  }
+
+  tr {
+    page-break-inside: avoid !important;
+    page-break-after: auto !important;
   }
 
   th {
     text-align: center !important;
     background-color: #f8fafc !important;
     font-weight: bold !important;
-    border: 1px solid black !important;
+    border: 1px solid #000 !important;
     padding: 6px !important;
-    font-size: 10pt !important;
+    font-size: 9pt !important;
+    -webkit-print-color-adjust: exact;
   }
 
   td {
-    border: 1px solid black !important;
+    border: 1px solid #000 !important;
     padding: 6px !important;
-    font-size: 10pt !important;
+    font-size: 9pt !important;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .bg-slate-50, .bg-muted\/50 {
+    background-color: #f8fafc !important;
+    -webkit-print-color-adjust: exact;
   }
 
   * {
     color: black !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }

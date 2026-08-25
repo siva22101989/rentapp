@@ -72,6 +72,10 @@ export function CustomReportGenerator({
     const reportRef = useRef<HTMLDivElement>(null);
     const { toast } = useToast();
 
+    const handlePrint = () => {
+        window.print();
+    };
+
     const handleDownload = async () => {
         const printableArea = reportRef.current;
         if (!printableArea) return;
@@ -86,26 +90,29 @@ export function CustomReportGenerator({
             });
 
             const pdfWidth = 277;
-            const virtualWidth = 1440;
+            const virtualWidth = 1440; // High-res target for landscape tables
 
             await pdf.html(printableArea, {
                 html2canvas: {
-                    scale: 1,
+                    scale: 0.75, // Adjust for wide landscape tables
                     useCORS: true,
                     backgroundColor: '#ffffff',
                     height: printableArea.scrollHeight,
-                    windowHeight: printableArea.scrollHeight
+                    windowHeight: printableArea.scrollHeight,
+                    logging: false,
                 },
                 margin: [10, 10, 10, 10],
                 autoPaging: 'text',
                 width: pdfWidth,
-                windowWidth: virtualWidth
+                windowWidth: virtualWidth,
+                callback: function (doc) {
+                    doc.save(`${selectedReport}-landscape-audit.pdf`);
+                    setIsDownloading(false);
+                }
             });
-            pdf.save(`${selectedReport}-landscape-report.pdf`);
         } catch (error) {
             console.error("Error generating PDF:", error);
             toast({ title: "Download Error", description: "Failed to generate PDF.", variant: "destructive"});
-        } finally {
             setIsDownloading(false);
         }
     };
@@ -233,7 +240,7 @@ export function CustomReportGenerator({
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <Button onClick={() => window.print()} variant="outline" className="h-10 font-bold uppercase text-[11px] tracking-widest border-2">
+                    <Button onClick={handlePrint} variant="outline" className="h-10 font-bold uppercase text-[11px] tracking-widest border-2">
                         <Printer className="mr-2 h-4 w-4" />
                         Print Landscape
                     </Button>

@@ -17,8 +17,10 @@ import { useToast } from '@/hooks/use-toast';
 import { PaymentReport } from './payment-report';
 import { PendingDuesReportTable } from './pending-dues-report-table';
 import { CommodityStockReport, CustomerCommodityStockReport, LotWiseInventoryReport } from './stock-summary-reports';
+import { YearlyAuditReport } from './yearly-audit-report';
 
 const reportTypes = [
+    { value: 'yearly-audit', label: 'Annual Master Audit Report' },
     { value: 'daily-summary', label: 'Daily Summary Report' },
     { value: 'commodity-summary', label: 'Commodity-wise Stock List' },
     { value: 'customer-commodity-summary', label: 'Customer-wise Commodity Stock' },
@@ -65,7 +67,7 @@ export function CustomReportGenerator({
     initialReport, 
     initialCustomerId,
 }: ReportGeneratorProps) {
-    const [selectedReport, setSelectedReport] = useState<string>(initialReport || 'daily-summary');
+    const [selectedReport, setSelectedReport] = useState<string>(initialReport || 'yearly-audit');
     const [isDownloading, setIsDownloading] = useState(false);
     const reportRef = useRef<HTMLDivElement>(null);
     const { toast } = useToast();
@@ -110,6 +112,18 @@ export function CustomReportGenerator({
 
     const renderReport = () => {
         switch (selectedReport) {
+            case 'yearly-audit':
+                return <YearlyAuditReport 
+                            records={records} 
+                            unloadingRecords={unloadingRecords} 
+                            expenses={expenses} 
+                            otherIncomes={otherIncomes} 
+                            customerPayments={customerPayments}
+                            borrowings={borrowings}
+                            lendings={lendings}
+                            warehouseInfo={warehouseInfo}
+                            title="Annual Master Audit Report" 
+                        />;
             case 'daily-summary':
                 return <DailySummaryReport records={records} customers={customers} unloadingRecords={unloadingRecords} expenses={expenses} otherIncomes={otherIncomes} customerPayments={customerPayments} />;
             case 'commodity-summary':

@@ -1,12 +1,11 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
-import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isWithinInterval, subMonths } from "date-fns";
+import { format, isWithinInterval } from "date-fns";
 import type { Customer, StorageRecord, UnloadingRecord, CustomerPayment, WarehouseInfo } from "@/lib/definitions";
 import { formatCurrency, toDate } from '@/lib/utils';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from '../ui/label';
+import { useDateFilter } from '@/firebase/provider';
 
 type SummaryRow = {
     customerId: string;
@@ -31,34 +30,9 @@ export function FinancialPeriodSummaryReport({
     customerPayments: CustomerPayment[],
     warehouseInfo: WarehouseInfo | null 
 }) {
-    const [periodType, setPeriodType] = useState<'monthly' | 'quarterly' | 'yearly'>('monthly');
-    const [selectedOffset, setSelectedOffset] = useState('0'); // 0 = current, 1 = previous...
-
-    const periodRange = useMemo(() => {
-        const now = new Date();
-        const offset = parseInt(selectedOffset, 10);
-        let start: Date;
-        let end: Date;
-
-        if (periodType === 'monthly') {
-            const target = subMonths(now, offset);
-            start = startOfMonth(target);
-            end = endOfMonth(target);
-        } else if (periodType === 'quarterly') {
-            const target = subMonths(now, offset * 3);
-            start = startOfQuarter(target);
-            end = endOfQuarter(target);
-        } else {
-            const target = subMonths(now, offset * 12);
-            start = startOfYear(target);
-            end = endOfYear(target);
-        }
-
-        return { start, end };
-    }, [periodType, selectedOffset]);
+    const { dateRange, financialYear } = useDateFilter();
 
     const customerSummaries = useMemo(() => {
-        const { start, end } = periodRange;
         const map: Record<string, SummaryRow> = {};
 
         const getRow = (id: string) => {
@@ -76,12 +50,18 @@ export function FinancialPeriodSummaryReport({
             return map[id];
         };
 
+        const inRange = (date: Date) => {
+            if (financialYear === 'all-time') return true;
+            if (!dateRange || !dateRange.from || !dateRange.to) return true;
+            return isWithinInterval(date, { start: dateRange.from, end: dateRange.to });
+        };
+
         // 1. Process Bags In & Inflow Charges
         records.forEach(r => {
             const row = getRow(r.customerId);
             const inflowDate = toDate(r.storageStartDate);
             
-            if (isWithinInterval(inflowDate, { start, end })) {
+            if (inRange(inflowDate)) {
                 row.bagsIn += (Number(r.bagsIn) || 0);
                 row.billedAmount += (Number(r.hamaliPayable) || 0) + (Number(r.khataAmount) || 0);
             }
@@ -89,7 +69,7 @@ export function FinancialPeriodSummaryReport({
             // Bags Out & Rent Billed in Patti
             (r.outflows || []).forEach(o => {
                 const oDate = toDate(o.date);
-                if (isWithinInterval(oDate, { start, end })) {
+                if (inRange(oDate)) {
                     row.bagsOut += (Number(o.bagsWithdrawn) || 0);
                     row.billedAmount += (Number(o.rentBilled) || 0);
                 }
@@ -97,7 +77,7 @@ export function FinancialPeriodSummaryReport({
 
             // Payments
             (r.payments || []).forEach(p => {
-                if (isWithinInterval(toDate(p.date), { start, end }) && p.type !== 'discount') {
+                if (inRange(toDate(p.date)) && p.type !== 'discount') {
                     row.paidAmount += (Number(p.amount) || 0);
                 }
             });
@@ -108,13 +88,13 @@ export function FinancialPeriodSummaryReport({
             const row = getRow(u.customerId);
             const uDate = toDate(u.unloadingDate);
             
-            if (isWithinInterval(uDate, { start, end })) {
+            if (inRange(uDate)) {
                 row.bagsIn += (Number(u.bagsUnloaded) || 0);
                 row.billedAmount += (Number(u.totalHamali) || 0);
             }
 
             (u.payments || []).forEach(p => {
-                if (isWithinInterval(toDate(p.date), { start, end }) && p.type !== 'discount') {
+                if (inRange(toDate(p.date)) && p.type !== 'discount') {
                     row.paidAmount += (Number(p.amount) || 0);
                 }
             });
@@ -123,13 +103,12 @@ export function FinancialPeriodSummaryReport({
         // 3. Process Bulk Ledger Payments
         customerPayments.forEach(cp => {
             const row = getRow(cp.customerId);
-            if (isWithinInterval(toDate(cp.date), { start, end }) && !cp.isDiscount) {
+            if (inRange(toDate(cp.date)) && !cp.isDiscount) {
                 row.paidAmount += (Number(cp.amount) || 0);
             }
         });
 
-        // 4. Calculate Current Net Pending (Account Level)
-        // Note: Pending is usually a real-time snapshot, not period-bound
+        // 4. Calculate Current Net Pending (Account Level) - Real time snapshot
         customers.forEach(cust => {
             const row = getRow(cust.id);
             let totalLiability = 0;
@@ -153,7 +132,7 @@ export function FinancialPeriodSummaryReport({
         return Object.values(map)
             .filter(r => r.bagsIn > 0 || r.bagsOut > 0 || r.billedAmount > 0 || r.paidAmount > 0 || r.pendingAmount > 0.5)
             .sort((a, b) => a.customerName.localeCompare(b.customerName));
-    }, [records, unloadingRecords, customerPayments, customers, periodRange]);
+    }, [records, unloadingRecords, customerPayments, customers, dateRange, financialYear]);
 
     const totals = useMemo(() => {
         return customerSummaries.reduce((acc, r) => {
@@ -170,40 +149,13 @@ export function FinancialPeriodSummaryReport({
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row items-end gap-4 print-hide bg-slate-50 p-4 rounded-xl border border-slate-200">
-                <div className="space-y-1">
-                    <Label className="text-[10px] font-black uppercase text-slate-400">Period Type</Label>
-                    <Select onValueChange={(v: any) => { setPeriodType(v); setSelectedOffset('0'); }} value={periodType}>
-                        <SelectTrigger className="w-[160px] h-9 font-bold"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="monthly">Monthly</SelectItem>
-                            <SelectItem value="quarterly">Quarterly</SelectItem>
-                            <SelectItem value="yearly">Yearly</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-                <div className="space-y-1">
-                    <Label className="text-[10px] font-black uppercase text-slate-400">Select Period</Label>
-                    <Select onValueChange={setSelectedOffset} value={selectedOffset}>
-                        <SelectTrigger className="w-[200px] h-9 font-bold"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="0">Current Period</SelectItem>
-                            <SelectItem value="1">1 Period Ago</SelectItem>
-                            <SelectItem value="2">2 Periods Ago</SelectItem>
-                            <SelectItem value="3">3 Periods Ago</SelectItem>
-                            <SelectItem value="4">4 Periods Ago</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-            </div>
-
             <div className="bg-white p-6 rounded-xl border shadow-sm printable-area">
                 <div className="text-center border-b-2 border-black pb-4 mb-6">
                     <h2 className="text-2xl font-black uppercase tracking-tight leading-none text-center">{warehouseInfo?.name || "SRI LAKSHMI WAREHOUSE"}</h2>
                     <h3 className="text-sm font-black uppercase tracking-widest mt-2 text-primary text-center">
-                        Financial & Stock Summary: {format(periodRange.start, 'dd MMM yy')} — {format(periodRange.end, 'dd MMM yy')}
+                        Financial & Stock Summary {financialYear !== 'all-time' ? `(FY ${financialYear})` : '(All Time)'}
                     </h3>
-                    <p className="text-[10px] text-slate-400 uppercase mt-1 text-center">Audit Token: FSS-{periodType.toUpperCase()}-{generatedDate}</p>
+                    <p className="text-[10px] text-slate-400 uppercase mt-1 text-center">Report Audit Token: FSS-{generatedDate}</p>
                 </div>
 
                 <div className="table-scroll-container border-y-2 border-black">
@@ -232,7 +184,7 @@ export function FinancialPeriodSummaryReport({
                                 </TableRow>
                             ))}
                             {customerSummaries.length === 0 && (
-                                <TableRow><TableCell colSpan={6} className="text-center py-20 text-muted-foreground italic">No transactions found for this period.</TableCell></TableRow>
+                                <TableRow><TableCell colSpan={6} className="text-center py-20 text-muted-foreground italic">No transactions found for the selected range.</TableCell></TableRow>
                             )}
                         </TableBody>
                         <TableFooter>

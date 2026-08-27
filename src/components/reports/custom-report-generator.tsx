@@ -17,13 +17,15 @@ import { useToast } from '@/hooks/use-toast';
 import { PaymentReport } from './payment-report';
 import { PendingDuesReportTable } from './pending-dues-report-table';
 import { CommodityStockReport, CustomerCommodityStockReport, LotWiseInventoryReport } from './stock-summary-reports';
+import { FinancialPeriodSummaryReport } from './financial-period-summary-report';
 
 const reportTypes = [
     { value: 'daily-summary', label: 'Daily Summary Report' },
+    { value: 'financial-summary', label: 'Financial & Stock Summary (Monthly/Quarterly)' },
+    { value: 'profit-and-loss', label: 'Profit & Loss (Audit View)' },
     { value: 'commodity-summary', label: 'Commodity-wise Stock List' },
     { value: 'customer-commodity-summary', label: 'Customer-wise Commodity Stock' },
     { value: 'lot-inventory-summary', label: 'Lot-wise Inventory Register' },
-    { value: 'profit-and-loss', label: 'Profit & Loss Report' },
     { value: 'payment-register', label: 'Payment Register' },
     { value: 'pending-dues', label: 'Pending Dues Register' },
     { value: 'customer-statement', label: 'Customer Statement of Account' },
@@ -88,11 +90,11 @@ export function CustomReportGenerator({
             });
 
             const pdfWidth = 277;
-            const virtualWidth = 1440; // High-res target for landscape tables
+            const virtualWidth = 1440; 
 
             await pdf.html(printableArea, {
                 html2canvas: {
-                    scale: 0.75, // Adjust for wide landscape tables
+                    scale: 0.75, 
                     useCORS: true,
                     backgroundColor: '#ffffff',
                     height: printableArea.scrollHeight,
@@ -104,7 +106,7 @@ export function CustomReportGenerator({
                 width: pdfWidth,
                 windowWidth: virtualWidth,
                 callback: function (doc) {
-                    doc.save(`${selectedReport}-landscape-audit.pdf`);
+                    doc.save(`${selectedReport}-audit.pdf`);
                     setIsDownloading(false);
                 }
             });
@@ -119,6 +121,8 @@ export function CustomReportGenerator({
         switch (selectedReport) {
             case 'daily-summary':
                 return <DailySummaryReport records={records} customers={customers} unloadingRecords={unloadingRecords} expenses={expenses} otherIncomes={otherIncomes} customerPayments={customerPayments} />;
+            case 'financial-summary':
+                return <FinancialPeriodSummaryReport records={records} customers={customers} unloadingRecords={unloadingRecords} customerPayments={customerPayments} warehouseInfo={warehouseInfo} />;
             case 'commodity-summary':
                 return <CommodityStockReport records={records} customers={customers} warehouseInfo={warehouseInfo} title="Commodity-wise Stock Summary" />;
             case 'customer-commodity-summary':
@@ -211,7 +215,7 @@ export function CustomReportGenerator({
                     <div className="space-y-1">
                         <label htmlFor="report-type-select" className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Audit Report Type</label>
                         <Select onValueChange={setSelectedReport} value={selectedReport}>
-                            <SelectTrigger id="report-type-select" className="w-full md:w-[320px] h-10 font-bold border-2">
+                            <SelectTrigger id="report-type-select" className="w-full md:w-[380px] h-10 font-bold border-2">
                                 <SelectValue placeholder="Select a report type..." />
                             </SelectTrigger>
                             <SelectContent>

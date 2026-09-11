@@ -4,9 +4,50 @@ import { formatCurrency, toDate } from "@/lib/utils";
 import { useMemo } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import type { Expense, StorageRecord, UnloadingRecord, WarehouseInfo, Borrowing, Lending, OtherIncome, CustomerPayment } from "@/lib/definitions";
-import { format } from "date-fns";
+import { format, differenceInCalendarMonths } from "date-fns";
 import { useDateFilter } from "@/firebase/provider";
 import { calculateFinalRent } from "@/lib/billing";
+
+function calculateLoanBalances(loan: Borrowing | Lending) {
+    let principal = Number(loan.principal) || 0;
+    let accruedInterest = 0;
+    const startDate = toDate((loan as Borrowing).dateTaken || (loan as Lending).dateGiven);
+    let lastDate = startDate;
+    const monthlyRate = (Number(loan.interestRate) || 0) / 100;
+
+    const allPayments = [...(loan.payments || []).map(p => ({...p, date: toDate(p.date)}))].sort((a,b) => a.date.getTime() - b.date.getTime());
+
+    for (const payment of allPayments) {
+        const dateOfPayment = payment.date;
+        const months = differenceInCalendarMonths(dateOfPayment, lastDate);
+        
+        if (months > 0) {
+            accruedInterest += principal * monthlyRate * months;
+        }
+        
+        let paymentAmount = Number(payment.amount) || 0;
+        const interestPayment = Math.min(paymentAmount, accruedInterest);
+        accruedInterest -= interestPayment;
+        paymentAmount -= interestPayment;
+
+        if (paymentAmount > 0) {
+            principal -= paymentAmount;
+        }
+
+        lastDate = dateOfPayment;
+    }
+
+    const today = new Date();
+    const finalMonths = differenceInCalendarMonths(today, lastDate);
+    if (finalMonths > 0) {
+        accruedInterest += principal * monthlyRate * finalMonths;
+    }
+
+    return {
+        principalDue: Math.max(0, principal),
+        interestDue: Math.max(0, accruedInterest)
+    };
+}
 
 type ProfitAndLossReportProps = {
     allRecords: StorageRecord[];
@@ -74,13 +115,20 @@ export function ProfitAndLossReport({ allRecords, allExpenses, allUnloadingRecor
     const localFilteredExpenses = allExpenses.filter(e => inRange(toDate(e.date)));
     const totalExpenses = localFilteredExpenses.reduce((total, expense) => total + expense.amount, 0) + calculatedInterest + totalLossFromDiscounts;
 
-    const borrowed = borrowings.filter(b => b.status !== 'Paid Off').reduce((acc, b) => acc + b.principal, 0);
-    const lent = lendings.filter(l => l.status !== 'Paid Off').reduce((acc, l) => acc + l.principal, 0);
+    const borrowed = borrowings.filter(b => b.status !== 'Paid Off').reduce((acc, b) => {
+        const { principalDue } = calculateLoanBalances(b);
+        return acc + principalDue;
+    }, 0);
+
+    const lent = lendings.filter(l => l.status !== 'Paid Off').reduce((acc, l) => {
+        const { principalDue } = calculateLoanBalances(l);
+        return acc + principalDue;
+    }, 0);
 
     const activeRecords = allRecords.filter(r => !r.storageEndDate && r.bagsStored > 0);
     const today = new Date();
     const rentEstimate = activeRecords.reduce((total, record) => {
-      const { rent } = calculateFinalRent({ ...record, storageStartDate: toDate(record.storageStartDate) }, today, record.bagsStored);
+      const { rent } = calculateFinalRent({ ...record, storageStartDate: toDate(record.storageStartDate) } as any, today, record.bagsStored);
       return total + rent;
     }, 0);
 

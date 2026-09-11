@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -212,7 +211,7 @@ export function AddIncomeDialog({ lendings, nextRefNo }: { lendings: Lending[], 
                             .filter(l => l.status !== 'Paid Off')
                             .map(l => (
                             <SelectItem key={l.id} value={l.id} className="text-sm">
-                                {l.borrowerName} ({formatCurrency(b.principal)})
+                                {l.borrowerName} ({formatCurrency(l.principal)})
                             </SelectItem>
                         ))}
                         </SelectContent>

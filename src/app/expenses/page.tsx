@@ -24,7 +24,7 @@ import { LendingActionsMenu } from "@/components/lendings/lending-actions-menu";
 function calculateLoanBalances(loan: Borrowing | Lending) {
     let principal = Number(loan.principal) || 0;
     let accruedInterest = 0;
-    const startDate = toDate(loan.dateTaken || (loan as Lending).dateGiven);
+    const startDate = toDate((loan as Borrowing).dateTaken || (loan as Lending).dateGiven);
     let lastDate = startDate;
     const monthlyRate = (Number(loan.interestRate) || 0) / 100;
 
@@ -66,7 +66,7 @@ function IncomesTable({ incomes }: { incomes: OtherIncome[] }) {
     if (incomes.length === 0) return null;
     return (
       <Card>
-        <CardHeader><CardTitle>Income History</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-center">Income History</CardTitle></CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
@@ -101,7 +101,7 @@ function ExpensesTable({ expenses }: { expenses: Expense[] }) {
   if (expenses.length === 0) return null;
   return (
     <Card>
-      <CardHeader><CardTitle>Expense History</CardTitle></CardHeader>
+      <CardHeader><CardTitle className="text-center">Expense History</CardTitle></CardHeader>
       <CardContent>
         <Table>
           <TableHeader>
@@ -139,7 +139,7 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
     if (activeBorrowings.length === 0) return null;
     return (
       <Card>
-        <CardHeader><CardTitle>Active Borrowings (Loans Taken)</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-center">Active Borrowings (Loans Taken)</CardTitle></CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
@@ -179,7 +179,7 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
     if (activeLendings.length === 0) return null;
     return (
       <Card>
-        <CardHeader><CardTitle>Active Lendings (Loans Given)</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-center">Active Lendings (Loans Given)</CardTitle></CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
@@ -291,6 +291,17 @@ export default function ExpensesPage() {
 
     const getMaxRef = (list: any[]) => String(Math.max(1001, list.reduce((max, item) => Math.max(max, parseInt(item.refNo?.replace(/\D/g, '') || '0', 10)), 0) + 1));
     
+    // Calculate REAL principal dues for summary cards
+    const currentTotalBorrowed = borrowings.filter(b => b.status !== 'Paid Off').reduce((acc, b) => {
+        const { principalDue } = calculateLoanBalances(b);
+        return acc + principalDue;
+    }, 0);
+
+    const currentTotalLent = lendings.filter(l => l.status !== 'Paid Off').reduce((acc, l) => {
+        const { principalDue } = calculateLoanBalances(l);
+        return acc + principalDue;
+    }, 0);
+
     return { 
         periodIncome: totalCashIncome, 
         periodExpenses: grandTotalExpenses, 
@@ -304,8 +315,8 @@ export default function ExpensesPage() {
         activeBags: activeRecords.reduce((acc, record) => acc + (Number(record.bagsStored) || 0), 0), 
         nextExpenseRefNo: getMaxRef(allExpenses), 
         nextIncomeRefNo: getMaxRef(otherIncomes), 
-        totalBorrowed: borrowings.filter(b => b.status !== 'Paid Off').reduce((acc, b) => acc + (Number(b.principal) || 0), 0), 
-        totalLent: lendings.filter(l => l.status !== 'Paid Off').reduce((acc, l) => acc + (Number(l.principal) || 0), 0) 
+        totalBorrowed: currentTotalBorrowed, 
+        totalLent: currentTotalLent 
     };
   }, [allRecords, allExpenses, allUnloadingRecords, otherIncomes, customerPayments, dateRange, warehouseInfo, financialYear, allCommodities, borrowings, lendings]);
 

@@ -10,19 +10,15 @@ import { InflowReport } from './inflow-report';
 import { OutflowReport } from './outflow-report';
 import { UnloadingReport } from './unloading-report';
 import { DailySummaryReport } from './daily-summary-report';
-import { ProfitAndLossReport } from './profit-and-loss-report';
 import { Button } from '../ui/button';
 import { Printer, FileDown, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { PaymentReport } from './payment-report';
 import { PendingDuesReportTable } from './pending-dues-report-table';
 import { CommodityStockReport, CustomerCommodityStockReport, LotWiseInventoryReport } from './stock-summary-reports';
-import { FinancialPeriodSummaryReport } from './financial-period-summary-report';
 
 const reportTypes = [
     { value: 'daily-summary', label: 'Daily Summary Report' },
-    { value: 'financial-summary', label: 'Financial & Stock Summary (Monthly/Quarterly)' },
-    { value: 'profit-and-loss', label: 'Profit & Loss (Audit View)' },
     { value: 'commodity-summary', label: 'Commodity-wise Stock List' },
     { value: 'customer-commodity-summary', label: 'Customer-wise Commodity Stock' },
     { value: 'lot-inventory-summary', label: 'Lot-wise Inventory Register' },
@@ -106,7 +102,7 @@ export function CustomReportGenerator({
                 width: pdfWidth,
                 windowWidth: virtualWidth,
                 callback: function (doc) {
-                    doc.save(`${selectedReport}-audit.pdf`);
+                    doc.save(`${selectedReport}-report.pdf`);
                     setIsDownloading(false);
                 }
             });
@@ -121,25 +117,12 @@ export function CustomReportGenerator({
         switch (selectedReport) {
             case 'daily-summary':
                 return <DailySummaryReport records={records} customers={customers} unloadingRecords={unloadingRecords} expenses={expenses} otherIncomes={otherIncomes} customerPayments={customerPayments} />;
-            case 'financial-summary':
-                return <FinancialPeriodSummaryReport records={records} customers={customers} unloadingRecords={unloadingRecords} customerPayments={customerPayments} warehouseInfo={warehouseInfo} />;
             case 'commodity-summary':
                 return <CommodityStockReport records={records} customers={customers} warehouseInfo={warehouseInfo} title="Commodity-wise Stock Summary" />;
             case 'customer-commodity-summary':
                 return <CustomerCommodityStockReport records={records} customers={customers} warehouseInfo={warehouseInfo} title="Customer-wise Commodity Stock" />;
             case 'lot-inventory-summary':
                 return <LotWiseInventoryReport records={records} customers={customers} warehouseInfo={warehouseInfo} title="Lot-wise Inventory Register" />;
-            case 'profit-and-loss':
-                return <ProfitAndLossReport 
-                            allRecords={records}
-                            allExpenses={expenses}
-                            allUnloadingRecords={unloadingRecords}
-                            otherIncomes={otherIncomes}
-                            warehouseInfo={warehouseInfo}
-                            borrowings={borrowings}
-                            lendings={lendings}
-                            customerPayments={customerPayments}
-                        />;
             case 'payment-register':
                 return <PaymentReport records={records} unloadingRecords={unloadingRecords} customers={customers} customerPayments={customerPayments} />;
             case 'pending-dues': {
@@ -213,7 +196,7 @@ export function CustomReportGenerator({
             <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 print-hide bg-white p-4 rounded-xl border shadow-sm">
                 <div className="flex-1 space-y-3">
                     <div className="space-y-1">
-                        <label htmlFor="report-type-select" className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Audit Report Type</label>
+                        <label htmlFor="report-type-select" className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Operational Report Type</label>
                         <Select onValueChange={setSelectedReport} value={selectedReport}>
                             <SelectTrigger id="report-type-select" className="w-full md:w-[380px] h-10 font-bold border-2">
                                 <SelectValue placeholder="Select a report type..." />

@@ -23,7 +23,7 @@ export const UnloadingReceipt = React.forwardRef<HTMLDivElement, { record: Unloa
             <style jsx>{`
                 .info-table td { border: none !important; padding: 4px 2px !important; vertical-align: top; }
                 .bill-table th { border: 1px solid black !important; text-align: center !important; }
-                .bill-table td { border: 1px solid black !important; }
+                .bill-table td { border: 1px solid black !important; vertical-align: middle; }
             `}</style>
 
             {/* Header */}
@@ -62,23 +62,23 @@ export const UnloadingReceipt = React.forwardRef<HTMLDivElement, { record: Unloa
                     <thead>
                         <tr className="bg-slate-50 h-12">
                             <th className="font-black uppercase text-[10px] px-4">Description of Service</th>
-                            <th className="font-black uppercase text-[10px] px-2 w-24">Bags</th>
-                            <th className="font-black uppercase text-[10px] px-2 w-32">Rate</th>
-                            <th className="font-black uppercase text-[10px] px-2 w-32">Amount</th>
+                            <th className="font-black uppercase text-[10px] px-2 w-24 text-center">Bags</th>
+                            <th className="font-black uppercase text-[10px] px-2 w-32 text-center">Rate</th>
+                            <th className="font-black uppercase text-[10px] px-2 w-32 text-center">Amount</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr className="h-16">
                             <td className="px-4 font-bold">Unloading Hamali (Labor Charges)</td>
                             <td className="text-center font-mono font-bold">{record.bagsUnloaded}</td>
-                            <td className="text-right px-2 font-mono">{record.hamaliPerBag.toFixed(2)}</td>
-                            <td className="text-right px-2 font-mono font-black">{formatCurrency(record.totalHamali)}</td>
+                            <td className="text-right px-2 font-mono text-center">{record.hamaliPerBag.toFixed(2)}</td>
+                            <td className="text-right px-2 font-mono font-black text-center">{formatCurrency(record.totalHamali)}</td>
                         </tr>
                     </tbody>
                     <tfoot>
                         <tr className="h-16 bg-slate-50 font-black text-xl border-t-2 border-black">
                             <td colSpan={3} className="text-right px-4 uppercase tracking-tighter">Total Payable</td>
-                            <td className="text-right px-2 font-mono">{formatCurrency(record.totalHamali)}</td>
+                            <td className="text-right px-2 font-mono text-center">{formatCurrency(record.totalHamali)}</td>
                         </tr>
                     </tfoot>
                 </table>
@@ -86,7 +86,7 @@ export const UnloadingReceipt = React.forwardRef<HTMLDivElement, { record: Unloa
             
             {/* Signatures */}
             <div className="mt-24">
-                <table className="w-full border-none">
+                <table className="w-full border-none no-border">
                     <tbody>
                         <tr>
                             <td className="w-1/2 text-center align-bottom border-none">

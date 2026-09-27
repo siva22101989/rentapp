@@ -26,7 +26,7 @@ export function UnloadingReportTable({ records, customers, commodities, lots, st
     const totalBagsUnloaded = records.reduce((acc, record) => acc + (record.bagsUnloaded || 0), 0);
 
     return (
-        <div className="bg-white p-4 text-black font-sans text-sm printable-area">
+        <div className="bg-white p-4 text-black font-sans text-sm printable-area border shadow-sm rounded-lg">
              <div className="mb-4 text-center border-b-2 border-black pb-2">
                 <h2 className="text-xl font-bold uppercase text-center">SRI LAKSHMI WAREHOUSE</h2>
                 <h3 className="font-bold uppercase text-[12px] text-center">{title}</h3>
@@ -48,15 +48,15 @@ export function UnloadingReportTable({ records, customers, commodities, lots, st
                         {records.map((record) => {
                             const totalPaid = (record.payments || []).reduce((acc, p) => acc + p.amount, 0);
                             const hamaliPending = Math.max(0, (record.totalHamali || 0) - totalPaid);
-                            const cleanBillNo = String(record.billNo || record.id).replace(/\D/g, ''); // Strictly Numerical
+                            const cleanBillNo = String(record.billNo || record.id).replace(/\D/g, ''); 
                             
                             return (
                                 <TableRow key={record.id} className="h-8 border-b border-slate-100">
                                     <TableCell className="p-1 text-center">{format(toDate(record.unloadingDate), 'dd/MM/yy')}</TableCell>
-                                    <TableCell className="p-1 text-center font-mono">{cleanBillNo}</TableCell>
+                                    <TableCell className="p-1 text-center font-mono text-center">{cleanBillNo}</TableCell>
                                     <TableCell className="p-1 font-medium uppercase whitespace-nowrap text-center">{getCustomerName(record.customerId)}</TableCell>
                                     <TableCell className="p-1 text-center">{record.commodityDescription}</TableCell>
-                                    <TableCell className="p-1 text-center font-mono font-bold">{record.bagsUnloaded}</TableCell>
+                                    <TableCell className="p-1 text-center font-mono font-bold text-center">{record.bagsUnloaded}</TableCell>
                                     <TableCell className="p-1 text-center print-hide">
                                         <UnloadingTableActionsMenu 
                                             record={{ ...record, hamaliPending }} 
@@ -73,7 +73,7 @@ export function UnloadingReportTable({ records, customers, commodities, lots, st
                     <TableFooter>
                         <TableRow className="bg-slate-50 font-bold border-t-2 border-black">
                             <TableCell colSpan={4} className="p-1 text-right uppercase text-[10px]">Total Unloaded Bags</TableCell>
-                            <TableCell className="p-1 text-center font-mono text-[14px]">{totalBagsUnloaded}</TableCell>
+                            <TableCell className="p-1 text-center font-mono text-[14px] text-center">{totalBagsUnloaded}</TableCell>
                             <TableCell className="print-hide" />
                         </TableRow>
                     </TableFooter>
@@ -81,7 +81,7 @@ export function UnloadingReportTable({ records, customers, commodities, lots, st
             </div>
             <div className="mt-16 flex justify-end">
                 <div className="w-56 border-t border-black text-center pt-1">
-                    <p className="font-bold text-[12px] uppercase">Authorized Signature</p>
+                    <p className="font-bold text-[12px] uppercase text-center">Authorized Signature</p>
                 </div>
             </div>
         </div>

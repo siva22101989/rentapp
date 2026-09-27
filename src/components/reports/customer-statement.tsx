@@ -57,7 +57,6 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
     let totalBagsIn = 0;
     let totalBagsOut = 0;
 
-    // 1. Process Unloading Records
     (unloadingRecords || []).forEach(unloading => {
         const totalHamali = Number(unloading.totalHamali) || 0;
         const cleanId = String(unloading.billNo || unloading.id || '').replace(/\D/g, ''); 
@@ -112,7 +111,6 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         }
     });
 
-    // 2. Process Storage Records
     (records || []).forEach(record => {
         const cleanId = String(record.id || '').replace(/\D/g, ''); 
         const hamaliBilledOnInflow = Number(record.hamaliPayable) || 0;
@@ -197,7 +195,6 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         }
     });
 
-    // 3. Process Account-Level Bulk Payments
     (customerPayments || []).filter(cp => cp.customerId === customer.id).forEach((cp, idx) => {
         const amt = Number(cp.amount) || 0;
         if (cp.isDiscount) {
@@ -227,7 +224,6 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
     
     const sortedEvents = (rawEvents || []).sort((a, b) => a.sortDate - b.sortDate);
 
-    // Grouping Pass: Combine consecutive payments/discounts of same type and date
     const lineItems: any[] = [];
     let currentBalance = 0;
 
@@ -239,13 +235,11 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         const sameDesc = prev && prev.description === event.description;
 
         if (isFinancialOnly && prev && sameDate && sameDesc) {
-            // Update the existing row
             prev.credit += event.credit;
             prev.discount += event.discount;
             prev.balance += (event.hamali + event.rent - event.credit - event.discount);
             currentBalance = prev.balance;
         } else {
-            // New row
             const debit = (Number(event.hamali) || 0) + (Number(event.rent) || 0);
             const creditTotal = (Number(event.credit) || 0) + (Number(event.discount) || 0);
             currentBalance += (debit - creditTotal);
@@ -253,7 +247,6 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
             lineItems.push({ 
                 ...event, 
                 balance: currentBalance,
-                // Ensure unique IDs for display
                 rowId: `${event.billNo}-${idx}`
             });
         }
@@ -278,7 +271,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
   const timestamp = useMemo(() => format(new Date(), 'dd/MM/yy, h:mm a'), []);
 
   return (
-    <div ref={ref} className="bg-white p-3 sm:p-6 text-black font-sans text-sm border-2 border-black rounded-lg shadow-sm w-full mx-auto overflow-hidden">
+    <div ref={ref} className="bg-white p-3 sm:p-6 text-black font-sans text-sm border-2 border-black rounded-lg shadow-sm w-full mx-auto overflow-hidden printable-area">
         <style jsx>{`
             table.no-border, table.no-border td { border: none !important; }
             @media screen {
@@ -290,13 +283,13 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         <div className="text-center mb-6 border-b-2 border-black pb-2">
             <h1 className="text-xl sm:text-2xl font-bold uppercase tracking-tight">{warehouseInfo?.name || "SRI LAKSHMI WAREHOUSE"}</h1>
             <p className="text-[10px] sm:text-[11px] uppercase font-semibold text-slate-600 leading-tight">{warehouseInfo?.addressLine1} {warehouseInfo?.addressLine2} | Cell: {warehouseInfo?.phone}</p>
-            <h2 className="text-sm sm:text-md font-bold underline mt-2 uppercase tracking-widest">Statement of Account</h2>
+            <h2 className="text-sm sm:text-md font-bold underline mt-2 uppercase tracking-widest text-center">Statement of Account</h2>
         </div>
 
         <div className="flex flex-col sm:flex-row justify-between mb-4 gap-2 text-[12px] sm:text-[13px]">
             <div className="space-y-0.5 text-center sm:text-left">
-                <p><span className="font-bold uppercase text-[10px] text-slate-500">Customer:</span> <span className="font-bold text-base">{customer?.name}</span></p>
-                <p><span className="font-bold uppercase text-[10px] text-slate-500">Village:</span> {customer?.village || 'N/A'}</p>
+                <p><span className="font-bold uppercase text-[10px] text-slate-500">Customer:</span> <span className="font-bold text-base uppercase">{customer?.name}</span></p>
+                <p><span className="font-bold uppercase text-[10px] text-slate-500">Village:</span> <span className="uppercase">{customer?.village || 'N/A'}</span></p>
                 <p><span className="font-bold uppercase text-[10px] text-slate-500">Phone:</span> {customer?.phone || 'N/A'}</p>
             </div>
             <div className="text-center sm:text-right text-[10px] text-slate-400 font-bold uppercase">
@@ -306,8 +299,8 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
 
         <div className="border-2 border-slate-900 p-3 sm:p-4 rounded-xl bg-slate-50 mb-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-8">
-                <div className="space-y-2 border-b md:border-b-0 md:border-r border-slate-200 pb-3 md:pb-0 md:pr-10">
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 text-center">Physical Stock Inventory</h3>
+                <div className="space-y-2 border-b md:border-b-0 md:border-r border-slate-200 pb-3 md:pb-0 md:pr-10 text-center">
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Physical Stock Inventory</h3>
                     <div className="flex justify-between text-[12px] sm:text-[13px]"><span>Total Inflow (History):</span><span className="font-mono font-bold">{totals.totalBagsIn}</span></div>
                     <div className="flex justify-between text-[12px] sm:text-[13px]"><span>Total Outflow:</span><span className="font-mono font-bold text-orange-600">{totals.totalBagsOut}</span></div>
                     <div className="flex justify-between items-center border-t border-slate-300 pt-2 mt-2 text-primary font-black">
@@ -316,8 +309,8 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                     </div>
                 </div>
 
-                <div className="space-y-3 md:pl-2">
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1 text-center">Financial Reconciliation</h3>
+                <div className="space-y-3 md:pl-2 text-center">
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1">Financial Reconciliation</h3>
                     <div className="grid grid-cols-2 gap-x-4 sm:gap-x-8 gap-y-2 text-[11px] sm:text-[12px]">
                         <div className="space-y-0.5 border-r border-slate-100 pr-2 sm:pr-4">
                             <p className="uppercase text-[9px] font-bold text-slate-400 text-center">Labor/Rent</p>
@@ -353,26 +346,26 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
                         <TableRow key={item.rowId} className="border-b border-slate-100 h-9 hover:bg-slate-50/50">
                             <TableCell className="p-1 text-center whitespace-nowrap">{format(item.date, 'dd/MM/yy')}</TableCell>
                             <TableCell className="p-1 font-medium tracking-tight text-[11px] sm:text-[12px] text-center">{item.description}</TableCell>
-                            <TableCell className="p-1 text-center font-mono">{item.bagsIn || ''}</TableCell>
-                            <TableCell className="p-1 text-center font-mono text-orange-600 font-bold">{item.bagsOut || ''}</TableCell>
-                            <TableCell className="p-1 text-right font-mono">{item.hamali > 0 ? formatCurrency(item.hamali) : ''}</TableCell>
-                            <TableCell className="p-1 text-right font-mono">{item.rent > 0 ? formatCurrency(item.rent) : ''}</TableCell>
-                            <TableCell className="p-1 text-right font-mono text-blue-600 font-bold">{item.discount > 0 ? formatCurrency(item.discount) : ''}</TableCell>
-                            <TableCell className="p-1 text-right font-mono text-green-700 font-black">{item.credit > 0 ? formatCurrency(item.credit) : ''}</TableCell>
-                            <TableCell className="p-1 text-right font-mono font-black">{formatCurrency(item.balance)}</TableCell>
+                            <TableCell className="p-1 text-center font-mono text-center">{item.bagsIn || ''}</TableCell>
+                            <TableCell className="p-1 text-center font-mono text-orange-600 font-bold text-center">{item.bagsOut || ''}</TableCell>
+                            <TableCell className="p-1 text-right font-mono text-center">{item.hamali > 0 ? formatCurrency(item.hamali) : ''}</TableCell>
+                            <TableCell className="p-1 text-right font-mono text-center">{item.rent > 0 ? formatCurrency(item.rent) : ''}</TableCell>
+                            <TableCell className="p-1 text-right font-mono text-blue-600 font-bold text-center">{item.discount > 0 ? formatCurrency(item.discount) : ''}</TableCell>
+                            <TableCell className="p-1 text-right font-mono text-green-700 font-black text-center">{item.credit > 0 ? formatCurrency(item.credit) : ''}</TableCell>
+                            <TableCell className="p-1 text-right font-mono font-black text-center">{formatCurrency(item.balance)}</TableCell>
                         </TableRow>
                     ))}
                 </TableBody>
                 <TableFooter>
                     <TableRow className="bg-slate-50 text-black font-black border-t-2 border-black h-12">
                         <TableCell colSpan={2} className="p-2 text-right uppercase text-[9px] sm:text-[10px]">Grand Totals</TableCell>
-                        <TableCell className="p-1 text-center font-mono">{totals.totalBagsIn}</TableCell>
-                        <TableCell className="p-1 text-center font-mono text-orange-600">{totals.totalBagsOut}</TableCell>
-                        <TableCell className="p-1 text-right font-mono">{formatCurrency(totals.totalHamaliBilled)}</TableCell>
-                        <TableCell className="p-1 text-right font-mono">{formatCurrency(totals.totalRentBilled)}</TableCell>
-                        <TableCell className="p-1 text-right font-mono text-blue-600">{formatCurrency(totals.totalDiscounts)}</TableCell>
-                        <TableCell className="p-1 text-right font-mono text-green-700">{formatCurrency(totals.totalHamaliPaid + totals.totalRentPaid)}</TableCell>
-                        <TableCell className="p-1 text-right font-mono text-[12px] sm:text-base">{formatCurrency(totals.finalBalance)}</TableCell>
+                        <TableCell className="p-1 text-center font-mono text-center">{totals.totalBagsIn}</TableCell>
+                        <TableCell className="p-1 text-center font-mono text-orange-600 text-center">{totals.totalBagsOut}</TableCell>
+                        <TableCell className="p-1 text-right font-mono text-center">{formatCurrency(totals.totalHamaliBilled)}</TableCell>
+                        <TableCell className="p-1 text-right font-mono text-center">{formatCurrency(totals.totalRentBilled)}</TableCell>
+                        <TableCell className="p-1 text-right font-mono text-blue-600 text-center">{formatCurrency(totals.totalDiscounts)}</TableCell>
+                        <TableCell className="p-1 text-right font-mono text-green-700 text-center">{formatCurrency(totals.totalHamaliPaid + totals.totalRentPaid)}</TableCell>
+                        <TableCell className="p-1 text-right font-mono text-[12px] sm:text-base text-center">{formatCurrency(totals.finalBalance)}</TableCell>
                     </TableRow>
                 </TableFooter>
             </Table>
@@ -380,10 +373,10 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
 
         <div className="mt-12 sm:mt-20 flex justify-between">
              <div className="w-32 sm:w-64 border-t border-slate-300 text-center pt-2">
-                <p className="font-bold text-[10px] sm:text-[11px] uppercase tracking-widest text-slate-500">Customer</p>
+                <p className="font-bold text-[10px] sm:text-[11px] uppercase tracking-widest text-slate-500">Customer Signature</p>
             </div>
             <div className="w-32 sm:w-64 border-t-2 border-black text-center pt-2">
-                <p className="font-black text-[10px] sm:text-[12px] uppercase tracking-widest text-slate-800">Authorized Manager</p>
+                <p className="font-black text-[10px] sm:text-[12px] uppercase tracking-widest text-slate-800 text-center">Authorized Manager Signature</p>
             </div>
         </div>
     </div>

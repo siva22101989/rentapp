@@ -55,7 +55,6 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
                     rentPerBag: bagsVal > 0 ? rentVal / bagsVal : 0,
                 });
             });
-            // Khata is usually tied to the record level for the first inflow vehicle
             totalKhata += (Number(r.khataAmount) || 0); 
         });
 
@@ -64,11 +63,7 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
 
     const { items, totalBags, totalCurrentRent, totalCurrentDiscount, totalKhata, pattiDate } = breakdownItems;
     
-    // Logic: outstandingRent from props is the CURRENT net account balance in DB (which includes this bill).
-    // To show "Previous Pending", we subtract the charges just generated.
     const previousPendingRent = Math.max(0, outstandingRent - totalCurrentRent - totalKhata);
-    
-    // Grand total due is exactly what the ledger says + outstanding hamali
     const grandTotalDue = outstandingRent + outstandingHamali;
     const closingBalance = Math.max(0, grandTotalDue - paidNow);
 
@@ -105,7 +100,7 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
                 <table className="w-full info-table text-[13px]">
                     <tbody>
                         <tr><td className="font-bold w-24 uppercase text-[10px] text-slate-500 text-center">Date</td><td>: <span className="font-bold">{format(pattiDate, 'dd/MM/yyyy')}</span></td></tr>
-                        <tr><td className="font-bold w-24 uppercase text-[10px] text-slate-500 text-center">Product</td><td>: <span className="font-bold uppercase">{records[0]?.commodityDescription || 'Misc'}</span></td></tr>
+                        <tr><td className="font-bold w-24 uppercase text-[10px] text-slate-500 text-center">Product</td><td>: <span className="font-bold uppercase text-center">{records[0]?.commodityDescription || 'Misc'}</span></td></tr>
                     </tbody>
                 </table>
           </div>
@@ -182,7 +177,7 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
                           <td className="font-black text-sm uppercase tracking-tight text-center">Grand Total Account Balance</td>
                           <td className="text-right font-mono font-black text-xl underline underline-offset-4 text-center">{formatCurrency(grandTotalDue)}</td>
                       </tr>
-                      <tr className="h-10 bg-emerald-50/50">
+                      <tr className="h-10 bg-slate-50">
                           <td className="font-bold uppercase text-[10px] text-emerald-800 text-center">Cash Collected Today</td>
                           <td className="text-right font-mono font-black text-emerald-700 text-center">-{formatCurrency(paidNow)}</td>
                       </tr>
@@ -196,7 +191,7 @@ export const OutflowReceipt = React.forwardRef<HTMLDivElement, OutflowReceiptPro
           
           {/* Signatures */}
           <div className="mt-24">
-              <table className="w-full border-none">
+              <table className="w-full border-none no-border">
                 <tbody>
                   <tr>
                     <td className="w-1/2 text-center align-bottom border-none">

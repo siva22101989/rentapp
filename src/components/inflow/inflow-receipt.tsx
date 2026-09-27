@@ -33,7 +33,7 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
              <style jsx>{`
                 .info-table td { border: none !important; padding: 4px 2px !important; vertical-align: top; }
                 .bill-table th { border: 1px solid black !important; text-align: center !important; }
-                .bill-table td { border: 1px solid black !important; }
+                .bill-table td { border: 1px solid black !important; vertical-align: middle; }
             `}</style>
 
             {/* Header */}
@@ -73,29 +73,29 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
                     <thead>
                         <tr className="bg-slate-50 h-10">
                             <th className="font-black uppercase text-[10px] px-4">Description of Service</th>
-                            <th className="font-black uppercase text-[10px] px-2 w-24">Bags</th>
-                            <th className="font-black uppercase text-[10px] px-2 w-24">Rate</th>
-                            <th className="font-black uppercase text-[10px] px-2 w-32">Amount</th>
+                            <th className="font-black uppercase text-[10px] px-2 w-24 text-center">Bags</th>
+                            <th className="font-black uppercase text-[10px] px-2 w-24 text-center">Rate</th>
+                            <th className="font-black uppercase text-[10px] px-2 w-32 text-center">Amount</th>
                         </tr>
                     </thead>
                     <tbody>
                          <tr className="h-12">
                             <td className="px-4 font-bold">Handling / Hamali Charges</td>
                             <td className="text-center font-mono font-bold">{record.bagsIn}</td>
-                            <td className="text-right font-mono px-2">{hamaliRate.toFixed(2)}</td>
-                            <td className="text-right font-mono font-bold px-2">{formatCurrency(record.hamaliPayable)}</td>
+                            <td className="text-right font-mono px-2 text-center">{hamaliRate.toFixed(2)}</td>
+                            <td className="text-right font-mono font-bold px-2 text-center">{formatCurrency(record.hamaliPayable)}</td>
                         </tr>
                         {record.khataAmount && record.khataAmount > 0 && (
                             <tr className="h-10">
                                 <td className="px-4 font-bold" colSpan={3}>Khata (Weighbridge / Entry Fees)</td>
-                                <td className="text-right font-mono font-bold px-2">{formatCurrency(record.khataAmount)}</td>
+                                <td className="text-right font-mono font-bold px-2 text-center">{formatCurrency(record.khataAmount)}</td>
                             </tr>
                         )}
                     </tbody>
                     <tfoot>
                         <tr className="h-14 bg-slate-50 font-black text-xl border-t-2 border-black">
                             <td colSpan={3} className="text-right px-4 uppercase tracking-tighter">Total Payable</td>
-                            <td className="text-right px-2 font-mono">{formatCurrency((record.hamaliPayable || 0) + (record.khataAmount || 0))}</td>
+                            <td className="text-right px-2 font-mono text-center">{formatCurrency((record.hamaliPayable || 0) + (record.khataAmount || 0))}</td>
                         </tr>
                     </tfoot>
                 </table>
@@ -108,7 +108,7 @@ export const InflowReceipt = React.forwardRef<HTMLDivElement, { record: StorageR
             
             {/* Signatures */}
             <div className="mt-24">
-                <table className="w-full border-none">
+                <table className="w-full border-none no-border">
                     <tbody>
                         <tr>
                             <td className="w-1/2 text-center align-bottom border-none">

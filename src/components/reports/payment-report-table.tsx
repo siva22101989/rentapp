@@ -11,8 +11,8 @@ export type PaymentEvent = {
     date: Date;
     customerId: string;
     description: string;
-    recordId: string; // The database document ID
-    displayBillNo: string; // User-facing ID (Bill No or BULK)
+    recordId: string;
+    displayBillNo: string;
     amount: number;
     type: PaymentType;
     recordType: 'storage' | 'unloading' | 'bulk';
@@ -64,8 +64,8 @@ export function PaymentReportTable({ events, customers, title }: ReportTableProp
                                 <TableCell className="p-1 text-center uppercase text-[9px] font-bold">
                                     <span className="bg-slate-100 px-2 py-0.5 rounded-full border text-slate-600">{event.type}</span>
                                 </TableCell>
-                                <TableCell className="p-1 text-center font-mono font-bold text-slate-400">{displayId}</TableCell>
-                                <TableCell className="p-1 text-center font-mono font-black text-green-700">
+                                <TableCell className="p-1 text-center font-mono font-bold text-slate-400 text-center">{displayId}</TableCell>
+                                <TableCell className="p-1 text-center font-mono font-black text-green-700 text-center">
                                     {formatCurrency(event.amount)}
                                 </TableCell>
                                 <TableCell className="p-1 text-center print-hide">
@@ -84,7 +84,7 @@ export function PaymentReportTable({ events, customers, title }: ReportTableProp
                     <TableFooter>
                         <TableRow className="bg-slate-50 text-black font-black border-t-2 border-slate-900 h-12 hover:bg-slate-50">
                             <TableCell colSpan={4} className="p-2 text-right uppercase text-[10px] tracking-widest">Grand Total Portfolio Collected</TableCell>
-                            <TableCell className="p-2 text-center font-mono text-[14px] text-green-700">{formatCurrency(totalPayments)}</TableCell>
+                            <TableCell className="p-2 text-center font-mono text-[14px] text-green-700 text-center">{formatCurrency(totalPayments)}</TableCell>
                             <TableCell className="print-hide" />
                         </TableRow>
                     </TableFooter>

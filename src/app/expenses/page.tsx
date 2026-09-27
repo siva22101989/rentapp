@@ -2,9 +2,9 @@
 import { AppLayout } from "@/components/layout/app-layout";
 import { AddExpenseDialog } from "@/components/expenses/add-expense-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Scale, Banknote, IndianRupee, Landmark, HandCoins, MinusCircle } from "lucide-react";
+import { TrendingUp, TrendingDown, Scale, Banknote, IndianRupee, Landmark, HandCoins, MinusCircle, Loader2 } from "lucide-react";
 import { formatCurrency, toDate } from "@/lib/utils";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Expense, StorageRecord, WarehouseInfo, Borrowing, Lending, OtherIncome, Commodity, UnloadingRecord, CustomerPayment } from "@/lib/definitions";
 import { format, differenceInCalendarMonths } from "date-fns";
@@ -20,6 +20,7 @@ import { Separator } from "@/components/ui/separator";
 import { calculateFinalRent } from "@/lib/billing";
 import { BorrowingActionsMenu } from "@/components/borrowings/borrowing-actions-menu";
 import { LendingActionsMenu } from "@/components/lendings/lending-actions-menu";
+import { Badge } from "@/components/ui/badge";
 
 function calculateLoanBalances(loan: Borrowing | Lending) {
     let principal = Number(loan.principal) || 0;
@@ -63,7 +64,12 @@ function calculateLoanBalances(loan: Borrowing | Lending) {
 }
 
 function IncomesTable({ incomes }: { incomes: OtherIncome[] }) {
-    if (incomes.length === 0) return null;
+    if (incomes.length === 0) return (
+        <Card>
+            <CardHeader><CardTitle className="text-center">Income History</CardTitle></CardHeader>
+            <CardContent className="p-12 text-center text-muted-foreground italic">No income records found for this period.</CardContent>
+        </Card>
+    );
     return (
       <Card>
         <CardHeader><CardTitle className="text-center">Income History</CardTitle></CardHeader>
@@ -98,7 +104,12 @@ function IncomesTable({ incomes }: { incomes: OtherIncome[] }) {
 function ExpensesTable({ expenses }: { expenses: Expense[] }) {
   const appUser = useAppUser();
   const canEdit = appUser?.role === 'owner';
-  if (expenses.length === 0) return null;
+  if (expenses.length === 0) return (
+    <Card>
+        <CardHeader><CardTitle className="text-center">Expense History</CardTitle></CardHeader>
+        <CardContent className="p-12 text-center text-muted-foreground italic">No expense records found for this period.</CardContent>
+    </Card>
+  );
   return (
     <Card>
       <CardHeader><CardTitle className="text-center">Expense History</CardTitle></CardHeader>
@@ -132,14 +143,19 @@ function ExpensesTable({ expenses }: { expenses: Expense[] }) {
   );
 }
 
-function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
+function BorrowingsTable({ borrowings, loading }: { borrowings: Borrowing[], loading: boolean }) {
     const appUser = useAppUser();
     const canEdit = appUser?.role === 'owner';
     const activeBorrowings = borrowings.filter(b => b.status !== 'Paid Off');
-    if (activeBorrowings.length === 0) return null;
+
+    if (loading) return <Card className="p-8 text-center"><Loader2 className="animate-spin mx-auto h-6 w-6 text-primary" /><p className="mt-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">Loading Borrowings...</p></Card>;
+    
     return (
       <Card>
-        <CardHeader><CardTitle className="text-center">Active Borrowings (Loans Taken)</CardTitle></CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-center flex-1">Active Borrowings (Loans Taken)</CardTitle>
+            {borrowings.length > activeBorrowings.length && <Badge variant="outline" className="text-[9px]">+{borrowings.length - activeBorrowings.length} Paid Off</Badge>}
+        </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
@@ -165,6 +181,11 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
                   {canEdit && <TableCell><BorrowingActionsMenu borrowing={b} /></TableCell>}
                 </TableRow>
               )})}
+              {activeBorrowings.length === 0 && (
+                <TableRow>
+                    <TableCell colSpan={canEdit ? 6 : 5} className="text-center py-10 text-muted-foreground italic">No active borrowings recorded.</TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>
@@ -172,14 +193,19 @@ function BorrowingsTable({ borrowings }: { borrowings: Borrowing[] }) {
     );
 }
 
-function LendingsTable({ lendings }: { lendings: Lending[] }) {
+function LendingsTable({ lendings, loading }: { lendings: Lending[], loading: boolean }) {
     const appUser = useAppUser();
     const canEdit = appUser?.role === 'owner';
     const activeLendings = lendings.filter(l => l.status !== 'Paid Off');
-    if (activeLendings.length === 0) return null;
+
+    if (loading) return <Card className="p-8 text-center"><Loader2 className="animate-spin mx-auto h-6 w-6 text-primary" /><p className="mt-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">Loading Lendings...</p></Card>;
+
     return (
       <Card>
-        <CardHeader><CardTitle className="text-center">Active Lendings (Loans Given)</CardTitle></CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-center flex-1">Active Lendings (Loans Given)</CardTitle>
+            {lendings.length > activeLendings.length && <Badge variant="outline" className="text-[9px]">+{lendings.length - activeLendings.length} Paid Off</Badge>}
+        </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
@@ -205,6 +231,11 @@ function LendingsTable({ lendings }: { lendings: Lending[] }) {
                   {canEdit && <TableCell><LendingActionsMenu lending={l} /></TableCell>}
                 </TableRow>
               )})}
+              {activeLendings.length === 0 && (
+                <TableRow>
+                    <TableCell colSpan={canEdit ? 6 : 5} className="text-center py-10 text-muted-foreground italic">No active lendings recorded.</TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>
@@ -219,17 +250,19 @@ export default function ExpensesPage() {
   const canEdit = appUser?.role === 'owner';
   
   const warehouseInfoRef = useMemoFirebase(() => (firestore && appUser?.warehouseId ? doc(firestore, 'warehouses', appUser.warehouseId) : null), [firestore, appUser]);
-  const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
-  const { data: allRecords } = useCollection<StorageRecord>(useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'storageRecords'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]));
-  const { data: allCommodities } = useCollection<Commodity>(useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'commodities'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]));
-  const { data: allExpenses } = useCollection<Expense>(useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'expenses'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]));
-  const { data: allUnloadingRecords } = useCollection<UnloadingRecord>(useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'unloadingRecords'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]));
-  const { data: borrowings } = useCollection<Borrowing>(useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'borrowings'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]));
-  const { data: lendings } = useCollection<Lending>(useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'lendings'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]));
-  const { data: otherIncomes } = useCollection<OtherIncome>(useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'otherIncomes'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]));
-  const { data: customerPayments } = useCollection<CustomerPayment>(useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'customerPayments'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]));
+  const { data: warehouseInfo, loading: loadingInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
+  
+  const { data: allRecords, loading: loadingRecords } = useCollection<StorageRecord>(useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'storageRecords'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]));
+  const { data: allCommodities, loading: loadingCommodities } = useCollection<Commodity>(useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'commodities'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]));
+  const { data: allExpenses, loading: loadingExpenses } = useCollection<Expense>(useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'expenses'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]));
+  const { data: allUnloadingRecords, loading: loadingUnloading } = useCollection<UnloadingRecord>(useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'unloadingRecords'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]));
+  const { data: borrowings, loading: loadingBorrowings } = useCollection<Borrowing>(useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'borrowings'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]));
+  const { data: lendings, loading: loadingLendings } = useCollection<Lending>(useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'lendings'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]));
+  const { data: otherIncomes, loading: loadingIncomes } = useCollection<OtherIncome>(useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'otherIncomes'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]));
+  const { data: customerPayments, loading: loadingPayments } = useCollection<CustomerPayment>(useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'customerPayments'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]));
 
   const stats = useMemo(() => {
+    // Return early if data is still loading to avoid P&L card flash, but don't block the rest of the page
     if (!allRecords || !allExpenses || !allUnloadingRecords || !otherIncomes || !allCommodities || !borrowings || !lendings || !customerPayments) return null;
     
     const inRange = (date: Date) => {
@@ -254,7 +287,6 @@ export default function ExpensesPage() {
         calculatedInterest = (capital * (interestRate / 100) / 365) * diffDays;
     }
 
-    // 1. Calculate Gross Income (Actual Cash Receipts)
     const incomeFromRecords = allRecords.flatMap(r => r.payments || []).filter(p => inRange(toDate(p.date)) && p.type !== 'discount').reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
     const incomeFromUnloading = allUnloadingRecords.flatMap(r => r.payments || []).filter(p => inRange(toDate(p.date)) && p.type !== 'discount').reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
     const incomeFromBulk = customerPayments.filter(p => inRange(toDate(p.date)) && !p.isDiscount).reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
@@ -262,7 +294,6 @@ export default function ExpensesPage() {
     
     const totalCashIncome = incomeFromRecords + incomeFromUnloading + incomeFromBulk + incomeFromOther;
 
-    // 2. Calculate Loss from Discounts / Waivers (Including Outflow Patti Discounts)
     const discountFromRecords = allRecords.flatMap(r => r.payments || []).filter(p => inRange(toDate(p.date)) && p.type === 'discount').reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
     const discountFromUnloading = allUnloadingRecords.flatMap(r => r.payments || []).filter(p => inRange(toDate(p.date)) && p.type === 'discount').reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
     const discountFromBulk = customerPayments.filter(p => inRange(toDate(p.date)) && p.isDiscount).reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
@@ -270,7 +301,6 @@ export default function ExpensesPage() {
     
     const totalDiscountLoss = discountFromRecords + discountFromUnloading + discountFromBulk + discountFromOutflows;
 
-    // 3. Total Operational Expenses
     const localFilteredExpenses = allExpenses.filter(e => inRange(toDate(e.date)));
     const totalOperatingExpenses = localFilteredExpenses.reduce((t, e) => t + (Number(e.amount) || 0), 0) + calculatedInterest;
     
@@ -291,7 +321,6 @@ export default function ExpensesPage() {
 
     const getMaxRef = (list: any[]) => String(Math.max(1001, list.reduce((max, item) => Math.max(max, parseInt(item.refNo?.replace(/\D/g, '') || '0', 10)), 0) + 1));
     
-    // Calculate REAL principal dues for summary cards
     const currentTotalBorrowed = borrowings.filter(b => b.status !== 'Paid Off').reduce((acc, b) => {
         const { principalDue } = calculateLoanBalances(b);
         return acc + principalDue;
@@ -320,8 +349,8 @@ export default function ExpensesPage() {
     };
   }, [allRecords, allExpenses, allUnloadingRecords, otherIncomes, customerPayments, dateRange, warehouseInfo, financialYear, allCommodities, borrowings, lendings]);
 
-  if (!stats) return <AppLayout><div className="flex items-center justify-center p-12 text-muted-foreground font-bold animate-pulse">Synchronizing financials...</div></AppLayout>;
-  
+  const isGlobalLoading = loadingRecords && loadingExpenses && loadingBorrowings && loadingLendings;
+
   return (
     <AppLayout>
       <div className="mb-4">
@@ -329,31 +358,44 @@ export default function ExpensesPage() {
         <p className="text-sm text-muted-foreground">Comprehensive financial audit including operational losses and waivers.</p>
         {canEdit && (
             <div className="flex items-center gap-2 flex-wrap mt-4">
-                <AddIncomeDialog lendings={lendings || []} nextRefNo={stats.nextIncomeRefNo} />
-                <AddExpenseDialog borrowings={borrowings || []} nextRefNo={stats.nextExpenseRefNo} />
+                <AddIncomeDialog lendings={lendings || []} nextRefNo={stats?.nextIncomeRefNo || '1001'} />
+                <AddExpenseDialog borrowings={borrowings || []} nextRefNo={stats?.nextExpenseRefNo || '1001'} />
                 <Separator orientation="vertical" className="h-6" />
                 <AddLendingDialog /><AddBorrowingDialog />
                 <Separator orientation="vertical" className="h-6" /><ManageInvestmentDialog initialData={warehouseInfo} />
             </div>
         )}
       </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
-        <Card className="stylish-card"><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Total Income</CardTitle><TrendingUp className="h-4 w-4 text-green-500" /></CardHeader><CardContent><div className="text-2xl font-bold text-green-600">{formatCurrency(stats.periodIncome)}</div></CardContent></Card>
-        <Card className="stylish-card"><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Total Expenses & Loss</CardTitle><TrendingDown className="h-4 w-4 text-red-500" /></CardHeader><CardContent><div className="text-2xl font-bold text-destructive">{formatCurrency(stats.periodExpenses)}</div></CardContent></Card>
-        <Card className="stylish-card"><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Net Profit / Loss</CardTitle><Scale className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className={`text-2xl font-bold ${stats.periodBalance >= 0 ? 'text-primary' : 'text-destructive'}`}>{formatCurrency(stats.periodBalance)}</div></CardContent></Card>
-        <Card className="stylish-card"><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Godown Rent Receivable</CardTitle><IndianRupee className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold text-blue-600">{formatCurrency(stats.estimatedRent)}</div><p className="text-[10px] text-muted-foreground">Accrued rent on {stats.activeBags} balance bags.</p></CardContent></Card>
-      </div>
 
-      <div className="grid gap-4 md:grid-cols-4 mb-8">
-         <Card className="stylish-card border-l-4 border-orange-500"><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-xs font-bold uppercase text-slate-500">Interest on Capital</CardTitle><Banknote className="h-3 w-3 text-orange-500" /></CardHeader><CardContent><div className="text-lg font-black text-orange-600">{formatCurrency(stats.interestOnCapital)}</div></CardContent></Card>
-         <Card className="stylish-card border-l-4 border-red-400 bg-red-50/10"><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-xs font-bold uppercase text-red-600">Discounts (Loss Account)</CardTitle><MinusCircle className="h-3 w-3 text-red-400" /></CardHeader><CardContent><div className="text-lg font-black text-red-600">{formatCurrency(stats.discountLoss)}</div></CardContent></Card>
-        <Card className="stylish-card border-l-4 border-destructive"><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-xs font-bold uppercase text-slate-500">Borrowed Principal</CardTitle><Landmark className="h-3 w-3 text-destructive" /></CardHeader><CardContent><div className="text-lg font-black text-destructive">{formatCurrency(stats.totalBorrowed)}</div></CardContent></Card>
-        <Card className="stylish-card border-l-4 border-emerald-500"><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-xs font-bold uppercase text-slate-500">Lent Principal</CardTitle><HandCoins className="h-3 w-3 text-emerald-500" /></CardHeader><CardContent><div className="text-lg font-black text-emerald-600">{formatCurrency(stats.totalLent)}</div></CardContent></Card>
-      </div>
+      {stats ? (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6 animate-in fade-in duration-500">
+            <Card className="stylish-card"><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Total Income</CardTitle><TrendingUp className="h-4 w-4 text-green-500" /></CardHeader><CardContent><div className="text-2xl font-bold text-green-600">{formatCurrency(stats.periodIncome)}</div></CardContent></Card>
+            <Card className="stylish-card"><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Total Expenses & Loss</CardTitle><TrendingDown className="h-4 w-4 text-red-500" /></CardHeader><CardContent><div className="text-2xl font-bold text-destructive">{formatCurrency(stats.periodExpenses)}</div></CardContent></Card>
+            <Card className="stylish-card"><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Net Profit / Loss</CardTitle><Scale className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className={`text-2xl font-bold ${stats.periodBalance >= 0 ? 'text-primary' : 'text-destructive'}`}>{formatCurrency(stats.periodBalance)}</div></CardContent></Card>
+            <Card className="stylish-card"><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Godown Rent Receivable</CardTitle><IndianRupee className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold text-blue-600">{formatCurrency(stats.estimatedRent)}</div><p className="text-[10px] text-muted-foreground">Accrued rent on {stats.activeBags} balance bags.</p></CardContent></Card>
+        </div>
+      ) : (
+        <div className="h-32 flex items-center justify-center bg-muted/20 border border-dashed rounded-xl mb-6"><Loader2 className="animate-spin mr-2 h-4 w-4" /> Calculating Financials...</div>
+      )}
+
+      {stats && (
+          <div className="grid gap-4 md:grid-cols-4 mb-8">
+             <Card className="stylish-card border-l-4 border-orange-500"><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-xs font-bold uppercase text-slate-500">Interest on Capital</CardTitle><Banknote className="h-3 w-3 text-orange-500" /></CardHeader><CardContent><div className="text-lg font-black text-orange-600">{formatCurrency(stats.interestOnCapital)}</div></CardContent></Card>
+             <Card className="stylish-card border-l-4 border-red-400 bg-red-50/10"><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-xs font-bold uppercase text-red-600">Discounts (Loss Account)</CardTitle><MinusCircle className="h-3 w-3 text-red-400" /></CardHeader><CardContent><div className="text-lg font-black text-red-600">{formatCurrency(stats.discountLoss)}</div></CardContent></Card>
+            <Card className="stylish-card border-l-4 border-destructive"><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-xs font-bold uppercase text-slate-500">Borrowed Principal</CardTitle><Landmark className="h-3 w-3 text-destructive" /></CardHeader><CardContent><div className="text-lg font-black text-destructive">{formatCurrency(stats.totalBorrowed)}</div></CardContent></Card>
+            <Card className="stylish-card border-l-4 border-emerald-500"><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-xs font-bold uppercase text-slate-500">Lent Principal</CardTitle><HandCoins className="h-3 w-3 text-emerald-500" /></CardHeader><CardContent><div className="text-lg font-black text-emerald-600">{formatCurrency(stats.totalLent)}</div></CardContent></Card>
+          </div>
+      )}
 
       <div className="space-y-8">
-        <BorrowingsTable borrowings={borrowings || []} /><LendingsTable lendings={lendings || []} />
-        <IncomesTable incomes={stats.filteredIncomes} /><ExpensesTable expenses={stats.filteredExpenses} />
+        <BorrowingsTable borrowings={borrowings || []} loading={loadingBorrowings} />
+        <LendingsTable lendings={lendings || []} loading={loadingLendings} />
+        {stats && (
+            <>
+                <IncomesTable incomes={stats.filteredIncomes} />
+                <ExpensesTable expenses={stats.filteredExpenses} />
+            </>
+        )}
       </div>
     </AppLayout>
   );

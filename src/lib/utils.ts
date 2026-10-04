@@ -88,20 +88,29 @@ export function parseManualDate(input: string): Date | null {
  */
 export function cleanForFirestore(data: any): any {
   if (data === null || data === undefined) return null;
+  
+  // Handle Date objects
   if (data instanceof Date) return Timestamp.fromDate(data);
+  
+  // Handle Arrays
   if (Array.isArray(data)) return data.map(item => cleanForFirestore(item));
   
+  // Handle Objects
   if (typeof data === 'object') {
-    // 1. Preserve Firestore Timestamps
-    if (typeof data.toDate === 'function') return data;
-    
-    // 2. Preserve Firestore FieldValue operators (arrayUnion, increment, etc.)
+    // 1. Preserve Firestore internal types (Timestamp, FieldValue, etc.)
+    // We check for known markers to identify sentinels that should not be recursed
     const constructorName = data.constructor?.name;
-    if (constructorName === 'FieldValueImpl' || data._methodName || data instanceof Timestamp) {
+    const isFirestoreSentinel = 
+        data instanceof Timestamp || 
+        (typeof data.toDate === 'function' && typeof data.toMillis === 'function') || 
+        (constructorName && (constructorName.includes('FieldValue') || constructorName.includes('Timestamp'))) ||
+        (data._methodName); // Common internal marker for FieldValue
+
+    if (isFirestoreSentinel) {
         return data;
     }
 
-    // 3. Clean standard plain objects
+    // 2. Clean standard plain objects
     const cleanedData: { [key: string]: any } = {};
     for (const key of Object.keys(data)) {
       const value = data[key];

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useTransition, useMemo } from 'react';
@@ -91,7 +90,6 @@ export function OutflowForm({
 
     const customerOptions = useMemo(() => (customers || []).map(c => ({ value: c.id, label: c.name })), [customers]);
 
-    // Commodities that this customer actually has in stock right now
     const availableCommodities = useMemo(() => {
         if (!selectedCustomerId) return [];
         const uniqueSet = new Set<string>();
@@ -131,7 +129,6 @@ export function OutflowForm({
 
     const totalPayable = totalRent + totalPendingHamali + (Number(khataAmountInput) || 0) - (Number(discount) || 0);
 
-    // Reset subordinate selections when parent changes
     useEffect(() => {
         setSelectedCommodity('');
         setWithdrawals({});
@@ -282,7 +279,9 @@ export function OutflowForm({
                         updateData.payments = arrayUnion(cleanForFirestore(newPayment));
                     }
                     
-                    batch.update(doc(firestore, 'storageRecords', record.id), cleanForFirestore(updateData));
+                    // Critical: Do not wrap updateData in cleanForFirestore at the top level
+                    // as it will destroy the arrayUnion operator instructions.
+                    batch.update(doc(firestore, 'storageRecords', record.id), updateData);
                 }
                 
                 await batch.commit();

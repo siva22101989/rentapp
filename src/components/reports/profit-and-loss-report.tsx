@@ -4,7 +4,7 @@ import { formatCurrency, toDate } from "@/lib/utils";
 import { useMemo } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import type { Expense, StorageRecord, UnloadingRecord, WarehouseInfo, Borrowing, Lending, OtherIncome, CustomerPayment } from "@/lib/definitions";
-import { format, differenceInCalendarMonths } from "date-fns";
+import { format, differenceInDays } from "date-fns";
 import { useDateFilter } from "@/firebase/provider";
 import { calculateFinalRent } from "@/lib/billing";
 
@@ -14,15 +14,14 @@ function calculateLoanBalances(loan: Borrowing | Lending) {
     const startDate = toDate((loan as Borrowing).dateTaken || (loan as Lending).dateGiven);
     let lastDate = startDate;
     const monthlyRate = (Number(loan.interestRate) || 0) / 100;
+    const today = new Date();
 
     const allPayments = [...(loan.payments || []).map(p => ({...p, date: toDate(p.date)}))].sort((a,b) => a.date.getTime() - b.date.getTime());
 
     for (const payment of allPayments) {
-        const dateOfPayment = payment.date;
-        const months = differenceInCalendarMonths(dateOfPayment, lastDate);
-        
-        if (months > 0) {
-            accruedInterest += principal * monthlyRate * months;
+        const daysSinceLast = differenceInDays(payment.date, lastDate);
+        if (daysSinceLast > 0) {
+            accruedInterest += principal * monthlyRate * (daysSinceLast / 30);
         }
         
         let paymentAmount = Number(payment.amount) || 0;
@@ -34,13 +33,12 @@ function calculateLoanBalances(loan: Borrowing | Lending) {
             principal -= paymentAmount;
         }
 
-        lastDate = dateOfPayment;
+        lastDate = payment.date;
     }
 
-    const today = new Date();
-    const finalMonths = differenceInCalendarMonths(today, lastDate);
-    if (finalMonths > 0) {
-        accruedInterest += principal * monthlyRate * finalMonths;
+    const finalDays = differenceInDays(today, lastDate);
+    if (finalDays > 0) {
+        accruedInterest += principal * monthlyRate * (finalDays / 30);
     }
 
     return {

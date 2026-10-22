@@ -32,7 +32,7 @@ export function FinancialSummaryReport({
     const { dateRange: globalRange, financialYear } = useDateFilter();
     
     const [breakdownType, setBreakdownType] = useState<'year' | 'month'>('year');
-    const [selectedMonth, setSelectedMonth] = useState<string>('3'); // Default to April
+    const [selectedMonth, setSelectedMonth] = useState<string>(new Date().getMonth().toString());
 
     const activeRange = useMemo(() => {
         if (breakdownType === 'year' || financialYear === 'all-time') return globalRange;
@@ -40,6 +40,7 @@ export function FinancialSummaryReport({
 
         const baseYear = globalRange.from.getFullYear();
         const monthIdx = parseInt(selectedMonth);
+        // Financial year logic: months 0-2 (Jan-Mar) are in the calendar year following the FY start year
         const year = monthIdx <= 2 ? baseYear + 1 : baseYear;
         
         return {
@@ -56,7 +57,7 @@ export function FinancialSummaryReport({
                 map[id] = {
                     customerId: id,
                     customerName: customers.find(c => c.id === id)?.name || 'Unknown',
-                    bagsIn: 0, bagsOut: 0, billed: 0, paid: 0, pending: 0
+                    bagsIn: 0, bagsOut: 0, billed: 0, paid: 0, balance: 0
                 };
             }
             return map[id];
@@ -65,29 +66,42 @@ export function FinancialSummaryReport({
         const inRange = (date: Date) => {
             if (financialYear === 'all-time') return true;
             if (!activeRange || !activeRange.from || !activeRange.to) return true;
-            return isWithinInterval(date, { start: activeRange.from, end: activeRange.to });
+            const d = toDate(date);
+            return d >= activeRange.from && d <= activeRange.to;
         };
 
-        // 1. Process Period-specific movements
+        // 1. Process Storage Records (Inflow activity in range)
         records.forEach(r => {
             const row = getRow(r.customerId);
-            if (inRange(toDate(r.storageStartDate))) {
+            const inflowDate = toDate(r.storageStartDate);
+            
+            if (inRange(inflowDate)) {
                 row.bagsIn += (Number(r.bagsIn) || 0);
                 row.billed += (Number(r.hamaliPayable) || 0) + (Number(r.khataAmount) || 0);
             }
+
+            // Withdrawals (Outflow activity in range)
             (r.outflows || []).forEach(o => {
                 if (inRange(toDate(o.date))) {
                     row.bagsOut += (Number(o.bagsWithdrawn) || 0);
                     row.billed += (Number(o.rentBilled) || 0);
                 }
             });
+
+            // Payments (Cash activity in range)
             (r.payments || []).forEach(p => {
-                if (inRange(toDate(p.date)) && p.type !== 'discount') {
-                    row.paid += (Number(p.amount) || 0);
+                if (inRange(toDate(p.date))) {
+                    if (p.type === 'discount') {
+                        // Discounts act as credits to the balance but are not cash paid
+                        row.paid += (Number(p.amount) || 0);
+                    } else {
+                        row.paid += (Number(p.amount) || 0);
+                    }
                 }
             });
         });
 
+        // 2. Process Unloading Records (Activity in range)
         unloadingRecords.forEach(u => {
             const row = getRow(u.customerId);
             if (inRange(toDate(u.unloadingDate))) {
@@ -95,38 +109,27 @@ export function FinancialSummaryReport({
                 row.billed += (Number(u.totalHamali) || 0);
             }
             (u.payments || []).forEach(p => {
-                if (inRange(toDate(p.date)) && p.type !== 'discount') {
+                if (inRange(toDate(p.date))) {
                     row.paid += (Number(p.amount) || 0);
                 }
             });
         });
 
+        // 3. Process Bulk Ledger (Cash activity in range)
         customerPayments.forEach(cp => {
             const row = getRow(cp.customerId);
-            if (inRange(toDate(cp.date)) && !cp.isDiscount) {
+            if (inRange(toDate(cp.date))) {
                 row.paid += (Number(cp.amount) || 0);
             }
         });
 
-        // 2. Account-wide total balance (Current State)
-        customers.forEach(cust => {
-            const row = getRow(cust.id);
-            let totalLiab = 0; let totalPaid = 0;
-            records.filter(r => r.customerId === cust.id).forEach(r => {
-                totalLiab += (Number(r.hamaliPayable) || 0) + (Number(r.totalRentBilled) || 0) + (Number(r.khataAmount) || 0);
-                (r.payments || []).forEach(p => totalPaid += (Number(p.amount) || 0));
-            });
-            unloadingRecords.filter(u => u.customerId === cust.id).forEach(u => {
-                const rem = Math.max(0, (u.bagsUnloaded || 0) - (u.bagsSentToDrying || 0));
-                totalLiab += rem * (u.hamaliPerBag || 0);
-                (u.payments || []).forEach(p => totalPaid += (Number(p.amount) || 0));
-            });
-            customerPayments.filter(cp => cp.customerId === cust.id).forEach(cp => totalPaid += (Number(cp.amount) || 0));
-            row.pending = Math.max(0, totalLiab - totalPaid);
-        });
-
         return Object.values(map)
-            .filter(r => r.bagsIn > 0 || r.bagsOut > 0 || r.billed > 0 || r.paid > 0 || r.pending > 0.5)
+            .map(row => ({
+                ...row,
+                balance: row.billed - row.paid
+            }))
+            // Filter strictly: only show customers who actually had movement or money flow in this specific period
+            .filter(r => Math.abs(r.bagsIn) > 0 || Math.abs(r.bagsOut) > 0 || Math.abs(r.billed) > 0.5 || Math.abs(r.paid) > 0.5)
             .sort((a, b) => a.customerName.localeCompare(b.customerName));
     }, [records, unloadingRecords, customerPayments, customers, activeRange, financialYear]);
 
@@ -134,23 +137,29 @@ export function FinancialSummaryReport({
         return customerSummaries.reduce((acc, r) => {
             acc.bagsIn += r.bagsIn; acc.bagsOut += r.bagsOut;
             acc.billed += r.billed; acc.paid += r.paid;
-            acc.pending += r.pending;
+            acc.balance += r.balance;
             return acc;
-        }, { bagsIn: 0, bagsOut: 0, billed: 0, paid: 0, pending: 0 });
+        }, { bagsIn: 0, bagsOut: 0, billed: 0, paid: 0, balance: 0 });
     }, [customerSummaries]);
 
     const generatedDate = useMemo(() => format(new Date(), 'dd/MM/yy, hh:mm a'), []);
+
+    const periodLabel = useMemo(() => {
+        if (breakdownType === 'year') return `Financial Year ${financialYear}`;
+        const month = MONTHS.find(m => m.value === selectedMonth)?.label;
+        return `${month} ${financialYear}`;
+    }, [breakdownType, selectedMonth, financialYear]);
 
     return (
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row items-end gap-4 print-hide bg-slate-50 p-4 rounded-xl border border-primary/10">
                 <div className="space-y-1">
-                    <Label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Report Granularity</Label>
+                    <Label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Audit Scope</Label>
                     <Select value={breakdownType} onValueChange={(v: any) => setBreakdownType(v)}>
                         <SelectTrigger className="w-[180px] h-9 font-bold"><SelectValue /></SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="year">Full Year Summary</SelectItem>
-                            <SelectItem value="month">Monthly Audit</SelectItem>
+                            <SelectItem value="year">Full Year Scope</SelectItem>
+                            <SelectItem value="month">Specific Month Audit</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
@@ -171,55 +180,67 @@ export function FinancialSummaryReport({
                 <div className="text-center border-b-2 border-black pb-4 mb-6">
                     <h2 className="text-2xl font-black uppercase tracking-tight leading-none text-center text-primary">{warehouseInfo?.name || "SRI LAKSHMI WAREHOUSE"}</h2>
                     <h3 className="text-sm font-black uppercase tracking-widest mt-2 text-center">
-                        Financial & Stock Summary Report ({breakdownType === 'year' ? financialYear : MONTHS.find(m => m.value === selectedMonth)?.label + ' ' + financialYear})
+                        Periodic Financial & Stock Audit
                     </h3>
-                    <p className="text-[10px] text-slate-400 uppercase mt-1 text-center">Report Audit Token: FSR-{generatedDate}</p>
+                    <p className="text-xs font-bold text-slate-600 mt-1 uppercase text-center">Period: {periodLabel}</p>
+                    <p className="text-[10px] text-slate-400 uppercase mt-1 text-center italic">Report includes ONLY transactions occurring within the selected dates.</p>
                 </div>
 
                 <div className="table-scroll-container border-y-2 border-black">
                     <Table className="text-[13px]">
                         <TableHeader>
-                            <TableRow className="bg-slate-50 border-b-2 border-black">
+                            <TableRow className="bg-slate-50 border-b-2 border-black h-12">
                                 <TableHead className="font-black text-black uppercase text-[10px] py-3 text-center">Customer Name</TableHead>
                                 <TableHead className="font-black text-black uppercase text-[10px] py-3 text-center">Bags In</TableHead>
                                 <TableHead className="font-black text-black uppercase text-[10px] py-3 text-center">Bags Out</TableHead>
-                                <TableHead className="font-black text-black uppercase text-[10px] py-3 text-center">Total Billed (Period)</TableHead>
-                                <TableHead className="font-black text-black uppercase text-[10px] py-3 text-center">Total Paid (Period)</TableHead>
-                                <TableHead className="font-black text-black uppercase text-[10px] py-3 text-center">Current Total Pending</TableHead>
+                                <TableHead className="font-black text-black uppercase text-[10px] py-3 text-center">Billed (Period)</TableHead>
+                                <TableHead className="font-black text-black uppercase text-[10px] py-3 text-center">Paid/Credit (Period)</TableHead>
+                                <TableHead className="font-black text-black uppercase text-[10px] py-3 text-center">Period Balance</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {customerSummaries.map((row) => (
-                                <TableRow key={row.customerId} className="h-9 border-b border-slate-100 hover:bg-slate-50/50">
+                                <TableRow key={row.customerId} className="h-10 border-b border-slate-100 hover:bg-slate-50/50">
                                     <TableCell className="p-1 font-black uppercase tracking-tight text-center">{row.customerName}</TableCell>
                                     <TableCell className="p-1 text-center font-mono font-bold text-green-700">{row.bagsIn || '-'}</TableCell>
                                     <TableCell className="p-1 text-center font-mono font-bold text-orange-600">{row.bagsOut || '-'}</TableCell>
                                     <TableCell className="p-1 text-right font-mono text-center">{row.billed > 0 ? formatCurrency(row.billed) : '-'}</TableCell>
                                     <TableCell className="p-1 text-right font-mono text-green-600 font-bold text-center">{row.paid > 0 ? formatCurrency(row.paid) : '-'}</TableCell>
-                                    <TableCell className={`p-1 text-right font-mono font-black text-center ${row.pending > 0.5 ? 'text-destructive' : 'text-slate-400'}`}>
-                                        {formatCurrency(row.pending)}
+                                    <TableCell className={`p-1 text-right font-mono font-black text-center ${row.balance > 0.5 ? 'text-destructive' : (row.balance < -0.5 ? 'text-green-700' : 'text-slate-300')}`}>
+                                        {formatCurrency(row.balance)}
                                     </TableCell>
                                 </TableRow>
                             ))}
                             {customerSummaries.length === 0 && (
-                                <TableRow><TableCell colSpan={6} className="text-center py-20 text-muted-foreground italic">No transactions recorded for the selected period.</TableCell></TableRow>
+                                <TableRow>
+                                    <TableCell colSpan={6} className="text-center py-24 text-muted-foreground italic font-medium">
+                                        No transactions recorded for the selected period.
+                                    </TableCell>
+                                </TableRow>
                             )}
                         </TableBody>
                         <TableFooter>
-                            <TableRow className="bg-slate-50 text-black font-black border-t-2 border-black h-12">
-                                <TableCell className="text-right uppercase text-[10px] tracking-widest pr-4">Grand Summary Totals</TableCell>
+                            <TableRow className="bg-slate-50 text-black font-black border-t-2 border-black h-14">
+                                <TableCell className="text-right uppercase text-[10px] tracking-widest pr-4">Grand Audit Totals</TableCell>
                                 <TableCell className="text-center font-mono text-base text-green-700">{totals.bagsIn}</TableCell>
                                 <TableCell className="text-center font-mono text-base text-orange-600">{totals.bagsOut}</TableCell>
                                 <TableCell className="text-right font-mono text-center">{formatCurrency(totals.billed)}</TableCell>
                                 <TableCell className="text-right font-mono text-green-700 text-center">{formatCurrency(totals.paid)}</TableCell>
-                                <TableCell className="text-right font-mono text-destructive text-lg text-center">{formatCurrency(totals.pending)}</TableCell>
+                                <TableCell className={`text-right font-mono text-lg text-center ${totals.balance > 0 ? 'text-destructive' : 'text-green-800'}`}>
+                                    {formatCurrency(totals.balance)}
+                                </TableCell>
                             </TableRow>
                         </TableFooter>
                     </Table>
                 </div>
 
-                <div className="mt-20 flex justify-end">
-                    <div className="w-72 border-t-2 border-black text-center pt-2">
+                <div className="mt-20 flex flex-col md:flex-row justify-between gap-12">
+                    <div className="flex-1 text-[11px] text-slate-400 space-y-1">
+                        <p><strong>Note:</strong> This report represents activity ONLY within the chosen timeframe.</p>
+                        <p><strong>Period Balance:</strong> Positive means money owed from this period. Negative means advance/excess payment in this period.</p>
+                        <p><strong>Generated on:</strong> {generatedDate}</p>
+                    </div>
+                    <div className="w-72 border-t-2 border-black text-center pt-2 shrink-0">
                         <p className="font-black text-[12px] uppercase tracking-widest text-slate-800 text-center">Authorized Manager Signature</p>
                     </div>
                 </div>

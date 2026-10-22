@@ -7,8 +7,8 @@ import { formatCurrency, toDate } from "@/lib/utils";
 import { useMemo, useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Expense, StorageRecord, WarehouseInfo, Borrowing, Lending, OtherIncome, Commodity, UnloadingRecord, CustomerPayment } from "@/lib/definitions";
-import { format, differenceInCalendarMonths } from "date-fns";
-import { ExpenseActionsMenu } from "@/components/expenses/expense-actions-menu";
+import { format, differenceInCalendarMonths, differenceInDays } from "date-fns";
+import { ExpenseActionsMenu } from "@/components/expenses/explanation-actions-menu";
 import { useCollection, useFirestore, useDateFilter, useDoc, useAppUser } from "@/firebase";
 import { collection, doc, query, where } from "firebase/firestore";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
@@ -23,43 +23,46 @@ import { LendingActionsMenu } from "@/components/lendings/lending-actions-menu";
 import { Badge } from "@/components/ui/badge";
 
 function calculateLoanBalances(loan: Borrowing | Lending) {
-    let principal = Number(loan.principal) || 0;
-    let accruedInterest = 0;
-    const startDate = toDate((loan as Borrowing).dateTaken || (loan as Lending).dateGiven);
-    let lastDate = startDate;
+    const principal = Number(loan.principal) || 0;
     const monthlyRate = (Number(loan.interestRate) || 0) / 100;
+    const startDate = toDate((loan as Borrowing).dateTaken || (loan as Lending).dateGiven);
+    const today = new Date();
 
     const allPayments = [...(loan.payments || []).map(p => ({...p, date: toDate(p.date)}))].sort((a,b) => a.date.getTime() - b.date.getTime());
 
+    let currentPrincipal = principal;
+    let totalAccruedInterest = 0;
+    let lastDate = startDate;
+
     for (const payment of allPayments) {
-        const dateOfPayment = payment.date;
-        const months = differenceInCalendarMonths(dateOfPayment, lastDate);
-        
-        if (months > 0) {
-            accruedInterest += principal * monthlyRate * months;
+        const days = differenceInDays(payment.date, lastDate);
+        if (days > 0) {
+            totalAccruedInterest += (currentPrincipal * (monthlyRate / 30) * days);
         }
         
-        let paymentAmount = Number(payment.amount) || 0;
-        const interestPayment = Math.min(paymentAmount, accruedInterest);
-        accruedInterest -= interestPayment;
-        paymentAmount -= interestPayment;
-
-        if (paymentAmount > 0) {
-            principal -= paymentAmount;
+        let payAmt = Number(payment.amount) || 0;
+        const interestClear = Math.min(payAmt, totalAccruedInterest);
+        totalAccruedInterest -= interestClear;
+        payAmt -= interestClear;
+        
+        if (payAmt > 0) {
+            currentPrincipal -= payAmt;
         }
-
-        lastDate = dateOfPayment;
+        lastDate = payment.date;
     }
 
-    const today = new Date();
-    const finalMonths = differenceInCalendarMonths(today, lastDate);
-    if (finalMonths > 0) {
-        accruedInterest += principal * monthlyRate * finalMonths;
+    const finalDays = differenceInDays(today, lastDate);
+    if (finalDays > 0) {
+        totalAccruedInterest += (currentPrincipal * (monthlyRate / 30) * finalDays);
     }
+
+    const months = Math.floor(differenceInDays(today, startDate) / 30);
+    const days = differenceInDays(today, startDate) % 30;
 
     return {
-        principalDue: Math.max(0, principal),
-        interestDue: Math.max(0, accruedInterest)
+        principalDue: Math.max(0, currentPrincipal),
+        interestDue: Math.max(0, totalAccruedInterest),
+        periodStr: `${months}m ${days}d`
     };
 }
 
@@ -153,7 +156,7 @@ function BorrowingsTable({ borrowings, loading }: { borrowings: Borrowing[], loa
     return (
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-center flex-1">Active Borrowings (Loans Taken)</CardTitle>
+            <CardTitle className="text-center flex-1 uppercase text-sm font-black tracking-widest text-slate-400">Active Borrowings (Loans Taken)</CardTitle>
             {borrowings.length > activeBorrowings.length && <Badge variant="outline" className="text-[9px]">+{borrowings.length - activeBorrowings.length} Paid Off</Badge>}
         </CardHeader>
         <CardContent>
@@ -161,6 +164,7 @@ function BorrowingsTable({ borrowings, loading }: { borrowings: Borrowing[], loa
             <TableHeader>
               <TableRow>
                 <TableHead className="uppercase text-[10px] font-bold text-center">Date Taken</TableHead>
+                <TableHead className="uppercase text-[10px] font-bold text-center">Period</TableHead>
                 <TableHead className="uppercase text-[10px] font-bold text-center">Lender</TableHead>
                 <TableHead className="text-center uppercase text-[10px] font-bold">Principal Due</TableHead>
                 <TableHead className="text-center uppercase text-[10px] font-bold">Interest Due</TableHead>
@@ -170,11 +174,12 @@ function BorrowingsTable({ borrowings, loading }: { borrowings: Borrowing[], loa
             </TableHeader>
             <TableBody>
               {activeBorrowings.map((b) => {
-                const { principalDue, interestDue } = calculateLoanBalances(b);
+                const { principalDue, interestDue, periodStr } = calculateLoanBalances(b);
                 return (
                 <TableRow key={b.id} className="h-8 text-[13px]">
                   <TableCell className="text-center">{format(toDate(b.dateTaken), 'dd/MM/yy')}</TableCell>
-                  <TableCell className="font-medium text-center">{b.lenderName}</TableCell>
+                  <TableCell className="text-center font-mono text-slate-500">{periodStr}</TableCell>
+                  <TableCell className="font-black text-center uppercase">{b.lenderName}</TableCell>
                   <TableCell className="text-right font-mono text-destructive">{formatCurrency(principalDue)}</TableCell>
                   <TableCell className="text-right font-mono text-destructive">{formatCurrency(interestDue)}</TableCell>
                   <TableCell className="text-right font-mono text-destructive font-bold">{formatCurrency(principalDue + interestDue)}</TableCell>
@@ -183,7 +188,7 @@ function BorrowingsTable({ borrowings, loading }: { borrowings: Borrowing[], loa
               )})}
               {activeBorrowings.length === 0 && (
                 <TableRow>
-                    <TableCell colSpan={canEdit ? 6 : 5} className="text-center py-10 text-muted-foreground italic">No active borrowings recorded.</TableCell>
+                    <TableCell colSpan={canEdit ? 7 : 6} className="text-center py-10 text-muted-foreground italic">No active borrowings recorded.</TableCell>
                 </TableRow>
               )}
             </TableBody>
@@ -203,7 +208,7 @@ function LendingsTable({ lendings, loading }: { lendings: Lending[], loading: bo
     return (
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-center flex-1">Active Lendings (Loans Given)</CardTitle>
+            <CardTitle className="text-center flex-1 uppercase text-sm font-black tracking-widest text-slate-400">Active Lendings (Loans Given)</CardTitle>
             {lendings.length > activeLendings.length && <Badge variant="outline" className="text-[9px]">+{lendings.length - activeLendings.length} Paid Off</Badge>}
         </CardHeader>
         <CardContent>
@@ -211,6 +216,7 @@ function LendingsTable({ lendings, loading }: { lendings: Lending[], loading: bo
             <TableHeader>
               <TableRow>
                 <TableHead className="uppercase text-[10px] font-bold text-center">Date Given</TableHead>
+                <TableHead className="uppercase text-[10px] font-bold text-center">Period</TableHead>
                 <TableHead className="uppercase text-[10px] font-bold text-center">Borrower</TableHead>
                 <TableHead className="text-center uppercase text-[10px] font-bold">Principal Due</TableHead>
                 <TableHead className="text-center uppercase text-[10px] font-bold">Interest Due</TableHead>
@@ -220,11 +226,12 @@ function LendingsTable({ lendings, loading }: { lendings: Lending[], loading: bo
             </TableHeader>
             <TableBody>
               {activeLendings.map((l) => {
-                const { principalDue, interestDue } = calculateLoanBalances(l);
+                const { principalDue, interestDue, periodStr } = calculateLoanBalances(l);
                 return (
                 <TableRow key={l.id} className="h-8 text-[13px]">
                   <TableCell className="text-center">{format(toDate(l.dateGiven), 'dd/MM/yy')}</TableCell>
-                  <TableCell className="font-medium text-center">{l.borrowerName}</TableCell>
+                  <TableCell className="text-center font-mono text-slate-500">{periodStr}</TableCell>
+                  <TableCell className="font-black text-center uppercase">{l.borrowerName}</TableCell>
                   <TableCell className="text-right font-mono text-green-600">{formatCurrency(principalDue)}</TableCell>
                   <TableCell className="text-right font-mono text-green-600">{formatCurrency(interestDue)}</TableCell>
                   <TableCell className="text-right font-mono text-green-600 font-bold">{formatCurrency(principalDue + interestDue)}</TableCell>
@@ -233,7 +240,7 @@ function LendingsTable({ lendings, loading }: { lendings: Lending[], loading: bo
               )})}
               {activeLendings.length === 0 && (
                 <TableRow>
-                    <TableCell colSpan={canEdit ? 6 : 5} className="text-center py-10 text-muted-foreground italic">No active lendings recorded.</TableCell>
+                    <TableCell colSpan={canEdit ? 7 : 6} className="text-center py-10 text-muted-foreground italic">No active lendings recorded.</TableCell>
                 </TableRow>
               )}
             </TableBody>
@@ -250,19 +257,18 @@ export default function ExpensesPage() {
   const canEdit = appUser?.role === 'owner';
   
   const warehouseInfoRef = useMemoFirebase(() => (firestore && appUser?.warehouseId ? doc(firestore, 'warehouses', appUser.warehouseId) : null), [firestore, appUser]);
-  const { data: warehouseInfo, loading: loadingInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
+  const { data: warehouseInfo } = useDoc<WarehouseInfo>(warehouseInfoRef);
   
-  const { data: allRecords, loading: loadingRecords } = useCollection<StorageRecord>(useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'storageRecords'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]));
-  const { data: allCommodities, loading: loadingCommodities } = useCollection<Commodity>(useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'commodities'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]));
-  const { data: allExpenses, loading: loadingExpenses } = useCollection<Expense>(useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'expenses'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]));
-  const { data: allUnloadingRecords, loading: loadingUnloading } = useCollection<UnloadingRecord>(useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'unloadingRecords'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]));
+  const { data: allRecords } = useCollection<StorageRecord>(useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'storageRecords'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]));
+  const { data: allCommodities } = useCollection<Commodity>(useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'commodities'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]));
+  const { data: allExpenses } = useCollection<Expense>(useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'expenses'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]));
+  const { data: allUnloadingRecords } = useCollection<UnloadingRecord>(useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'unloadingRecords'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]));
   const { data: borrowings, loading: loadingBorrowings } = useCollection<Borrowing>(useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'borrowings'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]));
   const { data: lendings, loading: loadingLendings } = useCollection<Lending>(useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'lendings'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]));
-  const { data: otherIncomes, loading: loadingIncomes } = useCollection<OtherIncome>(useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'otherIncomes'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]));
-  const { data: customerPayments, loading: loadingPayments } = useCollection<CustomerPayment>(useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'customerPayments'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]));
+  const { data: otherIncomes } = useCollection<OtherIncome>(useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'otherIncomes'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]));
+  const { data: customerPayments } = useCollection<CustomerPayment>(useMemoFirebase(() => (firestore && appUser?.warehouseId ? query(collection(firestore, 'customerPayments'), where('warehouseId', '==', appUser.warehouseId)) : null), [firestore, appUser]));
 
   const stats = useMemo(() => {
-    // Return early if data is still loading to avoid P&L card flash, but don't block the rest of the page
     if (!allRecords || !allExpenses || !allUnloadingRecords || !otherIncomes || !allCommodities || !borrowings || !lendings || !customerPayments) return null;
     
     const inRange = (date: Date) => {
@@ -348,8 +354,6 @@ export default function ExpensesPage() {
         totalLent: currentTotalLent 
     };
   }, [allRecords, allExpenses, allUnloadingRecords, otherIncomes, customerPayments, dateRange, warehouseInfo, financialYear, allCommodities, borrowings, lendings]);
-
-  const isGlobalLoading = loadingRecords && loadingExpenses && loadingBorrowings && loadingLendings;
 
   return (
     <AppLayout>

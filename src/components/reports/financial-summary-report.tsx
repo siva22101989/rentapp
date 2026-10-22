@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
-import { format, isWithinInterval, startOfMonth, endOfMonth } from "date-fns";
+import { format, startOfMonth, endOfMonth } from "date-fns";
 import type { Customer, StorageRecord, UnloadingRecord, CustomerPayment, WarehouseInfo } from "@/lib/definitions";
 import { formatCurrency, toDate } from '@/lib/utils';
 import { useDateFilter } from '@/firebase/provider';
@@ -40,7 +40,6 @@ export function FinancialSummaryReport({
 
         const baseYear = globalRange.from.getFullYear();
         const monthIdx = parseInt(selectedMonth);
-        // Financial year logic: months 0-2 (Jan-Mar) are in the calendar year following the FY start year
         const year = monthIdx <= 2 ? baseYear + 1 : baseYear;
         
         return {
@@ -57,7 +56,7 @@ export function FinancialSummaryReport({
                 map[id] = {
                     customerId: id,
                     customerName: customers.find(c => c.id === id)?.name || 'Unknown',
-                    bagsIn: 0, bagsOut: 0, billed: 0, paid: 0, balance: 0
+                    bagsIn: 0, bagsOut: 0, billed: 0, paid: 0, balance: 0, discounts: 0
                 };
             }
             return map[id];
@@ -70,7 +69,6 @@ export function FinancialSummaryReport({
             return d >= activeRange.from && d <= activeRange.to;
         };
 
-        // 1. Process Storage Records (Inflow activity in range)
         records.forEach(r => {
             const row = getRow(r.customerId);
             const inflowDate = toDate(r.storageStartDate);
@@ -80,20 +78,18 @@ export function FinancialSummaryReport({
                 row.billed += (Number(r.hamaliPayable) || 0) + (Number(r.khataAmount) || 0);
             }
 
-            // Withdrawals (Outflow activity in range)
             (r.outflows || []).forEach(o => {
                 if (inRange(toDate(o.date))) {
                     row.bagsOut += (Number(o.bagsWithdrawn) || 0);
                     row.billed += (Number(o.rentBilled) || 0);
+                    row.discounts += (Number(o.discount) || 0);
                 }
             });
 
-            // Payments (Cash activity in range)
             (r.payments || []).forEach(p => {
                 if (inRange(toDate(p.date))) {
                     if (p.type === 'discount') {
-                        // Discounts act as credits to the balance but are not cash paid
-                        row.paid += (Number(p.amount) || 0);
+                        row.discounts += (Number(p.amount) || 0);
                     } else {
                         row.paid += (Number(p.amount) || 0);
                     }
@@ -101,7 +97,6 @@ export function FinancialSummaryReport({
             });
         });
 
-        // 2. Process Unloading Records (Activity in range)
         unloadingRecords.forEach(u => {
             const row = getRow(u.customerId);
             if (inRange(toDate(u.unloadingDate))) {
@@ -110,40 +105,39 @@ export function FinancialSummaryReport({
             }
             (u.payments || []).forEach(p => {
                 if (inRange(toDate(p.date))) {
-                    row.paid += (Number(p.amount) || 0);
+                    if (p.type === 'discount') row.discounts += (Number(p.amount) || 0);
+                    else row.paid += (Number(p.amount) || 0);
                 }
             });
         });
 
-        // 3. Process Bulk Ledger (Cash activity in range)
         customerPayments.forEach(cp => {
             const row = getRow(cp.customerId);
             if (inRange(toDate(cp.date))) {
-                row.paid += (Number(cp.amount) || 0);
+                if (cp.isDiscount) row.discounts += (Number(cp.amount) || 0);
+                else row.paid += (Number(cp.amount) || 0);
             }
         });
 
         return Object.values(map)
             .map(row => ({
                 ...row,
-                balance: row.billed - row.paid
+                balance: row.billed - row.paid - row.discounts
             }))
-            // Filter strictly: only show customers who actually had movement or money flow in this specific period
-            .filter(r => Math.abs(r.bagsIn) > 0 || Math.abs(r.bagsOut) > 0 || Math.abs(r.billed) > 0.5 || Math.abs(r.paid) > 0.5)
+            .filter(r => Math.abs(r.bagsIn) > 0 || Math.abs(r.bagsOut) > 0 || Math.abs(r.billed) > 0.5 || Math.abs(r.paid) > 0.5 || Math.abs(r.discounts) > 0.5)
             .sort((a, b) => a.customerName.localeCompare(b.customerName));
     }, [records, unloadingRecords, customerPayments, customers, activeRange, financialYear]);
 
     const totals = useMemo(() => {
         return customerSummaries.reduce((acc, r) => {
             acc.bagsIn += r.bagsIn; acc.bagsOut += r.bagsOut;
-            acc.billed += r.billed; acc.paid += r.paid;
+            acc.billed += r.billed; acc.paid += r.paid; acc.discounts += r.discounts;
             acc.balance += r.balance;
             return acc;
-        }, { bagsIn: 0, bagsOut: 0, billed: 0, paid: 0, balance: 0 });
+        }, { bagsIn: 0, bagsOut: 0, billed: 0, paid: 0, discounts: 0, balance: 0 });
     }, [customerSummaries]);
 
     const generatedDate = useMemo(() => format(new Date(), 'dd/MM/yy, hh:mm a'), []);
-
     const periodLabel = useMemo(() => {
         if (breakdownType === 'year') return `Financial Year ${financialYear}`;
         const month = MONTHS.find(m => m.value === selectedMonth)?.label;
@@ -179,11 +173,9 @@ export function FinancialSummaryReport({
             <div className="bg-white p-6 rounded-xl border shadow-sm printable-area">
                 <div className="text-center border-b-2 border-black pb-4 mb-6">
                     <h2 className="text-2xl font-black uppercase tracking-tight leading-none text-center text-primary">{warehouseInfo?.name || "SRI LAKSHMI WAREHOUSE"}</h2>
-                    <h3 className="text-sm font-black uppercase tracking-widest mt-2 text-center">
-                        Periodic Financial & Stock Audit
-                    </h3>
+                    <h3 className="text-sm font-black uppercase tracking-widest mt-2 text-center">Periodic Financial & Stock Audit</h3>
                     <p className="text-xs font-bold text-slate-600 mt-1 uppercase text-center">Period: {periodLabel}</p>
-                    <p className="text-[10px] text-slate-400 uppercase mt-1 text-center italic">Report includes ONLY transactions occurring within the selected dates.</p>
+                    <p className="text-[10px] text-slate-400 uppercase mt-1 text-center italic">Report shows activity strictly within chosen timeframe.</p>
                 </div>
 
                 <div className="table-scroll-container border-y-2 border-black">
@@ -193,8 +185,9 @@ export function FinancialSummaryReport({
                                 <TableHead className="font-black text-black uppercase text-[10px] py-3 text-center">Customer Name</TableHead>
                                 <TableHead className="font-black text-black uppercase text-[10px] py-3 text-center">Bags In</TableHead>
                                 <TableHead className="font-black text-black uppercase text-[10px] py-3 text-center">Bags Out</TableHead>
-                                <TableHead className="font-black text-black uppercase text-[10px] py-3 text-center">Billed (Period)</TableHead>
-                                <TableHead className="font-black text-black uppercase text-[10px] py-3 text-center">Paid/Credit (Period)</TableHead>
+                                <TableHead className="font-black text-black uppercase text-[10px] py-3 text-center">Billed</TableHead>
+                                <TableHead className="font-black text-black uppercase text-[10px] py-3 text-center">Discounts (Waivers)</TableHead>
+                                <TableHead className="font-black text-black uppercase text-[10px] py-3 text-center">Paid (Cash)</TableHead>
                                 <TableHead className="font-black text-black uppercase text-[10px] py-3 text-center">Period Balance</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -205,6 +198,7 @@ export function FinancialSummaryReport({
                                     <TableCell className="p-1 text-center font-mono font-bold text-green-700">{row.bagsIn || '-'}</TableCell>
                                     <TableCell className="p-1 text-center font-mono font-bold text-orange-600">{row.bagsOut || '-'}</TableCell>
                                     <TableCell className="p-1 text-right font-mono text-center">{row.billed > 0 ? formatCurrency(row.billed) : '-'}</TableCell>
+                                    <TableCell className="p-1 text-right font-mono text-destructive text-center">{row.discounts > 0 ? formatCurrency(row.discounts) : '-'}</TableCell>
                                     <TableCell className="p-1 text-right font-mono text-green-600 font-bold text-center">{row.paid > 0 ? formatCurrency(row.paid) : '-'}</TableCell>
                                     <TableCell className={`p-1 text-right font-mono font-black text-center ${row.balance > 0.5 ? 'text-destructive' : (row.balance < -0.5 ? 'text-green-700' : 'text-slate-300')}`}>
                                         {formatCurrency(row.balance)}
@@ -212,11 +206,7 @@ export function FinancialSummaryReport({
                                 </TableRow>
                             ))}
                             {customerSummaries.length === 0 && (
-                                <TableRow>
-                                    <TableCell colSpan={6} className="text-center py-24 text-muted-foreground italic font-medium">
-                                        No transactions recorded for the selected period.
-                                    </TableCell>
-                                </TableRow>
+                                <TableRow><TableCell colSpan={7} className="text-center py-24 text-muted-foreground italic">No transactions found.</TableCell></TableRow>
                             )}
                         </TableBody>
                         <TableFooter>
@@ -225,6 +215,7 @@ export function FinancialSummaryReport({
                                 <TableCell className="text-center font-mono text-base text-green-700">{totals.bagsIn}</TableCell>
                                 <TableCell className="text-center font-mono text-base text-orange-600">{totals.bagsOut}</TableCell>
                                 <TableCell className="text-right font-mono text-center">{formatCurrency(totals.billed)}</TableCell>
+                                <TableCell className="text-right font-mono text-destructive text-center">{formatCurrency(totals.discounts)}</TableCell>
                                 <TableCell className="text-right font-mono text-green-700 text-center">{formatCurrency(totals.paid)}</TableCell>
                                 <TableCell className={`text-right font-mono text-lg text-center ${totals.balance > 0 ? 'text-destructive' : 'text-green-800'}`}>
                                     {formatCurrency(totals.balance)}
@@ -236,9 +227,9 @@ export function FinancialSummaryReport({
 
                 <div className="mt-20 flex flex-col md:flex-row justify-between gap-12">
                     <div className="flex-1 text-[11px] text-slate-400 space-y-1">
-                        <p><strong>Note:</strong> This report represents activity ONLY within the chosen timeframe.</p>
-                        <p><strong>Period Balance:</strong> Positive means money owed from this period. Negative means advance/excess payment in this period.</p>
-                        <p><strong>Generated on:</strong> {generatedDate}</p>
+                        <p><strong>Note:</strong> Discounts are treated as a direct revenue loss for the company audit.</p>
+                        <p><strong>Period Balance:</strong> Billed - (Paid + Discounts). Positive means money owed from this period.</p>
+                        <p><strong>Generated:</strong> {generatedDate}</p>
                     </div>
                     <div className="w-72 border-t-2 border-black text-center pt-2 shrink-0">
                         <p className="font-black text-[12px] uppercase tracking-widest text-slate-800 text-center">Authorized Manager Signature</p>

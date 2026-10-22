@@ -2,13 +2,18 @@
 import { AppLayout } from "@/components/layout/app-layout";
 import { AddExpenseDialog } from "@/components/expenses/add-expense-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Scale, Banknote, IndianRupee, Landmark, HandCoins, MinusCircle, Loader2 } from "lucide-react";
+import { TrendingUp, TrendingDown, Scale, Banknote, IndianRupee, Landmark, HandCoins, MinusCircle, Loader2, CalendarClock } from "lucide-react";
 import { formatCurrency, toDate } from "@/lib/utils";
 import { useMemo, useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Expense, StorageRecord, WarehouseInfo, Borrowing, Lending, OtherIncome, Commodity, UnloadingRecord, CustomerPayment } from "@/lib/definitions";
+<<<<<<< HEAD
 import { format, differenceInCalendarMonths, differenceInDays } from "date-fns";
 import { ExpenseActionsMenu } from "@/components/expenses/explanation-actions-menu";
+=======
+import { format, differenceInDays } from "date-fns";
+import { ExpenseActionsMenu } from "@/components/expenses/expense-actions-menu";
+>>>>>>> 461bfb1d1ec1f1886c946306cde2625d8ddab7c9
 import { useCollection, useFirestore, useDateFilter, useDoc, useAppUser } from "@/firebase";
 import { collection, doc, query, where } from "firebase/firestore";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
@@ -25,7 +30,10 @@ import { Badge } from "@/components/ui/badge";
 function calculateLoanBalances(loan: Borrowing | Lending) {
     const principal = Number(loan.principal) || 0;
     const monthlyRate = (Number(loan.interestRate) || 0) / 100;
+<<<<<<< HEAD
     const startDate = toDate((loan as Borrowing).dateTaken || (loan as Lending).dateGiven);
+=======
+>>>>>>> 461bfb1d1ec1f1886c946306cde2625d8ddab7c9
     const today = new Date();
 
     const allPayments = [...(loan.payments || []).map(p => ({...p, date: toDate(p.date)}))].sort((a,b) => a.date.getTime() - b.date.getTime());
@@ -35,9 +43,16 @@ function calculateLoanBalances(loan: Borrowing | Lending) {
     let lastDate = startDate;
 
     for (const payment of allPayments) {
+<<<<<<< HEAD
         const days = differenceInDays(payment.date, lastDate);
         if (days > 0) {
             totalAccruedInterest += (currentPrincipal * (monthlyRate / 30) * days);
+=======
+        // Calculate interest accrued since the last transaction/start
+        const daysSinceLast = differenceInDays(payment.date, lastDate);
+        if (daysSinceLast > 0) {
+            accruedInterest += principal * monthlyRate * (daysSinceLast / 30);
+>>>>>>> 461bfb1d1ec1f1886c946306cde2625d8ddab7c9
         }
         
         let payAmt = Number(payment.amount) || 0;
@@ -48,6 +63,7 @@ function calculateLoanBalances(loan: Borrowing | Lending) {
         if (payAmt > 0) {
             currentPrincipal -= payAmt;
         }
+<<<<<<< HEAD
         lastDate = payment.date;
     }
 
@@ -63,6 +79,26 @@ function calculateLoanBalances(loan: Borrowing | Lending) {
         principalDue: Math.max(0, currentPrincipal),
         interestDue: Math.max(0, totalAccruedInterest),
         periodStr: `${months}m ${days}d`
+=======
+
+        lastDate = payment.date;
+    }
+
+    // Accrue interest from the last payment up to today
+    const finalDays = differenceInDays(today, lastDate);
+    if (finalDays > 0) {
+        accruedInterest += principal * monthlyRate * (finalDays / 30);
+    }
+
+    const totalDays = differenceInDays(today, startDate);
+    const months = Math.floor(totalDays / 30);
+    const remainingDays = totalDays % 30;
+
+    return {
+        principalDue: Math.max(0, principal),
+        interestDue: Math.max(0, accruedInterest),
+        duration: `${months}m ${remainingDays}d`
+>>>>>>> 461bfb1d1ec1f1886c946306cde2625d8ddab7c9
     };
 }
 
@@ -166,6 +202,7 @@ function BorrowingsTable({ borrowings, loading }: { borrowings: Borrowing[], loa
                 <TableHead className="uppercase text-[10px] font-bold text-center">Date Taken</TableHead>
                 <TableHead className="uppercase text-[10px] font-bold text-center">Period</TableHead>
                 <TableHead className="uppercase text-[10px] font-bold text-center">Lender</TableHead>
+                <TableHead className="uppercase text-[10px] font-bold text-center">Period</TableHead>
                 <TableHead className="text-center uppercase text-[10px] font-bold">Principal Due</TableHead>
                 <TableHead className="text-center uppercase text-[10px] font-bold">Interest Due</TableHead>
                 <TableHead className="text-center uppercase text-[10px] font-bold">Total Amount</TableHead>
@@ -174,12 +211,21 @@ function BorrowingsTable({ borrowings, loading }: { borrowings: Borrowing[], loa
             </TableHeader>
             <TableBody>
               {activeBorrowings.map((b) => {
+<<<<<<< HEAD
                 const { principalDue, interestDue, periodStr } = calculateLoanBalances(b);
                 return (
                 <TableRow key={b.id} className="h-8 text-[13px]">
                   <TableCell className="text-center">{format(toDate(b.dateTaken), 'dd/MM/yy')}</TableCell>
                   <TableCell className="text-center font-mono text-slate-500">{periodStr}</TableCell>
                   <TableCell className="font-black text-center uppercase">{b.lenderName}</TableCell>
+=======
+                const { principalDue, interestDue, duration } = calculateLoanBalances(b);
+                return (
+                <TableRow key={b.id} className="h-8 text-[13px]">
+                  <TableCell className="text-center">{format(toDate(b.dateTaken), 'dd/MM/yy')}</TableCell>
+                  <TableCell className="font-medium text-center">{b.lenderName}</TableCell>
+                  <TableCell className="text-center font-bold text-slate-500 uppercase text-[10px]">{duration}</TableCell>
+>>>>>>> 461bfb1d1ec1f1886c946306cde2625d8ddab7c9
                   <TableCell className="text-right font-mono text-destructive">{formatCurrency(principalDue)}</TableCell>
                   <TableCell className="text-right font-mono text-destructive">{formatCurrency(interestDue)}</TableCell>
                   <TableCell className="text-right font-mono text-destructive font-bold">{formatCurrency(principalDue + interestDue)}</TableCell>
@@ -218,6 +264,7 @@ function LendingsTable({ lendings, loading }: { lendings: Lending[], loading: bo
                 <TableHead className="uppercase text-[10px] font-bold text-center">Date Given</TableHead>
                 <TableHead className="uppercase text-[10px] font-bold text-center">Period</TableHead>
                 <TableHead className="uppercase text-[10px] font-bold text-center">Borrower</TableHead>
+                <TableHead className="uppercase text-[10px] font-bold text-center">Period</TableHead>
                 <TableHead className="text-center uppercase text-[10px] font-bold">Principal Due</TableHead>
                 <TableHead className="text-center uppercase text-[10px] font-bold">Interest Due</TableHead>
                 <TableHead className="text-center uppercase text-[10px] font-bold">Total Amount</TableHead>
@@ -226,12 +273,21 @@ function LendingsTable({ lendings, loading }: { lendings: Lending[], loading: bo
             </TableHeader>
             <TableBody>
               {activeLendings.map((l) => {
+<<<<<<< HEAD
                 const { principalDue, interestDue, periodStr } = calculateLoanBalances(l);
                 return (
                 <TableRow key={l.id} className="h-8 text-[13px]">
                   <TableCell className="text-center">{format(toDate(l.dateGiven), 'dd/MM/yy')}</TableCell>
                   <TableCell className="text-center font-mono text-slate-500">{periodStr}</TableCell>
                   <TableCell className="font-black text-center uppercase">{l.borrowerName}</TableCell>
+=======
+                const { principalDue, interestDue, duration } = calculateLoanBalances(l);
+                return (
+                <TableRow key={l.id} className="h-8 text-[13px]">
+                  <TableCell className="text-center">{format(toDate(l.dateGiven), 'dd/MM/yy')}</TableCell>
+                  <TableCell className="font-medium text-center">{l.borrowerName}</TableCell>
+                  <TableCell className="text-center font-bold text-slate-500 uppercase text-[10px]">{duration}</TableCell>
+>>>>>>> 461bfb1d1ec1f1886c946306cde2625d8ddab7c9
                   <TableCell className="text-right font-mono text-green-600">{formatCurrency(principalDue)}</TableCell>
                   <TableCell className="text-right font-mono text-green-600">{formatCurrency(interestDue)}</TableCell>
                   <TableCell className="text-right font-mono text-green-600 font-bold">{formatCurrency(principalDue + interestDue)}</TableCell>

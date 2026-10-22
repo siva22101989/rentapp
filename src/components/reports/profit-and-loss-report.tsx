@@ -11,7 +11,10 @@ import { calculateFinalRent } from "@/lib/billing";
 function calculateLoanBalances(loan: Borrowing | Lending) {
     const principal = Number(loan.principal) || 0;
     const monthlyRate = (Number(loan.interestRate) || 0) / 100;
+<<<<<<< HEAD
     const startDate = toDate((loan as Borrowing).dateTaken || (loan as Lending).dateGiven);
+=======
+>>>>>>> 461bfb1d1ec1f1886c946306cde2625d8ddab7c9
     const today = new Date();
 
     const allPayments = [...(loan.payments || []).map(p => ({...p, date: toDate(p.date)}))].sort((a,b) => a.date.getTime() - b.date.getTime());
@@ -21,9 +24,15 @@ function calculateLoanBalances(loan: Borrowing | Lending) {
     let lastDate = startDate;
 
     for (const payment of allPayments) {
+<<<<<<< HEAD
         const days = differenceInDays(payment.date, lastDate);
         if (days > 0) {
             totalAccruedInterest += (currentPrincipal * (monthlyRate / 30) * days);
+=======
+        const daysSinceLast = differenceInDays(payment.date, lastDate);
+        if (daysSinceLast > 0) {
+            accruedInterest += principal * monthlyRate * (daysSinceLast / 30);
+>>>>>>> 461bfb1d1ec1f1886c946306cde2625d8ddab7c9
         }
         
         let payAmt = Number(payment.amount) || 0;
@@ -34,12 +43,20 @@ function calculateLoanBalances(loan: Borrowing | Lending) {
         if (payAmt > 0) {
             currentPrincipal -= payAmt;
         }
+<<<<<<< HEAD
+=======
+
+>>>>>>> 461bfb1d1ec1f1886c946306cde2625d8ddab7c9
         lastDate = payment.date;
     }
 
     const finalDays = differenceInDays(today, lastDate);
     if (finalDays > 0) {
+<<<<<<< HEAD
         totalAccruedInterest += (currentPrincipal * (monthlyRate / 30) * finalDays);
+=======
+        accruedInterest += principal * monthlyRate * (finalDays / 30);
+>>>>>>> 461bfb1d1ec1f1886c946306cde2625d8ddab7c9
     }
 
     return {

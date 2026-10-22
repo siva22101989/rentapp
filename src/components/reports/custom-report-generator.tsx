@@ -16,9 +16,11 @@ import { useToast } from '@/hooks/use-toast';
 import { PaymentReport } from './payment-report';
 import { PendingDuesReportTable } from './pending-dues-report-table';
 import { CommodityStockReport, CustomerCommodityStockReport, LotWiseInventoryReport } from './stock-summary-reports';
+import { FinancialSummaryReport } from './financial-summary-report';
 
 const reportTypes = [
     { value: 'daily-summary', label: 'Daily Summary Report' },
+    { value: 'financial-summary', label: 'Customer Financial & Stock Summary' },
     { value: 'commodity-summary', label: 'Commodity-wise Stock List' },
     { value: 'customer-commodity-summary', label: 'Customer-wise Commodity Stock' },
     { value: 'lot-inventory-summary', label: 'Lot-wise Inventory Register' },
@@ -117,6 +119,8 @@ export function CustomReportGenerator({
         switch (selectedReport) {
             case 'daily-summary':
                 return <DailySummaryReport records={records} customers={customers} unloadingRecords={unloadingRecords} expenses={expenses} otherIncomes={otherIncomes} customerPayments={customerPayments} />;
+            case 'financial-summary':
+                return <FinancialSummaryReport records={records} customers={customers} unloadingRecords={unloadingRecords} customerPayments={customerPayments} warehouseInfo={warehouseInfo} />;
             case 'commodity-summary':
                 return <CommodityStockReport records={records} customers={customers} warehouseInfo={warehouseInfo} title="Commodity-wise Stock Summary" />;
             case 'customer-commodity-summary':

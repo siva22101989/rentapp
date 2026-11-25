@@ -21,15 +21,20 @@ export function InflowReportTable({ records, allRecords, customers, title }: Rep
         return customers.find(c => c.id === customerId)?.name ?? 'Unknown';
     }
 
+    // Newest first sorting
+    const sortedRecords = useMemo(() => {
+        return [...records].sort((a, b) => toDate(b.storageStartDate).getTime() - toDate(a.storageStartDate).getTime());
+    }, [records]);
+
     const totals = useMemo(() => {
-        return records.reduce((acc, r) => {
+        return sortedRecords.reduce((acc, r) => {
             acc.bags += (r.bagsIn || 0);
             acc.weight += (r.weight || 0);
             acc.hamali += (r.hamaliPayable || 0);
             acc.khata += (r.khataAmount || 0);
             return acc;
         }, { bags: 0, weight: 0, hamali: 0, khata: 0 });
-    }, [records]);
+    }, [sortedRecords]);
 
     return (
         <div className="bg-white p-4 text-black font-sans text-sm printable-area border shadow-sm rounded-lg">
@@ -57,7 +62,7 @@ export function InflowReportTable({ records, allRecords, customers, title }: Rep
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {records.map((record) => {
+                        {sortedRecords.map((record) => {
                             const displayBillNo = String(record.id).replace(/\D/g, '');
                             return (
                                 <TableRow key={record.id} className="h-9 border-b border-slate-100 hover:bg-slate-50/50 group">
@@ -77,7 +82,7 @@ export function InflowReportTable({ records, allRecords, customers, title }: Rep
                                 </TableRow>
                             )
                         })}
-                        {records.length === 0 && (
+                        {sortedRecords.length === 0 && (
                             <TableRow>
                                 <TableCell colSpan={11} className="text-center py-20 text-muted-foreground italic">
                                     No inflow records found for the selected period.

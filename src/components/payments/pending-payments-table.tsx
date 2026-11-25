@@ -43,7 +43,7 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, cus
             return summaryMap[id];
         };
 
-        // 1. Process Storage Records
+        // 1. Process Storage Records (Handling Fees + Godown Rent)
         records.forEach(r => {
             const s = getSummary(r.customerId);
             s.hLiability += Number(r.hamaliPayable) || 0; 
@@ -51,10 +51,11 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, cus
             
             (r.payments || []).forEach(p => {
                 const amt = Number(p.amount) || 0;
+                // If payment is specifically marked for labor/handling
                 if (p.type === 'hamali' || p.type === 'unloading') {
                     s.hPaid += amt;
                 } else {
-                    // Include 'rent', 'discount', 'other' etc into Rent column pool
+                    // Include 'rent', 'discount', and others in the Rent/Storage category
                     s.rPaid += amt;
                 }
             });
@@ -63,7 +64,7 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, cus
             if (rDate > s.lastDate) s.lastDate = rDate;
         });
 
-        // 2. Process Unloading Records
+        // 2. Process Unloading Records (Primarily Handling/Hamali labor)
         unloadingRecords.forEach(r => {
             const s = getSummary(r.customerId);
             const remainingBags = Math.max(0, (Number(r.bagsUnloaded) || 0) - (Number(r.bagsSentToDrying) || 0));
@@ -72,16 +73,15 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, cus
             
             (r.payments || []).forEach(p => {
                 const amt = Number(p.amount) || 0;
-                // Unloading payments are primarily Hamali
-                if (p.type === 'discount') s.hPaid += amt;
-                else s.hPaid += amt;
+                // Unloading bill payments are always credited to the Hamali balance
+                s.hPaid += amt;
             });
 
             const uDate = toDate(r.unloadingDate).getTime();
             if (uDate > s.lastDate) s.lastDate = uDate;
         });
 
-        // 3. Process Bulk Account Ledger Payments
+        // 3. Process Bulk Account Ledger (Global Payments)
         (customerPayments || []).forEach(cp => {
             const s = getSummary(cp.customerId);
             const amt = Number(cp.amount) || 0;
@@ -97,8 +97,9 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, cus
             const totalPaid = data.hPaid + data.rPaid;
             const balanceDue = Math.max(0, totalLiability - totalPaid);
 
+            // Reconciled Balances: Separate labor dues from storage dues
             const hamaliPending = Math.max(0, data.hLiability - data.hPaid);
-            const rentPending = Math.max(0, data.rLiability - data.rPaid);
+            const rentPending = Math.max(0, balanceDue - hamaliPending);
 
             return {
                 customerId,
@@ -112,7 +113,7 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, cus
             } as CustomerPendingSummary;
         })
         .filter(s => s.balanceDue > 0.5) 
-        .sort((a, b) => b.balanceDue - a.balanceDue); // Sort by highest dues
+        .sort((a, b) => b.lastActivityDate.getTime() - a.lastActivityDate.getTime()); // Newer bills/activity first
 
     }, [records, unloadingRecords, customers, customerPayments]);
 

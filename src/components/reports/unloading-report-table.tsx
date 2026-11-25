@@ -23,7 +23,12 @@ export function UnloadingReportTable({ records, customers, commodities, lots, st
         return customers.find(c => c.id === customerId)?.name ?? 'Unknown';
     }
 
-    const totalBagsUnloaded = records.reduce((acc, record) => acc + (record.bagsUnloaded || 0), 0);
+    // Sort newest first
+    const sortedRecords = useMemo(() => {
+        return [...records].sort((a, b) => toDate(b.unloadingDate).getTime() - toDate(a.unloadingDate).getTime());
+    }, [records]);
+
+    const totalBagsUnloaded = sortedRecords.reduce((acc, record) => acc + (record.bagsUnloaded || 0), 0);
 
     return (
         <div className="bg-white p-4 text-black font-sans text-sm printable-area border shadow-sm rounded-lg">
@@ -45,7 +50,7 @@ export function UnloadingReportTable({ records, customers, commodities, lots, st
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {records.map((record) => {
+                        {sortedRecords.map((record) => {
                             const totalPaid = (record.payments || []).reduce((acc, p) => acc + p.amount, 0);
                             const hamaliPending = Math.max(0, (record.totalHamali || 0) - totalPaid);
                             const cleanBillNo = String(record.billNo || record.id).replace(/\D/g, ''); 

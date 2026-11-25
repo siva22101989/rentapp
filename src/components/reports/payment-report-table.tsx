@@ -32,7 +32,12 @@ export function PaymentReportTable({ events, customers, title }: ReportTableProp
         return customers.find(c => c.id === customerId)?.name ?? 'Unknown';
     }
 
-    const totalPayments = events.reduce((acc, event) => acc + event.amount, 0);
+    // Sort newest first
+    const sortedEvents = useMemo(() => {
+        return [...events].sort((a, b) => b.date.getTime() - a.date.getTime());
+    }, [events]);
+
+    const totalPayments = sortedEvents.reduce((acc, event) => acc + event.amount, 0);
 
     return (
         <div className="bg-white p-4 text-black font-sans text-sm printable-area border shadow-sm rounded-lg">
@@ -55,7 +60,7 @@ export function PaymentReportTable({ events, customers, title }: ReportTableProp
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {events.map((event, index) => {
+                        {sortedEvents.map((event, index) => {
                             const displayId = event.displayBillNo;
                             return (
                             <TableRow key={index} className="h-9 border-b border-slate-100 hover:bg-slate-50/50">
@@ -73,7 +78,7 @@ export function PaymentReportTable({ events, customers, title }: ReportTableProp
                                 </TableCell>
                             </TableRow>
                         )})}
-                        {events.length === 0 && (
+                        {sortedEvents.length === 0 && (
                             <TableRow>
                                 <TableCell colSpan={6} className="text-center py-20 text-muted-foreground italic">
                                     No cash receipts found for the selected period.

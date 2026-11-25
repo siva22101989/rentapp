@@ -125,7 +125,8 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses, w
             }
         }
 
-        return filteredEvents.sort((a,b) => a.date.getTime() - b.date.getTime());
+        // Newer first sorting
+        return filteredEvents.sort((a,b) => b.date.getTime() - a.date.getTime());
     }, [records, unloadingRecords, selectedCustomerId, dateRange, financialYear]);
 
     const workerHamaliEvents = useMemo(() => {
@@ -193,7 +194,8 @@ export function HamaliReport({ records, customers, unloadingRecords, expenses, w
             }
         }
 
-        return filtered.sort((a,b) => a.date.getTime() - b.date.getTime());
+        // Newer first sorting
+        return filtered.sort((a,b) => b.date.getTime() - a.date.getTime());
     }, [records, unloadingRecords, expenses, dateRange, financialYear, customerMap]);
 
     const title = reportView === 'customer' ? 'Customer Ledger' : 'Hamali Ledger';

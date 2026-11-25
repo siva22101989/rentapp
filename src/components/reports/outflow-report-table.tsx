@@ -33,8 +33,13 @@ export function OutflowReportTable({ events, customers, allRecords, commodities,
         return customers.find(c => c.id === customerId)?.name ?? 'Unknown';
     }
 
-    const totalBagsWithdrawn = events.reduce((acc, event) => acc + (Number(event.bagsWithdrawn) || 0), 0);
-    const totalRentBilled = events.reduce((acc, event) => acc + (Number(event.rentBilled) || 0), 0);
+    // Sort newest first
+    const sortedEvents = useMemo(() => {
+        return [...events].sort((a, b) => b.date.getTime() - a.date.getTime());
+    }, [events]);
+
+    const totalBagsWithdrawn = sortedEvents.reduce((acc, event) => acc + (Number(event.bagsWithdrawn) || 0), 0);
+    const totalRentBilled = sortedEvents.reduce((acc, event) => acc + (Number(event.rentBilled) || 0), 0);
 
     return (
         <div className="bg-white p-4 text-black font-sans text-sm printable-area border shadow-sm rounded-lg w-full overflow-hidden">
@@ -58,7 +63,7 @@ export function OutflowReportTable({ events, customers, allRecords, commodities,
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {events.map((event, index) => {
+                        {sortedEvents.map((event, index) => {
                             const parentRecord = allRecords.find(r => r.id === event.recordId);
                             const customer = customers.find(c => c.id === event.customerId);
                             const displayId = String(event.pattiNo || '').replace(/\D/g, '');
@@ -93,7 +98,7 @@ export function OutflowReportTable({ events, customers, allRecords, commodities,
                                 </TableRow>
                             );
                         })}
-                        {events.length === 0 && (
+                        {sortedEvents.length === 0 && (
                             <TableRow>
                                 <TableCell colSpan={7} className="text-center py-20 text-muted-foreground italic">
                                     No outflow entries found for this selection.

@@ -69,9 +69,11 @@ export function RecordHamaliPaymentDialog({
   const netPending = useMemo(() => {
     if (!allRecords || !allUnloadingRecords || !allExpenses) return 0;
 
-    // Force number coercion for every record to prevent zero-sums from string data
     const workerLiability = allRecords.reduce((acc, sr) => {
-        const val = Number(sr.workerHamaliPayable ?? sr.hamaliPayable) || 0;
+        // Use worker-specific pay if available, otherwise fallback to customer hamali
+        const val = (sr.workerHamaliPayable !== undefined && sr.workerHamaliPayable !== null) 
+            ? Number(sr.workerHamaliPayable) 
+            : (Number(sr.hamaliPayable) || 0);
         return acc + val;
     }, 0) +
     allUnloadingRecords.reduce((acc, ur) => {
@@ -79,7 +81,11 @@ export function RecordHamaliPaymentDialog({
         const sentBags = Number(ur.bagsSentToDrying) || 0;
         const bagsRemaining = Math.max(0, totalBags - sentBags);
         const proportion = totalBags > 0 ? bagsRemaining / totalBags : 0;
-        const liabilityVal = Number(ur.workerHamaliPayable ?? ur.totalHamali) || 0;
+        
+        const liabilityVal = (ur.workerHamaliPayable !== undefined && ur.workerHamaliPayable !== null)
+            ? Number(ur.workerHamaliPayable)
+            : (Number(ur.totalHamali) || 0);
+            
         return acc + (liabilityVal * proportion);
     }, 0);
     
@@ -104,14 +110,14 @@ export function RecordHamaliPaymentDialog({
     startTransition(async () => {
       try {
         const newExpense: Partial<Expense> = {
-          description: `Worker Hamali Payout: ${format(new Date(data.date), 'dd MMM yyyy')}`,
+          description: `Hamali Workers Payout: ${format(new Date(data.date), 'dd MMM yyyy')}`,
           amount: data.amount,
           date: new Date(data.date),
           category: 'Hamali Paid' as const,
           warehouseId: appUser.warehouseId,
         };
         await addDoc(collection(firestore, 'expenses'), cleanForFirestore(newExpense));
-        toast({ title: 'Payout Recorded', description: `${formatCurrency(data.amount)} has been added to labor expenses.` });
+        toast({ title: 'Payment Recorded', description: `${formatCurrency(data.amount)} has been added to labor expenses.` });
         setIsOpen(false);
         form.reset();
       } catch (error) {
@@ -129,7 +135,7 @@ export function RecordHamaliPaymentDialog({
         {children || (
             <Button className="font-bold h-9">
                 <Hammer className="mr-2 h-4 w-4" />
-                Record Hamali Payout
+                Record Hamali Payment
             </Button>
         )}
       </DialogTrigger>
@@ -137,8 +143,8 @@ export function RecordHamaliPaymentDialog({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <DialogHeader>
-              <DialogTitle className="text-xl font-bold uppercase tracking-tight">Staff Payout Console</DialogTitle>
-              <DialogDescription className="text-xs font-medium">Distribute cash to the labor team or record advances.</DialogDescription>
+              <DialogTitle className="text-xl font-bold uppercase tracking-tight">Hamali Payment Console</DialogTitle>
+              <DialogDescription className="text-xs font-medium">Record cash payments or advances to Hamali workers.</DialogDescription>
             </DialogHeader>
             
             <div className="grid gap-4 py-4">
@@ -147,7 +153,7 @@ export function RecordHamaliPaymentDialog({
                   isBalanceSettled ? 'border-slate-200 bg-slate-50' : 'border-primary/20 bg-primary/5'
               }`}>
                   <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
-                      {isInAdvance ? 'Current Staff Advance' : 'Total Hamali Pending'}
+                      {isInAdvance ? 'Current Hamali Advance' : 'Pending for Hamali Workers'}
                   </p>
                   <p className={`text-3xl font-black ${
                       isInAdvance ? 'text-emerald-700' : 
@@ -160,9 +166,9 @@ export function RecordHamaliPaymentDialog({
               {isInAdvance && (
                   <Alert variant="default" className="bg-emerald-50 border-emerald-200">
                       <TrendingDown className="h-4 w-4 text-emerald-600" />
-                      <AlertTitle className="text-emerald-800 text-xs font-bold uppercase tracking-wider">Account in Advance</AlertTitle>
+                      <AlertTitle className="text-emerald-800 text-xs font-bold uppercase tracking-wider">Hamali Advance</AlertTitle>
                       <AlertDescription className="text-emerald-700 text-[11px] font-medium leading-relaxed">
-                          Staff have already been paid {formatCurrency(Math.abs(netPending))} more than their current earnings. Any further payout will increase this advance.
+                          You have already paid {formatCurrency(Math.abs(netPending))} more than the current earnings. Any further payout will increase this advance.
                       </AlertDescription>
                   </Alert>
               )}
@@ -172,7 +178,7 @@ export function RecordHamaliPaymentDialog({
                 name="date"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-xs font-black uppercase tracking-wider text-slate-500">Payout Date</FormLabel>
+                    <FormLabel className="text-xs font-black uppercase tracking-wider text-slate-500">Payment Date</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} className="h-10 text-sm font-bold" />
                     </FormControl>
@@ -207,7 +213,7 @@ export function RecordHamaliPaymentDialog({
                 {isPending ? (
                   <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
                 ) : (
-                  'Confirm Payout'
+                  'Confirm Payment'
                 )}
               </Button>
             </DialogFooter>

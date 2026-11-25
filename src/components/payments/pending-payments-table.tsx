@@ -23,7 +23,8 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, cus
         const summaryMap: Record<string, {
             hLiability: number,
             rLiability: number,
-            recordPaid: number,
+            hPaid: number,
+            rPaid: number,
             lastDate: number
         }> = {};
         
@@ -34,7 +35,8 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, cus
                 summaryMap[id] = {
                     hLiability: 0,
                     rLiability: 0,
-                    recordPaid: 0,
+                    hPaid: 0,
+                    rPaid: 0,
                     lastDate: 0
                 };
             }
@@ -44,12 +46,19 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, cus
         // 1. Process Storage Records
         records.forEach(r => {
             const s = getSummary(r.customerId);
-            const inflowHamali = r.hamaliPayable || 0; 
-            const billedRent = r.totalRentBilled || 0;
-            const khata = r.khataAmount || 0;
-            s.hLiability += inflowHamali;
-            s.rLiability += billedRent + khata;
-            s.recordPaid += (r.payments || []).reduce((acc, p) => acc + p.amount, 0);
+            s.hLiability += Number(r.hamaliPayable) || 0; 
+            s.rLiability += (Number(r.totalRentBilled) || 0) + (Number(r.khataAmount) || 0);
+            
+            (r.payments || []).forEach(p => {
+                const amt = Number(p.amount) || 0;
+                if (p.type === 'hamali' || p.type === 'unloading') {
+                    s.hPaid += amt;
+                } else {
+                    // Include 'rent', 'discount', 'other' etc into Rent column pool
+                    s.rPaid += amt;
+                }
+            });
+
             const rDate = toDate(r.storageStartDate).getTime();
             if (rDate > s.lastDate) s.lastDate = rDate;
         });
@@ -57,25 +66,39 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, cus
         // 2. Process Unloading Records
         unloadingRecords.forEach(r => {
             const s = getSummary(r.customerId);
-            const remainingBags = Math.max(0, (r.bagsUnloaded || 0) - (r.bagsSentToDrying || 0));
-            const hLiability = remainingBags * (r.hamaliPerBag || 0);
+            const remainingBags = Math.max(0, (Number(r.bagsUnloaded) || 0) - (Number(r.bagsSentToDrying) || 0));
+            const hLiability = remainingBags * (Number(r.hamaliPerBag) || 0);
             s.hLiability += hLiability;
-            s.recordPaid += (r.payments || []).reduce((acc, p) => acc + p.amount, 0);
+            
+            (r.payments || []).forEach(p => {
+                const amt = Number(p.amount) || 0;
+                // Unloading payments are primarily Hamali
+                if (p.type === 'discount') s.hPaid += amt;
+                else s.hPaid += amt;
+            });
+
             const uDate = toDate(r.unloadingDate).getTime();
             if (uDate > s.lastDate) s.lastDate = uDate;
         });
 
-        return Object.entries(summaryMap).map(([customerId, data]) => {
-            // Factor in bulk customer payments that are not tied to bills
-            const bulkPaymentsForCust = customerPayments.filter(cp => cp.customerId === customerId);
-            const totalBulkPaid = bulkPaymentsForCust.reduce((acc, cp) => acc + (cp.amount || 0), 0);
+        // 3. Process Bulk Account Ledger Payments
+        (customerPayments || []).forEach(cp => {
+            const s = getSummary(cp.customerId);
+            const amt = Number(cp.amount) || 0;
+            if (cp.type === 'hamali') s.hPaid += amt;
+            else s.rPaid += amt;
             
+            const pDate = toDate(cp.date).getTime();
+            if (pDate > s.lastDate) s.lastDate = pDate;
+        });
+
+        return Object.entries(summaryMap).map(([customerId, data]) => {
             const totalLiability = data.hLiability + data.rLiability;
-            const totalPaid = data.recordPaid + totalBulkPaid;
+            const totalPaid = data.hPaid + data.rPaid;
             const balanceDue = Math.max(0, totalLiability - totalPaid);
 
-            const hamaliPending = Math.max(0, data.hLiability - (data.recordPaid + totalBulkPaid));
-            const rentPending = Math.max(0, balanceDue - hamaliPending);
+            const hamaliPending = Math.max(0, data.hLiability - data.hPaid);
+            const rentPending = Math.max(0, data.rLiability - data.rPaid);
 
             return {
                 customerId,
@@ -89,13 +112,13 @@ export function PendingPaymentsTable({ records, customers, unloadingRecords, cus
             } as CustomerPendingSummary;
         })
         .filter(s => s.balanceDue > 0.5) 
-        .sort((a, b) => b.lastActivityDate.getTime() - a.lastActivityDate.getTime());
+        .sort((a, b) => b.balanceDue - a.balanceDue); // Sort by highest dues
 
     }, [records, unloadingRecords, customers, customerPayments]);
 
     return (
         <div className="space-y-4">
-            <div className="table-scroll-container overflow-x-auto overflow-y-hidden">
+            <div className="table-scroll-container overflow-x-auto">
                 <PendingDuesReportTable
                     summaries={pendingSummaries}
                     title={title}

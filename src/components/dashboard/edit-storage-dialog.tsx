@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useTransition, useMemo } from 'react';
@@ -41,14 +42,8 @@ const EditStorageRecordSchema = z.object({
   lorryTractorNo: z.string().optional(),
   khataAmount: z.coerce.number().nonnegative().optional(),
   hamaliRate: z.coerce.number().nonnegative().optional(),
-  bagsForDrying: z.coerce.number().nonnegative().optional(),
-  dryingStartDate: z.string().optional(),
-  customerHamaliPerBag: z.coerce.number().nonnegative().optional(),
-  workerHamaliPerBag: z.coerce.number().nonnegative().optional(),
-  pavHamaliPerBag: z.coerce.number().nonnegative().optional(),
-  cuppaHamaliPerBag: z.coerce.number().nonnegative().optional(),
-  hamaliPayable: z.coerce.number().nonnegative().optional(),
   workerHamaliPayable: z.coerce.number().nonnegative().optional(),
+  hamaliPayable: z.coerce.number().nonnegative().optional(),
 });
 
 export function EditStorageDialog({ record, customers, allRecords, children }: { record: StorageRecord, customers: Customer[], allRecords: StorageRecord[], children: React.ReactNode }) {
@@ -68,14 +63,8 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
   const [lorryTractorNo, setLorryTractorNo] = useState('');
   const [khataAmount, setKhataAmount] = useState<number | ''>('');
   const [hamaliRate, setHamaliRate] = useState<number | ''>('');
-  const [bagsForDrying, setBagsForDrying] = useState<number | ''>('');
-  const [dryingStartDate, setDryingStartDate] = useState('');
-  const [customerHamaliPerBag, setCustomerHamaliPerBag] = useState<number | ''>('');
-  const [workerHamaliPerBag, setWorkerHamaliPerBag] = useState<number | ''>('');
-  const [pavHamaliPerBag, setPavHamaliPerBag] = useState<number | ''>('');
-  const [cuppaHamaliPerBag, setCuppaHamaliPerBag] = useState<number | ''>('');
   
-  // New Manual Override States
+  // Manual Override States
   const [hamaliPayable, setHamaliPayable] = useState<number | ''>('');
   const [workerHamaliTotal, setWorkerHamaliTotal] = useState<number | ''>('');
 
@@ -109,8 +98,6 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
 
   useEffect(() => {
     if (isOpen) {
-      const getRate = (desc: string) => record.hamaliDetails?.find(d => d.description.toLowerCase().includes(desc.toLowerCase()))?.rate;
-
       setStorageId(record.id);
       setCustomerId(record.customerId || '');
       setCommodityDescription(record.commodityDescription || '');
@@ -121,68 +108,14 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
       setLorryTractorNo(record.lorryTractorNo || '');
       setKhataAmount(record.khataAmount ?? '');
       setHamaliRate(record.hamaliRate ?? '');
-      setBagsForDrying(record.bagsForDrying ?? '');
-      setDryingStartDate(record.dryingStartDate ? format(toDate(record.dryingStartDate), 'yyyy-MM-dd') : '');
       
-      setCustomerHamaliPerBag(getRate('Customer Hamali') ?? record.hamaliRate ?? '');
-      setPavHamaliPerBag(getRate('Pav') ?? '');
-      setCuppaHamaliPerBag(getRate('Cuppa') ?? '');
-      
-      // Initialize manual totals
+      // Initialize totals
       setHamaliPayable(record.hamaliPayable ?? '');
-      setWorkerHamaliTotal(record.workerHamaliPayable ?? '');
+      setWorkerHamaliTotal(record.workerHamaliPayable ?? (record.hamaliPayable || ''));
 
-      const bagsForCalc = record.bagsForDrying || record.bagsIn || 1;
-      setWorkerHamaliPerBag(record.workerHamaliPayable !== undefined 
-        ? record.workerHamaliPayable / bagsForCalc 
-        : (record.hamaliRate ?? ''));
-        
       setErrors({});
     }
   }, [isOpen, record]);
-  
-  const calculatedHamali = useMemo(() => {
-    if (!isOpen) return { totalCustomerCharge: 0, day1CustomerHamali: 0, pavHamali: 0, cuppaHamali: 0, proportionalUnloadingHamali: 0, extraDryingDays: 0, unloadingRate: 0 };
-    
-    const unloadingHamaliDetail = record.hamaliDetails?.find(d => d.description === 'Unloading Hamali');
-    const unloadingRate = unloadingHamaliDetail?.rate || 0;
-
-    const bagsToBill = Number(bagsForDrying) || Number(bagsIn) || 0;
-    const proportionalUnloadingHamali = bagsToBill * unloadingRate;
-    const day1CustomerHamali = bagsToBill * (Number(customerHamaliPerBag) || 0);
-
-    let extraDryingDays = 0;
-    if (dryingStartDate && storageStartDate) {
-        const start = new Date(dryingStartDate);
-        const end = new Date(storageStartDate);
-        if (end >= start) {
-            const days = differenceInDays(end, start);
-            extraDryingDays = days > 0 ? days : 0;
-        }
-    }
-    
-    const pavHamali = bagsToBill * (Number(pavHamaliPerBag) || 0) * extraDryingDays;
-    const cuppaHamali = bagsToBill * (Number(cuppaHamaliPerBag) || 0) * extraDryingDays;
-    const totalCustomerCharge = proportionalUnloadingHamali + day1CustomerHamali + pavHamali + cuppaHamali;
-    
-    const day1WorkerHamali = bagsToBill * (Number(workerHamaliPerBag) || 0);
-    const totalWorkerPayable = proportionalUnloadingHamali + day1WorkerHamali + pavHamali + cuppaHamali;
-
-    return {
-        proportionalUnloadingHamali,
-        day1CustomerHamali,
-        pavHamali,
-        cuppaHamali,
-        totalCustomerCharge,
-        extraDryingDays,
-        unloadingRate,
-        totalWorkerPayable: workerHamaliPerBag !== '' ? totalWorkerPayable : undefined,
-    }
-
-  }, [bagsIn, bagsForDrying, customerHamaliPerBag, dryingStartDate, storageStartDate, pavHamaliPerBag, cuppaHamaliPerBag, workerHamaliPerBag, record.hamaliDetails, isOpen]);
-
-  // Sync calculated total to state IF it wasn't manually edited (optional enhancement)
-  // For now, let's keep it manual-friendly
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -203,12 +136,6 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
       lorryTractorNo,
       khataAmount: Number(khataAmount),
       hamaliRate: Number(hamaliRate),
-      bagsForDrying: Number(bagsForDrying),
-      dryingStartDate: dryingStartDate || undefined,
-      customerHamaliPerBag: Number(customerHamaliPerBag),
-      workerHamaliPerBag: workerHamaliPerBag === '' ? undefined : Number(workerHamaliPerBag),
-      pavHamaliPerBag: Number(pavHamaliPerBag),
-      cuppaHamaliPerBag: Number(cuppaHamaliPerBag),
       hamaliPayable: Number(hamaliPayable),
       workerHamaliPayable: Number(workerHamaliTotal),
     };
@@ -230,7 +157,6 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
     startTransition(async () => {
       try {
         const finalStorageDate = new Date(data.storageStartDate);
-        const finalDryingDate = data.dryingStartDate ? new Date(data.dryingStartDate) : null;
         const bagsStored = data.bagsIn - (record.bagsOut || 0);
 
         const updateData: Partial<StorageRecord> = {
@@ -243,37 +169,10 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
             weight: data.weight || 0,
             lorryTractorNo: data.lorryTractorNo,
             khataAmount: data.khataAmount,
-            hamaliPayable: data.hamaliPayable, // Use manual amount
-            workerHamaliPayable: data.workerHamaliPayable, // Use manual amount
+            hamaliRate: data.hamaliRate,
+            hamaliPayable: data.hamaliPayable, 
+            workerHamaliPayable: data.workerHamaliPayable,
         };
-        
-        if (record.inflowType !== 'Plot') {
-            updateData.hamaliRate = data.hamaliRate || 0;
-        } else {
-            updateData.bagsForDrying = data.bagsForDrying;
-            updateData.dryingStartDate = finalDryingDate;
-            updateData.dryingEndDate = finalStorageDate; 
-            
-            const hamaliDetails: HamaliChargeItem[] = [];
-            const unloadingHamaliDetail = record.hamaliDetails?.find(d => d.description === 'Unloading Hamali');
-            const unloadingRate = unloadingHamaliDetail?.rate || 0;
-            const bagsToBill = data.bagsForDrying || data.bagsIn;
-
-            if(unloadingHamaliDetail) {
-                hamaliDetails.push({
-                    description: 'Unloading Hamali',
-                    bags: bagsToBill,
-                    rate: unloadingRate,
-                    amount: bagsToBill * unloadingRate
-                });
-            }
-            
-            if(calculatedHamali.day1CustomerHamali > 0) hamaliDetails.push({ description: 'Customer Hamali', bags: bagsToBill, rate: data.customerHamaliPerBag || 0, amount: calculatedHamali.day1CustomerHamali });
-            if(calculatedHamali.pavHamali > 0) hamaliDetails.push({ description: `Pav Hamali`, bags: bagsToBill, rate: data.pavHamaliPerBag || 0, amount: calculatedHamali.pavHamali });
-            if(calculatedHamali.cuppaHamali > 0) hamaliDetails.push({ description: `Cuppa Hamali`, bags: bagsToBill, rate: data.cuppaHamaliPerBag || 0, amount: calculatedHamali.cuppaHamali });
-
-            updateData.hamaliDetails = hamaliDetails;
-        }
 
         await updateStorageRecord(firestore, record.id, data.storageId, updateData);
         toast({ title: 'Success', description: 'Record updated successfully.' });
@@ -293,7 +192,7 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
           <DialogHeader>
             <DialogTitle>Edit Storage Record</DialogTitle>
             <DialogDescription className="text-xs">
-              Adjust details for this Godown record. All Hamali amounts are now manually editable.
+              Separate totals for Customer Billing and Worker Payable.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4 pr-2">
@@ -325,55 +224,34 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
               </div>
 
               <Separator className="my-2" />
-              <h4 className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-2">
-                <Calculator className="h-3 w-3" />
-                Handling & Billing Details
-              </h4>
-
-              {record.inflowType === 'Plot' ? (
-                <div className="grid grid-cols-2 gap-4 p-4 border rounded-lg bg-secondary/10">
-                    <div className="space-y-1.5 col-span-2">
-                      <Label className="text-xs">Drying Start Date</Label>
-                      <Input type="date" value={dryingStartDate} onChange={(e) => setDryingStartDate(e.target.value)} className="text-sm h-9" />
+              
+              <div className="p-4 rounded-xl border bg-slate-50/50 space-y-4">
+                <h4 className="text-[10px] font-black uppercase text-slate-400 flex items-center gap-2">
+                    <Calculator className="h-3 w-3" />
+                    Handling Fees & Worker Payout
+                </h4>
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                        <Label className="text-xs font-bold text-primary uppercase">Customer Rate/Bag</Label>
+                        <Input type="number" step="0.01" value={hamaliRate} onChange={e => setHamaliRate(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
                     </div>
-                    <div className="space-y-1.5"><Label className="text-xs">Bags Plotted</Label><Input type="number" step="0.01" value={bagsForDrying} onChange={(e) => setBagsForDrying(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" /></div>
-                    <div className="space-y-1.5"><Label className="text-xs">Cust. Handling Rate</Label><Input type="number" step="0.01" value={customerHamaliPerBag} onChange={(e) => setCustomerHamaliPerBag(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" /></div>
-                    
-                    <div className="space-y-1.5"><Label className="text-xs">Pav Rate</Label><Input type="number" step="0.01" value={pavHamaliPerBag} onChange={(e) => setPavHamaliPerBag(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" /></div>
-                    <div className="space-y-1.5"><Label className="text-xs">Cuppa Rate</Label><Input type="number" step="0.01" value={cuppaHamaliPerBag} onChange={(e) => setCuppaHamaliPerBag(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" /></div>
-                    
-                    <div className="space-y-1.5"><Label className="text-xs font-bold text-primary">Customer Total Hamali</Label><Input type="number" step="0.01" value={hamaliPayable} onChange={e => setHamaliPayable(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9 border-primary/50" /></div>
-                    <div className="space-y-1.5"><Label className="text-xs font-bold text-orange-600">Worker Total Hamali</Label><Input type="number" step="0.01" value={workerHamaliTotal} onChange={e => setWorkerHamaliTotal(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9 border-orange-400" /></div>
-                    
-                    <div className="space-y-1.5 col-span-2 pt-2">
+                     <div className="space-y-1.5">
                         <Label className="text-xs">Khata Amount</Label>
                         <Input type="number" step="0.01" value={khataAmount} onChange={e => setKhataAmount(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
                     </div>
-                    
-                    <div className="col-span-2 text-[10px] text-muted-foreground italic pt-1">
-                        System suggestion based on rates: {formatCurrency(calculatedHamali.totalCustomerCharge)} (Cust) / {formatCurrency(calculatedHamali.totalWorkerPayable || 0)} (Worker)
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                        <Label className="text-[10px] font-black text-primary uppercase tracking-tighter">Billed Total (Customer)</Label>
+                        <Input type="number" step="0.01" value={hamaliPayable} onChange={e => setHamaliPayable(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9 border-primary/50 font-mono font-bold" />
+                    </div>
+                    <div className="space-y-1.5">
+                        <Label className="text-[10px] font-black text-orange-600 uppercase tracking-tighter">Payable Total (Hamali)</Label>
+                        <Input type="number" step="0.01" value={workerHamaliTotal} onChange={e => setWorkerHamaliTotal(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9 border-orange-400 font-mono font-bold" />
                     </div>
                 </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                      <Label className="text-xs">Handling Rate/Bag</Label>
-                      <Input type="number" step="0.01" value={hamaliRate} onChange={e => setHamaliRate(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
-                  </div>
-                  <div className="space-y-1.5">
-                      <Label className="text-xs font-bold text-primary">Total Hamali Payable</Label>
-                      <Input type="number" step="0.01" value={hamaliPayable} onChange={e => setHamaliPayable(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9 border-primary/50" />
-                  </div>
-                  <div className="space-y-1.5">
-                      <Label className="text-xs">Khata Amount</Label>
-                      <Input type="number" step="0.01" value={khataAmount} onChange={e => setKhataAmount(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
-                  </div>
-                   <div className="space-y-1.5">
-                      <Label className="text-xs font-bold text-orange-600">Total Worker Payable</Label>
-                      <Input type="number" step="0.01" value={workerHamaliTotal} onChange={e => setWorkerHamaliTotal(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9 border-orange-400" />
-                  </div>
-                </div>
-              )}
+              </div>
 
                <div className="space-y-1.5 pt-2">
                  <Label className="text-xs">Lot No. (Storage Location)</Label>
@@ -390,8 +268,8 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
           </div>
           <DialogFooter className="gap-2">
             <DialogClose asChild><Button variant="outline" type="button" className="text-sm">Cancel</Button></DialogClose>
-            <Button type="submit" disabled={isPending} className="text-sm">
-              {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : <><Save className="mr-2 h-4 w-4" /> Save Changes</>}
+            <Button type="submit" disabled={isPending} className="text-sm font-black uppercase tracking-widest">
+              {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <><Save className="mr-2 h-4 w-4" /> Update Record</>}
             </Button>
           </DialogFooter>
         </form>

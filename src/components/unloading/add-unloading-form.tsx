@@ -1,10 +1,11 @@
+
 'use client';
 
 import { useState, useEffect, useMemo, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Loader2, Sparkles, MessageSquare } from 'lucide-react';
+import { Loader2, Sparkles, MessageSquare, Calculator } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -158,7 +159,7 @@ export function AddUnloadingRecordForm({
                 await setDoc(doc(firestore, 'unloadingRecords', cleanBillNo), cleanForFirestore(rawRecord));
 
                 if (sendSmsNotification && isSmsEnabled && selectedCustomer?.phone) {
-                    const msg = `Dear ${selectedCustomer.name}, delivery received. Bill: ${cleanBillNo}.`;
+                    const msg = `Dear ${selectedCustomer.name}, unloading recorded. Bill: ${cleanBillNo}.`;
                     sendSms({ 
                         apiKey: warehouseInfo.textbeeApiKey!, 
                         deviceId: warehouseInfo.textbeeDeviceId, 
@@ -183,7 +184,7 @@ export function AddUnloadingRecordForm({
                 <form onSubmit={form.handleSubmit(onSubmit)}>
                     <CardHeader>
                         <CardTitle className="text-lg font-bold">New Unloading Record</CardTitle>
-                        <CardDescription className="text-xs font-medium">Numeric Bill No sequence applied automatically.</CardDescription>
+                        <CardDescription className="text-xs font-medium">Standardized Billing and Staff Payout Rates.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <FormField control={form.control} name="billNo" render={({ field }) => (
@@ -195,7 +196,7 @@ export function AddUnloadingRecordForm({
                                     </Badge>
                                 </FormLabel>
                                 <FormControl>
-                                    <Input className="flex h-10 w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm font-mono font-bold ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" {...field} readOnly />
+                                    <Input className="flex h-10 w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm font-mono font-bold ring-offset-background" {...field} readOnly />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -262,42 +263,48 @@ export function AddUnloadingRecordForm({
                             </FormItem>
                         )} />
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <FormField control={form.control} name="customerHamaliPerBag" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Cust Rate</FormLabel>
-                                    <FormControl><Input type="number" step="0.01" className="text-sm h-9" {...field} value={field.value ?? ''} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-                            <FormField control={form.control} name="workerHamaliPerBag" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Worker Rate</FormLabel>
-                                    <FormControl><Input type="number" step="0.01" className="text-sm h-9" {...field} value={field.value ?? ''} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-                        </div>
-                        
-                        <div className="grid grid-cols-2 gap-4">
-                            <FormField control={form.control} name="totalHamaliManual" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-[10px] font-black text-primary uppercase tracking-widest">Customer Total</FormLabel>
-                                    <FormControl>
-                                        <Input type="number" step="0.01" className="text-sm h-9 border-primary/40 font-mono font-bold" {...field} value={field.value ?? ''} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-                            <FormField control={form.control} name="workerHamaliManual" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-[10px] font-black text-orange-600 uppercase tracking-widest">Worker Total</FormLabel>
-                                    <FormControl>
-                                        <Input type="number" step="0.01" className="text-sm h-9 border-orange-300 font-mono font-bold" {...field} value={field.value ?? ''} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
+                        <div className="p-4 rounded-xl border bg-slate-50/50 space-y-4">
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                                <Calculator className="h-3 w-3" />
+                                Hamali Rate Separation
+                            </h4>
+                            <div className="grid grid-cols-2 gap-4">
+                                <FormField control={form.control} name="customerHamaliPerBag" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-[11px] font-bold text-slate-500 uppercase">Customer Rate</FormLabel>
+                                        <FormControl><Input type="number" step="0.01" className="text-sm h-9" {...field} value={field.value ?? ''} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={form.control} name="workerHamaliPerBag" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-[11px] font-bold text-slate-500 uppercase">Worker Rate</FormLabel>
+                                        <FormControl><Input type="number" step="0.01" className="text-sm h-9" {...field} value={field.value ?? ''} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-4">
+                                <FormField control={form.control} name="totalHamaliManual" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-[10px] font-black text-primary uppercase tracking-tighter">Billed to Customer</FormLabel>
+                                        <FormControl>
+                                            <Input type="number" step="0.01" className="text-sm h-9 border-primary/40 font-mono font-bold" {...field} value={field.value ?? ''} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={form.control} name="workerHamaliManual" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-[10px] font-black text-orange-600 uppercase tracking-tighter">Payable to Hamali</FormLabel>
+                                        <FormControl>
+                                            <Input type="number" step="0.01" className="text-sm h-9 border-orange-300 font-mono font-bold" {...field} value={field.value ?? ''} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                            </div>
                         </div>
 
                         <Separator />
@@ -317,8 +324,8 @@ export function AddUnloadingRecordForm({
                         </div>
                     </CardContent>
                     <CardFooter>
-                        <Button type="submit" disabled={isPending} className="w-full font-bold h-11 uppercase tracking-widest shadow-lg shadow-primary/20">
-                            {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Confirm & Generate Bill'}
+                        <Button type="submit" disabled={isPending} className="w-full font-black h-12 uppercase tracking-widest shadow-xl shadow-primary/20">
+                            {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Confirm & Generate Unloading Bill'}
                         </Button>
                     </CardFooter>
                 </form>

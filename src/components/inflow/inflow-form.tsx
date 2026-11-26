@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import type { Customer, Payment, Commodity, Lot, StorageRecord, WarehouseInfo } from '@/lib/definitions';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Sparkles, MessageSquare } from 'lucide-react';
+import { Loader2, Sparkles, MessageSquare, Calculator } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { formatCurrency, cleanForFirestore } from '@/lib/utils';
 import { useFirestore } from '@/firebase/provider';
@@ -33,7 +33,7 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
     const [customerRate, setCustomerRate] = useState<number | ''>('');
     const [workerRate, setWorkerRate] = useState<number | ''>('');
     
-    // New Manual Override States
+    // Manual Override States
     const [hamaliPayableOverride, setHamaliPayableOverride] = useState<number | ''>('');
     const [workerPayableOverride, setWorkerPayableOverride] = useState<number | ''>('');
 
@@ -126,9 +126,8 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                 }
 
                 const finalDate = new Date(storageStartDate);
-                const custRate = Number(customerRate) || 0;
                 
-                // Use override values
+                // Use separate amounts
                 const hPayable = Number(hamaliPayableOverride) || 0;
                 const wPayable = Number(workerPayableOverride) || hPayable;
 
@@ -149,9 +148,9 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                     storageEndDate: null,
                     billingCycle: '6-Month Initial',
                     payments,
-                    hamaliPayable: hPayable,
-                    hamaliRate: custRate,
-                    workerHamaliPayable: wPayable,
+                    hamaliPayable: hPayable, // To Customer
+                    workerHamaliPayable: wPayable, // To Worker
+                    hamaliRate: Number(customerRate) || 0,
                     totalRentBilled: 0,
                     lorryTractorNo,
                     weight: Number(weight) || 0,
@@ -168,7 +167,7 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                 await setDoc(doc(firestore, "storageRecords", cleanId), cleanForFirestore(rawRecord));
 
                 if (sendSmsNotification && isSmsEnabled && selectedCustomer?.phone) {
-                    const msg = (warehouseInfo.smsInflowTemplate || `Dear {customerName}, inflow of {bags} bags of {commodity} recorded. Bill: {billNo}.`)
+                    const msg = (warehouseInfo.smsInflowTemplate || `Dear {customerName}, inflow of {bags} bags recorded. Bill: {billNo}.`)
                         .replace('{customerName}', selectedCustomer.name)
                         .replace('{bags}', String(bags))
                         .replace('{commodity}', selectedCommodity)
@@ -193,7 +192,7 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
             <Card className="stylish-card">
                 <CardHeader>
                     <CardTitle className="text-lg font-bold">New Storage Record Details</CardTitle>
-                    <CardDescription className="text-xs">Identifier is strictly numerical.</CardDescription>
+                    <CardDescription className="text-xs">Separate Hamali rates for Customer Billing and Worker Payout.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                      <div className="space-y-1.5">
@@ -239,31 +238,38 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                             <Input type="number" step="0.01" value={weight} onChange={e => setWeight(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
                         </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
-                            <Label className="text-xs font-semibold">Cust Rate</Label>
-                            <Input type="number" step="0.01" value={customerRate} onChange={e => setCustomerRate(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
+
+                    <div className="p-4 rounded-xl border bg-slate-50/50 space-y-4">
+                        <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                            <Calculator className="h-3 w-3" />
+                            Hamali Breakdown
+                        </h4>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                                <Label className="text-[11px] font-bold text-slate-500 uppercase">Customer Rate/Bag</Label>
+                                <Input type="number" step="0.01" placeholder="0.00" value={customerRate} onChange={e => setCustomerRate(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label className="text-[11px] font-bold text-slate-500 uppercase">Worker Rate/Bag</Label>
+                                <Input type="number" step="0.01" placeholder="0.00" value={workerRate} onChange={e => setWorkerRate(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
+                            </div>
                         </div>
-                        <div className="space-y-1.5">
-                            <Label className="text-xs font-semibold">Worker Rate</Label>
-                            <Input type="number" step="0.01" value={workerRate} onChange={e => setWorkerRate(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
-                        </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
-                            <Label className="text-xs font-bold text-primary">Total Cust Hamali</Label>
-                            <Input type="number" step="0.01" value={hamaliPayableOverride} onChange={e => setHamaliPayableOverride(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9 border-primary/50" />
-                        </div>
-                        <div className="space-y-1.5">
-                            <Label className="text-xs font-bold text-orange-600">Total Worker Payable</Label>
-                            <Input type="number" step="0.01" value={workerPayableOverride} onChange={e => setWorkerPayableOverride(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9 border-orange-400" />
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                                <Label className="text-[10px] font-black text-primary uppercase tracking-tighter">Billed to Customer</Label>
+                                <Input type="number" step="0.01" value={hamaliPayableOverride} onChange={e => setHamaliPayableOverride(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9 border-primary/50 font-mono font-bold" />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label className="text-[10px] font-black text-orange-600 uppercase tracking-tighter">Payable to Hamali</Label>
+                                <Input type="number" step="0.01" value={workerPayableOverride} onChange={e => setWorkerPayableOverride(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9 border-orange-400 font-mono font-bold" />
+                            </div>
                         </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1.5">
-                            <Label className="text-xs font-semibold">Paid Now</Label>
+                            <Label className="text-xs font-semibold">Customer Paid Now</Label>
                             <Input type="number" step="0.01" value={hamaliPaid} onChange={e => setHamaliPaid(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
                         </div>
                         <div className="space-y-1.5">
@@ -274,7 +280,7 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                      <Separator />
                      <div className="space-y-2 text-sm">
                         <div className="flex justify-between font-bold">
-                            <span className="text-destructive uppercase text-[10px]">Net Balance (Customer)</span>
+                            <span className="text-destructive uppercase text-[10px] tracking-widest">Customer Balance (Handling)</span>
                             <span className="font-mono text-destructive">{formatCurrency((Number(hamaliPayableOverride) || 0) - (Number(hamaliPaid) || 0))}</span>
                         </div>
                     </div>
@@ -295,8 +301,8 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                     </div>
                 </CardContent>
                 <CardFooter>
-                    <Button type="submit" disabled={isPending} className="w-full text-sm">
-                        {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : 'Create Storage Record'}
+                    <Button type="submit" disabled={isPending} className="w-full text-sm font-black uppercase tracking-widest">
+                        {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Confirm Godown Inflow'}
                     </Button>
                 </CardFooter>
             </Card>

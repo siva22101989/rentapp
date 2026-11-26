@@ -1,13 +1,13 @@
 'use client';
 import { useMemo } from "react";
-import type { Customer, StorageRecord, UnloadingRecord, CustomerPayment } from "@/lib/definitions";
+import type { Customer, StorageRecord, UnloadingRecord, CustomerPayment, Expense } from "@/lib/definitions";
 import { PendingDuesReportTable } from "../reports/pending-dues-report-table";
 import { toDate } from "@/lib/utils";
 
 export type CustomerPendingSummary = {
     customerId: string;
     customerName: string;
-    workerHamaliEarned: number;     // Sum of Worker Rates (What we owe staff)
+    workerHamaliPending: number;     // Net worker balance (Earned - Paid)
     customerHamaliPending: number;  // Sum of Customer Rates - Payments (What cust owes us for labor)
     rentPending: number;            // Sum of Rent + Khata - Payments (What cust owes us for storage)
     totalBalance: number;           // Net Customer Receivable (Hamali + Rent)
@@ -19,12 +19,14 @@ export function PendingPaymentsTable({
     customers, 
     unloadingRecords, 
     customerPayments = [], 
+    expenses = [],
     title = "Pending Dues Register" 
 }: { 
     records: StorageRecord[], 
     customers: Customer[], 
     unloadingRecords: UnloadingRecord[], 
     customerPayments?: CustomerPayment[], 
+    expenses?: Expense[],
     title?: string 
 }) {
 
@@ -33,6 +35,7 @@ export function PendingPaymentsTable({
         
         const summaryMap: Record<string, {
             workerHamaliEarned: number,
+            workerHamaliPaid: number,
             customerHamaliBilled: number,
             customerHamaliPaid: number,
             rentBilled: number,
@@ -46,6 +49,7 @@ export function PendingPaymentsTable({
             if (!summaryMap[id]) {
                 summaryMap[id] = {
                     workerHamaliEarned: 0,
+                    workerHamaliPaid: 0,
                     customerHamaliBilled: 0,
                     customerHamaliPaid: 0,
                     rentBilled: 0,
@@ -60,7 +64,7 @@ export function PendingPaymentsTable({
         records.forEach(r => {
             const s = getSummary(r.customerId);
             
-            // Worker Side
+            // Worker Side Liability
             s.workerHamaliEarned += Number(r.workerHamaliPayable ?? r.hamaliPayable) || 0;
             
             // Customer Side (Receivables)
@@ -86,11 +90,11 @@ export function PendingPaymentsTable({
             const remainingBags = Math.max(0, (Number(r.bagsUnloaded) || 0) - (Number(r.bagsSentToDrying) || 0));
             const proportion = Number(r.bagsUnloaded) > 0 ? remainingBags / Number(r.bagsUnloaded) : 0;
             
-            // Worker Side
+            // Worker Side Liability
             const workerBase = Number(r.workerHamaliPayable ?? r.totalHamali) || 0;
             s.workerHamaliEarned += (workerBase * proportion);
             
-            // Customer Side
+            // Customer Side (Receivables)
             s.customerHamaliBilled += remainingBags * (Number(r.hamaliPerBag) || 0);
             
             (r.payments || []).forEach(p => {
@@ -112,24 +116,33 @@ export function PendingPaymentsTable({
             if (pDate > s.lastDate) s.lastDate = pDate;
         });
 
+        // 4. Process Worker Payouts (Expenses)
+        (expenses || []).forEach(e => {
+            if (e.category === 'Hamali Paid' && e.customerId) {
+                const s = getSummary(e.customerId);
+                s.workerHamaliPaid += Number(e.amount) || 0;
+            }
+        });
+
         return Object.entries(summaryMap).map(([customerId, data]) => {
             const hPending = Math.max(0, data.customerHamaliBilled - data.customerHamaliPaid);
             const rPending = Math.max(0, data.rentBilled - data.rentPaid);
+            const wPending = Math.max(0, data.workerHamaliEarned - data.workerHamaliPaid);
 
             return {
                 customerId,
                 customerName: customerMap.get(customerId) || 'Unknown',
-                workerHamaliEarned: data.workerHamaliEarned,
+                workerHamaliPending: wPending,
                 customerHamaliPending: hPending,
                 rentPending: rPending,
                 totalBalance: hPending + rPending,
                 lastActivityDate: new Date(data.lastDate)
             } as CustomerPendingSummary;
         })
-        .filter(s => s.totalBalance > 0.01) // STRICT "Pending Balance Only" Filter - Hide zero balances
+        .filter(s => s.totalBalance > 0.01 || s.workerHamaliPending > 0.01) // Filter for active debt on either side
         .sort((a, b) => b.lastActivityDate.getTime() - a.lastActivityDate.getTime());
 
-    }, [records, unloadingRecords, customers, customerPayments]);
+    }, [records, unloadingRecords, customers, customerPayments, expenses]);
 
     return (
         <div className="space-y-4">

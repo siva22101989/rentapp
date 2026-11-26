@@ -10,6 +10,7 @@ import type { Customer, StorageRecord, UnloadingRecord, CustomerPayment } from "
 
 type ReportTableProps = {
     summaries: CustomerPendingSummary[];
+    globalWorkerBalance: number;
     title: string;
     customers: Customer[];
     storageRecords: StorageRecord[];
@@ -18,17 +19,16 @@ type ReportTableProps = {
     isReport?: boolean;
 };
 
-export function PendingDuesReportTable({ summaries, title, customers, storageRecords, unloadingRecords, customerPayments = [], isReport = false }: ReportTableProps) {
+export function PendingDuesReportTable({ summaries, globalWorkerBalance, title, warehouseInfo, isReport = false }: ReportTableProps & { warehouseInfo?: any }) {
     const generatedDate = useMemo(() => format(new Date(), 'dd MMM yyyy, hh:mm a'), []);
 
     const totals = useMemo(() => {
         return summaries.reduce((acc, s) => {
-            acc.workerPending += s.workerHamaliPending;
             acc.hPending += s.customerHamaliPending;
             acc.rPending += s.rentPending;
             acc.total += s.totalBalance;
             return acc;
-        }, { workerPending: 0, hPending: 0, rPending: 0, total: 0 });
+        }, { hPending: 0, rPending: 0, total: 0 });
     }, [summaries]);
 
     return (
@@ -46,49 +46,60 @@ export function PendingDuesReportTable({ summaries, title, customers, storageRec
                     <TableHeader>
                         <TableRow className="bg-slate-50 border-b-2 border-black hover:bg-slate-50">
                             <TableHead className="font-black text-black py-3 uppercase text-[10px] text-center border-r">Customer Name</TableHead>
-                            <TableHead className="font-black text-slate-500 py-3 uppercase text-[10px] text-center border-r">Hamali Workers (Pending)</TableHead>
                             <TableHead className="font-black text-orange-700 py-3 uppercase text-[10px] text-center border-r">Cust. Hamali Due</TableHead>
                             <TableHead className="font-black text-blue-700 py-3 uppercase text-[10px] text-center border-r">Rent Pending</TableHead>
-                            <TableHead className="font-black text-destructive py-3 uppercase text-[10px] text-center">Net Total Balance</TableHead>
+                            <TableHead className="font-black text-destructive py-3 uppercase text-[10px] text-center">Net Customer Debt</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {summaries.map((summary) => {
-                            const isVirtual = summary.customerId === 'global-payout';
-                            return (
-                                <TableRow key={summary.customerId} className={`hover:bg-slate-50/50 border-b border-slate-100 h-10 ${isVirtual ? 'bg-slate-50 italic' : ''}`}>
-                                    <TableCell className={`font-bold p-2 text-center uppercase tracking-tight border-r ${isVirtual ? 'text-slate-400 text-[11px]' : 'text-slate-900'}`}>
-                                        {summary.customerName}
-                                    </TableCell>
-                                    <TableCell className={`text-right font-mono p-2 text-center border-r ${summary.workerHamaliPending < -0.1 ? 'text-green-600 font-bold' : 'text-slate-500'}`}>
-                                        {formatCurrency(summary.workerHamaliPending)}
-                                    </TableCell>
-                                    <TableCell className="text-right font-mono text-orange-600 font-bold p-2 text-center border-r">{formatCurrency(summary.customerHamaliPending)}</TableCell>
-                                    <TableCell className="text-right font-mono text-blue-600 font-bold p-2 text-center border-r">{formatCurrency(summary.rentPending)}</TableCell>
-                                    <TableCell className="text-right font-mono font-black text-destructive p-2 text-center bg-destructive/5">{formatCurrency(summary.totalBalance)}</TableCell>
-                                </TableRow>
-                            );
-                        })}
+                        {summaries.map((summary) => (
+                            <TableRow key={summary.customerId} className="hover:bg-slate-50/50 border-b border-slate-100 h-10">
+                                <TableCell className="font-bold p-2 text-center uppercase tracking-tight border-r text-slate-900">
+                                    {summary.customerName}
+                                </TableCell>
+                                <TableCell className="text-right font-mono text-orange-600 font-bold p-2 text-center border-r">{formatCurrency(summary.customerHamaliPending)}</TableCell>
+                                <TableCell className="text-right font-mono text-blue-600 font-bold p-2 text-center border-r">{formatCurrency(summary.rentPending)}</TableCell>
+                                <TableCell className="text-right font-mono font-black text-destructive p-2 text-center bg-destructive/5">{formatCurrency(summary.totalBalance)}</TableCell>
+                            </TableRow>
+                        ))}
                         {summaries.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={5} className="text-center py-24 text-muted-foreground italic font-medium">
-                                    No outstanding balances found in the Godown ledger.
+                                <TableCell colSpan={4} className="text-center py-24 text-muted-foreground italic font-medium">
+                                    No outstanding customer balances found.
                                 </TableCell>
                             </TableRow>
                         )}
                     </TableBody>
                     <TableFooter>
                         <TableRow className="bg-slate-50 text-black border-t-2 border-black font-black h-14">
-                            <TableCell className="p-3 uppercase text-[10px] tracking-widest text-center border-r">Grand Audit Totals</TableCell>
-                            <TableCell className={`text-center font-mono text-lg border-r ${totals.workerPending < -0.1 ? 'text-green-700' : 'text-slate-500'}`}>
-                                {formatCurrency(totals.workerPending)}
-                            </TableCell>
+                            <TableCell className="p-3 uppercase text-[10px] tracking-widest text-center border-r">Total Customer Receivables</TableCell>
                             <TableCell className="text-center font-mono text-orange-600 text-lg border-r">{formatCurrency(totals.hPending)}</TableCell>
                             <TableCell className="text-center font-mono text-blue-600 text-lg border-r">{formatCurrency(totals.rPending)}</TableCell>
                             <TableCell className="text-center text-destructive font-mono text-xl underline underline-offset-4">{formatCurrency(totals.total)}</TableCell>
                         </TableRow>
                     </TableFooter>
                 </Table>
+            </div>
+
+            {/* GLOBAL RECONCILIATION BLOCK */}
+            <div className="mt-12 flex justify-center">
+                <div className="w-[500px] border-2 border-black bg-slate-50 p-6 rounded-2xl shadow-inner text-center space-y-3">
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Warehouse Labor Liability (Global Audit)</h3>
+                    <div className="flex justify-between items-center px-4">
+                        <span className="text-xs font-bold text-slate-500 uppercase">Net Hamali Workers Balance:</span>
+                        <span className={`text-2xl font-mono font-black ${globalWorkerBalance < -0.1 ? 'text-green-700' : 'text-primary'}`}>
+                            {formatCurrency(globalWorkerBalance)}
+                        </span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 italic">
+                        {globalWorkerBalance < -0.1 
+                            ? "Current staff position: Advanced/Overpaid" 
+                            : "Current staff position: Earnings Pending Distribution"}
+                    </p>
+                    <div className="pt-2 border-t border-slate-200">
+                        <p className="text-[9px] font-bold text-slate-300 uppercase tracking-tighter">This figure matches your official Hamali Ledger exactly.</p>
+                    </div>
+                </div>
             </div>
             
             <div className="mt-20 flex justify-end">

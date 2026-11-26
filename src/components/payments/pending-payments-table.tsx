@@ -8,7 +8,6 @@ import { toDate } from "@/lib/utils";
 export type CustomerPendingSummary = {
     customerId: string;
     customerName: string;
-    workerHamaliPending: number;     // Net worker balance (Earned - Paid)
     customerHamaliPending: number;  // Sum of Customer Rates - Payments (What cust owes us for labor)
     rentPending: number;            // Sum of Rent + Khata - Payments (What cust owes us for storage)
     totalBalance: number;           // Net Customer Receivable (Hamali + Rent)
@@ -31,12 +30,10 @@ export function PendingPaymentsTable({
     title?: string 
 }) {
 
-    const pendingSummaries = useMemo(() => {
-        if (!records || !unloadingRecords || !customers) return [];
+    const { pendingSummaries, globalWorkerBalance } = useMemo(() => {
+        if (!records || !unloadingRecords || !customers) return { pendingSummaries: [], globalWorkerBalance: 0 };
         
         const summaryMap: Record<string, {
-            workerHamaliEarned: number,
-            workerHamaliPaid: number,
             customerHamaliBilled: number,
             customerHamaliPaid: number,
             rentBilled: number,
@@ -49,8 +46,6 @@ export function PendingPaymentsTable({
         const getSummary = (id: string) => {
             if (!summaryMap[id]) {
                 summaryMap[id] = {
-                    workerHamaliEarned: 0,
-                    workerHamaliPaid: 0,
                     customerHamaliBilled: 0,
                     customerHamaliPaid: 0,
                     rentBilled: 0,
@@ -61,12 +56,16 @@ export function PendingPaymentsTable({
             return summaryMap[id];
         };
 
+        // --- GLOBAL WORKER MATH ---
+        let totalWorkerEarned = 0;
+        let totalWorkerPaid = 0;
+
         // 1. Process Storage Records
         records.forEach(r => {
             const s = getSummary(r.customerId);
             
-            // Worker Side Liability
-            s.workerHamaliEarned += Number(r.workerHamaliPayable ?? r.hamaliPayable) || 0;
+            // Global Worker Side
+            totalWorkerEarned += Number(r.workerHamaliPayable ?? r.hamaliPayable) || 0;
             
             // Customer Side (Receivables)
             s.customerHamaliBilled += Number(r.hamaliPayable) || 0;
@@ -91,9 +90,9 @@ export function PendingPaymentsTable({
             const remainingBags = Math.max(0, (Number(r.bagsUnloaded) || 0) - (Number(r.bagsSentToDrying) || 0));
             const proportion = Number(r.bagsUnloaded) > 0 ? remainingBags / Number(r.bagsUnloaded) : 0;
             
-            // Worker Side Liability
+            // Global Worker Side
             const workerBase = Number(r.workerHamaliPayable ?? r.totalHamali) || 0;
-            s.workerHamaliEarned += (workerBase * proportion);
+            totalWorkerEarned += (workerBase * proportion);
             
             // Customer Side (Receivables)
             s.customerHamaliBilled += remainingBags * (Number(r.hamaliPerBag) || 0);
@@ -117,29 +116,20 @@ export function PendingPaymentsTable({
             if (pDate > s.lastDate) s.lastDate = pDate;
         });
 
-        let unallocatedHamaliPaid = 0;
-
-        // 4. Process Worker Payouts (Expenses)
+        // 4. Process Hamali Paid (Expenses)
         (expenses || []).forEach(e => {
             if (e.category === 'Hamali Paid') {
-                if (e.customerId) {
-                    const s = getSummary(e.customerId);
-                    s.workerHamaliPaid += Number(e.amount) || 0;
-                } else {
-                    unallocatedHamaliPaid += Number(e.amount) || 0;
-                }
+                totalWorkerPaid += Number(e.amount) || 0;
             }
         });
 
-        const results = Object.entries(summaryMap).map(([customerId, data]) => {
+        const summaries = Object.entries(summaryMap).map(([customerId, data]) => {
             const hPending = Math.max(0, data.customerHamaliBilled - data.customerHamaliPaid);
             const rPending = Math.max(0, data.rentBilled - data.rentPaid);
-            const wPending = data.workerHamaliEarned - data.workerHamaliPaid;
 
             return {
                 customerId,
                 customerName: customerMap.get(customerId) || 'Unknown',
-                workerHamaliPending: wPending,
                 customerHamaliPending: hPending,
                 rentPending: rPending,
                 totalBalance: hPending + rPending,
@@ -147,23 +137,12 @@ export function PendingPaymentsTable({
             } as CustomerPendingSummary;
         });
 
-        // Add virtual row for orphan/global payments to ensure grand total reconciles
-        if (unallocatedHamaliPaid > 0) {
-            results.push({
-                customerId: 'global-payout',
-                customerName: 'General Payouts / Legacy Hamali Payments',
-                workerHamaliPending: -unallocatedHamaliPaid,
-                customerHamaliPending: 0,
-                rentPending: 0,
-                totalBalance: 0,
-                lastActivityDate: new Date()
-            });
-        }
-
-        // Filter to show active debt or active labor payout balances
-        return results
-            .filter(s => Math.abs(s.totalBalance) > 0.01 || Math.abs(s.workerHamaliPending) > 0.01)
-            .sort((a, b) => b.lastActivityDate.getTime() - a.lastActivityDate.getTime());
+        return {
+            pendingSummaries: summaries
+                .filter(s => s.totalBalance > 0.01)
+                .sort((a, b) => b.lastActivityDate.getTime() - a.lastActivityDate.getTime()),
+            globalWorkerBalance: totalWorkerEarned - totalWorkerPaid
+        };
 
     }, [records, unloadingRecords, customers, customerPayments, expenses]);
 
@@ -172,6 +151,7 @@ export function PendingPaymentsTable({
             <div className="table-scroll-container overflow-x-auto">
                 <PendingDuesReportTable
                     summaries={pendingSummaries}
+                    globalWorkerBalance={globalWorkerBalance}
                     title={title}
                     customers={customers}
                     storageRecords={records}

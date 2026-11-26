@@ -30,6 +30,7 @@ import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Separator } from '../ui/separator';
 import { Combobox } from '../ui/combobox';
+import { Badge } from '../ui/badge';
 
 const HamaliPaymentSchema = z.object({
   customerId: z.string().optional(),

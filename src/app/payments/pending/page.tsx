@@ -1,4 +1,3 @@
-
 'use client';
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/shared/page-header";
@@ -12,6 +11,7 @@ import { CustomerBulkPaymentDialog } from "@/components/payments/customer-bulk-p
 import { useAppUser } from "@/firebase/auth/use-user";
 import { Loader2 } from "lucide-react";
 import { SendReminderSmsDialog } from "@/components/payments/send-reminder-sms-dialog";
+import { RecordHamaliPaymentDialog } from "@/components/hamali/record-payment-dialog";
 
 export default function PendingPaymentsPage() {
     const firestore = useFirestore();
@@ -52,7 +52,7 @@ export default function PendingPaymentsPage() {
                 <div className="flex h-[60vh] w-full items-center justify-center">
                     <div className="flex flex-col items-center gap-2">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                        <p className="text-muted-foreground font-medium">Synchronizing pending dues...</p>
+                        <p className="text-muted-foreground font-bold uppercase tracking-widest text-[10px]">Synchronizing Ledger Accounts...</p>
                     </div>
                 </div>
             </AppLayout>
@@ -63,15 +63,15 @@ export default function PendingPaymentsPage() {
         <AppLayout>
             <PageHeader
                 title="Pending Dues Management"
-                description="Monitor and collect outstanding hamali and rent balances."
+                description="Consolidated audit of customer receivables and labor liabilities."
             >
               {canInteract && (
                 <div className="flex items-center gap-2 flex-wrap">
+                  <RecordHamaliPaymentDialog />
                   <SendReminderSmsDialog 
                       customers={allCustomers || []}
                       storageRecords={allRecords || []}
                       unloadingRecords={allUnloadingRecords || []}
-                      customerPayments={customerPayments || []}
                   />
                   <CustomerBulkPaymentDialog
                       customers={allCustomers || []}

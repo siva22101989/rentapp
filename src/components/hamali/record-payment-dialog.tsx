@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition, useMemo } from 'react';
-import { Loader2, Hammer, TrendingDown, Banknote } from 'lucide-react';
+import { Loader2, Hammer, TrendingDown, Banknote, Calculator } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -146,11 +146,11 @@ export function RecordHamaliPaymentDialog({
           customerId: data.customerId || undefined,
         };
         await addDoc(collection(firestore, 'expenses'), cleanForFirestore(newExpense));
-        toast({ title: 'Payment Recorded', description: `${formatCurrency(data.amount)} has been added to hamali expenses.` });
+        toast({ title: 'Payout Recorded', description: `${formatCurrency(data.amount)} distributed to labor team.` });
         setIsOpen(false);
         form.reset();
       } catch (error) {
-        toast({ title: 'Error', description: 'Failed to record payment.', variant: 'destructive' });
+        toast({ title: 'Error', description: 'Failed to record payout.', variant: 'destructive' });
       }
     });
   };
@@ -162,7 +162,7 @@ export function RecordHamaliPaymentDialog({
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         {children || (
-            <Button className="font-bold h-9 bg-orange-600 hover:bg-orange-700 text-white">
+            <Button variant="outline" className="font-bold h-9 border-orange-200 text-orange-700 hover:bg-orange-50">
                 <Hammer className="mr-2 h-4 w-4" />
                 Hamali Ledger Payout
             </Button>
@@ -173,7 +173,7 @@ export function RecordHamaliPaymentDialog({
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <DialogHeader>
               <DialogTitle className="text-xl font-bold uppercase tracking-tight text-center">Hamali Ledger Payout</DialogTitle>
-              <DialogDescription className="text-xs font-medium text-center">Distribute cash to workers. Selecting a customer correctly reconciles their labor pool.</DialogDescription>
+              <DialogDescription className="text-xs font-medium text-center">Distribute cash to laborers. Logic handles both pending dues and advances automatically.</DialogDescription>
             </DialogHeader>
             
             <div className="grid gap-4 py-4">
@@ -182,12 +182,12 @@ export function RecordHamaliPaymentDialog({
                 name="customerId"
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
-                    <FormLabel className="text-xs font-black uppercase tracking-wider text-slate-500">Target Account (Optional)</FormLabel>
+                    <FormLabel className="text-xs font-black uppercase tracking-wider text-slate-500">Reconcile Account (Optional)</FormLabel>
                     <Combobox 
                         options={customerOptions} 
                         value={field.value} 
                         onChange={field.onChange} 
-                        placeholder="Select customer for specific payout..." 
+                        placeholder="Link payout to a specific job/customer..." 
                         modal={true} 
                     />
                     <FormMessage />
@@ -195,41 +195,31 @@ export function RecordHamaliPaymentDialog({
                 )}
               />
 
-              <div className="grid grid-cols-2 gap-2 mb-2">
-                  <div className="p-3 rounded-xl border bg-slate-50 text-center space-y-1">
-                      <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Total Earned</p>
-                      <p className="text-sm font-black text-slate-700">{formatCurrency(totalEarned)}</p>
-                  </div>
-                  <div className="p-3 rounded-xl border bg-slate-50 text-center space-y-1">
-                      <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Total Distributed</p>
-                      <p className="text-sm font-black text-green-700">{formatCurrency(totalPaid)}</p>
-                  </div>
-              </div>
-
-              <div className={`p-5 rounded-2xl border-2 transition-colors text-center space-y-1 ${
-                  isInAdvance ? 'border-emerald-200 bg-emerald-50' : 
-                  isBalanceSettled ? 'border-slate-200 bg-slate-50' : 'border-primary/20 bg-primary/5'
-              }`}>
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
-                      {isInAdvance ? 'Current Hamali Advance' : 'Net Ledger Balance'}
+              <div className="p-5 rounded-2xl border-2 transition-all duration-300 text-center space-y-1 bg-slate-50/50">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+                    Net Hamali Ledger Balance
                   </p>
-                  <p className={`text-3xl font-black ${
-                      isInAdvance ? 'text-emerald-700' : 
-                      isBalanceSettled ? 'text-slate-400' : 'text-primary'
+                  <p className={`text-4xl font-black ${
+                      isInAdvance ? 'text-green-700' : 
+                      isBalanceSettled ? 'text-slate-400' : 'text-orange-600'
                   }`}>
                       {formatCurrency(Math.abs(netPending))}
                   </p>
+                  <Badge variant="outline" className={`uppercase text-[9px] font-black tracking-widest ${isInAdvance ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'}`}>
+                    {isInAdvance ? 'Current Advance' : 'Total Pending'}
+                  </Badge>
               </div>
 
-              {isInAdvance && (
-                  <Alert variant="default" className="bg-emerald-50 border-emerald-200">
-                      <TrendingDown className="h-4 w-4 text-emerald-600" />
-                      <AlertTitle className="text-emerald-800 text-xs font-bold uppercase tracking-wider text-center">Labor Advance</AlertTitle>
-                      <AlertDescription className="text-emerald-700 text-[11px] font-medium leading-relaxed text-center">
-                          Total payouts exceed earnings by {formatCurrency(Math.abs(netPending))}. New distributions will increase this advance.
-                      </AlertDescription>
-                  </Alert>
-              )}
+              <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 rounded-xl border bg-slate-50 text-center space-y-1">
+                      <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Staff Payable (+)</p>
+                      <p className="text-sm font-black text-slate-700">{formatCurrency(totalEarned)}</p>
+                  </div>
+                  <div className="p-3 rounded-xl border bg-slate-50 text-center space-y-1">
+                      <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Cash Distributed (-)</p>
+                      <p className="text-sm font-black text-green-700">{formatCurrency(totalPaid)}</p>
+                  </div>
+              </div>
 
               <Separator />
 
@@ -252,7 +242,7 @@ export function RecordHamaliPaymentDialog({
                     name="amount"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs font-black uppercase tracking-wider text-slate-500">Amount to Pay Now</FormLabel>
+                        <FormLabel className="text-xs font-black uppercase tracking-wider text-slate-500">Amount to Distribute</FormLabel>
                         <FormControl>
                           <div className="relative">
                               <Input 
@@ -261,9 +251,9 @@ export function RecordHamaliPaymentDialog({
                                 placeholder="0.00" 
                                 {...field} 
                                 value={field.value ?? ''} 
-                                className="h-12 text-lg font-mono font-black border-primary/30 shadow-inner pl-10"
+                                className="h-12 text-lg font-mono font-black border-orange-300 shadow-inner pl-10 focus-visible:ring-orange-200"
                               />
-                              <Banknote className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-primary opacity-50" />
+                              <Banknote className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-orange-500 opacity-50" />
                           </div>
                         </FormControl>
                         <FormMessage />
@@ -274,7 +264,7 @@ export function RecordHamaliPaymentDialog({
             </div>
             <DialogFooter className="gap-2">
               <DialogClose asChild><Button variant="outline" type="button" className="text-xs font-bold uppercase h-10 flex-1">Cancel</Button></DialogClose>
-              <Button type="submit" disabled={isPending} className="text-xs font-black uppercase tracking-widest h-10 flex-1 shadow-lg shadow-primary/20">
+              <Button type="submit" disabled={isPending} className="text-xs font-black uppercase tracking-widest h-10 flex-1 bg-orange-600 hover:bg-orange-700 shadow-lg shadow-orange-200">
                 {isPending ? (
                   <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
                 ) : (

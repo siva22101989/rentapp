@@ -127,7 +127,7 @@ export function PendingPaymentsTable({
                 lastActivityDate: new Date(data.lastDate)
             } as CustomerPendingSummary;
         })
-        .filter(s => s.totalBalance > 0.5 || s.workerHamaliEarned > 0.5) 
+        .filter(s => s.totalBalance > 0.01 || s.workerHamaliEarned > 0.01) // Strict "Pending Only" Filter
         .sort((a, b) => b.lastActivityDate.getTime() - a.lastActivityDate.getTime());
 
     }, [records, unloadingRecords, customers, customerPayments]);

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo, useState } from 'react';
@@ -124,7 +125,7 @@ export function FinancialSummaryReport({
                 ...row,
                 balance: row.billed - row.paid - row.discounts
             }))
-            .filter(r => Math.abs(r.bagsIn) > 0 || Math.abs(r.bagsOut) > 0 || Math.abs(r.billed) > 0.5 || Math.abs(r.paid) > 0.5 || Math.abs(r.discounts) > 0.5)
+            .filter(r => Math.abs(r.balance) > 0.01) // STRICT "Pending Only" Filter
             .sort((a, b) => a.customerName.localeCompare(b.customerName));
     }, [records, unloadingRecords, customerPayments, customers, activeRange, financialYear]);
 
@@ -173,9 +174,9 @@ export function FinancialSummaryReport({
             <div className="bg-white p-6 rounded-xl border shadow-sm printable-area">
                 <div className="text-center border-b-2 border-black pb-4 mb-6">
                     <h2 className="text-2xl font-black uppercase tracking-tight leading-none text-center text-primary">{warehouseInfo?.name || "SRI LAKSHMI WAREHOUSE"}</h2>
-                    <h3 className="text-sm font-black uppercase tracking-widest mt-2 text-center">Periodic Financial & Stock Audit</h3>
+                    <h3 className="text-sm font-black uppercase tracking-widest mt-2 text-center">Periodic Pending Portfolio Audit</h3>
                     <p className="text-xs font-bold text-slate-600 mt-1 uppercase text-center">Period: {periodLabel}</p>
-                    <p className="text-[10px] text-slate-400 uppercase mt-1 text-center italic">Report shows activity strictly within chosen timeframe.</p>
+                    <p className="text-[10px] text-slate-400 uppercase mt-1 text-center italic">Report strictly shows customers with outstanding balances in this timeframe.</p>
                 </div>
 
                 <div className="table-scroll-container border-y-2 border-black">
@@ -200,13 +201,13 @@ export function FinancialSummaryReport({
                                     <TableCell className="p-1 text-right font-mono text-center">{row.billed > 0 ? formatCurrency(row.billed) : '-'}</TableCell>
                                     <TableCell className="p-1 text-right font-mono text-destructive text-center">{row.discounts > 0 ? formatCurrency(row.discounts) : '-'}</TableCell>
                                     <TableCell className="p-1 text-right font-mono text-green-600 font-bold text-center">{row.paid > 0 ? formatCurrency(row.paid) : '-'}</TableCell>
-                                    <TableCell className={`p-1 text-right font-mono font-black text-center ${row.balance > 0.5 ? 'text-destructive' : (row.balance < -0.5 ? 'text-green-700' : 'text-slate-300')}`}>
+                                    <TableCell className={`p-1 text-right font-mono font-black text-center ${row.balance > 0.01 ? 'text-destructive' : (row.balance < -0.01 ? 'text-green-700' : 'text-slate-300')}`}>
                                         {formatCurrency(row.balance)}
                                     </TableCell>
                                 </TableRow>
                             ))}
                             {customerSummaries.length === 0 && (
-                                <TableRow><TableCell colSpan={7} className="text-center py-24 text-muted-foreground italic">No transactions found.</TableCell></TableRow>
+                                <TableRow><TableCell colSpan={7} className="text-center py-24 text-muted-foreground italic">No outstanding balances found for this period.</TableCell></TableRow>
                             )}
                         </TableBody>
                         <TableFooter>
@@ -217,7 +218,7 @@ export function FinancialSummaryReport({
                                 <TableCell className="text-right font-mono text-center">{formatCurrency(totals.billed)}</TableCell>
                                 <TableCell className="text-right font-mono text-destructive text-center">{formatCurrency(totals.discounts)}</TableCell>
                                 <TableCell className="text-right font-mono text-green-700 text-center">{formatCurrency(totals.paid)}</TableCell>
-                                <TableCell className={`text-right font-mono text-lg text-center ${totals.balance > 0 ? 'text-destructive' : 'text-green-800'}`}>
+                                <TableCell className={`text-right font-mono text-lg text-center ${totals.balance > 0.01 ? 'text-destructive' : 'text-green-800'}`}>
                                     {formatCurrency(totals.balance)}
                                 </TableCell>
                             </TableRow>
@@ -227,8 +228,8 @@ export function FinancialSummaryReport({
 
                 <div className="mt-20 flex flex-col md:flex-row justify-between gap-12">
                     <div className="flex-1 text-[11px] text-slate-400 space-y-1">
-                        <p><strong>Note:</strong> Discounts are treated as a direct revenue loss for the company audit.</p>
-                        <p><strong>Period Balance:</strong> Billed - (Paid + Discounts). Positive means money owed from this period.</p>
+                        <p><strong>Note:</strong> Report automatically excludes fully settled accounts (₹0.00).</p>
+                        <p><strong>Period Balance:</strong> Billed - (Paid + Discounts).</p>
                         <p><strong>Generated:</strong> {generatedDate}</p>
                     </div>
                     <div className="w-72 border-t-2 border-black text-center pt-2 shrink-0">

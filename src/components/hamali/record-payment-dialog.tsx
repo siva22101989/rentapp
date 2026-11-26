@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useTransition, useMemo } from 'react';
-import { Loader2, Hammer, AlertCircle, TrendingDown } from 'lucide-react';
+import { Loader2, Hammer, AlertCircle, TrendingDown, Calculator, Banknote, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -29,6 +29,7 @@ import { useAppUser } from '@/firebase/auth/use-user';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { Separator } from '../ui/separator';
 
 const HamaliPaymentSchema = z.object({
   amount: z.coerce.number().positive('Amount must be a positive number.'),
@@ -66,11 +67,10 @@ export function RecordHamaliPaymentDialog({
   );
   const { data: allExpenses } = useCollection<Expense>(expensesQuery);
 
-  const netPending = useMemo(() => {
-    if (!allRecords || !allUnloadingRecords || !allExpenses) return 0;
+  const { totalEarned, totalPaid, netPending } = useMemo(() => {
+    if (!allRecords || !allUnloadingRecords || !allExpenses) return { totalEarned: 0, totalPaid: 0, netPending: 0 };
 
     const workerLiability = allRecords.reduce((acc, sr) => {
-        // Use worker-specific pay if available, otherwise fallback to customer hamali
         const val = (sr.workerHamaliPayable !== undefined && sr.workerHamaliPayable !== null) 
             ? Number(sr.workerHamaliPayable) 
             : (Number(sr.hamaliPayable) || 0);
@@ -93,7 +93,11 @@ export function RecordHamaliPaymentDialog({
         .filter(e => e.category === 'Hamali Paid')
         .reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
 
-    return workerLiability - workerPaid;
+    return {
+        totalEarned: workerLiability,
+        totalPaid: workerPaid,
+        netPending: workerLiability - workerPaid
+    };
   }, [allRecords, allUnloadingRecords, allExpenses]);
 
   const form = useForm<HamaliPaymentFormData>({
@@ -139,21 +143,33 @@ export function RecordHamaliPaymentDialog({
             </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-sm">
+      <DialogContent className="sm:max-w-md">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <DialogHeader>
-              <DialogTitle className="text-xl font-bold uppercase tracking-tight">Hamali Payment Console</DialogTitle>
-              <DialogDescription className="text-xs font-medium">Record cash payments or advances to Hamali workers.</DialogDescription>
+              <DialogTitle className="text-xl font-bold uppercase tracking-tight text-center">Hamali Payment Console</DialogTitle>
+              <DialogDescription className="text-xs font-medium text-center">Record cash distributions directly to the Hamali labor team.</DialogDescription>
             </DialogHeader>
             
             <div className="grid gap-4 py-4">
+              {/* Ledger Summary */}
+              <div className="grid grid-cols-2 gap-2 mb-2">
+                  <div className="p-3 rounded-xl border bg-slate-50 text-center space-y-1">
+                      <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Total Earned</p>
+                      <p className="text-sm font-black text-slate-700">{formatCurrency(totalEarned)}</p>
+                  </div>
+                  <div className="p-3 rounded-xl border bg-slate-50 text-center space-y-1">
+                      <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Total Distributed</p>
+                      <p className="text-sm font-black text-green-700">{formatCurrency(totalPaid)}</p>
+                  </div>
+              </div>
+
               <div className={`p-5 rounded-2xl border-2 transition-colors text-center space-y-1 ${
                   isInAdvance ? 'border-emerald-200 bg-emerald-50' : 
                   isBalanceSettled ? 'border-slate-200 bg-slate-50' : 'border-primary/20 bg-primary/5'
               }`}>
                   <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
-                      {isInAdvance ? 'Current Hamali Advance' : 'Pending for Hamali Workers'}
+                      {isInAdvance ? 'Current Hamali Advance' : 'Net Pending Balance'}
                   </p>
                   <p className={`text-3xl font-black ${
                       isInAdvance ? 'text-emerald-700' : 
@@ -166,54 +182,61 @@ export function RecordHamaliPaymentDialog({
               {isInAdvance && (
                   <Alert variant="default" className="bg-emerald-50 border-emerald-200">
                       <TrendingDown className="h-4 w-4 text-emerald-600" />
-                      <AlertTitle className="text-emerald-800 text-xs font-bold uppercase tracking-wider">Hamali Advance</AlertTitle>
-                      <AlertDescription className="text-emerald-700 text-[11px] font-medium leading-relaxed">
-                          You have already paid {formatCurrency(Math.abs(netPending))} more than the current earnings. Any further payout will increase this advance.
+                      <AlertTitle className="text-emerald-800 text-xs font-bold uppercase tracking-wider text-center">Labor Advance</AlertTitle>
+                      <AlertDescription className="text-emerald-700 text-[11px] font-medium leading-relaxed text-center">
+                          Total payouts exceed earnings by {formatCurrency(Math.abs(netPending))}. New distributions will increase this advance.
                       </AlertDescription>
                   </Alert>
               )}
 
-              <FormField
-                control={form.control}
-                name="date"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-xs font-black uppercase tracking-wider text-slate-500">Payment Date</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} className="h-10 text-sm font-bold" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="amount"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-xs font-black uppercase tracking-wider text-slate-500">Amount to Pay Now</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        step="0.01" 
-                        placeholder="0.00" 
-                        {...field} 
-                        value={field.value ?? ''} 
-                        className="h-12 text-lg font-mono font-black border-primary/30 shadow-inner"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <Separator />
+
+              <div className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="date"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs font-black uppercase tracking-wider text-slate-500">Payment Date</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} className="h-10 text-sm font-bold" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="amount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs font-black uppercase tracking-wider text-slate-500">Amount to Distribute Now</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                              <Input 
+                                type="number" 
+                                step="0.01" 
+                                placeholder="0.00" 
+                                {...field} 
+                                value={field.value ?? ''} 
+                                className="h-12 text-lg font-mono font-black border-primary/30 shadow-inner pl-10"
+                              />
+                              <Banknote className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-primary opacity-50" />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+              </div>
             </div>
-            <DialogFooter>
-              <DialogClose asChild><Button variant="outline" type="button" className="text-xs font-bold uppercase h-10">Cancel</Button></DialogClose>
-              <Button type="submit" disabled={isPending} className="text-xs font-black uppercase tracking-widest h-10 shadow-lg shadow-primary/20">
+            <DialogFooter className="gap-2">
+              <DialogClose asChild><Button variant="outline" type="button" className="text-xs font-bold uppercase h-10 flex-1">Cancel</Button></DialogClose>
+              <Button type="submit" disabled={isPending} className="text-xs font-black uppercase tracking-widest h-10 flex-1 shadow-lg shadow-primary/20">
                 {isPending ? (
                   <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
                 ) : (
-                  'Confirm Payment'
+                  'Confirm Payout'
                 )}
               </Button>
             </DialogFooter>

@@ -80,27 +80,6 @@ export function PendingDuesReportTable({ summaries, globalWorkerBalance, title, 
                     </TableFooter>
                 </Table>
             </div>
-
-            {/* GLOBAL RECONCILIATION BLOCK */}
-            <div className="mt-12 flex justify-center">
-                <div className="w-[500px] border-2 border-black bg-slate-50 p-6 rounded-2xl shadow-inner text-center space-y-3">
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Warehouse Labor Liability (Global Audit)</h3>
-                    <div className="flex justify-between items-center px-4">
-                        <span className="text-xs font-bold text-slate-500 uppercase">Net Hamali Workers Balance:</span>
-                        <span className={`text-2xl font-mono font-black ${globalWorkerBalance < -0.1 ? 'text-green-700' : 'text-primary'}`}>
-                            {formatCurrency(globalWorkerBalance)}
-                        </span>
-                    </div>
-                    <p className="text-[10px] text-slate-400 italic">
-                        {globalWorkerBalance < -0.1 
-                            ? "Current staff position: Advanced/Overpaid" 
-                            : "Current staff position: Earnings Pending Distribution"}
-                    </p>
-                    <div className="pt-2 border-t border-slate-200">
-                        <p className="text-[9px] font-bold text-slate-300 uppercase tracking-tighter">This figure matches your official Hamali Ledger exactly.</p>
-                    </div>
-                </div>
-            </div>
             
             <div className="mt-20 flex justify-end">
                 <div className="w-72 border-t-2 border-black text-center pt-2">

@@ -134,8 +134,8 @@ export function RecordHamaliPaymentDialog({
       try {
         const customer = customers?.find(c => c.id === data.customerId);
         const description = data.customerId && customer 
-            ? `Hamali Workers Payout (for ${customer.name}): ${format(new Date(data.date), 'dd MMM yyyy')}`
-            : `Global Hamali Workers Payout: ${format(new Date(data.date), 'dd MMM yyyy')}`;
+            ? `Hamali Ledger Payout (for ${customer.name}): ${format(new Date(data.date), 'dd MMM yyyy')}`
+            : `Global Hamali Ledger Payout: ${format(new Date(data.date), 'dd MMM yyyy')}`;
 
         const newExpense: Partial<Expense> = {
           description,
@@ -164,7 +164,7 @@ export function RecordHamaliPaymentDialog({
         {children || (
             <Button className="font-bold h-9 bg-orange-600 hover:bg-orange-700 text-white">
                 <Hammer className="mr-2 h-4 w-4" />
-                Hamali Workers Payment
+                Hamali Ledger Payout
             </Button>
         )}
       </DialogTrigger>
@@ -172,7 +172,7 @@ export function RecordHamaliPaymentDialog({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <DialogHeader>
-              <DialogTitle className="text-xl font-bold uppercase tracking-tight text-center">Hamali Payout Console</DialogTitle>
+              <DialogTitle className="text-xl font-bold uppercase tracking-tight text-center">Hamali Ledger Payout</DialogTitle>
               <DialogDescription className="text-xs font-medium text-center">Distribute cash to workers. Selecting a customer correctly reconciles their labor pool.</DialogDescription>
             </DialogHeader>
             
@@ -211,7 +211,7 @@ export function RecordHamaliPaymentDialog({
                   isBalanceSettled ? 'border-slate-200 bg-slate-50' : 'border-primary/20 bg-primary/5'
               }`}>
                   <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
-                      {isInAdvance ? 'Current Hamali Advance' : 'Net Pending Balance'}
+                      {isInAdvance ? 'Current Hamali Advance' : 'Net Ledger Balance'}
                   </p>
                   <p className={`text-3xl font-black ${
                       isInAdvance ? 'text-emerald-700' : 

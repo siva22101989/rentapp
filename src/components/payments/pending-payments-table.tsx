@@ -1,4 +1,3 @@
-
 'use client';
 import { useMemo } from "react";
 import type { Customer, StorageRecord, UnloadingRecord, CustomerPayment, Expense } from "@/lib/definitions";
@@ -57,7 +56,7 @@ export function PendingPaymentsTable({
             return summaryMap[id];
         };
 
-        // --- GLOBAL WORKER MATH (Reconciled with Staff Ledger) ---
+        // --- GLOBAL LEDGER MATH (Reconciled with Staff Ledger) ---
         let totalEarned = 0;
         let totalPaid = 0;
 
@@ -152,7 +151,7 @@ export function PendingPaymentsTable({
 
         return {
             pendingSummaries: summaries
-                .filter(s => Math.abs(s.totalBalance) > 0.01)
+                .filter(s => s.totalBalance > 0.01)
                 .sort((a, b) => b.lastActivityDate.getTime() - a.lastActivityDate.getTime()),
             globalWorkerBalance: totalEarned - totalPaid,
             totalWorkerEarned: totalEarned,
@@ -163,7 +162,7 @@ export function PendingPaymentsTable({
 
     return (
         <div className="space-y-6">
-            {/* Global Hamali Workers Audit Card (Top Center) */}
+            {/* Reconciled Hamali Ledger Balance Card */}
             <div className="flex justify-center">
                 <Card className={`w-full max-w-sm border-2 shadow-lg transition-all duration-300 ${
                     globalWorkerBalance >= -0.01 ? 'bg-orange-50 border-orange-200' : 'bg-green-50 border-green-200'
@@ -171,7 +170,7 @@ export function PendingPaymentsTable({
                     <CardContent className="p-6 text-center space-y-4">
                         <div className="space-y-1">
                             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">
-                                Net Hamali Workers Balance
+                                Net Hamali Ledger Balance
                             </p>
                             <p className={`text-4xl font-black ${globalWorkerBalance >= -0.01 ? 'text-orange-700' : 'text-green-700'}`}>
                                 {formatCurrency(globalWorkerBalance)}

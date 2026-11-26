@@ -222,42 +222,27 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         }
     });
     
-    const sortedEvents = (rawEvents || []).sort((a, b) => a.sortDate - b.sortDate);
-
-    const lineItems: any[] = [];
+    // CALCULATE RUNNING BALANCE (Must be oldest first for math, then we reverse for "Newest First" display)
+    const cronSorted = (rawEvents || []).sort((a, b) => a.sortDate - b.sortDate);
+    const balanceItems: any[] = [];
     let currentBalance = 0;
 
-    sortedEvents.forEach((event, idx) => {
-        const prev = lineItems[lineItems.length - 1];
-        const isFinancialOnly = (event.credit > 0 || event.discount > 0) && event.bagsIn === 0 && event.bagsOut === 0 && event.hamali === 0 && event.rent === 0;
-        
-        const sameDate = prev && format(toDate(prev.date), 'ddMMyy') === format(toDate(event.date), 'ddMMyy');
-        const sameDesc = prev && prev.description === event.description;
-
-        if (isFinancialOnly && prev && sameDate && sameDesc) {
-            prev.credit += event.credit;
-            prev.discount += event.discount;
-            prev.balance += (event.hamali + event.rent - event.credit - event.discount);
-            currentBalance = prev.balance;
-        } else {
-            const debit = (Number(event.hamali) || 0) + (Number(event.rent) || 0);
-            const creditTotal = (Number(event.credit) || 0) + (Number(event.discount) || 0);
-            currentBalance += (debit - creditTotal);
-            
-            lineItems.push({ 
-                ...event, 
-                balance: currentBalance,
-                rowId: `${event.billNo}-${idx}`
-            });
-        }
+    cronSorted.forEach((event, idx) => {
+        const debit = (Number(event.hamali) || 0) + (Number(event.rent) || 0);
+        const creditTotal = (Number(event.credit) || 0) + (Number(event.discount) || 0);
+        currentBalance += (debit - creditTotal);
+        balanceItems.push({ ...event, balance: currentBalance });
     });
+
+    // NEWEST FIRST SORTING for display
+    const newestFirstItems = [...balanceItems].sort((a, b) => b.sortDate - a.sortDate);
 
     const finalBalance = Math.max(0, currentBalance);
     const hamaliDueReconciled = Math.max(0, totalHamaliBilled - totalHamaliPaid);
     const rentDueReconciled = Math.max(0, finalBalance - hamaliDueReconciled);
     
     return { 
-        lineItems, 
+        lineItems: newestFirstItems, 
         totals: { 
             totalBagsIn, totalBagsOut, balanceStock: Math.max(0, totalBagsIn - totalBagsOut), 
             totalHamaliBilled, totalHamaliPaid, hamaliBalance: hamaliDueReconciled,
@@ -271,7 +256,7 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
   const timestamp = useMemo(() => format(new Date(), 'dd/MM/yy, h:mm a'), []);
 
   return (
-    <div ref={ref} className="bg-white p-3 sm:p-6 text-black font-sans text-sm border-2 border-black rounded-lg shadow-sm w-full mx-auto overflow-hidden printable-area">
+    <div ref={ref} className="bg-white p-3 sm:p-6 text-black font-sans text-sm border-2 border-black rounded-lg shadow-sm w-full mx-auto overflow-hidden printable-area" style={{ width: '277mm' }}>
         <style jsx>{`
             table.no-border, table.no-border td { border: none !important; }
             @media screen {
@@ -282,8 +267,8 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
 
         <div className="text-center mb-6 border-b-2 border-black pb-2">
             <h1 className="text-xl sm:text-2xl font-bold uppercase tracking-tight">{warehouseInfo?.name || "SRI LAKSHMI WAREHOUSE"}</h1>
-            <p className="text-[10px] sm:text-[11px] uppercase font-semibold text-slate-600 leading-tight">{warehouseInfo?.addressLine1} {warehouseInfo?.addressLine2} | Cell: {warehouseInfo?.phone}</p>
-            <h2 className="text-sm sm:text-md font-bold underline mt-2 uppercase tracking-widest text-center">Statement of Account</h2>
+            <p className="text-[10px] sm:text-[11px] uppercase font-semibold text-slate-600 leading-tight text-center">{warehouseInfo?.addressLine1} {warehouseInfo?.addressLine2} | Cell: {warehouseInfo?.phone}</p>
+            <h2 className="text-sm sm:text-md font-bold underline mt-2 uppercase tracking-widest text-center">Statement of Account (Newest First)</h2>
         </div>
 
         <div className="flex flex-col sm:flex-row justify-between mb-4 gap-2 text-[12px] sm:text-[13px]">
@@ -329,43 +314,43 @@ export const CustomerStatement = forwardRef<HTMLDivElement, CustomerStatementPro
         <div className="statement-table-container border-y-2 border-black">
             <Table className="statement-table w-full text-[11px] sm:text-[13px]">
                 <TableHeader>
-                    <TableRow className="border-b border-black bg-slate-50 h-10">
-                        <TableHead className="font-bold text-black border-r border-slate-200 text-center p-1 uppercase text-[9px]">Date</TableHead>
-                        <TableHead className="font-bold text-black border-r border-slate-200 p-1 uppercase text-[9px] text-center">Description</TableHead>
-                        <TableHead className="font-bold text-black border-r border-slate-200 text-center p-1 uppercase text-[9px]">In</TableHead>
-                        <TableHead className="font-bold text-black border-r border-slate-200 text-center p-1 uppercase text-[9px]">Out</TableHead>
-                        <TableHead className="font-bold text-black border-r border-slate-200 text-center p-1 uppercase text-[9px]">Hamali</TableHead>
-                        <TableHead className="font-bold text-black border-r border-slate-200 text-center p-1 uppercase text-[9px]">Rent</TableHead>
-                        <TableHead className="font-bold text-black border-r border-slate-200 text-center p-1 uppercase text-[9px]">Disc</TableHead>
-                        <TableHead className="font-bold text-black border-r border-slate-200 text-center p-1 uppercase text-[9px]">Paid</TableHead>
-                        <TableHead className="font-bold text-black text-center p-1 uppercase text-[9px]">Balance</TableHead>
+                    <TableRow className="border-b-2 border-black bg-slate-50 h-10">
+                        <TableHead className="font-black text-black border-r border-slate-200 text-center p-1 uppercase text-[9px]">Date</TableHead>
+                        <TableHead className="font-black text-black border-r border-slate-200 p-1 uppercase text-[9px] text-center">Description</TableHead>
+                        <TableHead className="font-black text-black border-r border-slate-200 text-center p-1 uppercase text-[9px]">In</TableHead>
+                        <TableHead className="font-black text-black border-r border-slate-200 text-center p-1 uppercase text-[9px]">Out</TableHead>
+                        <TableHead className="font-black text-black border-r border-slate-200 text-center p-1 uppercase text-[9px]">Hamali</TableHead>
+                        <TableHead className="font-black text-black border-r border-slate-200 text-center p-1 uppercase text-[9px]">Rent</TableHead>
+                        <TableHead className="font-black text-black border-r border-slate-200 text-center p-1 uppercase text-[9px]">Disc</TableHead>
+                        <TableHead className="font-black text-black border-r border-slate-200 text-center p-1 uppercase text-[9px]">Paid</TableHead>
+                        <TableHead className="font-black text-black text-center p-1 uppercase text-[9px]">Balance</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {lineItems.map((item) => (
-                        <TableRow key={item.rowId} className="border-b border-slate-100 h-9 hover:bg-slate-50/50">
-                            <TableCell className="p-1 text-center whitespace-nowrap">{format(item.date, 'dd/MM/yy')}</TableCell>
-                            <TableCell className="p-1 font-medium tracking-tight text-[11px] sm:text-[12px] text-center">{item.description}</TableCell>
-                            <TableCell className="p-1 text-center font-mono text-center">{item.bagsIn || ''}</TableCell>
-                            <TableCell className="p-1 text-center font-mono text-orange-600 font-bold text-center">{item.bagsOut || ''}</TableCell>
-                            <TableCell className="p-1 text-right font-mono text-center">{item.hamali > 0 ? formatCurrency(item.hamali) : ''}</TableCell>
-                            <TableCell className="p-1 text-right font-mono text-center">{item.rent > 0 ? formatCurrency(item.rent) : ''}</TableCell>
-                            <TableCell className="p-1 text-right font-mono text-blue-600 font-bold text-center">{item.discount > 0 ? formatCurrency(item.discount) : ''}</TableCell>
-                            <TableCell className="p-1 text-right font-mono text-green-700 font-black text-center">{item.credit > 0 ? formatCurrency(item.credit) : ''}</TableCell>
-                            <TableCell className="p-1 text-right font-mono font-black text-center">{formatCurrency(item.balance)}</TableCell>
+                    {lineItems.map((item, idx) => (
+                        <TableRow key={idx} className="border-b border-slate-100 h-10 hover:bg-slate-50/50">
+                            <TableCell className="p-1 text-center whitespace-nowrap border-r">{format(item.date, 'dd/MM/yy')}</TableCell>
+                            <TableCell className="p-1 font-medium tracking-tight text-[11px] sm:text-[12px] text-center border-r uppercase">{item.description}</TableCell>
+                            <TableCell className="p-1 text-center font-mono text-center border-r">{item.bagsIn || ''}</TableCell>
+                            <TableCell className="p-1 text-center font-mono text-orange-600 font-bold text-center border-r">{item.bagsOut || ''}</TableCell>
+                            <TableCell className="p-1 text-right font-mono text-center border-r">{item.hamali > 0 ? formatCurrency(item.hamali) : ''}</TableCell>
+                            <TableCell className="p-1 text-right font-mono text-center border-r">{item.rent > 0 ? formatCurrency(item.rent) : ''}</TableCell>
+                            <TableCell className="p-1 text-right font-mono text-blue-600 font-bold text-center border-r">{item.discount > 0 ? formatCurrency(item.discount) : ''}</TableCell>
+                            <TableCell className="p-1 text-right font-mono text-green-700 font-black text-center border-r">{item.credit > 0 ? formatCurrency(item.credit) : ''}</TableCell>
+                            <TableCell className="p-1 text-right font-mono font-black text-center bg-slate-50/30">{formatCurrency(item.balance)}</TableCell>
                         </TableRow>
                     ))}
                 </TableBody>
                 <TableFooter>
-                    <TableRow className="bg-slate-50 text-black font-black border-t-2 border-black h-12">
-                        <TableCell colSpan={2} className="p-2 text-right uppercase text-[9px] sm:text-[10px]">Grand Totals</TableCell>
-                        <TableCell className="p-1 text-center font-mono text-center">{totals.totalBagsIn}</TableCell>
-                        <TableCell className="p-1 text-center font-mono text-orange-600 text-center">{totals.totalBagsOut}</TableCell>
-                        <TableCell className="p-1 text-right font-mono text-center">{formatCurrency(totals.totalHamaliBilled)}</TableCell>
-                        <TableCell className="p-1 text-right font-mono text-center">{formatCurrency(totals.totalRentBilled)}</TableCell>
-                        <TableCell className="p-1 text-right font-mono text-blue-600 text-center">{formatCurrency(totals.totalDiscounts)}</TableCell>
-                        <TableCell className="p-1 text-right font-mono text-green-700 text-center">{formatCurrency(totals.totalHamaliPaid + totals.totalRentPaid)}</TableCell>
-                        <TableCell className="p-1 text-right font-mono text-[12px] sm:text-base text-center">{formatCurrency(totals.finalBalance)}</TableCell>
+                    <TableRow className="bg-slate-50 text-black font-black border-t-2 border-black h-14">
+                        <TableCell colSpan={2} className="p-2 text-right uppercase text-[9px] sm:text-[10px] pr-4 border-r">Grand Audit Totals</TableCell>
+                        <TableCell className="p-1 text-center font-mono text-center border-r">{totals.totalBagsIn}</TableCell>
+                        <TableCell className="p-1 text-center font-mono text-orange-600 text-center border-r">{totals.totalBagsOut}</TableCell>
+                        <TableCell className="p-1 text-right font-mono text-center border-r">{formatCurrency(totals.totalHamaliBilled)}</TableCell>
+                        <TableCell className="p-1 text-right font-mono text-center border-r">{formatCurrency(totals.totalRentBilled)}</TableCell>
+                        <TableCell className="p-1 text-right font-mono text-blue-600 text-center border-r">{formatCurrency(totals.totalDiscounts)}</TableCell>
+                        <TableCell className="p-1 text-right font-mono text-green-700 text-center border-r">{formatCurrency(totals.totalHamaliPaid + totals.totalRentPaid)}</TableCell>
+                        <TableCell className="p-1 text-right font-mono text-[12px] sm:text-lg text-center underline decoration-2">{formatCurrency(totals.finalBalance)}</TableCell>
                     </TableRow>
                 </TableFooter>
             </Table>

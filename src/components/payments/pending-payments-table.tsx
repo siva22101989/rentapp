@@ -3,7 +3,8 @@
 import { useMemo } from "react";
 import type { Customer, StorageRecord, UnloadingRecord, CustomerPayment, Expense } from "@/lib/definitions";
 import { PendingDuesReportTable } from "../reports/pending-dues-report-table";
-import { toDate } from "@/lib/utils";
+import { toDate, formatCurrency } from "@/lib/utils";
+import { Card, CardContent } from "../ui/card";
 
 export type CustomerPendingSummary = {
     customerId: string;
@@ -64,7 +65,7 @@ export function PendingPaymentsTable({
         records.forEach(r => {
             const s = getSummary(r.customerId);
             
-            // Global Worker Side
+            // Global Worker Side (Liability)
             totalWorkerEarned += Number(r.workerHamaliPayable ?? r.hamaliPayable) || 0;
             
             // Customer Side (Receivables)
@@ -75,6 +76,9 @@ export function PendingPaymentsTable({
                 const amt = Number(p.amount) || 0;
                 if (p.type === 'hamali' || p.type === 'unloading') {
                     s.customerHamaliPaid += amt;
+                } else if (p.type === 'discount') {
+                   // Discounts usually reduce Rent balance unless specified
+                   s.rentPaid += amt;
                 } else {
                     s.rentPaid += amt;
                 }
@@ -90,7 +94,7 @@ export function PendingPaymentsTable({
             const remainingBags = Math.max(0, (Number(r.bagsUnloaded) || 0) - (Number(r.bagsSentToDrying) || 0));
             const proportion = Number(r.bagsUnloaded) > 0 ? remainingBags / Number(r.bagsUnloaded) : 0;
             
-            // Global Worker Side
+            // Global Worker Side (Liability)
             const workerBase = Number(r.workerHamaliPayable ?? r.totalHamali) || 0;
             totalWorkerEarned += (workerBase * proportion);
             
@@ -116,7 +120,7 @@ export function PendingPaymentsTable({
             if (pDate > s.lastDate) s.lastDate = pDate;
         });
 
-        // 4. Process Hamali Paid (Expenses)
+        // 4. Process Hamali Paid (Expenses - Distributions to Workers)
         (expenses || []).forEach(e => {
             if (e.category === 'Hamali Paid') {
                 totalWorkerPaid += Number(e.amount) || 0;
@@ -147,7 +151,26 @@ export function PendingPaymentsTable({
     }, [records, unloadingRecords, customers, customerPayments, expenses]);
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-6">
+            {/* Global Hamali Balance Summary (Top Side) */}
+            <div className="flex justify-center">
+                <Card className={`w-full max-w-sm border-2 shadow-sm transition-colors ${
+                    globalWorkerBalance >= 0 ? 'bg-orange-50 border-orange-200' : 'bg-green-50 border-green-200'
+                }`}>
+                    <CardContent className="p-4 text-center">
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1">
+                            Net Hamali Workers Balance
+                        </p>
+                        <p className={`text-2xl font-black ${globalWorkerBalance >= 0 ? 'text-orange-700' : 'text-green-700'}`}>
+                            {formatCurrency(globalWorkerBalance)}
+                        </p>
+                        <p className="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-tighter">
+                            {globalWorkerBalance >= 0 ? 'Warehouse Liability (Owed)' : 'Current Hamali Advance'}
+                        </p>
+                    </CardContent>
+                </Card>
+            </div>
+
             <div className="table-scroll-container overflow-x-auto">
                 <PendingDuesReportTable
                     summaries={pendingSummaries}

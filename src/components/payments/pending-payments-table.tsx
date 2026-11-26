@@ -31,8 +31,8 @@ export function PendingPaymentsTable({
     title?: string 
 }) {
 
-    const { pendingSummaries, globalWorkerBalance } = useMemo(() => {
-        if (!records || !unloadingRecords || !customers) return { pendingSummaries: [], globalWorkerBalance: 0 };
+    const { pendingSummaries, globalWorkerBalance, totalWorkerEarned, totalWorkerPaid } = useMemo(() => {
+        if (!records || !unloadingRecords || !customers) return { pendingSummaries: [], globalWorkerBalance: 0, totalWorkerEarned: 0, totalWorkerPaid: 0 };
         
         const summaryMap: Record<string, {
             customerHamaliBilled: number,
@@ -57,23 +57,22 @@ export function PendingPaymentsTable({
             return summaryMap[id];
         };
 
-        // --- GLOBAL WORKER MATH (The "Staff Ledger" Totals) ---
-        let totalWorkerEarned = 0;
-        let totalWorkerPaid = 0;
+        // --- GLOBAL WORKER MATH (Reconciled with Staff Ledger) ---
+        let totalEarned = 0;
+        let totalPaid = 0;
 
         // 1. Process Storage Records
         records.forEach(r => {
             const s = getSummary(r.customerId);
             
-            // Global Worker Side (Staff Payable +)
-            // Match Hamali Ledger logic: worker rate if exists, otherwise fallback to customer rate
+            // Worker Earning (Liability +)
             const workerEarning = (r.workerHamaliPayable !== undefined && r.workerHamaliPayable !== null) 
                 ? Number(r.workerHamaliPayable) 
                 : (Number(r.hamaliPayable) || 0);
             
-            totalWorkerEarned += workerEarning;
+            totalEarned += workerEarning;
             
-            // Customer Side (Receivables - What they owe the Godown)
+            // Customer Receivables
             s.customerHamaliBilled += Number(r.hamaliPayable) || 0;
             s.rentBilled += (Number(r.totalRentBilled) || 0) + (Number(r.khataAmount) || 0);
             
@@ -84,6 +83,11 @@ export function PendingPaymentsTable({
                 } else {
                     s.rentPaid += amt;
                 }
+            });
+
+            // Factor in Patti Discounts as Rent payments
+            (r.outflows || []).forEach(o => {
+                s.rentPaid += (Number(o.discount) || 0);
             });
 
             const rDate = toDate(r.storageStartDate).getTime();
@@ -97,14 +101,13 @@ export function PendingPaymentsTable({
             const totalBags = Number(r.bagsUnloaded) || 1;
             const proportion = remainingBags / totalBags;
             
-            // Global Worker Side (Staff Payable +)
             const workerBase = (r.workerHamaliPayable !== undefined && r.workerHamaliPayable !== null)
                 ? Number(r.workerHamaliPayable)
                 : (Number(r.totalHamali) || 0);
             
-            totalWorkerEarned += (workerBase * proportion);
+            totalEarned += (workerBase * proportion);
             
-            // Customer Side (Receivables)
+            // Customer Side
             s.customerHamaliBilled += remainingBags * (Number(r.hamaliPerBag) || 0);
             
             (r.payments || []).forEach(p => {
@@ -115,7 +118,7 @@ export function PendingPaymentsTable({
             if (uDate > s.lastDate) s.lastDate = uDate;
         });
 
-        // 3. Process Bulk Account Ledger (Global Payments from Customers)
+        // 3. Process Bulk Account Payments
         (customerPayments || []).forEach(cp => {
             const s = getSummary(cp.customerId);
             const amt = Number(cp.amount) || 0;
@@ -126,10 +129,10 @@ export function PendingPaymentsTable({
             if (pDate > s.lastDate) s.lastDate = pDate;
         });
 
-        // 4. Process Cash Distributed (Expenses - Payments made to workers)
+        // 4. Process Cash Distributed (Vouchers)
         (expenses || []).forEach(e => {
             if (e.category === 'Hamali Paid') {
-                totalWorkerPaid += Number(e.amount) || 0;
+                totalPaid += Number(e.amount) || 0;
             }
         });
 
@@ -149,30 +152,45 @@ export function PendingPaymentsTable({
 
         return {
             pendingSummaries: summaries
-                .filter(s => s.totalBalance > 0.01)
+                .filter(s => Math.abs(s.totalBalance) > 0.01)
                 .sort((a, b) => b.lastActivityDate.getTime() - a.lastActivityDate.getTime()),
-            globalWorkerBalance: totalWorkerEarned - totalWorkerPaid
+            globalWorkerBalance: totalEarned - totalPaid,
+            totalWorkerEarned: totalEarned,
+            totalWorkerPaid: totalPaid
         };
 
     }, [records, unloadingRecords, customers, customerPayments, expenses]);
 
     return (
         <div className="space-y-6">
-            {/* Global Hamali Workers Balance Summary (Top Side) */}
+            {/* Global Hamali Workers Audit Card (Top Center) */}
             <div className="flex justify-center">
-                <Card className={`w-full max-w-sm border-2 shadow-sm transition-all duration-300 ${
+                <Card className={`w-full max-w-sm border-2 shadow-lg transition-all duration-300 ${
                     globalWorkerBalance >= -0.01 ? 'bg-orange-50 border-orange-200' : 'bg-green-50 border-green-200'
                 }`}>
-                    <CardContent className="p-5 text-center">
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1">
-                            Net Hamali Workers Balance
-                        </p>
-                        <p className={`text-3xl font-black ${globalWorkerBalance >= -0.01 ? 'text-orange-700' : 'text-green-700'}`}>
-                            {formatCurrency(globalWorkerBalance)}
-                        </p>
-                        <p className="text-[9px] font-black text-slate-400 mt-2 uppercase tracking-tighter">
-                            {globalWorkerBalance >= -0.01 ? 'Total Warehouse Liability (Payable)' : 'Current Total Hamali Advance'}
-                        </p>
+                    <CardContent className="p-6 text-center space-y-4">
+                        <div className="space-y-1">
+                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">
+                                Net Hamali Workers Balance
+                            </p>
+                            <p className={`text-4xl font-black ${globalWorkerBalance >= -0.01 ? 'text-orange-700' : 'text-green-700'}`}>
+                                {formatCurrency(globalWorkerBalance)}
+                            </p>
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">
+                                {globalWorkerBalance >= -0.01 ? 'Total Warehouse Liability' : 'Net Staff Advance'}
+                            </p>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-200">
+                            <div className="text-center">
+                                <p className="text-[9px] font-black uppercase text-slate-400">Staff Payable (+)</p>
+                                <p className="text-sm font-bold text-slate-700">{formatCurrency(totalWorkerEarned)}</p>
+                            </div>
+                            <div className="text-center">
+                                <p className="text-[9px] font-black uppercase text-slate-400">Cash Distributed (-)</p>
+                                <p className="text-sm font-bold text-green-700">{formatCurrency(totalWorkerPaid)}</p>
+                            </div>
+                        </div>
                     </CardContent>
                 </Card>
             </div>

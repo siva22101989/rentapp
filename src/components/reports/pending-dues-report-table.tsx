@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -22,13 +23,12 @@ export function PendingDuesReportTable({ summaries, title, customers, storageRec
 
     const totals = useMemo(() => {
         return summaries.reduce((acc, s) => {
-            acc.billed += s.totalBilled;
-            acc.paid += s.amountPaid;
-            acc.hamali += s.hamaliPending;
-            acc.rent += s.rentPending;
-            acc.total += s.balanceDue;
+            acc.workerEarned += s.workerHamaliEarned;
+            acc.hPending += s.customerHamaliPending;
+            acc.rPending += s.rentPending;
+            acc.total += s.totalBalance;
             return acc;
-        }, { billed: 0, paid: 0, hamali: 0, rent: 0, total: 0 });
+        }, { workerEarned: 0, hPending: 0, rPending: 0, total: 0 });
     }, [summaries]);
 
     return (
@@ -46,11 +46,10 @@ export function PendingDuesReportTable({ summaries, title, customers, storageRec
                     <TableHeader>
                         <TableRow className="bg-slate-50 border-b-2 border-black hover:bg-slate-50">
                             <TableHead className="font-black text-black py-3 uppercase text-[10px] text-center border-r">Customer Name</TableHead>
-                            <TableHead className="font-black text-orange-700 py-3 uppercase text-[10px] text-center border-r">Hamali Pending</TableHead>
+                            <TableHead className="font-black text-slate-500 py-3 uppercase text-[10px] text-center border-r">Hamali Workers (Earned)</TableHead>
+                            <TableHead className="font-black text-orange-700 py-3 uppercase text-[10px] text-center border-r">Cust. Hamali Due</TableHead>
                             <TableHead className="font-black text-blue-700 py-3 uppercase text-[10px] text-center border-r">Rent Pending</TableHead>
-                            <TableHead className="font-black text-slate-600 py-3 uppercase text-[10px] text-center border-r">Total Billed</TableHead>
-                            <TableHead className="font-black text-green-700 py-3 uppercase text-[10px] text-center border-r">Total Paid</TableHead>
-                            <TableHead className="font-black text-destructive py-3 uppercase text-[10px] text-center">Net Balance Due</TableHead>
+                            <TableHead className="font-black text-destructive py-3 uppercase text-[10px] text-center">Net Total Balance</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -58,17 +57,16 @@ export function PendingDuesReportTable({ summaries, title, customers, storageRec
                             return (
                                 <TableRow key={summary.customerId} className="hover:bg-slate-50/50 border-b border-slate-100 h-10">
                                     <TableCell className="font-bold text-slate-900 p-2 text-center uppercase tracking-tight border-r">{summary.customerName}</TableCell>
-                                    <TableCell className="text-right font-mono text-orange-600 font-bold p-2 text-center border-r">{formatCurrency(summary.hamaliPending)}</TableCell>
+                                    <TableCell className="text-right font-mono text-slate-500 p-2 text-center border-r italic">{formatCurrency(summary.workerHamaliEarned)}</TableCell>
+                                    <TableCell className="text-right font-mono text-orange-600 font-bold p-2 text-center border-r">{formatCurrency(summary.customerHamaliPending)}</TableCell>
                                     <TableCell className="text-right font-mono text-blue-600 font-bold p-2 text-center border-r">{formatCurrency(summary.rentPending)}</TableCell>
-                                    <TableCell className="text-right font-mono text-slate-400 p-2 text-center border-r">{formatCurrency(summary.totalBilled)}</TableCell>
-                                    <TableCell className="text-right font-mono text-green-600 p-2 text-center border-r">{formatCurrency(summary.amountPaid)}</TableCell>
-                                    <TableCell className="text-right font-mono font-black text-destructive p-2 text-center bg-destructive/5">{formatCurrency(summary.balanceDue)}</TableCell>
+                                    <TableCell className="text-right font-mono font-black text-destructive p-2 text-center bg-destructive/5">{formatCurrency(summary.totalBalance)}</TableCell>
                                 </TableRow>
                             );
                         })}
                         {summaries.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={6} className="text-center py-24 text-muted-foreground italic font-medium">
+                                <TableCell colSpan={5} className="text-center py-24 text-muted-foreground italic font-medium">
                                     No outstanding balances found in the Godown ledger.
                                 </TableCell>
                             </TableRow>
@@ -77,10 +75,9 @@ export function PendingDuesReportTable({ summaries, title, customers, storageRec
                     <TableFooter>
                         <TableRow className="bg-slate-50 text-black border-t-2 border-black font-black h-14">
                             <TableCell className="p-3 uppercase text-[10px] tracking-widest text-center border-r">Grand Audit Totals</TableCell>
-                            <TableCell className="text-center font-mono text-orange-600 text-lg border-r">{formatCurrency(totals.hamali)}</TableCell>
-                            <TableCell className="text-center font-mono text-blue-600 text-lg border-r">{formatCurrency(totals.rent)}</TableCell>
-                            <TableCell className="text-center font-mono text-slate-500 border-r">{formatCurrency(totals.billed)}</TableCell>
-                            <TableCell className="text-center font-mono text-green-700 border-r">{formatCurrency(totals.paid)}</TableCell>
+                            <TableCell className="text-center font-mono text-slate-400 border-r">{formatCurrency(totals.workerEarned)}</TableCell>
+                            <TableCell className="text-center font-mono text-orange-600 text-lg border-r">{formatCurrency(totals.hPending)}</TableCell>
+                            <TableCell className="text-center font-mono text-blue-600 text-lg border-r">{formatCurrency(totals.rPending)}</TableCell>
                             <TableCell className="text-center text-destructive font-mono text-xl underline underline-offset-4">{formatCurrency(totals.total)}</TableCell>
                         </TableRow>
                     </TableFooter>

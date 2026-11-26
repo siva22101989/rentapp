@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo, useState } from 'react';
@@ -125,7 +124,7 @@ export function FinancialSummaryReport({
                 ...row,
                 balance: row.billed - row.paid - row.discounts
             }))
-            .filter(r => Math.abs(r.balance) > 0.01) // STRICT "Pending Only" Filter
+            .filter(r => r.balance > 0.01) // STRICT "Pending Only" Filter - Hide zero balances
             .sort((a, b) => a.customerName.localeCompare(b.customerName));
     }, [records, unloadingRecords, customerPayments, customers, activeRange, financialYear]);
 

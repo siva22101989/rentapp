@@ -1,4 +1,3 @@
-
 'use client';
 import { useMemo } from "react";
 import type { Customer, StorageRecord, UnloadingRecord, CustomerPayment } from "@/lib/definitions";
@@ -127,7 +126,7 @@ export function PendingPaymentsTable({
                 lastActivityDate: new Date(data.lastDate)
             } as CustomerPendingSummary;
         })
-        .filter(s => s.totalBalance > 0.01 || s.workerHamaliEarned > 0.01) // Strict "Pending Only" Filter
+        .filter(s => s.totalBalance > 0.01) // STRICT "Pending Balance Only" Filter - Hide zero balances
         .sort((a, b) => b.lastActivityDate.getTime() - a.lastActivityDate.getTime());
 
     }, [records, unloadingRecords, customers, customerPayments]);

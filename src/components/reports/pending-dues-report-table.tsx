@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -53,11 +54,14 @@ export function PendingDuesReportTable({ summaries, title, customers, storageRec
                     </TableHeader>
                     <TableBody>
                         {summaries.map((summary) => {
+                            const isVirtual = summary.customerId === 'global-payout';
                             return (
-                                <TableRow key={summary.customerId} className="hover:bg-slate-50/50 border-b border-slate-100 h-10">
-                                    <TableCell className="font-bold text-slate-900 p-2 text-center uppercase tracking-tight border-r">{summary.customerName}</TableCell>
-                                    <TableCell className="text-right font-mono text-slate-500 p-2 text-center border-r italic">
-                                        {summary.workerHamaliPending > 0.01 ? formatCurrency(summary.workerHamaliPending) : 'Settled'}
+                                <TableRow key={summary.customerId} className={`hover:bg-slate-50/50 border-b border-slate-100 h-10 ${isVirtual ? 'bg-slate-50 italic' : ''}`}>
+                                    <TableCell className={`font-bold p-2 text-center uppercase tracking-tight border-r ${isVirtual ? 'text-slate-400 text-[11px]' : 'text-slate-900'}`}>
+                                        {summary.customerName}
+                                    </TableCell>
+                                    <TableCell className={`text-right font-mono p-2 text-center border-r ${summary.workerHamaliPending < -0.1 ? 'text-green-600 font-bold' : 'text-slate-500'}`}>
+                                        {formatCurrency(summary.workerHamaliPending)}
                                     </TableCell>
                                     <TableCell className="text-right font-mono text-orange-600 font-bold p-2 text-center border-r">{formatCurrency(summary.customerHamaliPending)}</TableCell>
                                     <TableCell className="text-right font-mono text-blue-600 font-bold p-2 text-center border-r">{formatCurrency(summary.rentPending)}</TableCell>
@@ -76,7 +80,9 @@ export function PendingDuesReportTable({ summaries, title, customers, storageRec
                     <TableFooter>
                         <TableRow className="bg-slate-50 text-black border-t-2 border-black font-black h-14">
                             <TableCell className="p-3 uppercase text-[10px] tracking-widest text-center border-r">Grand Audit Totals</TableCell>
-                            <TableCell className="text-center font-mono text-slate-400 border-r">{formatCurrency(totals.workerPending)}</TableCell>
+                            <TableCell className={`text-center font-mono text-lg border-r ${totals.workerPending < -0.1 ? 'text-green-700' : 'text-slate-500'}`}>
+                                {formatCurrency(totals.workerPending)}
+                            </TableCell>
                             <TableCell className="text-center font-mono text-orange-600 text-lg border-r">{formatCurrency(totals.hPending)}</TableCell>
                             <TableCell className="text-center font-mono text-blue-600 text-lg border-r">{formatCurrency(totals.rPending)}</TableCell>
                             <TableCell className="text-center text-destructive font-mono text-xl underline underline-offset-4">{formatCurrency(totals.total)}</TableCell>

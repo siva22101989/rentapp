@@ -1,3 +1,4 @@
+
 'use client';
 import { useMemo } from "react";
 import type { Customer, StorageRecord, UnloadingRecord, CustomerPayment, Expense } from "@/lib/definitions";
@@ -116,18 +117,24 @@ export function PendingPaymentsTable({
             if (pDate > s.lastDate) s.lastDate = pDate;
         });
 
+        let unallocatedHamaliPaid = 0;
+
         // 4. Process Worker Payouts (Expenses)
         (expenses || []).forEach(e => {
-            if (e.category === 'Hamali Paid' && e.customerId) {
-                const s = getSummary(e.customerId);
-                s.workerHamaliPaid += Number(e.amount) || 0;
+            if (e.category === 'Hamali Paid') {
+                if (e.customerId) {
+                    const s = getSummary(e.customerId);
+                    s.workerHamaliPaid += Number(e.amount) || 0;
+                } else {
+                    unallocatedHamaliPaid += Number(e.amount) || 0;
+                }
             }
         });
 
-        return Object.entries(summaryMap).map(([customerId, data]) => {
+        const results = Object.entries(summaryMap).map(([customerId, data]) => {
             const hPending = Math.max(0, data.customerHamaliBilled - data.customerHamaliPaid);
             const rPending = Math.max(0, data.rentBilled - data.rentPaid);
-            const wPending = Math.max(0, data.workerHamaliEarned - data.workerHamaliPaid);
+            const wPending = data.workerHamaliEarned - data.workerHamaliPaid;
 
             return {
                 customerId,
@@ -138,9 +145,25 @@ export function PendingPaymentsTable({
                 totalBalance: hPending + rPending,
                 lastActivityDate: new Date(data.lastDate)
             } as CustomerPendingSummary;
-        })
-        .filter(s => s.totalBalance > 0.01 || s.workerHamaliPending > 0.01) // Filter for active debt on either side
-        .sort((a, b) => b.lastActivityDate.getTime() - a.lastActivityDate.getTime());
+        });
+
+        // Add virtual row for orphan/global payments to ensure grand total reconciles
+        if (unallocatedHamaliPaid > 0) {
+            results.push({
+                customerId: 'global-payout',
+                customerName: 'General Payouts / Legacy Hamali Payments',
+                workerHamaliPending: -unallocatedHamaliPaid,
+                customerHamaliPending: 0,
+                rentPending: 0,
+                totalBalance: 0,
+                lastActivityDate: new Date()
+            });
+        }
+
+        // Filter to show active debt or active labor payout balances
+        return results
+            .filter(s => Math.abs(s.totalBalance) > 0.01 || Math.abs(s.workerHamaliPending) > 0.01)
+            .sort((a, b) => b.lastActivityDate.getTime() - a.lastActivityDate.getTime());
 
     }, [records, unloadingRecords, customers, customerPayments, expenses]);
 

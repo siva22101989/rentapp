@@ -9,9 +9,7 @@ import { useMemoFirebase } from "@/hooks/use-memo-firebase";
 import { PendingPaymentsTable } from "@/components/payments/pending-payments-table";
 import { CustomerBulkPaymentDialog } from "@/components/payments/customer-bulk-payment-dialog";
 import { useAppUser } from "@/firebase/auth/use-user";
-import { RecordHamaliPaymentDialog } from "@/components/hamali/record-payment-dialog";
-import { Button } from "@/components/ui/button";
-import { Hammer, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { SendReminderSmsDialog } from "@/components/payments/send-reminder-sms-dialog";
 
 export default function PendingPaymentsPage() {
@@ -80,12 +78,6 @@ export default function PendingPaymentsPage() {
                       unloadingRecords={allUnloadingRecords || []}
                       customerPayments={customerPayments || []}
                   />
-                  <RecordHamaliPaymentDialog>
-                      <Button variant="outline">
-                          <Hammer className="mr-2 h-4 w-4" />
-                          Record Hamali Payment
-                      </Button>
-                  </RecordHamaliPaymentDialog>
                 </div>
               )}
             </PageHeader>

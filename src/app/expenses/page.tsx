@@ -3,13 +3,12 @@
 import { AppLayout } from "@/components/layout/app-layout";
 import { AddExpenseDialog } from "@/components/expenses/add-expense-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Scale, Banknote, IndianRupee, Landmark, HandCoins, MinusCircle, Loader2, CalendarClock } from "lucide-react";
+import { TrendingUp, TrendingDown, Scale, Banknote, IndianRupee, Landmark, HandCoins, MinusCircle, Loader2 } from "lucide-react";
 import { formatCurrency, toDate } from "@/lib/utils";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Expense, StorageRecord, WarehouseInfo, Borrowing, Lending, OtherIncome, Commodity, UnloadingRecord, CustomerPayment } from "@/lib/definitions";
 import { format, differenceInDays } from "date-fns";
-import { ExpenseActionsMenu } from "@/components/expenses/expense-actions-menu";
 import { useCollection, useFirestore, useDateFilter, useDoc, useAppUser } from "@/firebase";
 import { collection, doc, query, where } from "firebase/firestore";
 import { useMemoFirebase } from "@/hooks/use-memo-firebase";
@@ -66,86 +65,6 @@ function calculateLoanBalances(loan: Borrowing | Lending) {
         interestDue: Math.max(0, totalAccruedInterest),
         periodStr: `${months}m ${daysRemaining}d`
     };
-}
-
-function IncomesTable({ incomes }: { incomes: OtherIncome[] }) {
-    if (incomes.length === 0) return (
-        <Card>
-            <CardHeader><CardTitle className="text-center">Income History</CardTitle></CardHeader>
-            <CardContent className="p-12 text-center text-muted-foreground italic">No income records found for this period.</CardContent>
-        </Card>
-    );
-    return (
-      <Card>
-        <CardHeader><CardTitle className="text-center">Income History</CardTitle></CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="hidden sm:table-cell uppercase text-[10px] font-bold text-center">Date</TableHead>
-                <TableHead className="uppercase text-[10px] font-bold text-center">Bill No</TableHead>
-                <TableHead className="uppercase text-[10px] font-bold text-center">Category</TableHead>
-                <TableHead className="uppercase text-[10px] font-bold text-center">Description</TableHead>
-                <TableHead className="text-center uppercase text-[10px] font-bold">Amount</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {incomes.map((income) => (
-                <TableRow key={income.id} className="h-8 text-[13px]">
-                  <TableCell className="hidden sm:table-cell text-center">{format(toDate(income.date), 'dd/MM/yy')}</TableCell>
-                  <TableCell className="font-mono text-center">{income.refNo || '-'}</TableCell>
-                  <TableCell className="text-center">{income.category}</TableCell>
-                  <TableCell className="font-medium text-center">{income.description}</TableCell>
-                  <TableCell className="text-right font-mono text-green-600">{formatCurrency(Number(income.amount) || 0)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    );
-}
-
-function ExpensesTable({ expenses }: { expenses: Expense[] }) {
-  const appUser = useAppUser();
-  const canEdit = appUser?.role === 'owner';
-  if (expenses.length === 0) return (
-    <Card>
-        <CardHeader><CardTitle className="text-center">Expense History</CardTitle></CardHeader>
-        <CardContent className="p-12 text-center text-muted-foreground italic">No expense records found for this period.</CardContent>
-    </Card>
-  );
-  return (
-    <Card>
-      <CardHeader><CardTitle className="text-center">Expense History</CardTitle></CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="hidden sm:table-cell uppercase text-[10px] font-bold text-center">Date</TableHead>
-              <TableHead className="uppercase text-[10px] font-bold text-center">Bill No</TableHead>
-              <TableHead className="uppercase text-[10px] font-bold text-center">Category</TableHead>
-              <TableHead className="uppercase text-[10px] font-bold text-center">Description</TableHead>
-              <TableHead className="text-center uppercase text-[10px] font-bold">Amount</TableHead>
-              {canEdit && <TableHead className="w-[50px]"></TableHead>}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {expenses.map((expense) => (
-              <TableRow key={expense.id} className="h-8 text-[13px]">
-                <TableCell className="hidden sm:table-cell text-center">{format(toDate(expense.date), 'dd/MM/yy')}</TableCell>
-                <TableCell className="font-mono text-center">{expense.refNo || '-'}</TableCell>
-                <TableCell className="text-center">{expense.category}</TableCell>
-                <TableCell className="font-medium text-center">{expense.description}</TableCell>
-                <TableCell className="text-right font-mono">{formatCurrency(Number(expense.amount) || 0)}</TableCell>
-                {canEdit && <TableCell><ExpenseActionsMenu expense={expense} /></TableCell>}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
-  );
 }
 
 function BorrowingsTable({ borrowings, loading }: { borrowings: Borrowing[], loading: boolean }) {
@@ -345,8 +264,6 @@ export default function ExpensesPage() {
         operatingExpenses: totalOperatingExpenses,
         discountLoss: totalDiscountLoss,
         periodBalance: totalCashIncome - grandTotalExpenses, 
-        filteredExpenses: localFilteredExpenses.sort((a,b) => toDate(b.date).getTime() - toDate(a.date).getTime()), 
-        filteredIncomes: otherIncomes.filter(i => inRange(toDate(i.date))).sort((a,b) => toDate(b.date).getTime() - toDate(a.date).getTime()), 
         interestOnCapital: calculatedInterest, 
         estimatedRent, 
         activeBags: activeRecords.reduce((acc, record) => acc + (Number(record.bagsStored) || 0), 0), 
@@ -360,7 +277,7 @@ export default function ExpensesPage() {
   return (
     <AppLayout>
       <div className="mb-4">
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight font-headline text-slate-900">Profit & Loss</h1>
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight font-headline text-slate-900">Profit & Loss Dashboard</h1>
         <p className="text-sm text-muted-foreground">Comprehensive financial audit including operational losses and waivers.</p>
         {canEdit && (
             <div className="flex items-center gap-2 flex-wrap mt-4">
@@ -396,12 +313,6 @@ export default function ExpensesPage() {
       <div className="space-y-8">
         <BorrowingsTable borrowings={borrowings || []} loading={loadingBorrowings} />
         <LendingsTable lendings={lendings || []} loading={loadingLendings} />
-        {stats && (
-            <>
-                <IncomesTable incomes={stats.filteredIncomes} />
-                <ExpensesTable expenses={stats.filteredExpenses} />
-            </>
-        )}
       </div>
     </AppLayout>
   );

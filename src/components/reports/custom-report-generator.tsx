@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useMemo } from 'react';
@@ -17,10 +18,12 @@ import { PaymentReport } from './payment-report';
 import { PendingDuesReportTable } from './pending-dues-report-table';
 import { CommodityStockReport, CustomerCommodityStockReport, LotWiseInventoryReport } from './stock-summary-reports';
 import { FinancialSummaryReport } from './financial-summary-report';
+import { VoucherReport } from './voucher-report';
 
 const reportTypes = [
     { value: 'daily-summary', label: 'Daily Summary Report' },
     { value: 'financial-summary', label: 'Customer Financial & Stock Summary' },
+    { value: 'voucher-register', label: 'Voucher Register (Expenses & Income)' },
     { value: 'commodity-summary', label: 'Commodity-wise Stock List' },
     { value: 'customer-commodity-summary', label: 'Customer-wise Commodity Stock' },
     { value: 'lot-inventory-summary', label: 'Lot-wise Inventory Register' },
@@ -129,6 +132,8 @@ export function CustomReportGenerator({
                 return <LotWiseInventoryReport records={records} customers={customers} warehouseInfo={warehouseInfo} title="Lot-wise Inventory Register" />;
             case 'payment-register':
                 return <PaymentReport records={records} unloadingRecords={unloadingRecords} customers={customers} customerPayments={customerPayments} />;
+            case 'voucher-register':
+                return <VoucherReport expenses={expenses} otherIncomes={otherIncomes} warehouseInfo={warehouseInfo} />;
             case 'pending-dues': {
                 const summaryMap: Record<string, any> = {};
                 records.forEach(r => {

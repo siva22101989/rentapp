@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import type { Customer, Payment, Commodity, Lot, StorageRecord, WarehouseInfo } from '@/lib/definitions';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Sparkles, MessageSquare, Calculator } from 'lucide-react';
+import { Loader2, Sparkles, MessageSquare, Calculator, Scale } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { formatCurrency, cleanForFirestore } from '@/lib/utils';
 import { useFirestore } from '@/firebase/provider';
@@ -228,14 +228,41 @@ export function InflowForm({ customers, commodities, lots, records, nextId }: { 
                             <Input type="date" value={storageStartDate} onChange={e => setStorageStartDate(e.target.value)} className="text-sm h-9" required />
                         </div>
                     </div>
-                     <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
-                            <Label className="text-xs font-semibold">No. of Bags</Label>
-                            <Input type="number" step="0.01" required value={bags} onChange={e => setBags(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
-                        </div>
-                         <div className="space-y-1.5">
-                            <Label className="text-xs font-semibold">Weight (Kgs)</Label>
-                            <Input type="number" step="0.01" value={weight} onChange={e => setWeight(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" />
+
+                    <div className="p-4 rounded-xl border bg-slate-50/50 space-y-4">
+                        <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                            <Scale className="h-3 w-3" />
+                            Inventory Load (77kg Basis)
+                        </h4>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                                <Label className="text-[11px] font-bold text-slate-500 uppercase">Full Weight (Kgs)</Label>
+                                <Input 
+                                    type="number" 
+                                    step="0.01" 
+                                    placeholder="0.00" 
+                                    value={weight} 
+                                    onChange={e => {
+                                        const val = e.target.value === '' ? '' : Number(e.target.value);
+                                        setWeight(val);
+                                        if (val !== '') {
+                                            setBags(Math.round((val / 77) * 100) / 100);
+                                        }
+                                    }} 
+                                    className="text-sm h-9 font-mono" 
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label className="text-[11px] font-bold text-primary uppercase">No. of Bags</Label>
+                                <Input 
+                                    type="number" 
+                                    step="0.01" 
+                                    required 
+                                    value={bags} 
+                                    onChange={e => setBags(e.target.value === '' ? '' : Number(e.target.value))} 
+                                    className="text-sm h-9 border-primary/40 font-mono font-black text-primary" 
+                                />
+                            </div>
                         </div>
                     </div>
 

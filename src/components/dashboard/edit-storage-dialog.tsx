@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState, useTransition, useMemo } from 'react';
-import { Loader2, Save, Calculator } from 'lucide-react';
+import { Loader2, Save, Calculator, Scale } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -218,9 +218,40 @@ export function EditStorageDialog({ record, customers, allRecords, children }: {
                   <div className="space-y-1.5"><Label className="text-xs">Lorry/Tractor No.</Label><Input value={lorryTractorNo} onChange={e => setLorryTractorNo(e.target.value)} className="text-sm h-9" /></div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5"><Label className="text-xs">Bags (Godown Stock)</Label><Input type="number" step="0.01" value={bagsIn} onChange={(e) => setBagsIn(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" /></div>
-                  <div className="space-y-1.5"><Label className="text-xs">Weight (Kgs)</Label><Input type="number" step="0.01" value={weight} onChange={e => setWeight(e.target.value === '' ? '' : Number(e.target.value))} className="text-sm h-9" /></div>
+              <div className="p-4 rounded-xl border bg-slate-50/50 space-y-4">
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                    <Scale className="h-3 w-3" />
+                    Weight & Bag conversion (77kg Basis)
+                </h4>
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                        <Label className="text-[11px] font-bold text-slate-500 uppercase">Total Weight (Kgs)</Label>
+                        <Input 
+                            type="number" 
+                            step="0.01" 
+                            placeholder="0.00" 
+                            value={weight} 
+                            onChange={e => {
+                                const val = e.target.value === '' ? '' : Number(e.target.value);
+                                setWeight(val);
+                                if (val !== '') {
+                                    setBagsIn(Math.round((val / 77) * 100) / 100);
+                                }
+                            }} 
+                            className="text-sm h-9 font-mono" 
+                        />
+                    </div>
+                    <div className="space-y-1.5">
+                        <Label className="text-[11px] font-bold text-primary uppercase">No. of Bags</Label>
+                        <Input 
+                            type="number" 
+                            step="0.01" 
+                            value={bagsIn} 
+                            onChange={(e) => setBagsIn(e.target.value === '' ? '' : Number(e.target.value))} 
+                            className="text-sm h-9 border-primary/40 font-mono font-black text-primary" 
+                        />
+                    </div>
+                </div>
               </div>
 
               <Separator className="my-2" />

@@ -16,17 +16,15 @@ import { Printer, FileDown, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { PaymentReport } from './payment-report';
 import { PendingDuesReportTable } from './pending-dues-report-table';
-import { CommodityStockReport, CustomerCommodityStockReport, LotWiseInventoryReport } from './stock-summary-reports';
+import { InventoryMasterAuditReport } from './stock-summary-reports';
 import { FinancialSummaryReport } from './financial-summary-report';
 import { VoucherReport } from './voucher-report';
 
 const reportTypes = [
     { value: 'daily-summary', label: 'Daily Summary Report' },
+    { value: 'inventory-audit', label: 'Consolidated Inventory Audit (Stock & Lots)' },
     { value: 'financial-summary', label: 'Customer Financial & Stock Summary' },
     { value: 'voucher-register', label: 'Voucher Register (Expenses & Income)' },
-    { value: 'commodity-summary', label: 'Commodity-wise Stock List' },
-    { value: 'customer-commodity-summary', label: 'Customer-wise Commodity Stock' },
-    { value: 'lot-inventory-summary', label: 'Lot-wise Inventory Register' },
     { value: 'payment-register', label: 'Payment Register' },
     { value: 'pending-dues', label: 'Pending Dues Register' },
     { value: 'customer-statement', label: 'Customer Statement of Account' },
@@ -124,12 +122,8 @@ export function CustomReportGenerator({
                 return <DailySummaryReport records={records} customers={customers} unloadingRecords={unloadingRecords} expenses={expenses} otherIncomes={otherIncomes} customerPayments={customerPayments} />;
             case 'financial-summary':
                 return <FinancialSummaryReport records={records} customers={customers} unloadingRecords={unloadingRecords} customerPayments={customerPayments} warehouseInfo={warehouseInfo} />;
-            case 'commodity-summary':
-                return <CommodityStockReport records={records} customers={customers} warehouseInfo={warehouseInfo} title="Commodity-wise Stock Summary" />;
-            case 'customer-commodity-summary':
-                return <CustomerCommodityStockReport records={records} customers={customers} warehouseInfo={warehouseInfo} title="Customer-wise Commodity Stock" />;
-            case 'lot-inventory-summary':
-                return <LotWiseInventoryReport records={records} customers={customers} warehouseInfo={warehouseInfo} title="Lot-wise Inventory Register" />;
+            case 'inventory-audit':
+                return <InventoryMasterAuditReport records={records} customers={customers} warehouseInfo={warehouseInfo} title="Consolidated Inventory Audit" />;
             case 'payment-register':
                 return <PaymentReport records={records} unloadingRecords={unloadingRecords} customers={customers} customerPayments={customerPayments} />;
             case 'voucher-register':
@@ -138,36 +132,38 @@ export function CustomReportGenerator({
                 const summaryMap: Record<string, any> = {};
                 records.forEach(r => {
                     if (!summaryMap[r.customerId]) summaryMap[r.customerId] = { hLiability: 0, rLiability: 0, totalPaid: 0 };
-                    summaryMap[r.customerId].hLiability += r.hamaliPayable || 0;
-                    summaryMap[r.customerId].rLiability += (r.totalRentBilled || 0) + (r.khataAmount || 0);
-                    summaryMap[r.customerId].totalPaid += (r.payments || []).reduce((acc, p) => acc + p.amount, 0);
+                    summaryMap[r.customerId].hLiability += Number(r.hamaliPayable) || 0;
+                    summaryMap[r.customerId].rLiability += (Number(r.totalRentBilled) || 0) + (Number(r.khataAmount) || 0);
+                    summaryMap[r.customerId].totalPaid += (r.payments || []).reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
+                    // Deduct Patti discounts from receivables
+                    (r.outflows || []).forEach(o => { summaryMap[r.customerId].totalPaid += (Number(o.discount) || 0); });
                 });
                 unloadingRecords.forEach(r => {
                     if (!summaryMap[r.customerId]) summaryMap[r.customerId] = { hLiability: 0, rLiability: 0, totalPaid: 0 };
-                    const remaining = Math.max(0, r.bagsUnloaded - (r.bagsSentToDrying || 0));
-                    summaryMap[r.customerId].hLiability += remaining * (r.hamaliPerBag || 0);
-                    summaryMap[r.customerId].totalPaid += (r.payments || []).reduce((acc, p) => acc + p.amount, 0);
+                    const remaining = Math.max(0, (Number(r.bagsUnloaded) || 0) - (Number(r.bagsSentToDrying) || 0));
+                    summaryMap[r.customerId].hLiability += remaining * (Number(r.hamaliPerBag) || 0);
+                    summaryMap[r.customerId].totalPaid += (r.payments || []).reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
                 });
                 customerPayments.forEach(cp => {
                     if (!summaryMap[cp.customerId]) summaryMap[cp.customerId] = { hLiability: 0, rLiability: 0, totalPaid: 0 };
-                    summaryMap[cp.customerId].totalPaid += (cp.amount || 0);
+                    summaryMap[cp.customerId].totalPaid += (Number(cp.amount) || 0);
                 });
                 const summaries = Object.entries(summaryMap).map(([id, d]) => {
-                    const balance = Math.max(0, (d.hLiability + d.rLiability) - d.totalPaid);
-                    if (balance < 0.5) return null;
+                    const balance = (d.hLiability + d.rLiability) - d.totalPaid;
+                    if (Math.abs(balance) < 0.1) return null;
                     return {
                         customerId: id,
                         customerName: customers.find(c => c.id === id)?.name || 'Unknown',
-                        totalBilled: d.hLiability + d.rLiability,
-                        amountPaid: d.totalPaid,
-                        balanceDue: balance,
-                        hamaliPending: Math.max(0, d.hLiability - d.totalPaid),
-                        rentPending: Math.max(0, balance - Math.max(0, d.hLiability - d.totalPaid))
+                        customerHamaliPending: Math.max(0, d.hLiability - d.totalPaid),
+                        rentPending: Math.max(0, balance - Math.max(0, d.hLiability - d.totalPaid)),
+                        totalBalance: balance,
+                        lastActivityDate: new Date()
                     };
                 }).filter(s => s !== null);
 
                 return <PendingDuesReportTable 
                             summaries={summaries as any} 
+                            globalWorkerBalance={0}
                             title="Pending Dues Register"
                             customers={customers}
                             storageRecords={records}
